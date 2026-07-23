@@ -22,7 +22,9 @@ use local_outcomemap\local\service\course_instance_service;
 use local_outcomemap\local\service\coverage_service;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\outcome_service;
+use local_outcomemap\local\service\policy_service;
 use local_outcomemap\local\service\remediation_service;
+use local_outcomemap\local\service\student_result_service;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
@@ -209,5 +211,189 @@ final class content_mapping_service_test extends \advanced_testcase {
         $this->assertSame('0.0000000000', $record->minpercent);
         $this->assertSame('69.9990000000', $record->maxpercent);
         $this->assertEquals(1, $record->required);
+    }
+
+    /**
+     * Tests governed band/range selection, ordering, access filtering, and safe output fields.
+     */
+    public function test_accessible_remediation_selection_is_exact_ordered_and_learner_safe(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $at = 1800000000;
+        $course = $this->getDataGenerator()->create_course(['numsections' => 2]);
+        $visiblepage = $this->getDataGenerator()->create_module('page', [
+            'course' => $course->id,
+            'section' => 1,
+            'name' => 'Visible review',
+        ]);
+        $hiddenpage = $this->getDataGenerator()->create_module('page', [
+            'course' => $course->id,
+            'section' => 1,
+            'name' => 'Hidden review',
+            'visible' => 0,
+        ]);
+        $visiblecm = get_coursemodule_from_instance('page', $visiblepage->id, $course->id, false, MUST_EXIST);
+        $hiddencm = get_coursemodule_from_instance('page', $hiddenpage->id, $course->id, false, MUST_EXIST);
+        $hiddensectionid = (int) $DB->get_field('course_sections', 'id', [
+            'course' => $course->id,
+            'section' => 2,
+        ], MUST_EXIST);
+        $DB->set_field('course_sections', 'visible', 0, ['id' => $hiddensectionid]);
+        rebuild_course_cache($course->id, true);
+
+        $reviewer = $this->create_reviewer();
+        [$cinstid, $itemverid] = $this->create_scope($course, $reviewer);
+        $policyid = policy_service::create([
+            'policytype' => policy_service::TYPE_CALCULATION,
+            'scopetype' => policy_service::SCOPE_INSTITUTION,
+            'name' => 'Remediation bands',
+            'config' => ['minitems' => 1, 'displayscale' => 1],
+            'bands' => [
+                ['code' => 'below', 'name' => 'Below', 'minpercent' => '0', 'maxpercent' => '70'],
+                ['code' => 'met', 'name' => 'Met', 'minpercent' => '70', 'maxpercent' => '100',
+                    'maxinclusive' => true],
+            ],
+            'effectivefrom' => 1704067200,
+        ]);
+        policy_service::submit_for_review($policyid);
+        $this->setUser($reviewer);
+        policy_service::approve($policyid);
+        $this->setAdminUser();
+        [$belowband, $metband] = policy_service::get_bands($policyid);
+
+        $base = [
+            'cinstid' => $cinstid,
+            'itemverid' => $itemverid,
+            'purpose' => remediation_service::PURPOSE_REVIEW,
+            'effectivefrom' => 1704067200,
+        ];
+        $create = function(array $data, bool $approve = true) use ($base, $reviewer): int {
+            $this->setAdminUser();
+            $id = remediation_service::create(array_merge($base, $data));
+            if ($approve) {
+                remediation_service::submit_for_review($id);
+                $this->setUser($reviewer);
+                remediation_service::approve($id);
+                $this->setAdminUser();
+            }
+            return $id;
+        };
+        $create([
+            'targettype' => remediation_service::TARGET_EXTERNAL,
+            'externalurl' => 'https://example.test/high-priority',
+            'title' => 'External first',
+            'minpercent' => '0',
+            'maxpercent' => '50',
+            'priority' => 10,
+            'sortorder' => 9,
+        ]);
+        $create([
+            'bandid' => $belowband->id,
+            'targettype' => remediation_service::TARGET_MODULE,
+            'targetid' => $visiblecm->id,
+            'title' => 'Module second',
+            'minpercent' => '50',
+            'maxpercent' => '50',
+            'priority' => 5,
+            'sortorder' => 2,
+        ]);
+        $create([
+            'bandid' => $belowband->id,
+            'targettype' => remediation_service::TARGET_MODULE,
+            'targetid' => $visiblecm->id,
+            'title' => 'Module first',
+            'minpercent' => '50',
+            'maxpercent' => '50',
+            'priority' => 5,
+            'sortorder' => 1,
+        ]);
+        $create([
+            'bandid' => $metband->id,
+            'targettype' => remediation_service::TARGET_MODULE,
+            'targetid' => $visiblecm->id,
+            'title' => 'Wrong exact band',
+            'minpercent' => '0',
+            'maxpercent' => '100',
+            'priority' => 50,
+        ]);
+        $create([
+            'targettype' => remediation_service::TARGET_MODULE,
+            'targetid' => $visiblecm->id,
+            'title' => 'Outside percentage',
+            'minpercent' => '51',
+            'maxpercent' => '100',
+            'priority' => 50,
+        ]);
+        $create([
+            'targettype' => remediation_service::TARGET_MODULE,
+            'targetid' => $hiddencm->id,
+            'title' => 'Hidden module',
+            'minpercent' => '0',
+            'maxpercent' => '100',
+            'priority' => 50,
+        ]);
+        $create([
+            'targettype' => remediation_service::TARGET_SECTION,
+            'targetid' => $hiddensectionid,
+            'title' => 'Hidden section',
+            'minpercent' => '0',
+            'maxpercent' => '100',
+            'priority' => 50,
+        ]);
+        $create([
+            'targettype' => remediation_service::TARGET_EXTERNAL,
+            'externalurl' => 'https://example.test/future',
+            'title' => 'Future recommendation',
+            'effectivefrom' => $at + 1,
+            'priority' => 50,
+        ]);
+        $create([
+            'targettype' => remediation_service::TARGET_EXTERNAL,
+            'externalurl' => 'https://example.test/expired',
+            'title' => 'Expired recommendation',
+            'effectiveto' => $at,
+            'priority' => 50,
+        ]);
+        $create([
+            'targettype' => remediation_service::TARGET_EXTERNAL,
+            'externalurl' => 'https://example.test/draft',
+            'title' => 'Draft recommendation',
+            'priority' => 50,
+        ], false);
+
+        $student = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
+        $this->setUser($student);
+        $modinfo = get_fast_modinfo($course->id, $student->id);
+        $selector = new \ReflectionMethod(student_result_service::class, 'select_accessible_remediation');
+        $selected = $selector->invoke(null, $course->id, [
+            'clo' => [
+                'cinstid' => $cinstid,
+                'itemverid' => $itemverid,
+                'bandid' => $belowband->id,
+                'percentage' => '50',
+            ],
+            'notcalculated' => [
+                'cinstid' => $cinstid,
+                'itemverid' => $itemverid,
+                'bandid' => $belowband->id,
+                'percentage' => null,
+            ],
+        ], $at, $modinfo, $modinfo->get_cms());
+
+        $this->assertSame(['External first', 'Module first', 'Module second'],
+            array_column($selected['clo'], 'title'));
+        $this->assertSame([], $selected['notcalculated']);
+        $this->assertSame([
+            'title', 'explanation', 'url', 'required', 'purpose', 'priority', 'sortorder',
+        ], array_keys($selected['clo'][0]));
+        $this->assertSame(remediation_service::PURPOSE_REVIEW, $selected['clo'][0]['purpose']);
+        $this->assertStringStartsWith('https://', $selected['clo'][0]['url']);
+        foreach ($selected['clo'] as $recommendation) {
+            $this->assertArrayNotHasKey('targetid', $recommendation);
+            $this->assertArrayNotHasKey('externalurl', $recommendation);
+            $this->assertArrayNotHasKey('bandid', $recommendation);
+        }
     }
 }

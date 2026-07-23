@@ -8,6 +8,8 @@
 
 namespace local_outcomemap;
 
+use local_outcomemap\local\service\catalog_course_service;
+use local_outcomemap\local\service\course_instance_service;
 use local_outcomemap\local\service\policy_service;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
@@ -229,5 +231,167 @@ final class policy_service_test extends \advanced_testcase {
         } catch (validation_exception $e) {
             $this->assertSame('bandsoverlap', $e->errorcode);
         }
+    }
+
+    /**
+     * Tests typed validation and normalization for every release mode.
+     */
+    public function test_release_policy_config_supports_all_governed_modes(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $effectivefrom = time() - 100;
+
+        foreach (policy_service::RELEASE_MODES as $index => $mode) {
+            $config = ['mode' => $mode, 'releaseat' => $effectivefrom + 500];
+            $id = policy_service::create([
+                'policytype' => policy_service::TYPE_RELEASE,
+                'scopetype' => policy_service::SCOPE_INSTITUTION,
+                'name' => 'Release mode ' . $index,
+                'config' => $config,
+                'effectivefrom' => $effectivefrom,
+            ]);
+            $policy = policy_service::get($id);
+            $expected = ['mode' => $mode];
+            if ($mode === policy_service::RELEASE_SCHEDULED) {
+                $expected['releaseat'] = $effectivefrom + 500;
+            }
+            $this->assertSame($expected, $policy->config, $mode);
+            $this->assertSame([], $policy->bands, $mode);
+        }
+
+        foreach ([
+            ['mode' => 'unknown'],
+            ['mode' => policy_service::RELEASE_SCHEDULED],
+            ['mode' => policy_service::RELEASE_SCHEDULED, 'releaseat' => 0],
+        ] as $config) {
+            try {
+                policy_service::create([
+                    'policytype' => policy_service::TYPE_RELEASE,
+                    'scopetype' => policy_service::SCOPE_INSTITUTION,
+                    'name' => 'Invalid release mode',
+                    'config' => $config,
+                    'effectivefrom' => $effectivefrom,
+                ]);
+                $this->fail('Invalid release configuration was accepted.');
+            } catch (validation_exception $e) {
+                $this->assertSame('invalidpolicyconfig', $e->errorcode);
+            }
+        }
+    }
+
+    /**
+     * Tests set-based release resolution precedence and explicit no-default behavior.
+     */
+    public function test_resolve_many_uses_scope_precedence_and_returns_null_without_policy(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $reviewer = $this->create_reviewer();
+        $course = $this->getDataGenerator()->create_course();
+        $othercourse = $this->getDataGenerator()->create_course();
+        $page = $this->getDataGenerator()->create_module('page', ['course' => $course->id]);
+        $cm = get_coursemodule_from_instance('page', $page->id, $course->id, false, MUST_EXIST);
+        $catalogid = catalog_course_service::create([
+            'code' => 'RELEASE-PRECEDENCE',
+            'name' => 'Release precedence',
+        ]);
+        $cinstid = course_instance_service::create([
+            'courseid' => $catalogid,
+            'moodlecourseid' => $course->id,
+            'periodcode' => '2026-T1',
+        ]);
+        $othercinstid = course_instance_service::create([
+            'courseid' => $catalogid,
+            'moodlecourseid' => $othercourse->id,
+            'periodcode' => '2026-T1',
+        ]);
+        $at = time();
+        $requests = [
+            'assessment' => ['cinstid' => $cinstid, 'cmid' => $cm->id],
+            'instance' => ['cinstid' => $cinstid],
+            'catalog' => ['cinstid' => $othercinstid],
+            'institution' => [],
+        ];
+        $unconfigured = policy_service::resolve_many(policy_service::TYPE_RELEASE, $requests, $at);
+        $this->assertSame(array_keys($requests), array_keys($unconfigured));
+        foreach ($unconfigured as $policy) {
+            $this->assertNull($policy);
+        }
+
+        $approve = function(array $data) use ($reviewer): int {
+            $this->setAdminUser();
+            $id = policy_service::create($data);
+            policy_service::submit_for_review($id);
+            $this->setUser($reviewer);
+            policy_service::approve($id);
+            $this->setAdminUser();
+            return $id;
+        };
+        $base = [
+            'policytype' => policy_service::TYPE_RELEASE,
+            'config' => ['mode' => policy_service::RELEASE_MANUAL],
+            'effectivefrom' => $at - 100,
+        ];
+        $institutionid = $approve($base + [
+            'scopetype' => policy_service::SCOPE_INSTITUTION,
+            'name' => 'Institution release',
+        ]);
+        $catalogpolicyid = $approve($base + [
+            'scopetype' => policy_service::SCOPE_CATALOG_COURSE,
+            'scopeid' => $catalogid,
+            'name' => 'Catalog release',
+        ]);
+        $instancepolicyid = $approve($base + [
+            'scopetype' => policy_service::SCOPE_COURSE_INSTANCE,
+            'scopeid' => $cinstid,
+            'name' => 'Instance release',
+        ]);
+        $assessmentpolicyid = $approve($base + [
+            'scopetype' => policy_service::SCOPE_ASSESSMENT,
+            'scopeid' => $cm->id,
+            'name' => 'Assessment release',
+        ]);
+
+        $resolved = policy_service::resolve_many(policy_service::TYPE_RELEASE, $requests, $at);
+        $this->assertSame($assessmentpolicyid, (int) $resolved['assessment']->id);
+        $this->assertSame($instancepolicyid, (int) $resolved['instance']->id);
+        $this->assertSame($catalogpolicyid, (int) $resolved['catalog']->id);
+        $this->assertSame($institutionid, (int) $resolved['institution']->id);
+    }
+
+    /**
+     * Tests that manual release is a separate, irreversible, audited action.
+     */
+    public function test_manual_release_requires_explicit_action_and_is_idempotent(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $reviewer = $this->create_reviewer();
+        $policyid = policy_service::create([
+            'policytype' => policy_service::TYPE_RELEASE,
+            'scopetype' => policy_service::SCOPE_INSTITUTION,
+            'name' => 'Explicit manual release',
+            'config' => ['mode' => policy_service::RELEASE_MANUAL],
+            'effectivefrom' => time() - 100,
+        ]);
+        policy_service::submit_for_review($policyid);
+        $this->setUser($reviewer);
+        policy_service::approve($policyid);
+
+        $this->assertNull(policy_service::get($policyid)->manualreleasedat);
+        $this->setAdminUser();
+        $releaseid = policy_service::release_manual($policyid, 'Instructor authorized release');
+        $this->assertSame($releaseid, policy_service::release_manual($policyid));
+        $policy = policy_service::get($policyid);
+        $this->assertGreaterThan(0, $policy->manualreleasedat);
+        $this->assertSame(
+            $policy->manualreleasedat,
+            policy_service::manual_release_times([$policyid])[$policyid]
+        );
+        $this->assertTrue($DB->record_exists('local_outcomemap_audit', [
+            'action' => 'manual_release',
+            'objecttype' => 'policy_release',
+            'objectid' => $releaseid,
+        ]));
+        $this->assertCount(1, $DB->get_records('local_outcomemap_policyrel', ['policyid' => $policyid]));
     }
 }

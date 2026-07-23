@@ -319,5 +319,45 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026072500, 'local', 'outcomemap');
     }
 
+    if ($oldversion < 2026072502) {
+        $table = new xmldb_table('local_outcomemap_remed');
+
+        $field = new xmldb_field('purpose', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null,
+            'review', 'targettype');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('sortorder', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null,
+            '0', 'priority');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $key = new xmldb_key('band_fk', XMLDB_KEY_FOREIGN, ['bandid'], 'local_outcomemap_band', ['id']);
+        if (!$dbman->key_exists($table, $key)) {
+            $dbman->add_key($table, $key);
+        }
+
+        upgrade_plugin_savepoint(true, 2026072502, 'local', 'outcomemap');
+    }
+
+    if ($oldversion < 2026072503) {
+        $table = new xmldb_table('local_outcomemap_policyrel');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field('policyid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('releasedat', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('policy_fk', XMLDB_KEY_FOREIGN, ['policyid'], 'local_outcomemap_policy', ['id']);
+        $table->add_key('policy_uq', XMLDB_KEY_UNIQUE, ['policyid']);
+        $table->add_index('releasedat_ix', XMLDB_INDEX_NOTUNIQUE, ['releasedat']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026072503, 'local', 'outcomemap');
+    }
+
     return true;
 }

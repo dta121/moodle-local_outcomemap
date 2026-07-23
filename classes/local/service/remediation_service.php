@@ -50,6 +50,18 @@ final class remediation_service extends base_service {
     /** Supported remediation target types. */
     public const TARGETS = [self::TARGET_MODULE, self::TARGET_SECTION, self::TARGET_EXTERNAL];
 
+    /** General review recommendation. */
+    public const PURPOSE_REVIEW = 'review';
+
+    /** Practice activity recommendation. */
+    public const PURPOSE_PRACTICE = 'practice';
+
+    /** Reassessment activity recommendation. */
+    public const PURPOSE_REASSESSMENT = 'reassessment';
+
+    /** Supported student-facing recommendation purposes. */
+    public const PURPOSES = [self::PURPOSE_REVIEW, self::PURPOSE_PRACTICE, self::PURPOSE_REASSESSMENT];
+
     /**
      * Create a version-one draft recommendation.
      *
@@ -237,15 +249,63 @@ final class remediation_service extends base_service {
         $context = \context_course::instance($courseid, MUST_EXIST);
         require_capability('local/outcomemap:viewdefinitions', $context);
         $sql = "SELECT r.*, ci.periodcode, f.code AS frameworkcode, i.code AS outcomecode,
-                       v.version AS outcomeversion, v.statement AS outcomestatement
+                       v.version AS outcomeversion, v.statement AS outcomestatement,
+                       b.code AS bandcode, b.name AS bandname
                   FROM {local_outcomemap_remed} r
                   JOIN {local_outcomemap_cinst} ci ON ci.id = r.cinstid
                   JOIN {local_outcomemap_itemver} v ON v.id = r.itemverid
                   JOIN {local_outcomemap_item} i ON i.id = v.itemid
                   JOIN {local_outcomemap_fw} f ON f.id = i.frameworkid
+             LEFT JOIN {local_outcomemap_band} b ON b.id = r.bandid
                  WHERE ci.moodlecourseid = :courseid
-              ORDER BY f.code, i.code, r.priority DESC, r.id";
+              ORDER BY f.code, i.code, r.priority DESC, r.sortorder, r.id";
         return $DB->get_records_sql($sql, ['courseid' => $courseid]);
+    }
+
+    /**
+     * Return approved performance-band choices applicable to a Moodle course.
+     *
+     * @param int $courseid Moodle course ID.
+     * @return array Band IDs to labels.
+     */
+    public static function band_options_for_course(int $courseid): array {
+        global $DB;
+        $context = \context_course::instance($courseid, MUST_EXIST);
+        require_capability('local/outcomemap:viewdefinitions', $context);
+        $instances = $DB->get_records('local_outcomemap_cinst', ['moodlecourseid' => $courseid], '',
+            'id, courseid');
+        $cinstids = array_map('intval', array_keys($instances));
+        $catalogids = [];
+        foreach ($instances as $instance) {
+            $catalogids[(int) $instance->courseid] = true;
+        }
+        $cmids = array_map('intval', $DB->get_fieldset_select('course_modules', 'id', 'course = :courseid',
+            ['courseid' => $courseid]));
+        $sql = "SELECT b.id, b.code, b.name AS bandname, p.name AS policyname,
+                       p.scopetype, p.scopeid
+                  FROM {local_outcomemap_band} b
+                  JOIN {local_outcomemap_policy} p ON p.id = b.policyid
+                 WHERE p.policytype = :policytype AND p.status = :status
+              ORDER BY p.name, b.sortorder, b.id";
+        $records = $DB->get_records_sql($sql, [
+            'policytype' => policy_service::TYPE_CALCULATION,
+            'status' => workflow::APPROVED,
+        ]);
+        $options = [];
+        foreach ($records as $record) {
+            $applicable = $record->scopetype === policy_service::SCOPE_INSTITUTION
+                || ($record->scopetype === policy_service::SCOPE_CATALOG_COURSE
+                    && isset($catalogids[(int) $record->scopeid]))
+                || ($record->scopetype === policy_service::SCOPE_COURSE_INSTANCE
+                    && in_array((int) $record->scopeid, $cinstids, true))
+                || ($record->scopetype === policy_service::SCOPE_ASSESSMENT
+                    && in_array((int) $record->scopeid, $cmids, true));
+            if ($applicable) {
+                $options[(int) $record->id] = format_string($record->policyname) . ' — '
+                    . format_string($record->bandname) . ' (' . $record->code . ')';
+            }
+        }
+        return $options;
     }
 
     /**
@@ -303,8 +363,10 @@ final class remediation_service extends base_service {
         ) {
             throw new validation_exception('remediationtargetinvalid', 'targettype');
         }
-        if (!empty($data['bandid'])) {
-            throw new validation_exception('bandnotavailable', 'bandid');
+        $bandid = empty($data['bandid']) ? null : input::positive_int($data['bandid'], 'bandid');
+        $purpose = input::required_text($data['purpose'] ?? self::PURPOSE_REVIEW, 'purpose', 20);
+        if (!in_array($purpose, self::PURPOSES, true)) {
+            throw new validation_exception('invalidfield', 'purpose', $purpose);
         }
         $min = self::percentage($data['minpercent'] ?? null, 'minpercent');
         $max = self::percentage($data['maxpercent'] ?? null, 'maxpercent');
@@ -316,13 +378,15 @@ final class remediation_service extends base_service {
             'version' => $version,
             'cinstid' => input::positive_int($data['cinstid'] ?? 0, 'cinstid'),
             'itemverid' => input::positive_int($data['itemverid'] ?? 0, 'itemverid'),
-            'bandid' => null,
+            'bandid' => $bandid,
             'targettype' => $targettype,
+            'purpose' => $purpose,
             'targetid' => $targetid,
             'externalurl' => $externalurl,
             'title' => input::required_text($data['title'] ?? '', 'title', 255),
             'explanation' => input::optional_multiline($data['explanation'] ?? null),
             'priority' => self::nonnegative_int($data['priority'] ?? 0, 'priority'),
+            'sortorder' => self::nonnegative_int($data['sortorder'] ?? 0, 'sortorder'),
             'required' => empty($data['required']) ? 0 : 1,
             'minpercent' => $min,
             'maxpercent' => $max,
@@ -365,6 +429,36 @@ final class remediation_service extends base_service {
                     && ($record->effectiveto === null || (int) $record->effectiveto > (int) $itemversion->effectiveto))
         ) {
             throw new validation_exception('mappingoutsideoutcomeversion', 'effectivefrom');
+        }
+        if ($record->bandid !== null) {
+            $sql = "SELECT b.id, p.policytype, p.scopetype, p.scopeid, p.status,
+                           p.effectivefrom, p.effectiveto
+                      FROM {local_outcomemap_band} b
+                      JOIN {local_outcomemap_policy} p ON p.id = b.policyid
+                     WHERE b.id = :bandid";
+            $band = $DB->get_record_sql($sql, ['bandid' => $record->bandid]);
+            $applicable = $band && $band->policytype === policy_service::TYPE_CALCULATION
+                && $band->status === workflow::APPROVED;
+            if ($applicable && $band->scopetype === policy_service::SCOPE_CATALOG_COURSE) {
+                $applicable = (int) $band->scopeid === (int) $cinst->courseid;
+            } else if ($applicable && $band->scopetype === policy_service::SCOPE_COURSE_INSTANCE) {
+                $applicable = (int) $band->scopeid === (int) $cinst->id;
+            } else if ($applicable && $band->scopetype === policy_service::SCOPE_ASSESSMENT) {
+                $applicable = $DB->record_exists('course_modules', [
+                    'id' => $band->scopeid,
+                    'course' => $cinst->moodlecourseid,
+                ]);
+            } else if ($applicable && $band->scopetype !== policy_service::SCOPE_INSTITUTION) {
+                $applicable = false;
+            }
+            if ($applicable) {
+                $applicable = (int) $record->effectivefrom >= (int) $band->effectivefrom
+                    && ($band->effectiveto === null || ($record->effectiveto !== null
+                        && (int) $record->effectiveto <= (int) $band->effectiveto));
+            }
+            if (!$applicable) {
+                throw new validation_exception('bandnotapplicable', 'bandid', $record->bandid);
+            }
         }
         if ($record->targettype === self::TARGET_MODULE) {
             $targetcourseid = $DB->get_field('course_modules', 'course', ['id' => $record->targetid]);

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Versioned calculation and attempt-selection policy service.
+ * Versioned calculation, attempt-selection, and feedback-release policy service.
  *
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
@@ -47,8 +47,35 @@ final class policy_service extends base_service {
     /** Calculation (sufficiency, precision, and bands) policy type. */
     public const TYPE_CALCULATION = 'calculation';
 
+    /** Student feedback-release policy type. */
+    public const TYPE_RELEASE = 'release';
+
     /** Supported policy types. */
-    public const TYPES = [self::TYPE_ATTEMPT_SELECTION, self::TYPE_CALCULATION];
+    public const TYPES = [self::TYPE_ATTEMPT_SELECTION, self::TYPE_CALCULATION, self::TYPE_RELEASE];
+
+    /** Release after every contributing quiz attempt is fully graded. */
+    public const RELEASE_FULLY_GRADED = 'fully_graded';
+
+    /** Release when every contributing Moodle quiz grade is visible. */
+    public const RELEASE_GRADE_VISIBLE = 'grade_visible';
+
+    /** Release when every contributing quiz has closed for the learner. */
+    public const RELEASE_QUIZ_CLOSED = 'quiz_closed';
+
+    /** Release at a governed instructor-selected timestamp. */
+    public const RELEASE_SCHEDULED = 'scheduled';
+
+    /** Release after a separate authorized and audited manual action. */
+    public const RELEASE_MANUAL = 'manual';
+
+    /** Supported feedback-release modes. */
+    public const RELEASE_MODES = [
+        self::RELEASE_FULLY_GRADED,
+        self::RELEASE_GRADE_VISIBLE,
+        self::RELEASE_QUIZ_CLOSED,
+        self::RELEASE_SCHEDULED,
+        self::RELEASE_MANUAL,
+    ];
 
     /** Institution scope. */
     public const SCOPE_INSTITUTION = 'institution';
@@ -307,9 +334,12 @@ final class policy_service extends base_service {
      * @return \stdClass Policy record with config array and band rows.
      */
     public static function get(int $id): \stdClass {
+        global $DB;
         $record = self::get_required('local_outcomemap_policy', $id, 'policy');
         $record->config = json_decode($record->configjson, true) ?? [];
         $record->bands = self::get_bands($id);
+        $releasedat = $DB->get_field('local_outcomemap_policyrel', 'releasedat', ['policyid' => $id]);
+        $record->manualreleasedat = $releasedat === false ? null : (int) $releasedat;
         return $record;
     }
 
@@ -341,6 +371,7 @@ final class policy_service extends base_service {
         foreach ($records as $record) {
             $record->config = json_decode($record->configjson, true) ?? [];
             $record->bands = [];
+            $record->manualreleasedat = null;
         }
         if (!$records) {
             return [];
@@ -348,6 +379,10 @@ final class policy_service extends base_service {
         $bands = $DB->get_records('local_outcomemap_band', null, 'policyid, sortorder');
         foreach ($bands as $band) {
             $records[(int) $band->policyid]->bands[] = $band;
+        }
+        $releases = $DB->get_records_list('local_outcomemap_policyrel', 'policyid', array_keys($records));
+        foreach ($releases as $release) {
+            $records[(int) $release->policyid]->manualreleasedat = (int) $release->releasedat;
         }
         return $records;
     }
@@ -409,6 +444,196 @@ final class policy_service extends base_service {
             }
         }
         return null;
+    }
+
+    /**
+     * Resolve approved policies for many calculation scopes without N+1 queries.
+     *
+     * Each request contains optional `cinstid` and `cmid` values. Returned keys
+     * match the caller's keys, and missing policies resolve to null.
+     *
+     * @param string $policytype Policy type.
+     * @param array $requests Scope requests keyed by caller-defined identifiers.
+     * @param int|null $at Effective timestamp; defaults to now.
+     * @return array Resolved policy records keyed like $requests.
+     */
+    public static function resolve_many(string $policytype, array $requests, ?int $at = null): array {
+        global $DB;
+        if (!in_array($policytype, self::TYPES, true)) {
+            throw new validation_exception('invalidfield', 'policytype', $policytype);
+        }
+        if (!$requests) {
+            return [];
+        }
+        $at = $at ?? time();
+        $normalized = [];
+        $cinstids = [];
+        $cmids = [];
+        foreach ($requests as $key => $request) {
+            $request = (array) $request;
+            $cinstid = empty($request['cinstid']) ? null : (int) $request['cinstid'];
+            $cmid = empty($request['cmid']) ? null : (int) $request['cmid'];
+            $normalized[$key] = ['cinstid' => $cinstid, 'cmid' => $cmid];
+            if ($cinstid !== null) {
+                $cinstids[$cinstid] = $cinstid;
+            }
+            if ($cmid !== null) {
+                $cmids[$cmid] = $cmid;
+            }
+        }
+
+        $courseids = [];
+        $instances = [];
+        if ($cinstids) {
+            $instances = $DB->get_records_list('local_outcomemap_cinst', 'id', array_values($cinstids), '',
+                'id, courseid');
+            foreach ($instances as $instance) {
+                $courseids[(int) $instance->courseid] = (int) $instance->courseid;
+            }
+        }
+
+        $scopeconditions = ['(scopetype = :institution AND scopeid IS NULL)'];
+        $params = [
+            'policytype' => $policytype,
+            'status' => workflow::APPROVED,
+            'at1' => $at,
+            'at2' => $at,
+            'institution' => self::SCOPE_INSTITUTION,
+        ];
+        $scopes = [
+            [self::SCOPE_ASSESSMENT, array_values($cmids), 'assessment'],
+            [self::SCOPE_COURSE_INSTANCE, array_values($cinstids), 'cinst'],
+            [self::SCOPE_CATALOG_COURSE, array_values($courseids), 'catalog'],
+        ];
+        foreach ($scopes as [$scopetype, $ids, $prefix]) {
+            if (!$ids) {
+                continue;
+            }
+            [$insql, $inparams] = $DB->get_in_or_equal($ids, SQL_PARAMS_NAMED, $prefix);
+            $params += $inparams;
+            $params[$prefix . 'type'] = $scopetype;
+            $scopeconditions[] = "(scopetype = :{$prefix}type AND scopeid $insql)";
+        }
+        $select = 'policytype = :policytype AND status = :status
+            AND effectivefrom <= :at1 AND (effectiveto IS NULL OR effectiveto > :at2)
+            AND (' . implode(' OR ', $scopeconditions) . ')';
+        $records = $DB->get_records_select('local_outcomemap_policy', $select, $params,
+            'scopetype, scopeid, version DESC, id DESC');
+        foreach ($records as $record) {
+            $record->config = json_decode($record->configjson, true) ?? [];
+            $record->bands = [];
+        }
+        if ($records) {
+            $bands = $DB->get_records_list('local_outcomemap_band', 'policyid', array_keys($records),
+                'policyid, sortorder');
+            foreach ($bands as $band) {
+                $records[(int) $band->policyid]->bands[] = $band;
+            }
+        }
+
+        $buckets = [];
+        foreach ($records as $record) {
+            $scopekey = $record->scopeid === null ? 0 : (int) $record->scopeid;
+            $buckets[$record->scopetype][$scopekey][] = $record;
+        }
+        $resolved = [];
+        foreach ($normalized as $key => $request) {
+            $courseid = $request['cinstid'] === null || !isset($instances[$request['cinstid']])
+                ? null : (int) $instances[$request['cinstid']]->courseid;
+            $candidates = [
+                [self::SCOPE_ASSESSMENT, $request['cmid']],
+                [self::SCOPE_COURSE_INSTANCE, $request['cinstid']],
+                [self::SCOPE_CATALOG_COURSE, $courseid],
+                [self::SCOPE_INSTITUTION, 0],
+            ];
+            $resolved[$key] = null;
+            foreach ($candidates as [$scopetype, $scopeid]) {
+                if ($scopeid === null || empty($buckets[$scopetype][(int) $scopeid])) {
+                    continue;
+                }
+                $resolved[$key] = $buckets[$scopetype][(int) $scopeid][0];
+                break;
+            }
+        }
+        return $resolved;
+    }
+
+    /**
+     * Irreversibly release an approved manual feedback policy.
+     *
+     * Policy approval governs the release rule but does not itself release
+     * learner data. This separately authorized action is persisted once and
+     * audited so the allowed release time has an explicit actor and event.
+     *
+     * @param int $policyid Approved manual release-policy version ID.
+     * @param string|null $reason Optional release reason.
+     * @return int Manual-release record ID.
+     */
+    public static function release_manual(int $policyid, ?string $reason = null): int {
+        global $DB;
+        $policy = self::get_required('local_outcomemap_policy', $policyid, 'policy');
+        $config = json_decode($policy->configjson, true) ?? [];
+        if ($policy->status !== workflow::APPROVED
+                || $policy->policytype !== self::TYPE_RELEASE
+                || ($config['mode'] ?? null) !== self::RELEASE_MANUAL) {
+            throw new validation_exception('invalidpolicyconfig', 'mode', $config['mode'] ?? '');
+        }
+        $policycontext = self::policy_context($policy);
+        $actorid = self::require_policy_capability($policy);
+        if (in_array($policy->scopetype, [self::SCOPE_COURSE_INSTANCE, self::SCOPE_ASSESSMENT], true)) {
+            require_capability('moodle/course:update', $policycontext);
+        }
+        $existing = $DB->get_record('local_outcomemap_policyrel', ['policyid' => $policyid]);
+        if ($existing) {
+            return (int) $existing->id;
+        }
+
+        $now = time();
+        $record = (object) [
+            'policyid' => $policyid,
+            'releasedat' => $now,
+            'timecreated' => $now,
+        ];
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $id = $DB->insert_record('local_outcomemap_policyrel', $record);
+            $record->id = $id;
+            audit_writer::write(
+                'manual_release',
+                'policy_release',
+                $id,
+                $policy->policyuuid,
+                null,
+                $record,
+                $reason,
+                self::policy_context($policy),
+                $actorid
+            );
+            $transaction->allow_commit();
+            return $id;
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+    }
+
+    /**
+     * Bulk-load explicit manual-release timestamps for policy versions.
+     *
+     * @param int[] $policyids Policy version IDs.
+     * @return array<int,int> Release timestamps keyed by policy ID.
+     */
+    public static function manual_release_times(array $policyids): array {
+        global $DB;
+        $policyids = array_values(array_unique(array_filter(array_map('intval', $policyids))));
+        if (!$policyids) {
+            return [];
+        }
+        $records = $DB->get_records_list('local_outcomemap_policyrel', 'policyid', $policyids);
+        $released = [];
+        foreach ($records as $record) {
+            $released[(int) $record->policyid] = (int) $record->releasedat;
+        }
+        return $released;
     }
 
     /**
@@ -509,6 +734,21 @@ final class policy_service extends base_service {
                 throw new validation_exception('invalidpolicyconfig', 'method', (string) $method);
             }
             return ['method' => $method];
+        }
+        if ($policytype === self::TYPE_RELEASE) {
+            $mode = $config['mode'] ?? '';
+            if (!in_array($mode, self::RELEASE_MODES, true)) {
+                throw new validation_exception('invalidpolicyconfig', 'mode', (string) $mode);
+            }
+            $normalized = ['mode' => $mode];
+            if ($mode === self::RELEASE_SCHEDULED) {
+                $releaseat = filter_var($config['releaseat'] ?? null, FILTER_VALIDATE_INT);
+                if ($releaseat === false || $releaseat < 1) {
+                    throw new validation_exception('invalidpolicyconfig', 'releaseat', $config['releaseat'] ?? '');
+                }
+                $normalized['releaseat'] = (int) $releaseat;
+            }
+            return $normalized;
         }
         $normalized = [];
         $minitems = $config['minitems'] ?? 1;

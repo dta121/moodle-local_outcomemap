@@ -229,7 +229,7 @@ final class golden_calculation_test extends \advanced_testcase {
             'config' => ['method' => policy_service::METHOD_LATEST_COMPLETED],
             'effectivefrom' => self::EFFECTIVEFROM,
         ]);
-        $this->create_policy([
+        $calculationpolicyid = $this->create_policy([
             'policytype' => policy_service::TYPE_CALCULATION,
             'scopetype' => policy_service::SCOPE_INSTITUTION,
             'name' => 'Golden calculation',
@@ -247,6 +247,47 @@ final class golden_calculation_test extends \advanced_testcase {
             ],
             'effectivefrom' => self::EFFECTIVEFROM,
         ]);
+        $belowband = policy_service::get_bands($calculationpolicyid)[0];
+
+        // The golden learner fixture stores the expected CLO4 recommendations,
+        // not merely strings later asserted from rendered output.
+        $expectedrecommendations = [
+            ['title' => 'Unit 2.3', 'purpose' => 'review', 'required' => true, 'sortorder' => 0],
+            ['title' => 'Unit 2.5', 'purpose' => 'review', 'required' => false, 'sortorder' => 1],
+            ['title' => 'Unit 4.1', 'purpose' => 'review', 'required' => false, 'sortorder' => 2],
+            ['title' => 'Unit 4.4', 'purpose' => 'review', 'required' => false, 'sortorder' => 3],
+        ];
+        $remediationids = [];
+        foreach ($expectedrecommendations as $expectedrecommendation) {
+            $page = $this->getDataGenerator()->create_module('page', [
+                'course' => $course->id,
+                'name' => $expectedrecommendation['title'],
+            ]);
+            $pagecm = get_coursemodule_from_instance('page', $page->id, $course->id, false, MUST_EXIST);
+            $remediationids[] = \local_outcomemap\local\service\remediation_service::create([
+                'cinstid' => $cinstid,
+                'itemverid' => $outcomes['CLO4'][1],
+                'bandid' => $belowband->id,
+                'targettype' => \local_outcomemap\local\service\remediation_service::TARGET_MODULE,
+                'targetid' => $pagecm->id,
+                'purpose' => \local_outcomemap\local\service\remediation_service::PURPOSE_REVIEW,
+                'title' => $expectedrecommendation['title'],
+                'priority' => 10,
+                'sortorder' => $expectedrecommendation['sortorder'],
+                'required' => $expectedrecommendation['required'],
+                'minpercent' => '0',
+                'maxpercent' => '69.9999999999',
+                'effectivefrom' => self::EFFECTIVEFROM,
+            ]);
+        }
+        foreach ($remediationids as $remediationid) {
+            \local_outcomemap\local\service\remediation_service::submit_for_review($remediationid);
+        }
+        $this->setUser($this->reviewer);
+        foreach ($remediationids as $remediationid) {
+            \local_outcomemap\local\service\remediation_service::approve($remediationid);
+        }
+        $this->setAdminUser();
 
         // Questions: exact marks come from manual grading of essay questions.
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
@@ -355,6 +396,43 @@ final class golden_calculation_test extends \advanced_testcase {
         // Display rounding never changes the authoritative band or value.
         $clo2 = $this->assessment_result((int) $cm->id, (int) $student->id, $outcomes['CLO2'][1]);
         $this->assertSame('81.4000000000', decimal::quantize($clo2->percentage, 1));
+
+        // CLO4's exact below band selects all four approved and accessible
+        // review targets in the fixture's governed display order.
+        $clo4 = $this->assessment_result((int) $cm->id, (int) $student->id, $outcomes['CLO4'][1]);
+        $this->setUser($student);
+        $modinfo = get_fast_modinfo($course->id, $student->id);
+        $selector = new \ReflectionMethod(
+            \local_outcomemap\local\service\student_result_service::class,
+            'select_accessible_remediation'
+        );
+        $selectedrecommendations = $selector->invoke(
+            null,
+            $course->id,
+            ['CLO4' => [
+                'cinstid' => $cinstid,
+                'itemverid' => $outcomes['CLO4'][1],
+                'bandid' => $clo4->bandid,
+                'percentage' => $clo4->percentage,
+            ]],
+            time(),
+            $modinfo,
+            $modinfo->get_cms()
+        )['CLO4'];
+        $this->setAdminUser();
+        $actualrecommendations = array_map(static function(array $recommendation): array {
+            return [
+                'title' => $recommendation['title'],
+                'purpose' => $recommendation['purpose'],
+                'required' => $recommendation['required'],
+                'sortorder' => $recommendation['sortorder'],
+            ];
+        }, $selectedrecommendations);
+        $this->assertSame($expectedrecommendations, $actualrecommendations);
+        foreach ($selectedrecommendations as $recommendation) {
+            $this->assertNotSame('', $recommendation['url']);
+            $this->assertArrayNotHasKey('targetid', $recommendation);
+        }
 
         // Too little weighted evidence is insufficient, never a failure.
         $insufficient = $this->assessment_result((int) $cm->id, (int) $student->id, $outcomes['CLOINS'][1]);

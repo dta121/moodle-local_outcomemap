@@ -52,6 +52,7 @@ if ($action === 'submit' && $id) {
 }
 if (in_array($action, ['add', 'edit', 'newversion'], true)) {
     $options = content_mapping_service::editor_options($courseid);
+    $options['bands'] = remediation_service::band_options_for_course($courseid);
     if (!$options['instances']) {
         redirect(
             $url,
@@ -108,8 +109,10 @@ echo $OUTPUT->heading(get_string('remediation_heading', 'local_outcomemap'));
 echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']), get_string('addremediation', 'local_outcomemap'));
 $table = new html_table();
 $table->head = [get_string('outcomeversion', 'local_outcomemap'), get_string('title', 'local_outcomemap'),
+    get_string('performanceband', 'local_outcomemap'), get_string('remediationpurpose', 'local_outcomemap'),
     get_string('target', 'local_outcomemap'), get_string('priority', 'local_outcomemap'),
-    get_string('status', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
+    get_string('displayorder', 'local_outcomemap'), get_string('status', 'local_outcomemap'),
+    get_string('actions', 'local_outcomemap')];
 $modinfo = get_fast_modinfo($courseid);
 foreach (remediation_service::list_for_course($courseid) as $record) {
     if ($record->targettype === remediation_service::TARGET_MODULE) {
@@ -132,9 +135,18 @@ foreach (remediation_service::list_for_course($courseid) as $record) {
             get_string('newremediationversion', 'local_outcomemap')
         );
     }
-    $table->data[] = [s($record->frameworkcode . '.' . $record->outcomecode . ' v' . $record->outcomeversion),
-        format_string($record->title), $target, (int) $record->priority,
-        get_string('status_' . $record->status, 'local_outcomemap'), implode(' | ', $actions)];
+    $table->data[] = [
+        s($record->frameworkcode . '.' . $record->outcomecode . ' v' . $record->outcomeversion),
+        format_string($record->title),
+        $record->bandid === null ? get_string('anyperformanceband', 'local_outcomemap')
+            : format_string($record->bandname) . ' (' . s($record->bandcode) . ')',
+        get_string('remediationpurpose_' . $record->purpose, 'local_outcomemap'),
+        $target,
+        (int) $record->priority,
+        (int) $record->sortorder,
+        get_string('status_' . $record->status, 'local_outcomemap'),
+        implode(' | ', $actions),
+    ];
 }
 echo html_writer::table($table);
 echo $OUTPUT->footer();

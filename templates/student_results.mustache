@@ -1,0 +1,72 @@
+{{!
+    Student outcome-results table.
+    @template local_outcomemap/student_results
+}}
+{{#hasrows}}
+<div class="table-responsive">
+    <table class="generaltable table">
+        <caption class="accesshide">{{caption}}</caption>
+        <thead>
+            <tr>
+                <th scope="col">{{#str}} resultcolumn_outcome, local_outcomemap {{/str}}</th>
+                <th scope="col">{{#str}} resultcolumn_result, local_outcomemap {{/str}}</th>
+                <th scope="col">{{#str}} resultcolumn_bandstate, local_outcomemap {{/str}}</th>
+                <th scope="col">{{#str}} resultcolumn_scope, local_outcomemap {{/str}}</th>
+                <th scope="col">{{#str}} resultcolumn_calculation, local_outcomemap {{/str}}</th>
+                <th scope="col">{{#str}} resultcolumn_remediation, local_outcomemap {{/str}}</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{#rows}}
+            <tr>
+                <th scope="row">
+                    <strong>{{code}}</strong>
+                    <div>{{shortstatement}}</div>
+                </th>
+                <td>{{percentage}}</td>
+                <td>
+                    <strong>{{bandstate}}</strong>
+                    {{#bandfeedback}}
+                        <div><span class="fw-bold">{{#str}} bandfeedback, local_outcomemap {{/str}}:</span> {{bandfeedback}}</div>
+                    {{/bandfeedback}}
+                </td>
+                <td>{{scope}}</td>
+                <td>
+                    {{#hascalculation}}
+                    <details>
+                        <summary>{{#str}} resultdetails, local_outcomemap {{/str}}</summary>
+                        <dl class="mb-0">
+                            <dt>{{#str}} contributingitems, local_outcomemap {{/str}}</dt>
+                            <dd>{{distinctitems}}</dd>
+                            <dt>{{#str}} weightedpossiblepoints, local_outcomemap {{/str}}</dt>
+                            <dd>{{weightedpossible}}</dd>
+                            <dt>{{#str}} calculationtimestamp, local_outcomemap {{/str}}</dt>
+                            <dd>{{timecalculated}}</dd>
+                        </dl>
+                    </details>
+                    {{/hascalculation}}
+                    {{^hascalculation}}{{timecalculated}}{{/hascalculation}}
+                </td>
+                <td>
+                    {{#hasremediation}}
+                    <ul class="list-unstyled mb-0">
+                        {{#remediation}}
+                        <li class="mb-2">
+                            <a href="{{url}}">{{title}}</a>
+                            <span>({{designation}}; {{purpose}})</span>
+                            {{#explanation}}<div>{{explanation}}</div>{{/explanation}}
+                        </li>
+                        {{/remediation}}
+                    </ul>
+                    {{/hasremediation}}
+                    {{^hasremediation}}{{#str}} noremediation, local_outcomemap {{/str}}{{/hasremediation}}
+                </td>
+            </tr>
+        {{/rows}}
+        </tbody>
+    </table>
+</div>
+{{/hasrows}}
+{{^hasrows}}
+<div class="alert alert-info" role="status">{{#str}} outcomeresults_empty, local_outcomemap {{/str}}</div>
+{{/hasrows}}

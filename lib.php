@@ -124,7 +124,23 @@ function local_outcomemap_extend_navigation_course(
     stdClass $course,
     context_course $context
 ): void {
-    if (!has_capability('local/outcomemap:viewdefinitions', $context)) {
+    $canviewdefinitions = has_capability('local/outcomemap:viewdefinitions', $context);
+    $canviewresults = has_capability('local/outcomemap:viewownresults', $context);
+    $canreleaseresults = has_capability('local/outcomemap:managepolicies', $context)
+        && has_capability('moodle/course:update', $context);
+    if (!$canviewdefinitions && !$canviewresults && !$canreleaseresults) {
+        return;
+    }
+    if ($canviewresults) {
+        $navigation->add(
+            get_string('nav_outcomeresults', 'local_outcomemap'),
+            new moodle_url('/local/outcomemap/results.php', ['courseid' => $course->id]),
+            navigation_node::TYPE_SETTING,
+            null,
+            'local_outcomemap_results'
+        );
+    }
+    if (!$canviewdefinitions && !$canreleaseresults) {
         return;
     }
     $node = $navigation->add(
@@ -134,14 +150,18 @@ function local_outcomemap_extend_navigation_course(
         null,
         'local_outcomemap'
     );
-    $node->add(
-        get_string('nav_coverage', 'local_outcomemap'),
-        new moodle_url('/local/outcomemap/coverage.php', ['courseid' => $course->id]),
-        navigation_node::TYPE_SETTING
-    );
-    $canmapmodules = has_capability('local/outcomemap:mapactivities', $context)
+    if ($canviewdefinitions) {
+        $node->add(
+            get_string('nav_coverage', 'local_outcomemap'),
+            new moodle_url('/local/outcomemap/coverage.php', ['courseid' => $course->id]),
+            navigation_node::TYPE_SETTING
+        );
+    }
+    $canmapmodules = $canviewdefinitions
+        && has_capability('local/outcomemap:mapactivities', $context)
         && has_capability('moodle/course:manageactivities', $context);
-    $canmapcourse = has_capability('local/outcomemap:mapcourse', $context)
+    $canmapcourse = $canviewdefinitions
+        && has_capability('local/outcomemap:mapcourse', $context)
         && has_capability('moodle/course:update', $context);
     if ($canmapmodules || $canmapcourse) {
         $node->add(
@@ -154,6 +174,13 @@ function local_outcomemap_extend_navigation_course(
         $node->add(
             get_string('nav_remediation', 'local_outcomemap'),
             new moodle_url('/local/outcomemap/remediation.php', ['courseid' => $course->id]),
+            navigation_node::TYPE_SETTING
+        );
+    }
+    if ($canreleaseresults) {
+        $node->add(
+            get_string('nav_manualrelease', 'local_outcomemap'),
+            new moodle_url('/local/outcomemap/manualrelease.php', ['courseid' => $course->id]),
             navigation_node::TYPE_SETTING
         );
     }

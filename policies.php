@@ -91,6 +91,12 @@ function local_outcomemap_policy_payload(stdClass $data): array {
     if ($data->policytype === policy_service::TYPE_ATTEMPT_SELECTION) {
         $config = ['method' => $data->attemptmethod];
         $bands = [];
+    } else if ($data->policytype === policy_service::TYPE_RELEASE) {
+        $config = ['mode' => $data->releasemode];
+        if ($data->releasemode === policy_service::RELEASE_SCHEDULED) {
+            $config['releaseat'] = (int) $data->releaseat;
+        }
+        $bands = [];
     } else {
         $config = [
             'minitems' => (int) $data->minitems,
@@ -150,6 +156,9 @@ function local_outcomemap_policy_form_data(stdClass $record): stdClass {
     }
     if ($record->policytype === policy_service::TYPE_ATTEMPT_SELECTION) {
         $record->attemptmethod = $record->config['method'] ?? '';
+    } else if ($record->policytype === policy_service::TYPE_RELEASE) {
+        $record->releasemode = $record->config['mode'] ?? '';
+        $record->releaseat = $record->config['releaseat'] ?? time();
     } else {
         $record->minitems = $record->config['minitems'] ?? 1;
         $record->minweightedpossible = $record->config['minweightedpossible'] ?? '';
@@ -199,6 +208,18 @@ function local_outcomemap_policy_config_summary(stdClass $record): string {
     if ($record->policytype === policy_service::TYPE_ATTEMPT_SELECTION) {
         return get_string('attemptmethod_' . ($record->config['method'] ?? ''), 'local_outcomemap');
     }
+    if ($record->policytype === policy_service::TYPE_RELEASE) {
+        $mode = $record->config['mode'] ?? '';
+        $summary = get_string('releasemode_' . $mode, 'local_outcomemap');
+        if ($mode === policy_service::RELEASE_SCHEDULED && !empty($record->config['releaseat'])) {
+            $summary .= ': ' . userdate((int) $record->config['releaseat']);
+        } else if ($mode === policy_service::RELEASE_MANUAL) {
+            $summary .= '; ' . ($record->manualreleasedat === null
+                ? get_string('manualrelease_pending', 'local_outcomemap')
+                : get_string('manualrelease_at', 'local_outcomemap', userdate($record->manualreleasedat)));
+        }
+        return $summary;
+    }
     $summary = [
         get_string('minimumdistinctitems_value', 'local_outcomemap', $record->config['minitems'] ?? 1),
     ];
@@ -239,6 +260,22 @@ if ($action === 'delete' && $id) {
     require_sesskey();
     policy_service::delete_draft($id);
     redirect($url, get_string('policydeleted', 'local_outcomemap'));
+}
+if ($action === 'release' && $id) {
+    if (!$confirmed) {
+        echo $OUTPUT->header();
+        echo $OUTPUT->confirm(
+            get_string('confirmmanualrelease', 'local_outcomemap'),
+            new moodle_url($url, ['action' => 'release', 'id' => $id, 'confirm' => 1,
+                'sesskey' => sesskey()]),
+            $url
+        );
+        echo $OUTPUT->footer();
+        exit;
+    }
+    require_sesskey();
+    policy_service::release_manual($id);
+    redirect($url, get_string('manualreleased', 'local_outcomemap'));
 }
 
 if (in_array($action, ['add', 'edit', 'newversion'], true)) {
@@ -362,6 +399,14 @@ foreach (policy_service::list_all() as $record) {
     } else if ($record->status === workflow::APPROVED) {
         $actions[] = html_writer::link(new moodle_url($url, ['action' => 'newversion', 'id' => $record->id]),
             get_string('newpolicyversion', 'local_outcomemap'));
+        if ($record->policytype === policy_service::TYPE_RELEASE
+                && ($record->config['mode'] ?? null) === policy_service::RELEASE_MANUAL
+                && $record->manualreleasedat === null) {
+            $actions[] = html_writer::link(new moodle_url($url, [
+                'action' => 'release',
+                'id' => $record->id,
+            ]), get_string('manualrelease', 'local_outcomemap'));
+        }
     }
     $effectiverange = userdate($record->effectivefrom) . ' — '
         . ($record->effectiveto ? userdate($record->effectiveto) : get_string('noenddate', 'local_outcomemap'));

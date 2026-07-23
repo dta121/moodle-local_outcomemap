@@ -123,6 +123,37 @@ final class backup_restore_test extends \advanced_testcase {
         ], MUST_EXIST);
         $reviewer = $this->create_reviewer();
         [$sourcecinstid, $itemverid] = $this->create_scope($course, $reviewer);
+        $calculationpolicyid = \local_outcomemap\local\service\policy_service::create([
+            'policytype' => \local_outcomemap\local\service\policy_service::TYPE_CALCULATION,
+            'scopetype' => \local_outcomemap\local\service\policy_service::SCOPE_INSTITUTION,
+            'name' => 'Backup remediation bands',
+            'config' => ['minitems' => 1, 'displayscale' => 1],
+            'bands' => [[
+                'code' => 'below',
+                'name' => 'Below expectations',
+                'minpercent' => '0',
+                'maxpercent' => '70',
+            ]],
+            'effectivefrom' => 1704067200,
+        ]);
+        \local_outcomemap\local\service\policy_service::submit_for_review($calculationpolicyid);
+        $this->setUser($reviewer);
+        \local_outcomemap\local\service\policy_service::approve($calculationpolicyid);
+        $this->setAdminUser();
+        $band = \local_outcomemap\local\service\policy_service::get_bands($calculationpolicyid)[0];
+        $nextpolicyid = \local_outcomemap\local\service\policy_service::create_version($calculationpolicyid, [
+            'name' => 'Backup remediation bands v2',
+            'config' => ['minitems' => 1, 'displayscale' => 1],
+            'bands' => [[
+                'code' => 'below',
+                'name' => 'Below expectations revised',
+                'minpercent' => '0',
+                'maxpercent' => '75',
+            ]],
+            'effectivefrom' => 1800000000,
+        ]);
+        $nextband = \local_outcomemap\local\service\policy_service::get_bands($nextpolicyid)[0];
+        $this->assertNotSame((int) $band->id, (int) $nextband->id);
 
         $modulemappingid = content_mapping_service::create_course_module([
             'cinstid' => $sourcecinstid,
@@ -141,9 +172,12 @@ final class backup_restore_test extends \advanced_testcase {
         $remediationid = remediation_service::create([
             'cinstid' => $sourcecinstid,
             'itemverid' => $itemverid,
+            'bandid' => $band->id,
             'targettype' => remediation_service::TARGET_EXTERNAL,
+            'purpose' => remediation_service::PURPOSE_PRACTICE,
             'externalurl' => 'https://example.test/restore-safe',
             'title' => 'Restore-safe recommendation',
+            'sortorder' => 17,
             'effectivefrom' => 1704067200,
         ]);
         content_mapping_service::submit_for_review(content_mapping_service::TARGET_MODULE, $modulemappingid);
@@ -235,6 +269,29 @@ final class backup_restore_test extends \advanced_testcase {
         $this->assertNotSame($sourcemodulemapping->mappinguuid, $restoredmodulemapping->mappinguuid);
         $this->assertNotSame($sourcesectionmapping->mappinguuid, $restoredsectionmapping->mappinguuid);
         $this->assertNotSame($sourceremediation->mappinguuid, $restoredremediation->mappinguuid);
+        $this->assertSame(remediation_service::PURPOSE_PRACTICE, $restoredremediation->purpose);
+        $this->assertSame(17, (int) $restoredremediation->sortorder);
+        $this->assertSame((int) $band->id, (int) $restoredremediation->bandid);
+
+        $itemversion = $DB->get_record('local_outcomemap_itemver', ['id' => $itemverid], '*', MUST_EXIST);
+        $itemuuid = $DB->get_field('local_outcomemap_item', 'uuid', ['id' => $itemversion->itemid], MUST_EXIST);
+        $beforecount = $DB->count_records('local_outcomemap_remed');
+        $this->assertNull(\local_outcomemap\local\backup\mapping_restorer::restore_remediation(
+            remediation_service::TARGET_EXTERNAL,
+            (object) [
+                'outcomeuuid' => $itemuuid,
+                'outcomeversionuuid' => $itemversion->uuid,
+                'bandpolicyuuid' => \local_outcomemap\local\uuid::generate(),
+                'bandpolicyversion' => 1,
+                'bandcode' => 'below',
+                'externalurl' => 'https://example.test/unresolved-band',
+                'title' => 'Must not broaden on restore',
+                'purpose' => remediation_service::PURPOSE_REVIEW,
+                'effectivefrom' => 1704067200,
+            ],
+            (int) $restoredcinst->id
+        ));
+        $this->assertSame($beforecount, $DB->count_records('local_outcomemap_remed'));
     }
 
     /**

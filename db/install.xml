@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/outcomemap/db" VERSION="20260725" COMMENT="XMLDB file for local_outcomemap"
+<XMLDB PATH="local/outcomemap/db" VERSION="20260727" COMMENT="XMLDB file for local_outcomemap"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
   <TABLES>
@@ -293,47 +293,6 @@
         <INDEX NAME="effectiveto_ix" UNIQUE="false" FIELDS="effectiveto"/>
       </INDEXES>
     </TABLE>
-    <TABLE NAME="local_outcomemap_remed" COMMENT="Versioned remediation recommendations for exact outcome versions">
-      <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="mappinguuid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="version" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="cinstid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="itemverid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="bandid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="targettype" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="targetid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="externalurl" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="title" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="explanation" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="priority" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="required" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="minpercent" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="maxpercent" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="draft" SEQUENCE="false"/>
-        <FIELD NAME="effectivefrom" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="effectiveto" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="approvedby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="approvedat" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
-      </FIELDS>
-      <KEYS>
-        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="cinst_fk" TYPE="foreign" FIELDS="cinstid" REFTABLE="local_outcomemap_cinst" REFFIELDS="id"/>
-        <KEY NAME="itemver_fk" TYPE="foreign" FIELDS="itemverid" REFTABLE="local_outcomemap_itemver" REFFIELDS="id"/>
-        <KEY NAME="mappingversion_uq" TYPE="unique" FIELDS="mappinguuid, version"/>
-      </KEYS>
-      <INDEXES>
-        <INDEX NAME="cinstitemstatus_ix" UNIQUE="false" FIELDS="cinstid, itemverid, status"/>
-        <INDEX NAME="bandidstatus_ix" UNIQUE="false" FIELDS="bandid, status"/>
-        <INDEX NAME="target_ix" UNIQUE="false" FIELDS="targettype, targetid"/>
-        <INDEX NAME="prioritystatus_ix" UNIQUE="false" FIELDS="priority, status"/>
-        <INDEX NAME="effectivefrom_ix" UNIQUE="false" FIELDS="effectivefrom"/>
-        <INDEX NAME="effectiveto_ix" UNIQUE="false" FIELDS="effectiveto"/>
-      </INDEXES>
-    </TABLE>
     <TABLE NAME="local_outcomemap_qmap" COMMENT="Versioned question-version mappings to exact outcome versions">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
@@ -416,6 +375,66 @@
         <KEY NAME="policycode_uq" TYPE="unique" FIELDS="policyid, code"/>
         <KEY NAME="policysort_uq" TYPE="unique" FIELDS="policyid, sortorder"/>
       </KEYS>
+    </TABLE>
+    <TABLE NAME="local_outcomemap_remed" COMMENT="Versioned remediation recommendations for exact outcome versions">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="mappinguuid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="version" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="cinstid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="itemverid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="bandid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="targettype" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="purpose" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="review" SEQUENCE="false"/>
+        <FIELD NAME="targetid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="externalurl" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="title" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="explanation" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="priority" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="required" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="minpercent" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="maxpercent" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="draft" SEQUENCE="false"/>
+        <FIELD NAME="effectivefrom" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="effectiveto" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="approvedby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="approvedat" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="cinst_fk" TYPE="foreign" FIELDS="cinstid" REFTABLE="local_outcomemap_cinst" REFFIELDS="id"/>
+        <KEY NAME="itemver_fk" TYPE="foreign" FIELDS="itemverid" REFTABLE="local_outcomemap_itemver" REFFIELDS="id"/>
+        <KEY NAME="band_fk" TYPE="foreign" FIELDS="bandid" REFTABLE="local_outcomemap_band" REFFIELDS="id"/>
+        <KEY NAME="mappingversion_uq" TYPE="unique" FIELDS="mappinguuid, version"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="cinstitemstatus_ix" UNIQUE="false" FIELDS="cinstid, itemverid, status"/>
+        <INDEX NAME="bandidstatus_ix" UNIQUE="false" FIELDS="bandid, status"/>
+        <INDEX NAME="target_ix" UNIQUE="false" FIELDS="targettype, targetid"/>
+        <INDEX NAME="prioritystatus_ix" UNIQUE="false" FIELDS="priority, status"/>
+        <INDEX NAME="effectivefrom_ix" UNIQUE="false" FIELDS="effectivefrom"/>
+        <INDEX NAME="effectiveto_ix" UNIQUE="false" FIELDS="effectiveto"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_outcomemap_policyrel" COMMENT="Explicit irreversible releases of approved manual feedback-policy versions">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="policyid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="releasedat" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="policy_fk" TYPE="foreign" FIELDS="policyid" REFTABLE="local_outcomemap_policy" REFFIELDS="id"/>
+        <KEY NAME="policy_uq" TYPE="unique" FIELDS="policyid"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="releasedat_ix" UNIQUE="false" FIELDS="releasedat"/>
+      </INDEXES>
     </TABLE>
     <TABLE NAME="local_outcomemap_evidence" COMMENT="Atomic direct and inherited outcome evidence observations">
       <FIELDS>

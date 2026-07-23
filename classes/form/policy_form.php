@@ -40,6 +40,7 @@ final class policy_form extends \moodleform {
         $policytypes = [
             policy_service::TYPE_ATTEMPT_SELECTION => get_string('policytype_attempt_selection', 'local_outcomemap'),
             policy_service::TYPE_CALCULATION => get_string('policytype_calculation', 'local_outcomemap'),
+            policy_service::TYPE_RELEASE => get_string('policytype_release', 'local_outcomemap'),
         ];
         $mform->addElement('select', 'policytype', get_string('policytype', 'local_outcomemap'), $policytypes);
 
@@ -76,6 +77,21 @@ final class policy_form extends \moodleform {
         ];
         $mform->addElement('select', 'attemptmethod', get_string('attemptselectionmethod', 'local_outcomemap'), $methods);
         $mform->hideIf('attemptmethod', 'policytype', 'neq', policy_service::TYPE_ATTEMPT_SELECTION);
+
+        $releasemodes = [
+            '' => get_string('choosedots'),
+            policy_service::RELEASE_FULLY_GRADED => get_string('releasemode_fully_graded', 'local_outcomemap'),
+            policy_service::RELEASE_GRADE_VISIBLE => get_string('releasemode_grade_visible', 'local_outcomemap'),
+            policy_service::RELEASE_QUIZ_CLOSED => get_string('releasemode_quiz_closed', 'local_outcomemap'),
+            policy_service::RELEASE_SCHEDULED => get_string('releasemode_scheduled', 'local_outcomemap'),
+            policy_service::RELEASE_MANUAL => get_string('releasemode_manual', 'local_outcomemap'),
+        ];
+        $mform->addElement('select', 'releasemode', get_string('feedbackreleasemode', 'local_outcomemap'),
+            $releasemodes);
+        $mform->hideIf('releasemode', 'policytype', 'neq', policy_service::TYPE_RELEASE);
+        $mform->addElement('date_time_selector', 'releaseat', get_string('feedbackreleaseat', 'local_outcomemap'));
+        $mform->hideIf('releaseat', 'policytype', 'neq', policy_service::TYPE_RELEASE);
+        $mform->hideIf('releaseat', 'releasemode', 'neq', policy_service::RELEASE_SCHEDULED);
 
         $mform->addElement('text', 'minitems', get_string('minimumdistinctitems', 'local_outcomemap'));
         $mform->setType('minitems', PARAM_INT);
@@ -175,6 +191,15 @@ final class policy_form extends \moodleform {
         if (($data['policytype'] ?? '') === policy_service::TYPE_ATTEMPT_SELECTION) {
             if (!in_array($data['attemptmethod'] ?? '', policy_service::METHODS, true)) {
                 $errors['attemptmethod'] = get_string('required');
+            }
+            return $errors;
+        }
+        if (($data['policytype'] ?? '') === policy_service::TYPE_RELEASE) {
+            $mode = $data['releasemode'] ?? '';
+            if (!in_array($mode, policy_service::RELEASE_MODES, true)) {
+                $errors['releasemode'] = get_string('required');
+            } else if ($mode === policy_service::RELEASE_SCHEDULED && empty($data['releaseat'])) {
+                $errors['releaseat'] = get_string('required');
             }
             return $errors;
         }

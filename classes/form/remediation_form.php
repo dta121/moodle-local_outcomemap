@@ -46,6 +46,15 @@ final class remediation_form extends \moodleform {
             $options['outcomes']
         );
         $mform->addRule('itemverid', null, 'required');
+        $mform->addElement('autocomplete', 'bandid', get_string('performanceband', 'local_outcomemap'),
+            [0 => get_string('anyperformanceband', 'local_outcomemap')] + $options['bands']);
+        $purposes = [
+            remediation_service::PURPOSE_REVIEW => get_string('remediationpurpose_review', 'local_outcomemap'),
+            remediation_service::PURPOSE_PRACTICE => get_string('remediationpurpose_practice', 'local_outcomemap'),
+            remediation_service::PURPOSE_REASSESSMENT => get_string('remediationpurpose_reassessment', 'local_outcomemap'),
+        ];
+        $mform->addElement('select', 'purpose', get_string('remediationpurpose', 'local_outcomemap'), $purposes);
+        $mform->setDefault('purpose', remediation_service::PURPOSE_REVIEW);
         $mform->addElement('select', 'targettype', get_string('targettype', 'local_outcomemap'), $targettypes);
         $mform->addElement('autocomplete', 'cmid', get_string('coursemodule', 'local_outcomemap'), $options['modules']);
         $mform->hideIf('cmid', 'targettype', 'neq', remediation_service::TARGET_MODULE);
@@ -67,6 +76,9 @@ final class remediation_form extends \moodleform {
         $mform->addElement('text', 'priority', get_string('priority', 'local_outcomemap'));
         $mform->setType('priority', PARAM_INT);
         $mform->setDefault('priority', 0);
+        $mform->addElement('text', 'sortorder', get_string('displayorder', 'local_outcomemap'));
+        $mform->setType('sortorder', PARAM_INT);
+        $mform->setDefault('sortorder', 0);
         $mform->addElement('advcheckbox', 'required', get_string('requiredremediation', 'local_outcomemap'));
         $mform->addElement('text', 'minpercent', get_string('minpercent', 'local_outcomemap'));
         $mform->setType('minpercent', PARAM_RAW_TRIMMED);

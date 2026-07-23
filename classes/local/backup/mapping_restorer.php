@@ -200,18 +200,33 @@ final class mapping_restorer {
             return null;
         }
         $now = time();
+        $purpose = clean_param((string) ($data->purpose ?? 'review'), PARAM_ALPHANUMEXT);
+        if (!in_array($purpose, ['review', 'practice', 'reassessment'], true)) {
+            $purpose = 'review';
+        }
+        $sourcehasband = trim((string) ($data->bandpolicyuuid ?? '')) !== ''
+            || (int) ($data->bandpolicyversion ?? 0) > 0
+            || trim((string) ($data->bandcode ?? '')) !== '';
+        $bandid = self::resolve_band($data);
+        // Never broaden a band-specific source recommendation to "any band"
+        // when its exact governed policy version is unavailable on restore.
+        if ($sourcehasband && $bandid === null) {
+            return null;
+        }
         $record = (object) [
             'mappinguuid' => uuid::generate(),
             'version' => 1,
             'cinstid' => $cinstid,
             'itemverid' => $itemverid,
-            'bandid' => null,
+            'bandid' => $bandid,
             'targettype' => $targettype,
+            'purpose' => $purpose,
             'targetid' => $targettype === 'external_url' ? null : $targetid,
             'externalurl' => $externalurl,
             'title' => \core_text::substr($title, 0, 255),
             'explanation' => self::nullable_text($data->explanation ?? null),
             'priority' => max(0, (int) ($data->priority ?? 0)),
+            'sortorder' => max(0, (int) ($data->sortorder ?? 0)),
             'required' => empty($data->required) ? 0 : 1,
             'minpercent' => self::nullable_decimal($data->minpercent ?? null),
             'maxpercent' => self::nullable_decimal($data->maxpercent ?? null),
@@ -308,6 +323,33 @@ final class mapping_restorer {
             $transaction->rollback($e);
             throw $e;
         }
+    }
+
+    /**
+     * Resolve an optional backed-up band by stable policy UUID and band code.
+     *
+     * @param object $data Backup remediation data.
+     * @return int|null Matching local band ID, or null when unresolved.
+     */
+    private static function resolve_band(object $data): ?int {
+        global $DB;
+        $policyuuid = strtolower(trim((string) ($data->bandpolicyuuid ?? '')));
+        $policyversion = (int) ($data->bandpolicyversion ?? 0);
+        $bandcode = trim((string) ($data->bandcode ?? ''));
+        if ($policyuuid === '' || $policyversion < 1 || $bandcode === '') {
+            return null;
+        }
+        $sql = "SELECT b.id
+                  FROM {local_outcomemap_band} b
+                  JOIN {local_outcomemap_policy} p ON p.id = b.policyid
+                 WHERE p.policyuuid = :policyuuid AND p.version = :policyversion
+                       AND b.code = :bandcode";
+        $id = $DB->get_field_sql($sql, [
+            'policyuuid' => $policyuuid,
+            'policyversion' => $policyversion,
+            'bandcode' => $bandcode,
+        ]);
+        return $id ? (int) $id : null;
     }
 
     /**

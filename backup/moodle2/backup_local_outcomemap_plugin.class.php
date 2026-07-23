@@ -172,8 +172,8 @@ class backup_local_outcomemap_plugin extends backup_local_plugin {
     private static function remediation_fields(): array {
         return [
             'cinstid', 'catalogcourseuuid', 'periodcode', 'outcomeuuid', 'outcomeversionuuid',
-            'externalurl', 'title', 'explanation', 'priority', 'required', 'minpercent', 'maxpercent',
-            'effectivefrom', 'effectiveto',
+            'bandpolicyuuid', 'bandpolicyversion', 'bandcode', 'externalurl', 'title', 'explanation', 'purpose',
+            'priority', 'sortorder', 'required', 'minpercent', 'maxpercent', 'effectivefrom', 'effectiveto',
         ];
     }
 
@@ -205,13 +205,17 @@ class backup_local_outcomemap_plugin extends backup_local_plugin {
     private static function remediation_sql(string $where): string {
         return "SELECT r.id, r.cinstid, c.uuid AS catalogcourseuuid, ci.periodcode,
                        i.uuid AS outcomeuuid, v.uuid AS outcomeversionuuid,
-                       r.externalurl, r.title, r.explanation, r.priority, r.required,
-                       r.minpercent, r.maxpercent, r.effectivefrom, r.effectiveto
+                       p.policyuuid AS bandpolicyuuid, p.version AS bandpolicyversion,
+                       b.code AS bandcode,
+                       r.externalurl, r.title, r.explanation, r.purpose, r.priority, r.sortorder,
+                       r.required, r.minpercent, r.maxpercent, r.effectivefrom, r.effectiveto
                   FROM {local_outcomemap_remed} r
                   JOIN {local_outcomemap_cinst} ci ON ci.id = r.cinstid
                   JOIN {local_outcomemap_course} c ON c.id = ci.courseid
                   JOIN {local_outcomemap_itemver} v ON v.id = r.itemverid
                   JOIN {local_outcomemap_item} i ON i.id = v.itemid
+             LEFT JOIN {local_outcomemap_band} b ON b.id = r.bandid
+             LEFT JOIN {local_outcomemap_policy} p ON p.id = b.policyid
                  WHERE $where";
     }
 }
