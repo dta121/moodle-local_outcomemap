@@ -171,5 +171,153 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026072400, 'local', 'outcomemap');
     }
 
+    if ($oldversion < 2026072500) {
+        $table = new xmldb_table('local_outcomemap_policy');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field('policyuuid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL);
+        $table->add_field('version', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('policytype', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL);
+        $table->add_field('scopetype', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL);
+        $table->add_field('scopeid', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL);
+        $table->add_field('configjson', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL);
+        $table->add_field('confighash', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL);
+        $table->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'draft');
+        $table->add_field('effectivefrom', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('effectiveto', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('createdby', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('approvedby', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('approvedat', XMLDB_TYPE_INTEGER, '10');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('policyversion_uq', XMLDB_KEY_UNIQUE, ['policyuuid', 'version']);
+        $table->add_index('typescopestatus_ix', XMLDB_INDEX_NOTUNIQUE,
+            ['policytype', 'scopetype', 'scopeid', 'status']);
+        $table->add_index('effectivefrom_ix', XMLDB_INDEX_NOTUNIQUE, ['effectivefrom']);
+        $table->add_index('effectiveto_ix', XMLDB_INDEX_NOTUNIQUE, ['effectiveto']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        $table = new xmldb_table('local_outcomemap_band');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field('policyid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('code', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL);
+        $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL);
+        $table->add_field('description', XMLDB_TYPE_TEXT);
+        $table->add_field('minpercent', XMLDB_TYPE_NUMBER, '20, 10');
+        $table->add_field('mininclusive', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1');
+        $table->add_field('maxpercent', XMLDB_TYPE_NUMBER, '20, 10');
+        $table->add_field('maxinclusive', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('sortorder', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('policy_fk', XMLDB_KEY_FOREIGN, ['policyid'], 'local_outcomemap_policy', ['id']);
+        $table->add_key('policycode_uq', XMLDB_KEY_UNIQUE, ['policyid', 'code']);
+        $table->add_key('policysort_uq', XMLDB_KEY_UNIQUE, ['policyid', 'sortorder']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        $table = new xmldb_table('local_outcomemap_evidence');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field('uuid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL);
+        $table->add_field('lineageuuid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL);
+        $table->add_field('dedupekey', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL);
+        $table->add_field('sourceevidenceid', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('relationpathjson', XMLDB_TYPE_TEXT);
+        $table->add_field('cinstid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('assessmentcmid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('quizattemptid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('questionusageid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('slot', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('questionattemptid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('questionversionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('questionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('itemverid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('mappingid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('policyid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('evidencetype', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL);
+        $table->add_field('rawfraction', XMLDB_TYPE_NUMBER, '20, 10');
+        $table->add_field('rawmark', XMLDB_TYPE_NUMBER, '20, 10');
+        $table->add_field('maxmark', XMLDB_TYPE_NUMBER, '20, 10', null, XMLDB_NOTNULL);
+        $table->add_field('mappingweight', XMLDB_TYPE_NUMBER, '20, 10', null, XMLDB_NOTNULL);
+        $table->add_field('relationweight', XMLDB_TYPE_NUMBER, '20, 10', null, XMLDB_NOTNULL, null, '1');
+        $table->add_field('weightedearned', XMLDB_TYPE_NUMBER, '20, 10');
+        $table->add_field('weightedpossible', XMLDB_TYPE_NUMBER, '20, 10', null, XMLDB_NOTNULL);
+        $table->add_field('gradingstate', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL);
+        $table->add_field('attempttime', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('gradingtime', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('supersededby', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('cinst_fk', XMLDB_KEY_FOREIGN, ['cinstid'], 'local_outcomemap_cinst', ['id']);
+        $table->add_key('itemver_fk', XMLDB_KEY_FOREIGN, ['itemverid'], 'local_outcomemap_itemver', ['id']);
+        $table->add_key('mapping_fk', XMLDB_KEY_FOREIGN, ['mappingid'], 'local_outcomemap_qmap', ['id']);
+        $table->add_key('policy_fk', XMLDB_KEY_FOREIGN, ['policyid'], 'local_outcomemap_policy', ['id']);
+        $table->add_key('source_fk', XMLDB_KEY_FOREIGN, ['sourceevidenceid'], 'local_outcomemap_evidence', ['id']);
+        $table->add_key('superseded_fk', XMLDB_KEY_FOREIGN, ['supersededby'], 'local_outcomemap_evidence', ['id']);
+        $table->add_key('uuid_uq', XMLDB_KEY_UNIQUE, ['uuid']);
+        $table->add_key('dedupekey_uq', XMLDB_KEY_UNIQUE, ['dedupekey']);
+        $table->add_index('lineageuuid_ix', XMLDB_INDEX_NOTUNIQUE, ['lineageuuid']);
+        $table->add_index('usercinstitem_ix', XMLDB_INDEX_NOTUNIQUE, ['userid', 'cinstid', 'itemverid']);
+        $table->add_index('quizattemptid_ix', XMLDB_INDEX_NOTUNIQUE, ['quizattemptid']);
+        $table->add_index('questionattemptid_ix', XMLDB_INDEX_NOTUNIQUE, ['questionattemptid']);
+        $table->add_index('questionversionid_ix', XMLDB_INDEX_NOTUNIQUE, ['questionversionid']);
+        $table->add_index('gradingstate_ix', XMLDB_INDEX_NOTUNIQUE, ['gradingstate']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        $table = new xmldb_table('local_outcomemap_result');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field('uuid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL);
+        $table->add_field('resultkey', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL);
+        $table->add_field('version', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('cinstid', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('scopetype', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL);
+        $table->add_field('scopeid', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('periodcode', XMLDB_TYPE_CHAR, '100');
+        $table->add_field('itemverid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('policyid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('numerator', XMLDB_TYPE_NUMBER, '20, 10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('denominator', XMLDB_TYPE_NUMBER, '20, 10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('percentage', XMLDB_TYPE_NUMBER, '20, 10');
+        $table->add_field('distinctitems', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('bandid', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('state', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL);
+        $table->add_field('stale', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('algoversion', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL);
+        $table->add_field('inputhash', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL);
+        $table->add_field('lineagejson', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL);
+        $table->add_field('lineagehash', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL);
+        $table->add_field('supersededby', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('timecalculated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('cinst_fk', XMLDB_KEY_FOREIGN, ['cinstid'], 'local_outcomemap_cinst', ['id']);
+        $table->add_key('itemver_fk', XMLDB_KEY_FOREIGN, ['itemverid'], 'local_outcomemap_itemver', ['id']);
+        $table->add_key('policy_fk', XMLDB_KEY_FOREIGN, ['policyid'], 'local_outcomemap_policy', ['id']);
+        $table->add_key('band_fk', XMLDB_KEY_FOREIGN, ['bandid'], 'local_outcomemap_band', ['id']);
+        $table->add_key('superseded_fk', XMLDB_KEY_FOREIGN, ['supersededby'], 'local_outcomemap_result', ['id']);
+        $table->add_key('uuid_uq', XMLDB_KEY_UNIQUE, ['uuid']);
+        $table->add_key('resultkeyversion_uq', XMLDB_KEY_UNIQUE, ['resultkey', 'version']);
+        $table->add_index('usercinstitemstate_ix', XMLDB_INDEX_NOTUNIQUE,
+            ['userid', 'cinstid', 'itemverid', 'state']);
+        $table->add_index('scope_ix', XMLDB_INDEX_NOTUNIQUE, ['scopetype', 'scopeid', 'periodcode']);
+        $table->add_index('inputhash_ix', XMLDB_INDEX_NOTUNIQUE, ['inputhash']);
+        $table->add_index('lineagehash_ix', XMLDB_INDEX_NOTUNIQUE, ['lineagehash']);
+        $table->add_index('stale_ix', XMLDB_INDEX_NOTUNIQUE, ['stale']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026072500, 'local', 'outcomemap');
+    }
+
     return true;
 }

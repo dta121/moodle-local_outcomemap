@@ -265,6 +265,9 @@ final class question_mapping_service extends base_service {
             }
             if ($candidate->role === content_mapping_service::ROLE_ASSESSES) {
                 self::require_valid_assessed_total((int) $candidate->questionversionid, $batch);
+                // Existing nonfrozen results built from this question version
+                // are now stale; reconciliation recalculates them.
+                calculation_service::mark_stale_for_question_version((int) $candidate->questionversionid);
             }
             $transaction->allow_commit();
         } catch (\Throwable $e) {

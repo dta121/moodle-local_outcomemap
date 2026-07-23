@@ -21,4 +21,20 @@ $observers = [
         'eventname' => '\core\event\question_created',
         'callback' => '\local_outcomemap\observer::question_created',
     ],
+    [
+        'eventname' => '\mod_quiz\event\attempt_submitted',
+        'callback' => '\local_outcomemap\observer::quiz_attempt_submitted',
+    ],
+    [
+        'eventname' => '\mod_quiz\event\attempt_regraded',
+        'callback' => '\local_outcomemap\observer::quiz_attempt_regraded',
+    ],
+    [
+        'eventname' => '\mod_quiz\event\question_manually_graded',
+        'callback' => '\local_outcomemap\observer::quiz_question_manually_graded',
+    ],
+    [
+        'eventname' => '\mod_quiz\event\attempt_deleted',
+        'callback' => '\local_outcomemap\observer::quiz_attempt_deleted',
+    ],
 ];

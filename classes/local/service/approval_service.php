@@ -174,6 +174,18 @@ final class approval_service extends base_service {
                 'timemodified' => $record->timemodified,
             ];
         }
+        $policies = $DB->get_records('local_outcomemap_policy',
+            ['status' => workflow::NEEDS_REVIEW], 'policytype, name');
+        foreach ($policies as $record) {
+            $pending[] = (object) [
+                'objecttype' => 'policy',
+                'id' => $record->id,
+                'code' => $record->policytype . ' / ' . $record->scopetype,
+                'name' => $record->name,
+                'createdby' => $record->createdby,
+                'timemodified' => $record->timemodified,
+            ];
+        }
         $questionmappings = $DB->get_records_sql(
             "SELECT m.id, m.createdby, m.timemodified, m.role, m.weight, i.code AS outcomecode,
                     f.code AS frameworkcode, q.name AS questionname, qv.version AS questionversion
@@ -259,6 +271,9 @@ final class approval_service extends base_service {
                 return;
             case 'question_mapping':
                 question_mapping_service::approve($id, $reason);
+                return;
+            case 'policy':
+                policy_service::approve($id, $reason);
                 return;
             case 'remediation':
                 remediation_service::approve($id, $reason);

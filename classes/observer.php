@@ -9,6 +9,7 @@
 namespace local_outcomemap;
 
 use local_outcomemap\local\service\question_mapping_service;
+use local_outcomemap\task\recalculate_attempt;
 
 /**
  * Core event observers.
@@ -18,6 +19,52 @@ use local_outcomemap\local\service\question_mapping_service;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class observer {
+    /**
+     * Enqueue lightweight recalculation after a quiz attempt is submitted.
+     *
+     * @param \mod_quiz\event\attempt_submitted $event Event.
+     * @return void
+     */
+    public static function quiz_attempt_submitted(\mod_quiz\event\attempt_submitted $event): void {
+        recalculate_attempt::queue_for_attempt((int) $event->objectid);
+    }
+
+    /**
+     * Enqueue recalculation after a quiz attempt is regraded.
+     *
+     * @param \mod_quiz\event\attempt_regraded $event Event.
+     * @return void
+     */
+    public static function quiz_attempt_regraded(\mod_quiz\event\attempt_regraded $event): void {
+        recalculate_attempt::queue_for_attempt((int) $event->objectid);
+    }
+
+    /**
+     * Enqueue recalculation after manual grading of one question.
+     *
+     * @param \mod_quiz\event\question_manually_graded $event Event.
+     * @return void
+     */
+    public static function quiz_question_manually_graded(\mod_quiz\event\question_manually_graded $event): void {
+        recalculate_attempt::queue_for_attempt((int) $event->other['attemptid']);
+    }
+
+    /**
+     * Enqueue recalculation after a quiz attempt is deleted.
+     *
+     * The attempt row is gone, so the queue payload carries the assessment
+     * coordinates instead of the attempt ID.
+     *
+     * @param \mod_quiz\event\attempt_deleted $event Event.
+     * @return void
+     */
+    public static function quiz_attempt_deleted(\mod_quiz\event\attempt_deleted $event): void {
+        recalculate_attempt::queue_for_user_assessment(
+            (int) $event->courseid,
+            (int) $event->contextinstanceid,
+            (int) $event->relateduserid
+        );
+    }
     /**
      * Copy approved outcome mappings to a newly created question version as drafts.
      *

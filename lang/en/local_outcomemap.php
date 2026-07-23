@@ -264,6 +264,14 @@ $string['questionversionmismatch'] = 'The question and question-version identifi
 $string['assessedweightrequired'] = 'An assesses mapping requires an explicit positive weight. Weights are never inferred.';
 $string['weightnotallowedforrole'] = 'Only assesses mappings carry an evidence weight; the "{$a->detail}" role must not have one.';
 $string['assessedweighttotalinvalid'] = 'Approved assessed weights for a question version must total exactly 1.0000000000; the resulting total is {$a->detail}.';
+
+$string['taskreconcile'] = 'Reconcile outcome evidence and stale results';
+$string['invalidpolicyconfig'] = 'The policy configuration field {$a->field} is invalid: {$a->detail}';
+$string['bandsoverlap'] = 'Performance band ranges must not overlap: {$a->detail}';
+$string['divisionbyzero'] = 'A zero denominator never produces a percentage.';
+$string['policy'] = 'Policy';
+$string['policytype_attempt_selection'] = 'Attempt selection';
+$string['policytype_calculation'] = 'Calculation and bands';
 $string['bandnotavailable'] = 'Performance-band remediation becomes available when governed calculation policies are installed.';
 $string['percentagerangeinvalid'] = 'The maximum percentage must be greater than or equal to the minimum percentage.';
 $string['invalidexternalurl'] = 'Enter a valid HTTP or HTTPS URL.';
