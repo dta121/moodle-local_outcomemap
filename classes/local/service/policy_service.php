@@ -110,6 +110,92 @@ final class policy_service extends base_service {
     }
 
     /**
+     * Update an unsubmitted draft policy and replace its draft bands.
+     *
+     * @param int $id Policy record ID.
+     * @param array $data Updated policy data.
+     * @return void
+     */
+    public static function update_draft(int $id, array $data): void {
+        global $DB;
+        $before = self::get_required('local_outcomemap_policy', $id, 'policy');
+        if ($before->status !== workflow::DRAFT) {
+            throw new validation_exception('approvedimmutable', 'policy', $id);
+        }
+        // Moving a draft between scopes requires authority in both contexts.
+        self::require_policy_capability($before);
+        $beforebands = self::get_bands($id);
+        $merged = array_merge((array) $before, $data);
+        if (!array_key_exists('config', $data)) {
+            $merged['config'] = json_decode($before->configjson, true) ?? [];
+        }
+        $after = self::build_record(
+            $merged,
+            $before->policyuuid,
+            (int) $before->version
+        );
+        $actorid = self::require_policy_capability($after);
+        $afterbands = self::build_bands(
+            $after->policytype,
+            array_key_exists('bands', $data) ? $data['bands'] : $beforebands
+        );
+        $after->id = $id;
+        $after->createdby = $before->createdby;
+        $after->timecreated = $before->timecreated;
+        $after->timemodified = time();
+
+        $beforeaudit = clone $before;
+        $beforeaudit->bands = $beforebands;
+        $afteraudit = clone $after;
+        $afteraudit->bands = $afterbands;
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $DB->update_record('local_outcomemap_policy', $after);
+            $DB->delete_records('local_outcomemap_band', ['policyid' => $id]);
+            foreach ($afterbands as $band) {
+                $band->policyid = $id;
+                $DB->insert_record('local_outcomemap_band', $band);
+            }
+            audit_writer::write('update', 'policy', $id, $after->policyuuid, $beforeaudit, $afteraudit,
+                $data['reason'] ?? null, self::policy_context($after), $actorid);
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+    }
+
+    /**
+     * Delete an unsubmitted, unreferenced draft policy.
+     *
+     * @param int $id Policy record ID.
+     * @param string|null $reason Optional deletion reason.
+     * @return void
+     */
+    public static function delete_draft(int $id, ?string $reason = null): void {
+        global $DB;
+        $before = self::get_required('local_outcomemap_policy', $id, 'policy');
+        if ($before->status !== workflow::DRAFT) {
+            throw new validation_exception('approvedimmutable', 'policy', $id);
+        }
+        $actorid = self::require_policy_capability($before);
+        if ($DB->record_exists('local_outcomemap_evidence', ['policyid' => $id])
+                || $DB->record_exists('local_outcomemap_result', ['policyid' => $id])) {
+            throw new validation_exception('policyinuse', 'policy', $id);
+        }
+        $before->bands = self::get_bands($id);
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $DB->delete_records('local_outcomemap_band', ['policyid' => $id]);
+            $DB->delete_records('local_outcomemap_policy', ['id' => $id]);
+            audit_writer::write('delete', 'policy', $id, $before->policyuuid, $before, null,
+                $reason, self::policy_context($before), $actorid);
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+    }
+
+    /**
      * Create the next draft version of an approved policy.
      *
      * @param int $id Approved policy record ID.
@@ -237,6 +323,33 @@ final class policy_service extends base_service {
         global $DB;
         return array_values($DB->get_records('local_outcomemap_band',
             ['policyid' => $policyid], 'sortorder ASC'));
+    }
+
+    /**
+     * Return every policy version with decoded configuration and bands.
+     *
+     * This site-administration listing bulk-loads all bands to avoid an N+1
+     * query as policy histories grow.
+     *
+     * @return \stdClass[] Policy records keyed by record ID.
+     */
+    public static function list_all(): array {
+        global $DB;
+        require_capability('local/outcomemap:managepolicies', \context_system::instance());
+        $records = $DB->get_records('local_outcomemap_policy', null,
+            'policytype, name, policyuuid, version DESC, id DESC');
+        foreach ($records as $record) {
+            $record->config = json_decode($record->configjson, true) ?? [];
+            $record->bands = [];
+        }
+        if (!$records) {
+            return [];
+        }
+        $bands = $DB->get_records('local_outcomemap_band', null, 'policyid, sortorder');
+        foreach ($bands as $band) {
+            $records[(int) $band->policyid]->bands[] = $band;
+        }
+        return $records;
     }
 
     /**
@@ -460,21 +573,33 @@ final class policy_service extends base_service {
      */
     private static function validate_bands(array $bands): void {
         $previousmax = null;
+        $previousmaxinclusive = false;
+        $seencodes = [];
         foreach ($bands as $band) {
+            if (isset($seencodes[$band->code])) {
+                throw new validation_exception('duplicatebandcode', 'bands', $band->code);
+            }
+            $seencodes[$band->code] = true;
             if (
                 $band->minpercent !== null && $band->maxpercent !== null
                     && decimal::cmp((string) $band->minpercent, (string) $band->maxpercent) > 0
             ) {
                 throw new validation_exception('invalidpolicyconfig', 'bands', $band->code);
             }
+            if ($previousmax === null && count($seencodes) > 1) {
+                throw new validation_exception('bandsoverlap', 'bands', $band->code);
+            }
+            if (count($seencodes) > 1 && $band->minpercent === null) {
+                throw new validation_exception('bandsoverlap', 'bands', $band->code);
+            }
             if ($previousmax !== null && $band->minpercent !== null) {
-                if (decimal::cmp((string) $band->minpercent, $previousmax) < 0) {
+                $comparison = decimal::cmp((string) $band->minpercent, $previousmax);
+                if ($comparison < 0 || ($comparison === 0 && $previousmaxinclusive && (int) $band->mininclusive)) {
                     throw new validation_exception('bandsoverlap', 'bands', $band->code);
                 }
             }
-            if ($band->maxpercent !== null) {
-                $previousmax = (string) $band->maxpercent;
-            }
+            $previousmax = $band->maxpercent === null ? null : (string) $band->maxpercent;
+            $previousmaxinclusive = (bool) $band->maxinclusive;
         }
     }
 
