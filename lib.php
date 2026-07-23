@@ -1,0 +1,160 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Plugin callbacks for local_outcomemap.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+use local_outcomemap\local\service\content_mapping_service;
+
+/**
+ * Add an explicit outcome-mapping entry point to standard activity settings forms.
+ *
+ * @param moodleform_mod $formwrapper Module form wrapper.
+ * @param MoodleQuickForm $mform QuickForm instance.
+ */
+function local_outcomemap_coursemodule_standard_elements(
+    moodleform_mod $formwrapper,
+    MoodleQuickForm $mform
+): void {
+    global $COURSE;
+
+    $options = content_mapping_service::module_form_options((int) $COURSE->id);
+    if (!$options) {
+        return;
+    }
+    $roles = [];
+    foreach (content_mapping_service::ROLES as $role) {
+        $roles[$role] = get_string('mappingrole_' . $role, 'local_outcomemap');
+    }
+    $mform->addElement('header', 'outcomemapsection', get_string('modulemapping_heading', 'local_outcomemap'));
+    $mform->addElement('static', 'outcomemapintro', '', get_string('modulemapping_intro', 'local_outcomemap'));
+    $mform->addElement(
+        'select',
+        'outcomemap_cinstid',
+        get_string('courseinstance', 'local_outcomemap'),
+        $options['instances']
+    );
+    $mform->addElement(
+        'autocomplete',
+        'outcomemap_itemverid',
+        get_string('outcomeversion', 'local_outcomemap'),
+        $options['outcomes']
+    );
+    $mform->addElement('select', 'outcomemap_role', get_string('mappingrole', 'local_outcomemap'), $roles);
+    $mform->addElement('text', 'outcomemap_weight', get_string('mappingweight', 'local_outcomemap'));
+    $mform->setType('outcomemap_weight', PARAM_RAW_TRIMMED);
+    $mform->addHelpButton('outcomemap_weight', 'mappingweight', 'local_outcomemap');
+    $mform->addElement('text', 'outcomemap_priority', get_string('priority', 'local_outcomemap'));
+    $mform->setType('outcomemap_priority', PARAM_INT);
+    $mform->setDefault('outcomemap_priority', 0);
+    $mform->addElement(
+        'textarea',
+        'outcomemap_notes',
+        get_string('notes', 'local_outcomemap'),
+        ['rows' => 2, 'cols' => 60]
+    );
+    $mform->setType('outcomemap_notes', PARAM_TEXT);
+    $mform->addElement(
+        'date_time_selector',
+        'outcomemap_effectivefrom',
+        get_string('effectivefrom', 'local_outcomemap')
+    );
+    $mform->setDefault('outcomemap_effectivefrom', time());
+    $mform->addElement(
+        'date_time_selector',
+        'outcomemap_effectiveto',
+        get_string('effectiveto', 'local_outcomemap'),
+        ['optional' => true]
+    );
+}
+
+/**
+ * Validate activity mapping fields before a new course-module ID exists.
+ *
+ * @param moodleform_mod $formwrapper Module form wrapper.
+ * @param array $data Submitted form data.
+ * @return array Validation errors.
+ */
+function local_outcomemap_coursemodule_validation(moodleform_mod $formwrapper, array $data): array {
+    global $COURSE;
+    return content_mapping_service::validate_module_form_data((int) $COURSE->id, $data);
+}
+
+/**
+ * Persist the explicit activity mapping after Moodle has assigned the module ID.
+ *
+ * @param stdClass $moduleinfo Saved module information.
+ * @param stdClass $course Course record.
+ * @return stdClass Unmodified module information.
+ */
+function local_outcomemap_coursemodule_edit_post_actions(stdClass $moduleinfo, stdClass $course): stdClass {
+    if (!empty($moduleinfo->outcomemap_itemverid)) {
+        content_mapping_service::save_module_form_mapping((int) $moduleinfo->coursemodule, (array) $moduleinfo);
+    }
+    return $moduleinfo;
+}
+
+/**
+ * Add course outcome-mapping pages to course navigation.
+ *
+ * @param navigation_node $navigation Course navigation node.
+ * @param stdClass $course Course record.
+ * @param context_course $context Course context.
+ */
+function local_outcomemap_extend_navigation_course(
+    navigation_node $navigation,
+    stdClass $course,
+    context_course $context
+): void {
+    if (!has_capability('local/outcomemap:viewdefinitions', $context)) {
+        return;
+    }
+    $node = $navigation->add(
+        get_string('courseoutcomemapping', 'local_outcomemap'),
+        null,
+        navigation_node::TYPE_CONTAINER,
+        null,
+        'local_outcomemap'
+    );
+    $node->add(
+        get_string('nav_coverage', 'local_outcomemap'),
+        new moodle_url('/local/outcomemap/coverage.php', ['courseid' => $course->id]),
+        navigation_node::TYPE_SETTING
+    );
+    $canmapmodules = has_capability('local/outcomemap:mapactivities', $context)
+        && has_capability('moodle/course:manageactivities', $context);
+    $canmapcourse = has_capability('local/outcomemap:mapcourse', $context)
+        && has_capability('moodle/course:update', $context);
+    if ($canmapmodules || $canmapcourse) {
+        $node->add(
+            get_string('nav_contentmapping', 'local_outcomemap'),
+            new moodle_url('/local/outcomemap/contentmapping.php', ['courseid' => $course->id]),
+            navigation_node::TYPE_SETTING
+        );
+    }
+    if ($canmapcourse) {
+        $node->add(
+            get_string('nav_remediation', 'local_outcomemap'),
+            new moodle_url('/local/outcomemap/remediation.php', ['courseid' => $course->id]),
+            navigation_node::TYPE_SETTING
+        );
+    }
+}
