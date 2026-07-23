@@ -335,9 +335,7 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         }
 
         $key = new xmldb_key('band_fk', XMLDB_KEY_FOREIGN, ['bandid'], 'local_outcomemap_band', ['id']);
-        if (!$dbman->key_exists($table, $key)) {
-            $dbman->add_key($table, $key);
-        }
+        $dbman->add_key($table, $key);
 
         upgrade_plugin_savepoint(true, 2026072502, 'local', 'outcomemap');
     }
