@@ -5,7 +5,15 @@ use local_outcomemap\form\course_instance_form;
 use local_outcomemap\local\service\course_instance_service;
 use local_outcomemap\local\workflow;
 
-require_once(__DIR__ . '/../../config.php');
+$configpath = __DIR__ . '/../../config.php';
+if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
+    // Windows junctions resolve __DIR__ to the repository target rather than
+    // the Moodle local-plugin directory. The webroot loader remains portable
+    // across Moodle's classic and 5.2 public-directory layouts.
+    $configpath = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . '/config.php';
+}
+require_once($configpath);
+unset($configpath);
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir . '/formslib.php');
 
