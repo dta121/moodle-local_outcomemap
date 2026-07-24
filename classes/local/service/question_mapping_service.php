@@ -177,24 +177,40 @@ final class question_mapping_service extends base_service {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':needs_review');
         }
         $actorid = self::require_mutation_capabilities((int) $before->questionversionid, (int) $before->questionid);
-        self::validate_record($before);
-        $after = clone $before;
-        $after->status = workflow::NEEDS_REVIEW;
-        $after->timemodified = time();
+        $batch = [$before];
+        if (!workflow::requires_independent_approval()
+                && $before->role === content_mapping_service::ROLE_ASSESSES) {
+            $batch = array_values($DB->get_records(self::TABLE, [
+                'questionversionid' => $before->questionversionid,
+                'role' => content_mapping_service::ROLE_ASSESSES,
+                'status' => workflow::DRAFT,
+            ], 'id ASC'));
+        }
         $transaction = $DB->start_delegated_transaction();
         try {
-            $DB->update_record(self::TABLE, $after);
-            audit_writer::write(
-                'submit_review',
-                'question_mapping',
-                $id,
-                $after->mappinguuid,
-                $before,
-                $after,
-                $reason,
-                context_resolver::for_question_version((int) $after->questionversionid),
-                $actorid
-            );
+            $context = context_resolver::for_question_version((int) $before->questionversionid);
+            foreach ($batch as $record) {
+                self::validate_record($record);
+                $after = clone $record;
+                $after->status = workflow::NEEDS_REVIEW;
+                $after->timemodified = time();
+                $DB->update_record(self::TABLE, $after);
+                audit_writer::write(
+                    'submit_review',
+                    'question_mapping',
+                    (int) $record->id,
+                    $after->mappinguuid,
+                    $record,
+                    $after,
+                    $reason,
+                    $context,
+                    $actorid
+                );
+            }
+            if (!workflow::requires_independent_approval()) {
+                $batchids = array_map(static fn(\stdClass $record): int => (int) $record->id, $batch);
+                self::approve_batch($id, $reason, $batchids);
+            }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -212,28 +228,64 @@ final class question_mapping_service extends base_service {
      * @return void
      */
     public static function approve(int $id, ?string $reason = null): void {
+        self::approve_batch($id, $reason);
+    }
+
+    /**
+     * Approve a pending mapping batch.
+     *
+     * The optional restricted IDs are used only by disabled-mode automatic
+     * finalization so pre-existing pending assessed mappings are not absorbed
+     * into a newly submitted batch. Explicit approval retains the established
+     * behavior of approving the full pending assessed set.
+     *
+     * @param int $id Mapping record ID.
+     * @param string|null $reason Optional approval reason.
+     * @param int[]|null $restrictedids Exact records submitted by the current operation.
+     * @return void
+     */
+    private static function approve_batch(int $id, ?string $reason = null, ?array $restrictedids = null): void {
         global $DB, $USER;
         $candidate = self::get_required(self::TABLE, $id, 'question_mapping');
         if ($candidate->status !== workflow::NEEDS_REVIEW) {
             throw new validation_exception('invalidtransition', 'status', $candidate->status . ':approved');
         }
         $context = context_resolver::for_question_version((int) $candidate->questionversionid);
-        require_capability('local/outcomemap:approve', $context);
-        self::require_question_capability((int) $candidate->questionid, 'view');
-        $actorid = (int) $USER->id;
+        if (workflow::requires_independent_approval()) {
+            require_capability('local/outcomemap:approve', $context);
+            self::require_question_capability((int) $candidate->questionid, 'view');
+            $actorid = (int) $USER->id;
+        } else {
+            $actorid = self::require_mutation_capabilities(
+                (int) $candidate->questionversionid,
+                (int) $candidate->questionid
+            );
+        }
         $batch = [$candidate];
         if ($candidate->role === content_mapping_service::ROLE_ASSESSES) {
-            $pending = $DB->get_records(self::TABLE, [
-                'questionversionid' => $candidate->questionversionid,
-                'role' => content_mapping_service::ROLE_ASSESSES,
-                'status' => workflow::NEEDS_REVIEW,
-            ], 'id ASC');
-            $batch = array_values($pending);
+            if ($restrictedids === null) {
+                $pending = $DB->get_records(self::TABLE, [
+                    'questionversionid' => $candidate->questionversionid,
+                    'role' => content_mapping_service::ROLE_ASSESSES,
+                    'status' => workflow::NEEDS_REVIEW,
+                ], 'id ASC');
+                $batch = array_values($pending);
+            } else {
+                $batch = [];
+                foreach ($restrictedids as $restrictedid) {
+                    $record = self::get_required(self::TABLE, (int) $restrictedid, 'question_mapping');
+                    if ($record->status !== workflow::NEEDS_REVIEW
+                            || (int) $record->questionversionid !== (int) $candidate->questionversionid
+                            || $record->role !== content_mapping_service::ROLE_ASSESSES) {
+                        throw new validation_exception('invalidtransition', 'status',
+                            $record->status . ':approved_batch');
+                    }
+                    $batch[] = $record;
+                }
+            }
         }
         foreach ($batch as $record) {
-            if ((int) $record->createdby === $actorid) {
-                throw new validation_exception('creatorcannotapprove', 'createdby', $actorid);
-            }
+            workflow::require_approver_separation((int) $record->createdby, $actorid);
             self::validate_record($record);
             self::require_no_approved_overlap($record);
             self::require_no_duplicate_scope($record);

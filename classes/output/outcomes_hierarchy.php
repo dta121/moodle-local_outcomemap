@@ -141,25 +141,30 @@ class outcomes_hierarchy implements renderable, templatable {
             'code' => $item->code,
             'statement' => $item->statement,
             'nextversion' => (int) $item->version + 1,
-            'editnote' => get_string('hier_editnote', 'local_outcomemap', (int) $item->version + 1),
+            'editnote' => get_string(
+                workflow::requires_independent_approval() ? 'hier_editnote' : 'hier_editnote_finalization',
+                'local_outcomemap',
+                (int) $item->version + 1
+            ),
             'approvedinfo' => null,
             'pendingbadge' => null,
             'canapprove' => false,
             'approveurl' => null,
             'cansubmit' => false,
             'submiturl' => null,
+            'submitlabel' => workflow::submit_action_label(),
             'caneditinline' => false,
             'editformurl' => null,
         ];
         if ($status === workflow::APPROVED) {
             $row['approvedinfo'] = get_string('hier_statusinfo', 'local_outcomemap', (object) [
-                'status' => get_string('status_approved', 'local_outcomemap'),
+                'status' => workflow::status_label($status),
                 'version' => (int) $item->version,
             ]);
             $row['caneditinline'] = $canmanage && $item->itemstatus === workflow::APPROVED;
         } else {
             $row['pendingbadge'] = get_string('hier_statusinfo', 'local_outcomemap', (object) [
-                'status' => get_string('status_' . $status, 'local_outcomemap'),
+                'status' => workflow::status_label($status),
                 'version' => (int) $item->version,
             ]);
             if ($status === workflow::NEEDS_REVIEW && $canapprove) {
@@ -233,7 +238,8 @@ class outcomes_hierarchy implements renderable, templatable {
     public function export_for_template(renderer_base $output): array {
         $context = \context_system::instance();
         $canmanage = has_capability('local/outcomemap:manageframeworks', $context);
-        $canapprove = has_capability('local/outcomemap:approve', $context);
+        $canapprove = workflow::requires_independent_approval()
+            && has_capability('local/outcomemap:approve', $context);
 
         $plos = $this->items_of_kind('program');
         $clos = $this->items_of_kind('course');
@@ -245,14 +251,18 @@ class outcomes_hierarchy implements renderable, templatable {
         foreach ($this->frameworks as $framework) {
             $label = $framework->code;
             if ($framework->status !== workflow::APPROVED) {
-                $label .= ' (' . get_string('status_' . $framework->status, 'local_outcomemap') . ')';
+                $label .= ' (' . workflow::status_label($framework->status) . ')';
                 $allapproved = false;
             }
             $labels[] = $label;
         }
-        $frameworksline = get_string(
-            $allapproved && $labels !== [] ? 'hier_frameworksline_allapproved' : 'hier_frameworksline',
-            'local_outcomemap', implode(' · ', $labels));
+        $frameworkslinekey = 'hier_frameworksline';
+        if ($allapproved && $labels !== []) {
+            $frameworkslinekey = workflow::requires_independent_approval()
+                ? 'hier_frameworksline_allapproved'
+                : 'hier_frameworksline_allfinalized';
+        }
+        $frameworksline = get_string($frameworkslinekey, 'local_outcomemap', implode(' · ', $labels));
 
         $statsline = get_string('hier_statsline', 'local_outcomemap', (object) [
             'plos' => count($plos), 'clos' => count($clos), 'ulos' => count($ulos),
@@ -307,7 +317,7 @@ class outcomes_hierarchy implements renderable, templatable {
                 'title' => $ownername,
                 'subtitle' => get_string('hier_frameworklabel', 'local_outcomemap', (object) [
                     'code' => $framework->code,
-                    'status' => get_string('status_' . $framework->status, 'local_outcomemap'),
+                    'status' => workflow::status_label($framework->status),
                 ]),
                 'countline' => get_string(count($fwitems) === 1 ? 'hier_programoutcomes_one' : 'hier_programoutcomes',
                     'local_outcomemap', count($fwitems)),

@@ -119,8 +119,11 @@ final class program_service extends base_service {
 
     /** Approve a reviewed program. */
     public static function approve(int $id, ?string $reason = null): void {
+        $capability = workflow::requires_independent_approval()
+            ? 'local/outcomemap:approve'
+            : 'local/outcomemap:manageprograms';
         self::change_status($id, workflow::NEEDS_REVIEW, workflow::APPROVED, 'approve', $reason,
-            'local/outcomemap:approve', true);
+            $capability, true);
     }
 
     /** Retire a program. */
@@ -245,8 +248,8 @@ final class program_service extends base_service {
         if ($before->status !== $required) {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':' . $status);
         }
-        if ($separateapprover && (int) $before->createdby === $actorid) {
-            throw new validation_exception('creatorcannotapprove', 'createdby', $actorid);
+        if ($separateapprover) {
+            workflow::require_approver_separation((int) $before->createdby, $actorid);
         }
         $after = clone $before;
         $after->status = $status;
@@ -257,6 +260,9 @@ final class program_service extends base_service {
             $DB->update_record(self::TABLE, $after);
             audit_writer::write($action, 'program', $id, $after->uuid, $before, $after, $reason,
                 \context_system::instance(), $actorid);
+            if ($status === workflow::NEEDS_REVIEW && !workflow::requires_independent_approval()) {
+                self::approve($id, $reason);
+            }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);

@@ -66,14 +66,12 @@ final class program_course_service extends base_service {
 
     public static function approve(int $id, ?string $reason = null): void {
         global $DB;
-        $actorid = self::require_system('local/outcomemap:approve');
+        $actorid = self::require_approval_system('local/outcomemap:manageprograms');
         $before = self::get_required(self::TABLE, $id, 'program_course');
         if ($before->status !== workflow::NEEDS_REVIEW) {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':approved');
         }
-        if ((int) $before->createdby === $actorid) {
-            throw new validation_exception('creatorcannotapprove', 'createdby', $actorid);
-        }
+        workflow::require_approver_separation((int) $before->createdby, $actorid);
         self::require_no_approved_overlap($before);
         $after = clone $before;
         $after->status = workflow::APPROVED;
@@ -106,7 +104,9 @@ final class program_course_service extends base_service {
     private static function set_status(int $id, string $required, string $status, string $action,
             ?string $reason, bool $approving): void {
         global $DB;
-        $actorid = self::require_system($approving ? 'local/outcomemap:approve' : 'local/outcomemap:manageprograms');
+        $actorid = $approving
+            ? self::require_approval_system('local/outcomemap:manageprograms')
+            : self::require_system('local/outcomemap:manageprograms');
         $before = self::get_required(self::TABLE, $id, 'program_course');
         if ($before->status !== $required) {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':' . $status);
@@ -119,6 +119,9 @@ final class program_course_service extends base_service {
             $DB->update_record(self::TABLE, $after);
             audit_writer::write($action, 'program_course', $id, $after->uuid, $before, $after, $reason,
                 \context_system::instance(), $actorid);
+            if ($status === workflow::NEEDS_REVIEW && !workflow::requires_independent_approval()) {
+                self::approve($id, $reason);
+            }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);

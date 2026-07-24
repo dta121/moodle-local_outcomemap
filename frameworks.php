@@ -35,7 +35,7 @@ if ($action === 'submit' && $id) {
     } else {
         framework_service::submit_for_review($id);
     }
-    redirect($url, get_string('submittedforreview', 'local_outcomemap'));
+    redirect($url, workflow::submission_success_message());
 }
 
 if ($action === 'approveversion' && $id) {
@@ -71,7 +71,11 @@ if ($action === 'savemap') {
             $created++;
         }
         redirect($url, $created
-            ? get_string('hier_mapsaved', 'local_outcomemap', $created)
+            ? get_string(
+                workflow::requires_independent_approval() ? 'hier_mapsaved' : 'hier_mapsaved_finalized',
+                'local_outcomemap',
+                $created
+            )
             : get_string('hier_mapnone', 'local_outcomemap'));
     } catch (validation_exception $e) {
         redirect($url, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
@@ -97,7 +101,10 @@ if ($action === 'savenewversion') {
             'changereason' => get_string('hier_editreason', 'local_outcomemap'),
         ]);
         outcome_service::submit_for_review($versionid);
-        redirect($url, get_string('hier_versionsaved', 'local_outcomemap'));
+        redirect($url, get_string(
+            workflow::requires_independent_approval() ? 'hier_versionsaved' : 'hier_versionsaved_finalized',
+            'local_outcomemap'
+        ));
     } catch (validation_exception $e) {
         redirect($url, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
     }
@@ -191,11 +198,11 @@ foreach (framework_service::list_all() as $record) {
     if ($record->status === workflow::DRAFT) {
         $actions[] = html_writer::link(new moodle_url($url, ['action' => 'editframework', 'id' => $record->id]), get_string('edit'));
         $actions[] = html_writer::link(new moodle_url($url, ['action' => 'submit', 'type' => 'framework',
-            'id' => $record->id, 'sesskey' => sesskey()]), get_string('submitreview', 'local_outcomemap'));
+            'id' => $record->id, 'sesskey' => sesskey()]), workflow::submit_action_label());
     }
     $fwtable->data[] = [s($record->code), format_string($record->name),
         get_string('owner_' . $record->ownertype, 'local_outcomemap'),
-        get_string('status_' . $record->status, 'local_outcomemap'), implode(' | ', $actions)];
+        workflow::status_label($record->status), implode(' | ', $actions)];
 }
 echo html_writer::tag('details',
     html_writer::tag('summary', get_string('hier_frameworkadmin', 'local_outcomemap'))

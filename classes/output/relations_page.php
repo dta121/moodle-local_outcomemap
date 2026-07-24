@@ -81,7 +81,7 @@ final class relations_page implements renderable, templatable {
                     ]))->out(false),
                 ],
                 [
-                    'label' => get_string('submitreview', 'local_outcomemap'),
+                    'label' => workflow::submit_action_label(),
                     'url' => (new moodle_url($baseurl, [
                         'action' => 'submit',
                         'id' => (int) $relation->id,
@@ -109,7 +109,7 @@ final class relations_page implements renderable, templatable {
         return [
             'label' => $relation->targetframework . '.' . $relation->targetcode,
             'statement' => $target->statement ?? $relation->targetstatement,
-            'statuslabel' => get_string('status_' . $relation->status, 'local_outcomemap'),
+            'statuslabel' => workflow::status_label($relation->status),
             'statusclass' => $this->status_class($relation->status),
             'versionlabel' => get_string('relations_version_short', 'local_outcomemap', (int) $relation->version),
             'hasweight' => $relation->weight !== null,
@@ -133,7 +133,7 @@ final class relations_page implements renderable, templatable {
                 'title' => get_string('relations_matrix_existing', 'local_outcomemap', (object) [
                     'source' => $sourcelabel,
                     'target' => $targetlabel,
-                    'status' => get_string('status_' . $relation->status, 'local_outcomemap'),
+                    'status' => workflow::status_label($relation->status),
                     'version' => (int) $relation->version,
                 ]),
                 'hasaction' => $actions !== [],
@@ -310,7 +310,10 @@ final class relations_page implements renderable, templatable {
             'groups' => $groups,
             'addurl' => (new moodle_url($baseurl, ['action' => 'add']))->out(false),
             'exporturl' => (new moodle_url($baseurl, ['action' => 'exportcsv']))->out(false),
-            'statsline' => get_string('relations_statsline', 'local_outcomemap', (object) [
+            'statsline' => get_string(
+                workflow::requires_independent_approval() ? 'relations_statsline' : 'relations_statsline_finalization',
+                'local_outcomemap',
+                (object) [
                 'active' => $activecount,
                 'versions' => count($this->relations),
                 'review' => $statuscounts[workflow::NEEDS_REVIEW],

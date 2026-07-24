@@ -23,6 +23,7 @@
  */
 
 use local_outcomemap\local\service\coverage_service;
+use local_outcomemap\local\workflow;
 
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
@@ -62,14 +63,14 @@ foreach ($matrix as $row) {
         $name = get_section_name($courseid, (int) $mapping->sectionnumber);
         $sections[] = format_string($name) . ' — '
             . get_string('mappingrole_' . $mapping->role, 'local_outcomemap') . ' ('
-            . get_string('status_' . $mapping->status, 'local_outcomemap') . ')';
+            . workflow::status_label($mapping->status) . ')';
     }
     $modules = [];
     foreach ($row->modules as $mapping) {
         $cm = $modinfo->get_cm((int) $mapping->cmid);
         $modules[] = $cm->get_formatted_name() . ' — '
             . get_string('mappingrole_' . $mapping->role, 'local_outcomemap') . ' ('
-            . get_string('status_' . $mapping->status, 'local_outcomemap') . ')';
+            . workflow::status_label($mapping->status) . ')';
     }
     $table->data[] = [
         s($row->frameworkcode . '.' . $row->outcomecode . ' v' . $row->outcomeversion),

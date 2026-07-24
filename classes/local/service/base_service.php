@@ -9,6 +9,7 @@
 namespace local_outcomemap\local\service;
 
 use local_outcomemap\local\validation_exception;
+use local_outcomemap\local\workflow;
 
 /**
  * Shared helpers for internal transactional services.
@@ -28,6 +29,20 @@ abstract class base_service {
         global $USER;
         require_capability($capability, \context_system::instance());
         return (int) $USER->id;
+    }
+
+    /**
+     * Require approval capability, or the normal management capability when
+     * independent approval has been explicitly disabled.
+     *
+     * @param string $managementcapability Capability used to author the record.
+     * @return int
+     */
+    protected static function require_approval_system(string $managementcapability): int {
+        $capability = workflow::requires_independent_approval()
+            ? 'local/outcomemap:approve'
+            : $managementcapability;
+        return self::require_system($capability);
     }
 
     /**

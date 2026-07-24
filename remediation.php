@@ -56,7 +56,7 @@ $id = optional_param('id', 0, PARAM_INT);
 if ($action === 'submit' && $id) {
     require_sesskey();
     remediation_service::submit_for_review($id);
-    redirect($url, get_string('submittedforreview', 'local_outcomemap'));
+    redirect($url, workflow::submission_success_message());
 }
 if (in_array($action, ['add', 'edit', 'newversion'], true)) {
     $options = content_mapping_service::editor_options($courseid);
@@ -136,7 +136,7 @@ foreach (remediation_service::list_for_course($courseid) as $record) {
         $actions[] = html_writer::link(new moodle_url($url, ['action' => 'edit', 'id' => $record->id]), get_string('edit'));
         $actions[] = html_writer::link(new moodle_url($url, [
             'action' => 'submit', 'id' => $record->id, 'sesskey' => sesskey(),
-        ]), get_string('submitreview', 'local_outcomemap'));
+        ]), workflow::submit_action_label());
     } else if ($record->status === workflow::APPROVED) {
         $actions[] = html_writer::link(
             new moodle_url($url, ['action' => 'newversion', 'id' => $record->id]),
@@ -152,7 +152,7 @@ foreach (remediation_service::list_for_course($courseid) as $record) {
         $target,
         (int) $record->priority,
         (int) $record->sortorder,
-        get_string('status_' . $record->status, 'local_outcomemap'),
+        workflow::status_label($record->status),
         implode(' | ', $actions),
     ];
 }

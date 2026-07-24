@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_outcomemap';
-$plugin->version = 2026072601;
+$plugin->version = 2026072602;
 $plugin->requires = 2024100700; // Moodle 4.5 minimum per the specification.
 $plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '0.6.1';
+$plugin->release = '0.6.2';

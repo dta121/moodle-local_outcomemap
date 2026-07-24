@@ -3,6 +3,7 @@
 
 use local_outcomemap\form\relation_form;
 use local_outcomemap\local\service\relation_service;
+use local_outcomemap\local\workflow;
 use local_outcomemap\output\relations_page;
 
 $configpath = __DIR__ . '/../../config.php';
@@ -28,7 +29,7 @@ $relationtype = optional_param('relationtype', '', PARAM_ALPHANUMEXT);
 if ($action === 'submit' && $id) {
     require_sesskey();
     relation_service::submit_for_review($id);
-    redirect($url, get_string('submittedforreview', 'local_outcomemap'));
+    redirect($url, workflow::submission_success_message());
 }
 if ($action === 'exportcsv') {
     $page = new relations_page();

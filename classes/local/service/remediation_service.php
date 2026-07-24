@@ -175,6 +175,9 @@ final class remediation_service extends base_service {
                 self::context_for($after),
                 $actorid
             );
+            if (!workflow::requires_independent_approval()) {
+                self::approve($id, $reason);
+            }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -196,9 +199,7 @@ final class remediation_service extends base_service {
         }
         self::require_capabilities($before, true);
         $actorid = (int) $USER->id;
-        if ((int) $before->createdby === $actorid) {
-            throw new validation_exception('creatorcannotapprove', 'createdby', $actorid);
-        }
+        workflow::require_approver_separation((int) $before->createdby, $actorid);
         self::validate_record($before);
         self::require_no_approved_overlap($before);
         $after = clone $before;
@@ -484,7 +485,7 @@ final class remediation_service extends base_service {
         $context = self::context_for($record);
         require_capability('local/outcomemap:mapcourse', $context);
         require_capability('moodle/course:update', $context);
-        if ($approval) {
+        if ($approval && workflow::requires_independent_approval()) {
             require_capability('local/outcomemap:approve', $context);
         }
         return (int) $USER->id;

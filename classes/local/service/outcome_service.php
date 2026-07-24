@@ -205,6 +205,9 @@ final class outcome_service extends base_service {
             }
             audit_writer::write('submit_review', 'outcome_version', $versionid, $afterversion->uuid,
                 $beforeversion, $afterversion, $reason, \context_system::instance(), $actorid);
+            if (!workflow::requires_independent_approval()) {
+                self::approve($versionid, $reason);
+            }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -214,14 +217,12 @@ final class outcome_service extends base_service {
     /** Approve an outcome version after rechecking dates and framework state. */
     public static function approve(int $versionid, ?string $reason = null): void {
         global $DB;
-        $actorid = self::require_system('local/outcomemap:approve');
+        $actorid = self::require_approval_system('local/outcomemap:manageframeworks');
         $beforeversion = self::get_required(self::VERSION_TABLE, $versionid, 'outcome_version');
         if ($beforeversion->status !== workflow::NEEDS_REVIEW) {
             throw new validation_exception('invalidtransition', 'status', $beforeversion->status . ':approved');
         }
-        if ((int) $beforeversion->createdby === $actorid) {
-            throw new validation_exception('creatorcannotapprove', 'createdby', $actorid);
-        }
+        workflow::require_approver_separation((int) $beforeversion->createdby, $actorid);
         $item = self::get_required(self::ITEM_TABLE, (int) $beforeversion->itemid, 'outcome');
         $framework = self::get_required('local_outcomemap_fw', (int) $item->frameworkid, 'framework');
         if ($framework->status !== workflow::APPROVED) {

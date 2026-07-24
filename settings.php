@@ -29,9 +29,11 @@ $pages = [
     'local_outcomemap_policies' => ['policies', 'managepolicies'],
     'local_outcomemap_snapshots' => ['snapshots', 'managesnapshots'],
     'local_outcomemap_reports' => ['reports', 'viewdefinitions'],
-    'local_outcomemap_approvals' => ['approvalqueue', 'approve'],
     'local_outcomemap_import' => ['csvimport', 'manageframeworks'],
 ];
+if (\local_outcomemap\local\workflow::requires_independent_approval()) {
+    $pages['local_outcomemap_approvals'] = ['approvalqueue', 'approve'];
+}
 
 foreach ($pages as $pageid => [$script, $capability]) {
     $ADMIN->add('local_outcomemap', new admin_externalpage(
@@ -46,9 +48,20 @@ if ($hassiteconfig) {
     $settings = new admin_settingpage('local_outcomemap_settings',
         get_string('nav_settings', 'local_outcomemap'));
     $settings->add(new admin_setting_configcheckbox(
+        'local_outcomemap/requireapproval',
+        get_string('requireapproval', 'local_outcomemap'),
+        get_string('requireapproval_desc', 'local_outcomemap'),
+        1
+    ));
+    $settings->add(new admin_setting_configcheckbox(
         'local_outcomemap/autocopyquestionmappings',
         get_string('autocopyquestionmappings', 'local_outcomemap'),
-        get_string('autocopyquestionmappings_desc', 'local_outcomemap'),
+        get_string(
+            \local_outcomemap\local\workflow::requires_independent_approval()
+                ? 'autocopyquestionmappings_desc'
+                : 'autocopyquestionmappings_desc_finalization',
+            'local_outcomemap'
+        ),
         1
     ));
     $ADMIN->add('local_outcomemap', $settings);

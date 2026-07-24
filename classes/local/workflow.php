@@ -25,6 +25,74 @@ final class workflow {
     public const STATES = [self::DRAFT, self::NEEDS_REVIEW, self::APPROVED, self::RETIRED];
 
     /**
+     * Whether governed records require approval by a different user.
+     *
+     * Treat an unset setting as enabled so upgrades preserve the existing
+     * governance model until an administrator explicitly disables it.
+     *
+     * @return bool
+     */
+    public static function requires_independent_approval(): bool {
+        $configured = get_config('local_outcomemap', 'requireapproval');
+        return $configured === false ? true : (bool) $configured;
+    }
+
+    /**
+     * Return the visible action label for the submission boundary.
+     *
+     * @return string
+     */
+    public static function submit_action_label(): string {
+        return get_string(self::requires_independent_approval() ? 'submitreview' : 'finalize', 'local_outcomemap');
+    }
+
+    /**
+     * Return the visible success message for the submission boundary.
+     *
+     * @return string
+     */
+    public static function submission_success_message(): string {
+        return get_string(
+            self::requires_independent_approval() ? 'submittedforreview' : 'finalized',
+            'local_outcomemap'
+        );
+    }
+
+    /**
+     * Return an approval-mode-aware workflow status label for interactive UI.
+     *
+     * Canonical state names must still be used for storage, audit, and exports.
+     *
+     * @param string $status Canonical workflow status.
+     * @return string
+     */
+    public static function status_label(string $status): string {
+        self::require_valid($status);
+        if (!self::requires_independent_approval()) {
+            if ($status === self::NEEDS_REVIEW) {
+                return get_string('status_pending', 'local_outcomemap');
+            }
+            if ($status === self::APPROVED) {
+                return get_string('status_finalized', 'local_outcomemap');
+            }
+        }
+        return get_string('status_' . $status, 'local_outcomemap');
+    }
+
+    /**
+     * Enforce creator/approver separation when independent approval is enabled.
+     *
+     * @param int $createdby User who created the governed record.
+     * @param int $actorid User attempting to approve it.
+     * @return void
+     */
+    public static function require_approver_separation(int $createdby, int $actorid): void {
+        if (self::requires_independent_approval() && $createdby === $actorid) {
+            throw new validation_exception('creatorcannotapprove', 'createdby', $actorid);
+        }
+    }
+
+    /**
      * Validate a workflow state.
      *
      * @param string $status Status to validate.

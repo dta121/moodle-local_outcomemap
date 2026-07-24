@@ -32,11 +32,12 @@ if ($action === 'submit' && $id) {
     } else {
         catalog_course_service::submit_for_review($id);
     }
-    redirect($url, get_string('submittedforreview', 'local_outcomemap'));
+    redirect($url, workflow::submission_success_message());
 }
 
 if ($action === 'addmembership') {
-    $form = new program_course_form($url);
+    $formurl = new moodle_url($url, ['action' => 'addmembership']);
+    $form = new program_course_form($formurl);
     if ($form->is_cancelled()) {
         redirect($url);
     }
@@ -52,7 +53,11 @@ if ($action === 'addmembership') {
 }
 
 if ($action === 'edit' || $action === 'add') {
-    $form = new catalog_course_form($url);
+    $formurl = new moodle_url($url, ['action' => $action]);
+    if ($id) {
+        $formurl->param('id', $id);
+    }
+    $form = new catalog_course_form($formurl);
     if ($form->is_cancelled()) {
         redirect($url);
     }
@@ -85,10 +90,10 @@ foreach (catalog_course_service::list_all() as $record) {
     if ($record->status === workflow::DRAFT) {
         $actions[] = html_writer::link(new moodle_url($url, ['action' => 'edit', 'id' => $record->id]), get_string('edit'));
         $actions[] = html_writer::link(new moodle_url($url, ['action' => 'submit', 'id' => $record->id,
-            'sesskey' => sesskey()]), get_string('submitreview', 'local_outcomemap'));
+            'sesskey' => sesskey()]), workflow::submit_action_label());
     }
     $table->data[] = [s($record->code), format_string($record->name),
-        get_string('status_' . $record->status, 'local_outcomemap'), implode(' | ', $actions)];
+        workflow::status_label($record->status), implode(' | ', $actions)];
 }
 echo html_writer::table($table);
 echo $OUTPUT->heading(get_string('addprogramcourse', 'local_outcomemap'), 3);
@@ -101,11 +106,11 @@ foreach (program_course_service::list_all() as $record) {
     $actions = [];
     if ($record->status === workflow::DRAFT) {
         $actions[] = html_writer::link(new moodle_url($url, ['action' => 'submit', 'type' => 'membership',
-            'id' => $record->id, 'sesskey' => sesskey()]), get_string('submitreview', 'local_outcomemap'));
+            'id' => $record->id, 'sesskey' => sesskey()]), workflow::submit_action_label());
     }
     $membershiptable->data[] = [s($record->programcode), s($record->coursecode), userdate($record->effectivefrom),
         $record->effectiveto ? userdate($record->effectiveto) : get_string('none', 'local_outcomemap'),
-        get_string('status_' . $record->status, 'local_outcomemap'), implode(' | ', $actions)];
+        workflow::status_label($record->status), implode(' | ', $actions)];
 }
 echo html_writer::table($membershiptable);
 echo $OUTPUT->footer();

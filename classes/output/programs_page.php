@@ -86,7 +86,7 @@ final class programs_page implements renderable, templatable {
                     $program->externalid ?? '',
                     $credentiallabel,
                     $typelabel,
-                    get_string('status_' . $program->status, 'local_outcomemap'),
+                    workflow::status_label($program->status),
                 ]);
                 $row = [
                     'code' => $program->code,
@@ -111,11 +111,12 @@ final class programs_page implements renderable, templatable {
                         'local_outcomemap',
                         (int) $program->frameworkcount
                     ),
-                    'statuslabel' => get_string('status_' . $program->status, 'local_outcomemap'),
+                    'statuslabel' => workflow::status_label($program->status),
                     'statusclass' => $statusclasses[$program->status] ?? 'retired',
                     'outcomesurl' => $frameworksurl->out(false),
                     'canedit' => false,
                     'cansubmit' => false,
+                    'submitlabel' => workflow::submit_action_label(),
                 ];
                 if ($canmanage && $program->status === workflow::DRAFT) {
                     $row['canedit'] = true;

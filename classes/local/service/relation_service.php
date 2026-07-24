@@ -98,6 +98,9 @@ final class relation_service extends base_service {
             $DB->update_record(self::TABLE, $after);
             audit_writer::write('submit_review', 'relation', $id, $after->relationuuid, $before, $after,
                 $reason, \context_system::instance(), $actorid);
+            if (!workflow::requires_independent_approval()) {
+                self::approve($id, $reason);
+            }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -107,14 +110,12 @@ final class relation_service extends base_service {
     /** Approve a relation after effective-range and graph-cycle validation. */
     public static function approve(int $id, ?string $reason = null): void {
         global $DB;
-        $actorid = self::require_system('local/outcomemap:approve');
+        $actorid = self::require_approval_system('local/outcomemap:manageframeworks');
         $before = self::get_required(self::TABLE, $id, 'relation');
         if ($before->status !== workflow::NEEDS_REVIEW) {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':approved');
         }
-        if ((int) $before->createdby === $actorid) {
-            throw new validation_exception('creatorcannotapprove', 'createdby', $actorid);
-        }
+        workflow::require_approver_separation((int) $before->createdby, $actorid);
         self::require_approved_outcomes($before);
         self::require_no_approved_overlap($before);
         self::require_acyclic($before);

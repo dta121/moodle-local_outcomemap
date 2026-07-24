@@ -199,6 +199,9 @@ final class content_mapping_service extends base_service {
                 self::mapping_context($targettype, (int) $after->{$targetfield}),
                 $actorid
             );
+            if (!workflow::requires_independent_approval()) {
+                self::approve($targettype, $id, $reason);
+            }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -222,9 +225,7 @@ final class content_mapping_service extends base_service {
         }
         self::require_mapping_capabilities($targettype, $before, true);
         $actorid = (int) $USER->id;
-        if ((int) $before->createdby === $actorid) {
-            throw new validation_exception('creatorcannotapprove', 'createdby', $actorid);
-        }
+        workflow::require_approver_separation((int) $before->createdby, $actorid);
         self::validate_record($targettype, $before, true);
         self::require_no_approved_overlap($table, $before);
         self::require_no_duplicate_scope($table, $targetfield, $before);
@@ -676,7 +677,7 @@ final class content_mapping_service extends base_service {
             require_capability('local/outcomemap:mapcourse', $context);
             require_capability('moodle/course:update', $context);
         }
-        if ($approval) {
+        if ($approval && workflow::requires_independent_approval()) {
             require_capability('local/outcomemap:approve', $context);
         }
         return (int) $USER->id;

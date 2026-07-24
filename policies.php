@@ -277,7 +277,7 @@ $options = local_outcomemap_policy_editor_options();
 if ($action === 'submit' && $id) {
     require_sesskey();
     policy_service::submit_for_review($id);
-    redirect($url, get_string('submittedforreview', 'local_outcomemap'));
+    redirect($url, workflow::submission_success_message());
 }
 if ($action === 'delete' && $id) {
     if (!$confirmed) {
@@ -361,7 +361,7 @@ if ($action === 'view' && $id) {
             get_string('policytype_' . $record->policytype, 'local_outcomemap')],
         [get_string('policyscope', 'local_outcomemap'), local_outcomemap_policy_scope_label($record, $options)],
         [get_string('version', 'local_outcomemap'), (int) $record->version],
-        [get_string('status', 'local_outcomemap'), get_string('status_' . $record->status, 'local_outcomemap')],
+        [get_string('status', 'local_outcomemap'), workflow::status_label($record->status)],
         [get_string('policyconfiguration', 'local_outcomemap'), local_outcomemap_policy_config_summary($record)],
         [get_string('effectivefrom', 'local_outcomemap'), userdate($record->effectivefrom)],
         [get_string('effectiveto', 'local_outcomemap'), $record->effectiveto
@@ -402,7 +402,10 @@ if ($action === 'view' && $id) {
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('policies_heading', 'local_outcomemap'));
-echo html_writer::div(get_string('policies_intro', 'local_outcomemap'), 'mb-3');
+echo html_writer::div(get_string(
+    workflow::requires_independent_approval() ? 'policies_intro' : 'policies_intro_finalization',
+    'local_outcomemap'
+), 'mb-3');
 echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']), get_string('addpolicy', 'local_outcomemap'));
 $table = new html_table();
 $table->head = [
@@ -426,7 +429,7 @@ foreach (policy_service::list_all() as $record) {
             'action' => 'submit',
             'id' => $record->id,
             'sesskey' => sesskey(),
-        ]), get_string('submitreview', 'local_outcomemap'));
+        ]), workflow::submit_action_label());
         $actions[] = html_writer::link(new moodle_url($url, ['action' => 'delete', 'id' => $record->id]),
             get_string('delete'));
     } else if ($record->status === workflow::APPROVED) {
@@ -449,7 +452,7 @@ foreach (policy_service::list_all() as $record) {
         local_outcomemap_policy_scope_label($record, $options),
         s(local_outcomemap_policy_config_summary($record)),
         (int) $record->version,
-        get_string('status_' . $record->status, 'local_outcomemap'),
+        workflow::status_label($record->status),
         $effectiverange,
         implode(' | ', $actions),
     ];

@@ -81,6 +81,9 @@ final class course_instance_service extends base_service {
             $DB->update_record(self::TABLE, $after);
             audit_writer::write('submit_review', 'course_instance', $id, $after->uuid, $before, $after, $reason,
                 \context_course::instance($after->moodlecourseid), $actorid);
+            if (!workflow::requires_independent_approval()) {
+                self::confirm($id, $reason);
+            }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -92,17 +95,19 @@ final class course_instance_service extends base_service {
         global $DB, $USER;
         $before = self::get_required(self::TABLE, $id, 'course_instance');
         $context = \context_course::instance($before->moodlecourseid);
-        if (!has_capability('local/outcomemap:approve', $context)
-                && !has_capability('local/outcomemap:managecatalogcourses', \context_system::instance())) {
-            require_capability('local/outcomemap:approve', $context);
+        if (workflow::requires_independent_approval()) {
+            if (!has_capability('local/outcomemap:approve', $context)
+                    && !has_capability('local/outcomemap:managecatalogcourses', \context_system::instance())) {
+                require_capability('local/outcomemap:approve', $context);
+            }
+            $actorid = (int) $USER->id;
+        } else {
+            $actorid = self::require_system('local/outcomemap:managecatalogcourses');
         }
-        $actorid = (int) $USER->id;
         if ($before->status !== workflow::NEEDS_REVIEW || (int) $before->confirmed === 1) {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':approved');
         }
-        if ((int) $before->createdby === $actorid) {
-            throw new validation_exception('creatorcannotapprove', 'createdby', $actorid);
-        }
+        workflow::require_approver_separation((int) $before->createdby, $actorid);
         if (!$DB->record_exists('course', ['id' => $before->moodlecourseid])) {
             throw new validation_exception('moodlecoursenotfound', 'moodlecourseid', $before->moodlecourseid);
         }

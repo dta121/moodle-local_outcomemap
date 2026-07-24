@@ -57,7 +57,7 @@ $id = optional_param('id', 0, PARAM_INT);
 if ($action === 'submit' && $id) {
     require_sesskey();
     content_mapping_service::submit_for_review($targettype, $id);
-    redirect($url, get_string('submittedforreview', 'local_outcomemap'));
+    redirect($url, workflow::submission_success_message());
 }
 
 if (in_array($action, ['add', 'edit', 'newversion'], true)) {
@@ -146,7 +146,7 @@ foreach (
             ]), get_string('edit'));
             $actions[] = html_writer::link(new moodle_url($url, [
                 'action' => 'submit', 'targettype' => $type, 'id' => $record->id, 'sesskey' => sesskey(),
-            ]), get_string('submitreview', 'local_outcomemap'));
+            ]), workflow::submit_action_label());
         } else if ($record->status === workflow::APPROVED) {
             $actions[] = html_writer::link(new moodle_url($url, [
                 'action' => 'newversion', 'targettype' => $type, 'id' => $record->id,
@@ -155,7 +155,7 @@ foreach (
         $table->data[] = [format_string($target), s($record->frameworkcode . '.' . $record->outcomecode
             . ' v' . $record->outcomeversion), get_string('mappingrole_' . $record->role, 'local_outcomemap'),
             $record->weight === null ? '' : s($record->weight), s($record->periodcode),
-            get_string('status_' . $record->status, 'local_outcomemap'), implode(' | ', $actions)];
+            workflow::status_label($record->status), implode(' | ', $actions)];
     }
 }
 echo html_writer::table($table);

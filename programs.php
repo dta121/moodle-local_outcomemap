@@ -3,6 +3,7 @@
 
 use local_outcomemap\form\program_form;
 use local_outcomemap\local\service\program_service;
+use local_outcomemap\local\workflow;
 use local_outcomemap\output\programs_page;
 
 $configpath = __DIR__ . '/../../config.php';
@@ -25,7 +26,7 @@ $id = optional_param('id', 0, PARAM_INT);
 if ($action === 'submit' && $id) {
     require_sesskey();
     program_service::submit_for_review($id);
-    redirect($url, get_string('submittedforreview', 'local_outcomemap'));
+    redirect($url, workflow::submission_success_message());
 }
 
 if ($action === 'edit' || $action === 'add') {

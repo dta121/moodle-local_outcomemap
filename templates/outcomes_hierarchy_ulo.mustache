@@ -10,7 +10,7 @@
         {{#approvedinfo}}<span class="lom-status">{{approvedinfo}}</span>{{/approvedinfo}}
         {{#pendingbadge}}<span class="lom-pending">{{pendingbadge}}</span>{{/pendingbadge}}
         {{#canapprove}}<a class="lom-action" href="{{approveurl}}">{{#str}} approve, local_outcomemap {{/str}}</a>{{/canapprove}}
-        {{#cansubmit}}<a class="lom-action" href="{{submiturl}}">{{#str}} submitreview, local_outcomemap {{/str}}</a>{{/cansubmit}}
+        {{#cansubmit}}<a class="lom-action" href="{{submiturl}}">{{submitlabel}}</a>{{/cansubmit}}
         {{#canmap}}<a class="lom-action" href="#" data-lom-map role="button">{{#str}} hier_maplink, local_outcomemap {{/str}}</a>{{/canmap}}
         {{#caneditinline}}<a class="lom-action" href="#" data-lom-edit role="button">{{#str}} edit, core {{/str}}</a>{{/caneditinline}}
         {{#editformurl}}<a class="lom-action" href="{{editformurl}}">{{#str}} edit, core {{/str}}</a>{{/editformurl}}

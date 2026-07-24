@@ -293,6 +293,9 @@ final class policy_service extends base_service {
             $DB->update_record('local_outcomemap_policy', $after);
             audit_writer::write('submit_review', 'policy', $id, $after->policyuuid, $before, $after,
                 $reason, self::policy_context($after), $actorid);
+            if (!workflow::requires_independent_approval()) {
+                self::approve($id, $reason);
+            }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -313,11 +316,13 @@ final class policy_service extends base_service {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':approved');
         }
         $context = self::policy_context($before);
-        require_capability('local/outcomemap:approve', $context);
-        $actorid = (int) $USER->id;
-        if ((int) $before->createdby === $actorid) {
-            throw new validation_exception('creatorcannotapprove', 'createdby', $actorid);
+        if (workflow::requires_independent_approval()) {
+            require_capability('local/outcomemap:approve', $context);
+            $actorid = (int) $USER->id;
+        } else {
+            $actorid = self::require_policy_capability($before);
         }
+        workflow::require_approver_separation((int) $before->createdby, $actorid);
         self::validate_config($before->policytype, json_decode($before->configjson, true) ?? []);
         self::validate_bands(self::get_bands($id));
         $after = clone $before;

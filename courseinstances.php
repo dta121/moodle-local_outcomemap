@@ -25,10 +25,11 @@ $id = optional_param('id', 0, PARAM_INT);
 if ($action === 'submit' && $id) {
     require_sesskey();
     course_instance_service::submit_for_review($id);
-    redirect($url, get_string('submittedforreview', 'local_outcomemap'));
+    redirect($url, workflow::submission_success_message());
 }
 if ($action === 'add') {
-    $form = new course_instance_form($url);
+    $formurl = new moodle_url($url, ['action' => 'add']);
+    $form = new course_instance_form($formurl);
     if ($form->is_cancelled()) {
         redirect($url);
     }
@@ -38,6 +39,10 @@ if ($action === 'add') {
     }
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string('addcourseinstance', 'local_outcomemap'));
+    echo html_writer::tag('p', get_string(
+        workflow::requires_independent_approval() ? 'courseinstances_intro' : 'courseinstances_intro_finalization',
+        'local_outcomemap'
+    ));
     $form->display();
     echo $OUTPUT->footer();
     exit;
@@ -45,6 +50,13 @@ if ($action === 'add') {
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('courseinstances_heading', 'local_outcomemap'));
+echo html_writer::tag('p', get_string(
+        workflow::requires_independent_approval() ? 'courseinstances_intro' : 'courseinstances_intro_finalization',
+        'local_outcomemap'
+    ));
+echo html_writer::tag('p', get_string('courseinstances_coursevisibility', 'local_outcomemap'), [
+    'class' => 'text-muted',
+]);
 echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']), get_string('addcourseinstance', 'local_outcomemap'));
 $table = new html_table();
 $table->head = [get_string('catalogcourse', 'local_outcomemap'), get_string('moodlecourse', 'local_outcomemap'),
@@ -54,10 +66,10 @@ foreach (course_instance_service::list_all() as $record) {
     $actions = [];
     if ($record->status === workflow::DRAFT) {
         $actions[] = html_writer::link(new moodle_url($url, ['action' => 'submit', 'id' => $record->id,
-            'sesskey' => sesskey()]), get_string('submitreview', 'local_outcomemap'));
+            'sesskey' => sesskey()]), workflow::submit_action_label());
     }
     $table->data[] = [s($record->catalogcode), format_string($record->moodlename), s($record->periodcode),
-        get_string('status_' . $record->status, 'local_outcomemap'), $record->confirmed ? get_string('yes') : get_string('no'),
+        workflow::status_label($record->status), $record->confirmed ? get_string('yes') : get_string('no'),
         implode(' | ', $actions)];
 }
 echo html_writer::table($table);
