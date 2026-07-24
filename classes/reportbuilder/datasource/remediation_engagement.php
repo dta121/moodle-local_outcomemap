@@ -14,19 +14,24 @@ use core_reportbuilder\local\filters\number;
 use core_reportbuilder\local\filters\select;
 use core_reportbuilder\local\filters\text;
 use core_reportbuilder\local\helpers\database;
-use core_reportbuilder\local\helpers\format;
+use core_reportbuilder\local\helpers\format as report_format;
 use core_reportbuilder\local\report\column;
 use lang_string;
+use local_outcomemap\local\service\remediation_engagement_service;
 use local_outcomemap\reportbuilder\local\entities\report_record;
 use local_outcomemap\reportbuilder\local\filter_options;
 use local_outcomemap\reportbuilder\local\secured_datasource;
 
 /**
- * Governed remediation recommendations.
+ * Governed remediation recommendations and explicit learner engagement.
  *
- * The current owned schema has no recommendation-delivery or engagement
- * event table. This source deliberately reports recommendations only and
- * does not infer engagement from completion, access logs, or resource views.
+ * The source emits one row per approved program membership and explicit event,
+ * retaining one recommendation row with empty event fields when no learner has
+ * opened it. Engagement comes only from the append-only plugin redirect event;
+ * activity completion, access logs, and resource views are never inferred as
+ * engagement or mastery evidence. Program is visible by default because a
+ * catalog course may intentionally contribute the same fact to several
+ * program-reporting grains.
  *
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
@@ -43,11 +48,12 @@ final class remediation_engagement extends secured_datasource {
         return [
             'local/outcomemap:viewdefinitions',
             'local/outcomemap:mapcourse',
+            'local/outcomemap:viewallresults',
         ];
     }
 
     /**
-     * Moodle course IDs where both source capabilities survive overrides.
+     * Moodle course IDs where all source capabilities survive overrides.
      *
      * @return int[]
      */
@@ -90,6 +96,9 @@ final class remediation_engagement extends secured_datasource {
         $entity = new report_record(
             [
                 'local_outcomemap_remed',
+                'local_outcomemap_remed_event',
+                'local_outcomemap_result',
+                'user',
                 'local_outcomemap_cinst',
                 'local_outcomemap_course',
                 'course',
@@ -103,6 +112,9 @@ final class remediation_engagement extends secured_datasource {
             new lang_string('report_source_remediation_engagement', 'local_outcomemap')
         );
         $recommendation = $entity->get_table_alias('local_outcomemap_remed');
+        $engagement = $entity->get_table_alias('local_outcomemap_remed_event');
+        $result = $entity->get_table_alias('local_outcomemap_result');
+        $user = $entity->get_table_alias('user');
         $courseinstance = $entity->get_table_alias('local_outcomemap_cinst');
         $catalogcourse = $entity->get_table_alias('local_outcomemap_course');
         $moodlecourse = $entity->get_table_alias('course');
@@ -117,6 +129,12 @@ final class remediation_engagement extends secured_datasource {
 
         $this->add_allowed_id_condition("{$moodlecourse}.id", self::allowed_course_ids());
 
+        $this->add_join("LEFT JOIN {local_outcomemap_remed_event} {$engagement}
+                             ON {$engagement}.remediationid = {$recommendation}.id");
+        $this->add_join("LEFT JOIN {local_outcomemap_result} {$result}
+                             ON {$result}.id = {$engagement}.resultid
+                            AND {$result}.userid = {$engagement}.userid");
+        $this->add_join("LEFT JOIN {user} {$user} ON {$user}.id = {$engagement}.userid");
         $this->add_join("JOIN {local_outcomemap_cinst} {$courseinstance}
                              ON {$courseinstance}.id = {$recommendation}.cinstid");
         $this->add_join("JOIN {local_outcomemap_course} {$catalogcourse}
@@ -155,6 +173,34 @@ final class remediation_engagement extends secured_datasource {
                 column::TYPE_TEXT, ["{$recommendation}.mappinguuid"])
             ->define_column('version', new lang_string('version', 'local_outcomemap'),
                 column::TYPE_INTEGER, ["{$recommendation}.version"])
+            ->define_column('engagementid', new lang_string('reportcolumn_engagementid', 'local_outcomemap'),
+                column::TYPE_INTEGER, ["{$engagement}.id"], true, null, [], true)
+            ->define_column('engagementuuid', new lang_string('reportcolumn_engagementuuid', 'local_outcomemap'),
+                column::TYPE_TEXT, ["{$engagement}.eventuuid"])
+            ->define_column('engagementtype', new lang_string('reportcolumn_engagementtype', 'local_outcomemap'),
+                column::TYPE_TEXT, ["{$engagement}.eventtype"])
+            ->define_column('userid', new lang_string('user'),
+                column::TYPE_INTEGER, ["{$engagement}.userid"], true, null, [], true)
+            ->define_column('username', new lang_string('username'),
+                column::TYPE_TEXT, ["{$user}.username"])
+            ->define_column('userfullname', new lang_string('fullnameuser'), column::TYPE_TEXT, [
+                'firstname' => "{$user}.firstname",
+                'lastname' => "{$user}.lastname",
+                'firstnamephonetic' => "{$user}.firstnamephonetic",
+                'lastnamephonetic' => "{$user}.lastnamephonetic",
+                'middlename' => "{$user}.middlename",
+                'alternatename' => "{$user}.alternatename",
+            ], true, [\local_outcomemap\reportbuilder\local\format::class, 'user_fullname'],
+                ['lastname', 'firstname'])
+            ->define_column('resultid', new lang_string('reportcolumn_resultid', 'local_outcomemap'),
+                column::TYPE_INTEGER, ["{$engagement}.resultid"], true, null, [], true)
+            ->define_column('resultstate', new lang_string('reportcolumn_state', 'local_outcomemap'),
+                column::TYPE_TEXT, ["{$result}.state"])
+            ->define_column('resultpercentage', new lang_string('reportcolumn_percentage', 'local_outcomemap'),
+                column::TYPE_TEXT, ["{$result}.percentage"], true, null, [], true)
+            ->define_column('engagementtime', new lang_string('reportcolumn_engagementtime', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP, ["{$engagement}.occurredat"], true,
+                [report_format::class, 'userdate'])
             ->define_column('programid', new lang_string('reportcolumn_programid', 'local_outcomemap'),
                 column::TYPE_INTEGER, ["{$program}.id"])
             ->define_column('programcode', new lang_string('program', 'local_outcomemap'),
@@ -204,7 +250,7 @@ final class remediation_engagement extends secured_datasource {
                 column::TYPE_INTEGER, ["{$recommendation}.sortorder"])
             ->define_column('required', new lang_string('requiredremediation', 'local_outcomemap'),
                 column::TYPE_BOOLEAN, ["{$recommendation}.required"], true,
-                [format::class, 'boolean_as_text'])
+                [report_format::class, 'boolean_as_text'])
             ->define_column('minpercent', new lang_string('minpercent', 'local_outcomemap'),
                 column::TYPE_TEXT, ["{$recommendation}.minpercent"], true, null, [], true)
             ->define_column('maxpercent', new lang_string('maxpercent', 'local_outcomemap'),
@@ -213,16 +259,24 @@ final class remediation_engagement extends secured_datasource {
                 column::TYPE_TEXT, ["{$recommendation}.status"])
             ->define_column('effectivefrom', new lang_string('effectivefrom', 'local_outcomemap'),
                 column::TYPE_TIMESTAMP, ["{$recommendation}.effectivefrom"], true,
-                [format::class, 'userdate'])
+                [report_format::class, 'userdate'])
             ->define_column('effectiveto', new lang_string('effectiveto', 'local_outcomemap'),
                 column::TYPE_TIMESTAMP, ["{$recommendation}.effectiveto"], true,
-                [format::class, 'userdate'])
+                [report_format::class, 'userdate'])
             ->define_filter('programid', new lang_string('program', 'local_outcomemap'),
                 number::class, "{$program}.id")
             ->define_filter('catalogcourseid', new lang_string('catalogcourse', 'local_outcomemap'),
                 number::class, "{$catalogcourse}.id")
             ->define_filter('moodlecourseid', new lang_string('moodlecourse', 'local_outcomemap'),
                 course_selector::class, "{$moodlecourse}.id")
+            ->define_filter('cohortid', new lang_string('cohort', 'local_outcomemap'),
+                \local_outcomemap\reportbuilder\local\filters\cohort_membership::class, "{$engagement}.userid")
+            ->define_filter('userid', new lang_string('user'), number::class, "{$engagement}.userid")
+            ->define_filter('engagementtype', new lang_string('reportcolumn_engagementtype', 'local_outcomemap'),
+                select::class, "{$engagement}.eventtype", [
+                    remediation_engagement_service::EVENT_OPENED =>
+                        get_string('engagementevent_opened', 'local_outcomemap'),
+                ])
             ->define_filter('periodcode', new lang_string('periodcode', 'local_outcomemap'),
                 text::class, "{$courseinstance}.periodcode")
             ->define_filter('outcomeversionid', new lang_string('outcomeversion', 'local_outcomemap'),
@@ -257,6 +311,11 @@ final class remediation_engagement extends secured_datasource {
             'outcomemap:purpose',
             'outcomemap:required',
             'outcomemap:status',
+            'outcomemap:engagementtype',
+            'outcomemap:userfullname',
+            'outcomemap:resultstate',
+            'outcomemap:resultpercentage',
+            'outcomemap:engagementtime',
         ];
     }
 
@@ -266,6 +325,8 @@ final class remediation_engagement extends secured_datasource {
             'outcomemap:programid',
             'outcomemap:catalogcourseid',
             'outcomemap:moodlecourseid',
+            'outcomemap:cohortid',
+            'outcomemap:engagementtype',
             'outcomemap:periodcode',
             'outcomemap:outcomeversionid',
             'outcomemap:band',

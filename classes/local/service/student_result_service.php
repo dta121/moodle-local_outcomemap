@@ -422,6 +422,7 @@ final class student_result_service {
                 $remediationrequests[$key] = [
                     'cinstid' => $outcome->cinstid,
                     'itemverid' => $outcome->itemverid,
+                    'resultid' => (int) $result->id,
                     'bandid' => $row['bandid'],
                     'percentage' => $row['percentage'],
                 ];
@@ -480,6 +481,7 @@ final class student_result_service {
             $request = (array) $request;
             $cinstid = (int) ($request['cinstid'] ?? 0);
             $itemverid = (int) ($request['itemverid'] ?? 0);
+            $resultid = (int) ($request['resultid'] ?? 0);
             if ($cinstid < 1 || $itemverid < 1 || !array_key_exists('percentage', $request)
                     || $request['percentage'] === null) {
                 continue;
@@ -487,6 +489,7 @@ final class student_result_service {
             $normalized[$key] = [
                 'cinstid' => $cinstid,
                 'itemverid' => $itemverid,
+                'resultid' => $resultid > 0 ? $resultid : null,
                 'bandid' => empty($request['bandid']) ? null : (int) $request['bandid'],
                 'percentage' => decimal::canonical($request['percentage'], 'percentage'),
             ];
@@ -566,7 +569,7 @@ final class student_result_service {
                 if ($url === null) {
                     continue;
                 }
-                $output[$key][] = [
+                $item = [
                     'title' => (string) $record->title,
                     'explanation' => $record->explanation === null ? null : (string) $record->explanation,
                     'url' => $url,
@@ -575,6 +578,25 @@ final class student_result_service {
                     'priority' => (int) $record->priority,
                     'sortorder' => (int) $record->sortorder,
                 ];
+                if ($request['resultid'] !== null) {
+                    $item = [
+                        'recommendationid' => (int) $record->id,
+                        'resultid' => $request['resultid'],
+                        'title' => $item['title'],
+                        'explanation' => $item['explanation'],
+                        'targeturl' => $url,
+                        'url' => (new \moodle_url('/local/outcomemap/remediationopen.php', [
+                            'id' => (int) $record->id,
+                            'resultid' => $request['resultid'],
+                            'sesskey' => sesskey(),
+                        ]))->out(false),
+                        'required' => $item['required'],
+                        'purpose' => $item['purpose'],
+                        'priority' => $item['priority'],
+                        'sortorder' => $item['sortorder'],
+                    ];
+                }
+                $output[$key][] = $item;
             }
         }
         return $output;

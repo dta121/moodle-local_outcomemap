@@ -541,6 +541,29 @@
         <INDEX NAME="stale_ix" UNIQUE="false" FIELDS="stale"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_outcomemap_remed_event" COMMENT="Append-only explicit learner engagement with governed remediation recommendations">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="eventuuid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="remediationid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="resultid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="eventtype" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="occurredat" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="remediation_fk" TYPE="foreign" FIELDS="remediationid" REFTABLE="local_outcomemap_remed" REFFIELDS="id"/>
+        <KEY NAME="result_fk" TYPE="foreign" FIELDS="resultid" REFTABLE="local_outcomemap_result" REFFIELDS="id"/>
+        <KEY NAME="eventuuid_uq" TYPE="unique" FIELDS="eventuuid"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="useroccurred_ix" UNIQUE="false" FIELDS="userid, occurredat"/>
+        <INDEX NAME="remedevent_ix" UNIQUE="false" FIELDS="remediationid, eventtype, occurredat"/>
+        <INDEX NAME="resultevent_ix" UNIQUE="false" FIELDS="resultid, eventtype"/>
+      </INDEXES>
+    </TABLE>
     <TABLE NAME="local_outcomemap_snapshot" COMMENT="Immutable versioned accreditation reporting snapshots">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>

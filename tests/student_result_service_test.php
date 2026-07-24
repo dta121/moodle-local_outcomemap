@@ -13,6 +13,7 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 
+use local_outcomemap\local\canonical_json;
 use local_outcomemap\local\service\calculation_service;
 use local_outcomemap\local\service\catalog_course_service;
 use local_outcomemap\local\service\course_instance_service;
@@ -20,9 +21,11 @@ use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\outcome_service;
 use local_outcomemap\local\service\policy_service;
 use local_outcomemap\local\service\question_mapping_service;
+use local_outcomemap\local\service\remediation_engagement_service;
 use local_outcomemap\local\service\remediation_service;
 use local_outcomemap\local\service\student_result_service;
 use local_outcomemap\local\uuid;
+use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 use mod_quiz\quiz_attempt;
 use mod_quiz\quiz_settings;
@@ -209,7 +212,7 @@ final class student_result_service_test extends \advanced_testcase {
             'effectivefrom' => self::EFFECTIVEFROM,
         ]);
         $belowband = policy_service::get_bands($calculationpolicyid)[0];
-        $this->approve_policy([
+        $releasepolicyid = $this->approve_policy([
             'policytype' => policy_service::TYPE_RELEASE,
             'scopetype' => policy_service::SCOPE_ASSESSMENT,
             'scopeid' => $quizcm->id,
@@ -230,7 +233,7 @@ final class student_result_service_test extends \advanced_testcase {
             'maxpercent' => '69.9999999999',
             'effectivefrom' => self::EFFECTIVEFROM,
         ];
-        $this->create_remediation($base + [
+        $visibleremediationid = $this->create_remediation($base + [
             'targettype' => remediation_service::TARGET_MODULE,
             'targetid' => $visiblecm->id,
             'title' => 'Unit 2.3',
@@ -239,7 +242,7 @@ final class student_result_service_test extends \advanced_testcase {
             'priority' => 10,
             'sortorder' => 1,
         ]);
-        $this->create_remediation($base + [
+        $hiddenremediationid = $this->create_remediation($base + [
             'targettype' => remediation_service::TARGET_MODULE,
             'targetid' => $hiddencm->id,
             'title' => 'Restricted Unit 4.4',
@@ -346,6 +349,54 @@ final class student_result_service_test extends \advanced_testcase {
             'scopetype' => calculation_service::SCOPE_COURSE,
             'supersededby' => null,
         ], '*', MUST_EXIST);
+
+        // A successful open is an append-only analytics event tied to the
+        // exact recommendation and result versions. It must not alter mastery
+        // evidence or calculated results, and forged/inaccessible IDs fail closed.
+        $releaseconfig = canonical_json::encode([
+            'mode' => policy_service::RELEASE_SCHEDULED,
+            'releaseat' => time() - 1,
+        ]);
+        $DB->update_record('local_outcomemap_policy', (object) [
+            'id' => $releasepolicyid,
+            'configjson' => $releaseconfig,
+            'confighash' => hash('sha256', $releaseconfig),
+            'timemodified' => time(),
+        ]);
+        $recommendation = $row['remediation'][0];
+        $this->assertSame($visibleremediationid, $recommendation['recommendationid']);
+        $this->assertSame((int) $courseresult->id, $recommendation['resultid']);
+        $evidencecount = $DB->count_records('local_outcomemap_evidence');
+        $resultcount = $DB->count_records('local_outcomemap_result');
+        $destination = remediation_engagement_service::record_open(
+            $visibleremediationid,
+            (int) $courseresult->id
+        );
+        $this->assertSame($recommendation['targeturl'], $destination);
+        $event = $DB->get_record('local_outcomemap_remed_event', [], '*', MUST_EXIST);
+        $this->assertSame($visibleremediationid, (int) $event->remediationid);
+        $this->assertSame((int) $courseresult->id, (int) $event->resultid);
+        $this->assertSame((int) $student->id, (int) $event->userid);
+        $this->assertSame(remediation_engagement_service::EVENT_OPENED, $event->eventtype);
+        $this->assertSame($evidencecount, $DB->count_records('local_outcomemap_evidence'));
+        $this->assertSame($resultcount, $DB->count_records('local_outcomemap_result'));
+
+        foreach ([
+            [$visibleremediationid, (int) $courseresult->id + 999999],
+            [$hiddenremediationid, (int) $courseresult->id],
+            [$visibleremediationid + 999999, (int) $courseresult->id],
+        ] as [$recommendationid, $resultid]) {
+            try {
+                remediation_engagement_service::record_open($recommendationid, $resultid);
+                $this->fail('Forged or inaccessible remediation engagement must fail closed.');
+            } catch (validation_exception $exception) {
+                $this->assertSame('remediationnotavailable', $exception->errorcode);
+            }
+        }
+        $this->assertSame(1, $DB->count_records('local_outcomemap_remed_event'));
+        $this->assertSame($evidencecount, $DB->count_records('local_outcomemap_evidence'));
+        $this->assertSame($resultcount, $DB->count_records('local_outcomemap_result'));
+
         $DB->set_field('local_outcomemap_result', 'lineagehash', str_repeat('0', 64), [
             'id' => $courseresult->id,
         ]);

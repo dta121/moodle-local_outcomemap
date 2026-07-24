@@ -610,3 +610,18 @@ $string['snapshotlist_caption'] = 'Accreditation snapshot versions';
 $string['resultstate_superseded'] = 'Superseded';
 $string['resultstate_not_calculated'] = 'Not calculated';
 $string['resultscope_quiz_attempt'] = 'Quiz attempt';
+
+// Explicit remediation engagement reporting.
+$string['remediationnotavailable'] = 'This recommendation is no longer released or accessible.';
+$string['engagementevent_opened'] = 'Opened recommendation';
+$string['reportcolumn_engagementid'] = 'Engagement event ID';
+$string['reportcolumn_engagementuuid'] = 'Engagement event UUID';
+$string['reportcolumn_engagementtype'] = 'Engagement event';
+$string['reportcolumn_engagementtime'] = 'Engaged at';
+$string['reportcolumn_resultid'] = 'Result ID';
+$string['privacy:metadata:local_outcomemap_remed_event'] = 'Explicit learner interactions with released remediation recommendations.';
+$string['privacy:metadata:local_outcomemap_remed_event:userid'] = 'The learner who explicitly opened the recommendation.';
+$string['privacy:metadata:local_outcomemap_remed_event:remediationid'] = 'The exact governed recommendation version that was opened.';
+$string['privacy:metadata:local_outcomemap_remed_event:resultid'] = 'The exact released outcome-result version that caused the recommendation.';
+$string['privacy:metadata:local_outcomemap_remed_event:eventtype'] = 'The explicit learner action that occurred.';
+$string['privacy:metadata:local_outcomemap_remed_event:occurredat'] = 'When the explicit learner action occurred.';

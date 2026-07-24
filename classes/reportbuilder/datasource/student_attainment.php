@@ -264,6 +264,8 @@ final class student_attainment extends secured_datasource {
                 number::class, $catalogcourseid)
             ->define_filter('moodlecourseid', new lang_string('moodlecourse', 'local_outcomemap'),
                 course_selector::class, "{$moodlecourse}.id")
+            ->define_filter('cohortid', new lang_string('cohort', 'local_outcomemap'),
+                \local_outcomemap\reportbuilder\local\filters\cohort_membership::class, "{$result}.userid")
             ->define_filter('periodcode', new lang_string('periodcode', 'local_outcomemap'),
                 text::class, "{$result}.periodcode")
             ->define_filter('assessmentid', new lang_string('assessment', 'local_outcomemap'),
@@ -309,6 +311,7 @@ final class student_attainment extends secured_datasource {
             'outcomemap:programid',
             'outcomemap:catalogcourseid',
             'outcomemap:moodlecourseid',
+            'outcomemap:cohortid',
             'outcomemap:periodcode',
             'outcomemap:assessmentid',
             'outcomemap:outcomeversionid',

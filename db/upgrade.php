@@ -459,5 +459,32 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026072600, 'local', 'outcomemap');
     }
 
+    if ($oldversion < 2026072601) {
+        $table = new xmldb_table('local_outcomemap_remed_event');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field('eventuuid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL);
+        $table->add_field('remediationid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('resultid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('eventtype', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL);
+        $table->add_field('occurredat', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('remediation_fk', XMLDB_KEY_FOREIGN,
+            ['remediationid'], 'local_outcomemap_remed', ['id']);
+        $table->add_key('result_fk', XMLDB_KEY_FOREIGN,
+            ['resultid'], 'local_outcomemap_result', ['id']);
+        $table->add_key('eventuuid_uq', XMLDB_KEY_UNIQUE, ['eventuuid']);
+        $table->add_index('useroccurred_ix', XMLDB_INDEX_NOTUNIQUE, ['userid', 'occurredat']);
+        $table->add_index('remedevent_ix', XMLDB_INDEX_NOTUNIQUE,
+            ['remediationid', 'eventtype', 'occurredat']);
+        $table->add_index('resultevent_ix', XMLDB_INDEX_NOTUNIQUE, ['resultid', 'eventtype']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026072601, 'local', 'outcomemap');
+    }
+
     return true;
 }

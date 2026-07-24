@@ -200,6 +200,49 @@ final class accreditation_export_service {
     }
 
     /**
+     * Append an audit event after a verified snapshot export is generated.
+     *
+     * Keeping this separate from package construction avoids recording test or
+     * preview reads as downloads. HTTP and web-service boundaries call it only
+     * after the complete response body has been built successfully.
+     *
+     * @param int $snapshotid Frozen snapshot ID.
+     * @param string $format Export format: json or csv.
+     * @param bool $includeevidence Whether protected evidence detail was included.
+     */
+    public static function record_export(
+        int $snapshotid,
+        string $format,
+        bool $includeevidence = false
+    ): void {
+        global $USER;
+
+        $format = strtolower(trim($format));
+        if (!in_array($format, ['json', 'csv'], true) || ($format === 'csv' && $includeevidence)) {
+            throw new validation_exception('invalidfield', 'format', $format);
+        }
+        [$snapshot, $items] = self::load_verified($snapshotid, $includeevidence);
+        \local_outcomemap\local\audit_writer::write(
+            'export_snapshot',
+            'snapshot',
+            (int) $snapshot->id,
+            (string) $snapshot->snapshotuuid,
+            null,
+            [
+                'format' => $format,
+                'mode' => $includeevidence ? 'evidence_detail' : 'standard',
+                'snapshotversion' => (int) $snapshot->version,
+                'itemcount' => count($items),
+                'payloadhash' => (string) $snapshot->payloadhash,
+                'manifesthash' => (string) $snapshot->manifesthash,
+            ],
+            null,
+            \context_system::instance(),
+            (int) $USER->id
+        );
+    }
+
+    /**
      * Build a redacted proof row for a suppressed aggregate.
      *
      * @param \stdClass $item Suppressed item.

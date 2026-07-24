@@ -319,4 +319,322 @@ class behat_local_outcomemap extends behat_base {
         question_engine::save_questions_usage_by_activity($usage);
         calculation_service::recalculate_attempt((int) $attempt->id);
     }
+
+    /**
+     * Creates a complete two-learner accreditation snapshot source fixture.
+     *
+     * @Given /^the M6 accreditation reporting fixture for "([^"]+)" contains learners "([^"]+)" and "([^"]+)"$/
+     * @param string $courseshortname Moodle course shortname.
+     * @param string $firstusername First learner username.
+     * @param string $secondusername Second learner username.
+     */
+    public function the_m6_accreditation_reporting_fixture_exists(
+        string $courseshortname,
+        string $firstusername,
+        string $secondusername
+    ): void {
+        global $CFG, $DB;
+
+        require_once($CFG->dirroot . '/cohort/lib.php');
+        require_once($CFG->libdir . '/testing/generator/lib.php');
+        $course = $DB->get_record('course', ['shortname' => $courseshortname], '*', MUST_EXIST);
+        $learners = [
+            $DB->get_record('user', ['username' => $firstusername], '*', MUST_EXIST),
+            $DB->get_record('user', ['username' => $secondusername], '*', MUST_EXIST),
+        ];
+        $generator = new testing_data_generator();
+        $cohort = $generator->create_cohort([
+            'name' => 'M6 accreditation cohort',
+            'idnumber' => 'M6-ACCREDITATION',
+        ]);
+        foreach ($learners as $learner) {
+            cohort_add_member($cohort->id, $learner->id);
+        }
+
+        $now = time();
+        $effectivefrom = $now - DAYSECS;
+        $programid = (int) $DB->insert_record('local_outcomemap_program', (object) [
+            'uuid' => uuid::generate(),
+            'code' => 'M6-PROGRAM',
+            'name' => 'M6 reporting program',
+            'description' => null,
+            'externalid' => null,
+            'status' => workflow::APPROVED,
+            'createdby' => null,
+            'modifiedby' => null,
+            'timecreated' => $now,
+            'timemodified' => $now,
+        ]);
+        $catalogcourseid = (int) $DB->insert_record('local_outcomemap_course', (object) [
+            'uuid' => uuid::generate(),
+            'code' => 'M6-COURSE',
+            'name' => 'M6 reporting course',
+            'description' => null,
+            'siskey' => null,
+            'status' => workflow::APPROVED,
+            'createdby' => null,
+            'modifiedby' => null,
+            'timecreated' => $now,
+            'timemodified' => $now,
+        ]);
+        $courseinstanceid = (int) $DB->insert_record('local_outcomemap_cinst', (object) [
+            'uuid' => uuid::generate(),
+            'courseid' => $catalogcourseid,
+            'moodlecourseid' => $course->id,
+            'periodcode' => '2026-T1',
+            'externalid' => null,
+            'status' => workflow::APPROVED,
+            'confirmed' => 1,
+            'confirmedby' => null,
+            'confirmedat' => $now,
+            'createdby' => null,
+            'modifiedby' => null,
+            'timecreated' => $now,
+            'timemodified' => $now,
+        ]);
+        $DB->insert_record('local_outcomemap_progcourse', (object) [
+            'uuid' => uuid::generate(),
+            'programid' => $programid,
+            'courseid' => $catalogcourseid,
+            'status' => workflow::APPROVED,
+            'effectivefrom' => $effectivefrom,
+            'effectiveto' => null,
+            'createdby' => null,
+            'approvedby' => null,
+            'timecreated' => $now,
+            'timemodified' => $now,
+            'approvedat' => $now,
+        ]);
+        $frameworkid = (int) $DB->insert_record('local_outcomemap_fw', (object) [
+            'uuid' => uuid::generate(),
+            'code' => 'M6-PLO',
+            'name' => 'M6 program outcomes',
+            'description' => null,
+            'ownertype' => framework_service::OWNER_PROGRAM,
+            'ownerid' => $programid,
+            'status' => workflow::APPROVED,
+            'createdby' => null,
+            'modifiedby' => null,
+            'timecreated' => $now,
+            'timemodified' => $now,
+        ]);
+        $outcomeid = (int) $DB->insert_record('local_outcomemap_item', (object) [
+            'uuid' => uuid::generate(),
+            'frameworkid' => $frameworkid,
+            'code' => 'PLO1',
+            'status' => workflow::APPROVED,
+            'createdby' => null,
+            'timecreated' => $now,
+            'timemodified' => $now,
+        ]);
+        $outcomeversionid = (int) $DB->insert_record('local_outcomemap_itemver', (object) [
+            'uuid' => uuid::generate(),
+            'itemid' => $outcomeid,
+            'version' => 1,
+            'statement' => 'Demonstrate the accredited program outcome.',
+            'shortstatement' => 'Demonstrate the program outcome.',
+            'bloomlevel' => null,
+            'status' => workflow::APPROVED,
+            'effectivefrom' => $effectivefrom,
+            'effectiveto' => null,
+            'changereason' => null,
+            'createdby' => null,
+            'approvedby' => null,
+            'timecreated' => $now,
+            'timemodified' => $now,
+            'approvedat' => $now,
+        ]);
+
+        $insertpolicy = static function(string $type, array $config) use ($DB, $effectivefrom, $now): int {
+            $configjson = \local_outcomemap\local\canonical_json::encode($config);
+            return (int) $DB->insert_record('local_outcomemap_policy', (object) [
+                'policyuuid' => uuid::generate(),
+                'version' => 1,
+                'policytype' => $type,
+                'scopetype' => policy_service::SCOPE_INSTITUTION,
+                'scopeid' => null,
+                'name' => 'M6 ' . $type,
+                'configjson' => $configjson,
+                'confighash' => hash('sha256', $configjson),
+                'status' => workflow::APPROVED,
+                'effectivefrom' => $effectivefrom,
+                'effectiveto' => null,
+                'createdby' => null,
+                'approvedby' => null,
+                'timecreated' => $now,
+                'timemodified' => $now,
+                'approvedat' => $now,
+            ]);
+        };
+        $selectionpolicyid = $insertpolicy(policy_service::TYPE_ATTEMPT_SELECTION, [
+            'method' => policy_service::METHOD_LATEST_COMPLETED,
+        ]);
+        $calculationpolicyid = $insertpolicy(policy_service::TYPE_CALCULATION, [
+            'minitems' => 1,
+            'minweightedpossible' => '0.0000000000',
+            'requiremanualgrading' => true,
+            'displayscale' => 1,
+        ]);
+        $insertpolicy(policy_service::TYPE_ACCREDITATION, [
+            'mincohortsize' => 2,
+            'populationsource' => \local_outcomemap\local\service\suppression_service::POPULATION_MOODLE_COHORT,
+            'retentionbasis' => \local_outcomemap\local\service\suppression_service::RETENTION_ANONYMISED,
+            'aggregationmethod' => \local_outcomemap\local\service\suppression_service::AGGREGATION_METHOD,
+            'correctionmethod' => \local_outcomemap\local\service\suppression_service::CORRECTION_METHOD,
+        ]);
+        $mappingid = (int) $DB->insert_record('local_outcomemap_qmap', (object) [
+            'mappinguuid' => uuid::generate(),
+            'version' => 1,
+            'questionversionid' => 910001,
+            'questionid' => 900001,
+            'itemverid' => $outcomeversionid,
+            'role' => 'assesses',
+            'weight' => '1.0000000000',
+            'notes' => null,
+            'status' => workflow::APPROVED,
+            'effectivefrom' => $effectivefrom,
+            'effectiveto' => null,
+            'createdby' => null,
+            'approvedby' => null,
+            'timecreated' => $now,
+            'timemodified' => $now,
+            'approvedat' => $now,
+        ]);
+
+        foreach ($learners as $index => $learner) {
+            $evidenceuuid = uuid::generate();
+            $DB->insert_record('local_outcomemap_evidence', (object) [
+                'uuid' => $evidenceuuid,
+                'lineageuuid' => uuid::generate(),
+                'dedupekey' => hash('sha256', 'm6-behat-evidence-' . $index),
+                'sourceevidenceid' => null,
+                'relationpathjson' => '[]',
+                'cinstid' => $courseinstanceid,
+                'userid' => $learner->id,
+                'assessmentcmid' => 810001,
+                'quizattemptid' => 820001 + $index,
+                'questionusageid' => 830001 + $index,
+                'slot' => 1,
+                'questionattemptid' => 840001 + $index,
+                'questionversionid' => 910001,
+                'questionid' => 900001,
+                'itemverid' => $outcomeversionid,
+                'mappingid' => $mappingid,
+                'policyid' => $selectionpolicyid,
+                'evidencetype' => calculation_service::TYPE_DIRECT,
+                'rawfraction' => '0.8500000000',
+                'rawmark' => '12.7500000000',
+                'maxmark' => '15.0000000000',
+                'mappingweight' => '1.0000000000',
+                'relationweight' => '1.0000000000',
+                'weightedearned' => '12.7500000000',
+                'weightedpossible' => '15.0000000000',
+                'gradingstate' => calculation_service::GRADING_GRADED,
+                'attempttime' => $now - 100,
+                'gradingtime' => $now - 50,
+                'supersededby' => null,
+                'timecreated' => $now,
+                'timemodified' => $now,
+            ]);
+            $lineagejson = \local_outcomemap\local\canonical_json::encode([['uuid' => $evidenceuuid]]);
+            $DB->insert_record('local_outcomemap_result', (object) [
+                'uuid' => uuid::generate(),
+                'resultkey' => hash('sha256', 'm6-behat-result-' . $index),
+                'version' => 1,
+                'cinstid' => $courseinstanceid,
+                'userid' => $learner->id,
+                'scopetype' => calculation_service::SCOPE_COURSE,
+                'scopeid' => $courseinstanceid,
+                'periodcode' => '2026-T1',
+                'itemverid' => $outcomeversionid,
+                'policyid' => $calculationpolicyid,
+                'numerator' => '12.7500000000',
+                'denominator' => '15.0000000000',
+                'percentage' => '85.0000000000',
+                'distinctitems' => 1,
+                'bandid' => null,
+                'state' => calculation_service::STATE_CALCULATED,
+                'stale' => 0,
+                'algoversion' => calculation_service::ALGO_VERSION,
+                'inputhash' => hash('sha256', 'm6-behat-input-' . $index),
+                'lineagejson' => $lineagejson,
+                'lineagehash' => hash('sha256', $lineagejson),
+                'supersededby' => null,
+                'timecalculated' => $now,
+                'timecreated' => $now,
+                'timemodified' => $now,
+            ]);
+        }
+    }
+
+    /**
+     * Verifies the latest frozen package and reconstructs its aggregate from exported learner rows.
+     *
+     * @Then /^the latest frozen accreditation export for "([^"]+)" reconstructs "([^"]+)" percent$/
+     * @param string $username Authorized exporter username.
+     * @param string $expected Expected canonical percentage.
+     */
+    public function the_latest_frozen_export_reconstructs(string $username, string $expected): void {
+        global $DB, $USER;
+
+        $exporter = $DB->get_record('user', ['username' => $username], '*', MUST_EXIST);
+        $snapshots = $DB->get_records(
+            'local_outcomemap_snapshot',
+            ['status' => \local_outcomemap\local\service\snapshot_service::STATUS_FROZEN],
+            'id DESC',
+            '*',
+            0,
+            1
+        );
+        if (!$snapshots) {
+            throw new \RuntimeException('No frozen accreditation snapshot was found.');
+        }
+        $snapshot = reset($snapshots);
+        $originaluser = $USER;
+        \core\session\manager::set_user($exporter);
+        try {
+            $package = \local_outcomemap\local\service\accreditation_export_service::package(
+                (int) $snapshot->id
+            );
+            \local_outcomemap\local\service\accreditation_export_service::record_export(
+                (int) $snapshot->id,
+                'json'
+            );
+        } finally {
+            \core\session\manager::set_user($originaluser);
+        }
+        $DB->get_record('local_outcomemap_audit', [
+            'action' => 'export_snapshot',
+            'objecttype' => 'snapshot',
+            'objectid' => $snapshot->id,
+            'actorid' => $exporter->id,
+        ], 'id', MUST_EXIST);
+
+        $numerator = \local_outcomemap\local\decimal::ZERO;
+        $denominator = \local_outcomemap\local\decimal::ZERO;
+        $resultcount = 0;
+        foreach ($package['items'] as $item) {
+            if ($item['itemtype'] !== \local_outcomemap\local\service\snapshot_service::ITEM_RESULT) {
+                continue;
+            }
+            $numerator = \local_outcomemap\local\decimal::add(
+                $numerator,
+                $item['payload']['payload']['numerator']
+            );
+            $denominator = \local_outcomemap\local\decimal::add(
+                $denominator,
+                $item['payload']['payload']['denominator']
+            );
+            $resultcount++;
+        }
+        $actual = \local_outcomemap\local\decimal::div(
+            \local_outcomemap\local\decimal::mul($numerator, '100'),
+            $denominator
+        );
+        if ($resultcount !== 2 || $actual !== $expected) {
+            throw new \RuntimeException(
+                "Expected two exported learner rows reconstructing {$expected}; got {$resultcount} rows and {$actual}."
+            );
+        }
+    }
 }

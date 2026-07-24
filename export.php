@@ -25,6 +25,7 @@ unset($configpath);
 require_once($CFG->libdir . '/filelib.php');
 
 require_login();
+require_sesskey();
 $context = context_system::instance();
 require_capability('local/outcomemap:exportaccreditation', $context);
 $id = required_param('id', PARAM_INT);
@@ -34,8 +35,10 @@ $snapshot = $DB->get_record('local_outcomemap_snapshot', ['id' => $id], '*', MUS
 $stem = accreditation_export_service::filename_stem($snapshot);
 
 if ($format === 'csv') {
+    $content = accreditation_export_service::summary_csv($id);
+    accreditation_export_service::record_export($id, 'csv');
     send_file(
-        accreditation_export_service::summary_csv($id),
+        $content,
         $stem . '-summary.csv',
         0,
         0,
@@ -48,8 +51,10 @@ if ($format !== 'json') {
     throw new moodle_exception('invalidfield', 'local_outcomemap', '',
         (object) ['field' => 'format', 'detail' => $format]);
 }
+$content = accreditation_export_service::json($id, $includeevidence);
+accreditation_export_service::record_export($id, 'json', $includeevidence);
 send_file(
-    accreditation_export_service::json($id, $includeevidence),
+    $content,
     $stem . ($includeevidence ? '-evidence' : '') . '.json',
     0,
     0,
