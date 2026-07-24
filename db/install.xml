@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/outcomemap/db" VERSION="20260727" COMMENT="XMLDB file for local_outcomemap"
+<XMLDB PATH="local/outcomemap/db" VERSION="20260728" COMMENT="XMLDB file for local_outcomemap"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
   <TABLES>
@@ -11,6 +11,8 @@
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="description" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="externalid" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="programtype" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="graduate" SEQUENCE="false"/>
+        <FIELD NAME="credential" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="degree" SEQUENCE="false"/>
         <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="draft" SEQUENCE="false"/>
         <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="modifiedby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
@@ -24,6 +26,7 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="externalid_ix" UNIQUE="false" FIELDS="externalid"/>
+        <INDEX NAME="programtype_ix" UNIQUE="false" FIELDS="programtype"/>
         <INDEX NAME="status_ix" UNIQUE="false" FIELDS="status"/>
         <INDEX NAME="createdby_ix" UNIQUE="false" FIELDS="createdby"/>
         <INDEX NAME="modifiedby_ix" UNIQUE="false" FIELDS="modifiedby"/>

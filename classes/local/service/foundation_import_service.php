@@ -107,7 +107,9 @@ final class foundation_import_service extends base_service {
      * @var array<string, string[]>
      */
     public const HEADERS = [
-        self::PROGRAMS => ['uuid', 'code', 'name', 'description', 'externalid'],
+        self::PROGRAMS => [
+            'uuid', 'code', 'name', 'description', 'externalid', 'programtype', 'credential',
+        ],
         self::COURSES => ['uuid', 'code', 'name', 'description', 'siskey'],
         self::PROGRAM_COURSES => ['uuid', 'programuuid', 'courseuuid', 'effectivefrom', 'effectiveto'],
         self::COURSE_INSTANCES => ['uuid', 'catalogcourseuuid', 'moodlecourseid', 'periodcode', 'externalid'],
@@ -120,6 +122,9 @@ final class foundation_import_service extends base_service {
             'relationuuid', 'sourceuuid', 'targetuuid', 'type', 'weight', 'effectivefrom', 'effectiveto', 'notes',
         ],
     ];
+
+    /** @var string[] Previous Programs header retained for backward-compatible imports. */
+    private const LEGACY_PROGRAM_HEADERS = ['uuid', 'code', 'name', 'description', 'externalid'];
 
     /**
      * Store uploaded CSV content using Moodle's temporary CSV reader.
@@ -265,14 +270,17 @@ final class foundation_import_service extends base_service {
         self::require_entity($entity);
         $reader = new \csv_import_reader($importid, 'local_outcomemap');
         $columns = $reader->get_columns();
-        if ($columns === false || array_values($columns) !== self::HEADERS[$entity]) {
+        $columnlist = $columns === false ? [] : array_values($columns);
+        $legacyprogram = $entity === self::PROGRAMS && $columnlist === self::LEGACY_PROGRAM_HEADERS;
+        if ($columnlist !== self::HEADERS[$entity] && !$legacyprogram) {
             throw new validation_exception('importheader', 'csvfile', implode(',', self::HEADERS[$entity]));
         }
         $reader->init();
         $rows = [];
         while (($values = $reader->next()) !== false) {
             $values = array_pad(array_values($values), count($columns), '');
-            $rows[] = array_combine($columns, array_slice($values, 0, count($columns)));
+            $row = array_combine($columns, array_slice($values, 0, count($columns)));
+            $rows[] = array_replace(array_fill_keys(self::HEADERS[$entity], ''), $row);
         }
         if (!$rows) {
             throw new validation_exception('importempty', 'csvfile');
@@ -298,7 +306,12 @@ final class foundation_import_service extends base_service {
                     'name' => input::required_text($row['name'], 'name', 255),
                     'description' => input::optional_multiline($row['description']),
                     'externalid' => input::optional_text($row['externalid'], 'externalid', 255),
+                    'programtype' => program_service::normalize_program_type($row['programtype']),
                 ];
+                $data['credential'] = program_service::normalize_credential(
+                    $row['credential'],
+                    $data['programtype']
+                );
                 self::unique_seen($seen, 'code:' . $data['code']);
                 self::assert_not_exists('local_outcomemap_program', 'code', $data['code'], 'duplicatecode');
                 self::assert_uuid_available('local_outcomemap_program', $data['uuid']);

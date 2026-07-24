@@ -46,3 +46,22 @@ Feature: Administrators govern frameworks and outcome versions
     Then I should see "The record was approved."
     And I navigate to "Plugins > Learning outcome mapping > Frameworks and outcomes" in site administration
     And I should see "Approved" in the "CLO1" "table_row"
+
+  Scenario: An administrator creates a typed program with a generic credential
+    Given I log in as "admin"
+    And I navigate to "Plugins > Learning outcome mapping > Programs" in site administration
+    When I click on "Add program" "link"
+    Then I should see "Graduate degree"
+    And I should see "Undergraduate degree"
+    And I should see "Specialization"
+    And I should see "Degree"
+    And I should see "Certificate"
+    When I click on "Undergraduate degree" "radio"
+    And I click on "Certificate" "radio"
+    And I set the following fields to these values:
+      | Code | UGCERT                              |
+      | Name | Undergraduate analytics certificate |
+    And I press "Save changes"
+    Then I should see "Undergraduate degree programs"
+    And I should see "UGCERT"
+    And I should see "Certificate"

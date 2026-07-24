@@ -114,4 +114,48 @@ final class foundation_service_test extends \advanced_testcase {
             'status' => workflow::APPROVED,
         ]));
     }
+
+    /** Program type and credential values are explicit, validated, and backward compatible. */
+    public function test_program_type_and_credential_are_governed(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+
+        $certificateid = program_service::create([
+            'code' => 'UGCERT',
+            'name' => 'Undergraduate analytics certificate',
+            'programtype' => program_service::TYPE_UNDERGRADUATE,
+            'credential' => program_service::CREDENTIAL_CERTIFICATE,
+        ]);
+        $certificate = $DB->get_record('local_outcomemap_program', ['id' => $certificateid], '*', MUST_EXIST);
+        $this->assertSame(program_service::TYPE_UNDERGRADUATE, $certificate->programtype);
+        $this->assertSame(program_service::CREDENTIAL_CERTIFICATE, $certificate->credential);
+
+        $legacyid = program_service::create(['code' => 'LEGACY', 'name' => 'Legacy caller']);
+        $legacy = $DB->get_record('local_outcomemap_program', ['id' => $legacyid], '*', MUST_EXIST);
+        $this->assertSame(program_service::TYPE_GRADUATE, $legacy->programtype);
+        $this->assertSame(program_service::CREDENTIAL_DEGREE, $legacy->credential);
+
+        try {
+            program_service::create([
+                'code' => 'BADTYPE',
+                'name' => 'Invalid type',
+                'programtype' => 'doctoral',
+            ]);
+            $this->fail('An unsupported program type was accepted.');
+        } catch (validation_exception $e) {
+            $this->assertSame('invalidprogramtype', $e->errorcode);
+        }
+
+        try {
+            program_service::create([
+                'code' => 'BADCRED',
+                'name' => 'Invalid credential',
+                'credential' => 'diploma',
+            ]);
+            $this->fail('An unsupported credential was accepted.');
+        } catch (validation_exception $e) {
+            $this->assertSame('invalidcredential', $e->errorcode);
+        }
+    }
 }

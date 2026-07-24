@@ -357,5 +357,28 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026072503, 'local', 'outcomemap');
     }
 
+    if ($oldversion < 2026072508) {
+        $table = new xmldb_table('local_outcomemap_program');
+
+        $field = new xmldb_field('programtype', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null,
+            'graduate', 'externalid');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('credential', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null,
+            'degree', 'programtype');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $index = new xmldb_index('programtype_ix', XMLDB_INDEX_NOTUNIQUE, ['programtype']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        upgrade_plugin_savepoint(true, 2026072508, 'local', 'outcomemap');
+    }
+
     return true;
 }

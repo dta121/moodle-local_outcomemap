@@ -25,9 +25,11 @@
 
 ### `local_outcomemap_program`
 
-Fields: `id`, `uuid CHAR(36)`, `code CHAR(100)`, `name CHAR(255)`, `description TEXT nullable`, `externalid CHAR(255) nullable`, `status CHAR(20)`, `createdby INT nullable`, `modifiedby INT nullable`, `timecreated INT`, `timemodified INT`.
+Fields: `id`, `uuid CHAR(36)`, `code CHAR(100)`, `name CHAR(255)`, `description TEXT nullable`, `externalid CHAR(255) nullable`, `programtype CHAR(20) default graduate`, `credential CHAR(20) default degree`, `status CHAR(20)`, `createdby INT nullable`, `modifiedby INT nullable`, `timecreated INT`, `timemodified INT`.
 
-Constraints/indexes: primary `id`; unique `uuid`; unique `code`; nonunique `externalid`, `status`, `createdby`, `modifiedby`.
+Constraints/indexes: primary `id`; unique `uuid`; unique `code`; nonunique `externalid`, `programtype`, `status`, `createdby`, `modifiedby`.
+
+Validation: `programtype` is `graduate`, `undergraduate`, or `specialization`; `credential` is `degree` or `certificate`. Defaults preserve existing records and older service callers, while new UI and CSV inputs make both choices explicit.
 
 Deletion: restrict while referenced; retire instead.
 

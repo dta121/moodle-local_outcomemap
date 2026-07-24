@@ -131,6 +131,9 @@
 .lom-section-review .lom-section-swatch { background: #d97706; }
 .lom-section-draft .lom-section-swatch { background: #1077d1; }
 .lom-section-retired .lom-section-swatch { background: #9aa3ad; }
+.lom-section-type-graduate .lom-section-swatch { background: #1f2a44; }
+.lom-section-type-undergraduate .lom-section-swatch { background: #1077d1; }
+.lom-section-type-specialization .lom-section-swatch { background: #f59120; }
 .lom-section-title { color: #1f2a44; font-size: 15px; font-weight: 700; }
 .lom-section-subtitle { color: #8a93a0; font-size: 12px; }
 .lom-section-count { color: #8a93a0; font-size: 12px; margin-left: auto; white-space: nowrap; }
@@ -155,6 +158,9 @@
 .lom-code-review { background: #fef3c7; color: #92400e; }
 .lom-code-draft { background: #eef4fb; color: #155a9c; }
 .lom-code-retired { background: #f3f4f6; color: #6b7280; }
+.lom-code-type-graduate { background: #1f2a44; color: #fff; }
+.lom-code-type-undergraduate { background: #eef4fb; color: #155a9c; }
+.lom-code-type-specialization { background: #fef3c7; color: #92400e; }
 .lom-program-summary { flex: 1; min-width: 180px; }
 .lom-program-name { color: #1f2a44; display: block; font-size: 14px; font-weight: 600; }
 .lom-program-description { color: #5f6874; display: block; font-size: 12px; line-height: 1.4; margin-top: 2px; }
@@ -166,6 +172,60 @@
 .lom-workflow-draft { background: #eef4fb; color: #155a9c; }
 .lom-workflow-retired { background: #f3f4f6; color: #6b7280; }
 .lom-row-actions { display: flex; flex-wrap: wrap; font-size: 12.5px; gap: 10px; justify-content: flex-end; white-space: nowrap; }
+.lom-programs-help { color: #8a93a0; font-size: 12px; margin-top: 2px; }
+
+/* Add/Edit program form. */
+.lom-program-form { max-width: 860px; }
+.lom-program-form #fgroup_id_programtype > .col-form-label,
+.lom-program-form #fgroup_id_programtype .felement { flex: 0 0 100%; max-width: 100%; }
+.lom-program-form #fgroup_id_programtype fieldset > .d-flex {
+    align-items: stretch !important;
+    display: grid !important;
+    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+}
+.lom-program-form .lom-program-type-option {
+    align-items: flex-start;
+    background: #fff;
+    border: 2px solid #dfe3e8;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    min-height: 104px;
+    padding: 14px 16px;
+}
+.lom-program-form .lom-program-type-option:hover { border-color: #9db4cc; }
+.lom-program-form .lom-program-type-option:has(input:checked) { background: #f4f9fe; border-color: #1077d1; }
+.lom-program-form .lom-program-type-option .form-check-input { flex: 0 0 auto; margin: 3px 0 0; }
+.lom-program-type-swatch { border-radius: 3px; flex: 0 0 10px; height: 10px; margin-top: 4px; width: 10px; }
+.lom-program-type-graduate .lom-program-type-swatch { background: #1f2a44; }
+.lom-program-type-undergraduate .lom-program-type-swatch { background: #1077d1; }
+.lom-program-type-specialization .lom-program-type-swatch { background: #f59120; }
+.lom-program-type-copy { display: block; min-width: 0; }
+.lom-program-type-title { color: #1f2a44; display: block; font-size: 13.5px; font-weight: 700; margin-bottom: 6px; }
+.lom-program-type-description { color: #667180; display: block; font-size: 12px; line-height: 1.5; }
+.lom-program-form #fgroup_id_credential fieldset > .d-flex { gap: 8px; }
+.lom-program-form .lom-credential-option {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #cfd6de;
+    border-radius: 16px;
+    cursor: pointer;
+    display: inline-flex;
+    margin: 0;
+    padding: 6px 14px;
+}
+.lom-program-form .lom-credential-option:has(input:checked) {
+    background: #1f2a44;
+    border-color: #1f2a44;
+    color: #fff;
+    font-weight: 600;
+}
+.lom-program-form .lom-credential-option .form-check-input { margin: 0 7px 0 0; }
+.lom-program-form .fitem_actionbuttons .btn { border-radius: 18px; padding-left: 18px; padding-right: 18px; }
 
 /* Grouped relation rows. */
 .lom-code-relation { background: #faf3e3; color: #7c5a1e; margin-top: 1px; }
@@ -206,6 +266,7 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
 .lom-matrix-help { border-top: 1px solid #f2f4f6; color: #8a93a0; font-size: 11.5px; padding: 8px 14px; }
 
 @media (max-width: 900px) {
+    .lom-program-form #fgroup_id_programtype fieldset > .d-flex { grid-template-columns: 1fr; }
     .lom-page-toolbar-end { margin-left: 0; }
     .lom-program-row,
     .lom-relation-row { align-items: flex-start; flex-wrap: wrap; }

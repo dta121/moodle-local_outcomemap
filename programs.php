@@ -50,7 +50,10 @@ if ($action === 'edit' || $action === 'add') {
     }
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string($id ? 'editprogram' : 'addprogram', 'local_outcomemap'));
+    echo html_writer::div(get_string('programform_subtitle', 'local_outcomemap'), 'lom-page-subtitle');
+    echo html_writer::start_div('lom-program-form');
     $form->display();
+    echo html_writer::end_div();
     echo $OUTPUT->footer();
     exit;
 }

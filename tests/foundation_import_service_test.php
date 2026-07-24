@@ -57,6 +57,28 @@ final class foundation_import_service_test extends \advanced_testcase {
         $this->assertTrue($DB->record_exists('local_outcomemap_program', ['code' => 'RACE']));
     }
 
+    public function test_program_import_accepts_explicit_type_and_credential(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $csv = "uuid,code,name,description,externalid,programtype,credential\n" .
+            ",SP-MKT,Digital Marketing Specialization,,,specialization,certificate\n";
+        $importid = foundation_import_service::load($csv, 'UTF-8', 'comma');
+        $preview = foundation_import_service::preview($importid, foundation_import_service::PROGRAMS);
+        $this->assertTrue($preview->valid);
+
+        foundation_import_service::commit(
+            $importid,
+            foundation_import_service::PROGRAMS,
+            $preview->hash,
+        );
+        foundation_import_service::cleanup($importid);
+
+        $program = $DB->get_record('local_outcomemap_program', ['code' => 'SP-MKT'], '*', MUST_EXIST);
+        $this->assertSame(program_service::TYPE_SPECIALIZATION, $program->programtype);
+        $this->assertSame(program_service::CREDENTIAL_CERTIFICATE, $program->credential);
+    }
+
     public function test_invalid_row_blocks_entire_import(): void {
         global $DB;
         $this->resetAfterTest(true);

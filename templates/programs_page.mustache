@@ -1,5 +1,5 @@
 {{!
-    Searchable, status-grouped Programs page.
+    Searchable, type-grouped Programs page.
     @template local_outcomemap/programs_page
 }}
 <div id="lom-programs" class="lom-page lom-programs">
@@ -7,12 +7,11 @@
     <div class="lom-page-subtitle">{{#str}} programs_subtitle, local_outcomemap {{/str}}</div>
 
     <div class="lom-page-toolbar">
-        <div class="lom-filterchips" role="group" aria-label="{{#str}} programs_filter_status, local_outcomemap {{/str}}">
-            <button type="button" class="lom-filterchip lom-active" data-program-status="all" aria-pressed="true">{{#str}} all, local_outcomemap {{/str}}</button>
-            <button type="button" class="lom-filterchip" data-program-status="approved" aria-pressed="false">{{#str}} status_approved, local_outcomemap {{/str}}</button>
-            <button type="button" class="lom-filterchip" data-program-status="needs_review" aria-pressed="false">{{#str}} status_needs_review, local_outcomemap {{/str}}</button>
-            <button type="button" class="lom-filterchip" data-program-status="draft" aria-pressed="false">{{#str}} status_draft, local_outcomemap {{/str}}</button>
-            <button type="button" class="lom-filterchip" data-program-status="retired" aria-pressed="false">{{#str}} status_retired, local_outcomemap {{/str}}</button>
+        <div class="lom-filterchips" role="group" aria-label="{{#str}} programs_filter_type, local_outcomemap {{/str}}">
+            <button type="button" class="lom-filterchip lom-active" data-program-type="all" aria-pressed="true">{{#str}} all, local_outcomemap {{/str}}</button>
+            <button type="button" class="lom-filterchip" data-program-type="graduate" aria-pressed="false">{{#str}} programtype_graduate, local_outcomemap {{/str}}</button>
+            <button type="button" class="lom-filterchip" data-program-type="undergraduate" aria-pressed="false">{{#str}} programtype_undergraduate, local_outcomemap {{/str}}</button>
+            <button type="button" class="lom-filterchip" data-program-type="specialization" aria-pressed="false">{{#str}} programtype_specialization, local_outcomemap {{/str}}</button>
         </div>
         <div class="lom-page-search">
             <span aria-hidden="true">&#128269;</span>
@@ -28,7 +27,7 @@
     <div id="lom-program-noresults" class="lom-page-noresults lom-hidden">{{#str}} programs_noresults, local_outcomemap {{/str}}</div>
 
     {{#groups}}
-    <section class="lom-section lom-program-group lom-section-{{statusclass}}" data-status="{{status}}">
+    <section class="lom-section lom-program-group lom-section-type-{{typeclass}}" data-program-type="{{programtype}}">
         <div class="lom-section-head">
             <span class="lom-section-swatch" aria-hidden="true"></span>
             <span class="lom-section-title">{{title}}</span>
@@ -38,11 +37,11 @@
         <div class="lom-section-body">
             {{#rows}}
             <article class="lom-program-row lom-filter-row" data-search="{{searchtext}}">
-                <span class="lom-code-badge lom-code-{{statusclass}}">{{code}}</span>
+                <span class="lom-code-badge lom-code-type-{{typeclass}}">{{code}}</span>
                 <span class="lom-program-summary">
                     <span class="lom-program-name">{{name}}</span>
                     <span class="lom-program-description">{{description}}</span>
-                    <span class="lom-program-frameworks">{{frameworkcountline}}</span>
+                    <span class="lom-program-frameworks">{{credentiallabel}} &middot; {{frameworkcountline}}</span>
                 </span>
                 <span class="lom-summary-chip">{{coursecountline}}</span>
                 <span class="lom-summary-chip">{{outcomecountline}}</span>
@@ -58,6 +57,10 @@
     </section>
     {{/groups}}
 
+    {{#hasprograms}}
+    <div class="lom-programs-help">{{#str}} programs_specialization_help, local_outcomemap {{/str}}</div>
+    {{/hasprograms}}
+
     {{^hasprograms}}
     <div class="lom-page-empty">{{#str}} programs_empty, local_outcomemap {{/str}}</div>
     {{/hasprograms}}
@@ -70,16 +73,17 @@
     }
     var input = document.getElementById('lom-program-search');
     var noresults = document.getElementById('lom-program-noresults');
-    var state = {status: 'all', query: ''};
+    var state = {programtype: 'all', query: ''};
 
     function render() {
         var visible = 0;
         Array.prototype.forEach.call(root.querySelectorAll('.lom-program-group'), function(group) {
-            var statusmatch = state.status === 'all' || group.getAttribute('data-status') === state.status;
+            var typematch = state.programtype === 'all' ||
+                group.getAttribute('data-program-type') === state.programtype;
             var groupvisible = 0;
             Array.prototype.forEach.call(group.querySelectorAll('.lom-filter-row'), function(row) {
                 var querymatch = !state.query || (row.getAttribute('data-search') || '').indexOf(state.query) !== -1;
-                var show = statusmatch && querymatch;
+                var show = typematch && querymatch;
                 row.classList.toggle('lom-hidden', !show);
                 if (show) {
                     groupvisible++;
@@ -88,20 +92,23 @@
             });
             group.classList.toggle('lom-hidden', groupvisible === 0);
         });
-        noresults.classList.toggle('lom-hidden', visible !== 0 || (state.status === 'all' && !state.query));
-        Array.prototype.forEach.call(root.querySelectorAll('[data-program-status]'), function(button) {
-            var active = button.getAttribute('data-program-status') === state.status;
+        noresults.classList.toggle('lom-hidden', visible !== 0 || (state.programtype === 'all' && !state.query));
+        Array.prototype.forEach.call(root.querySelectorAll('[data-program-type]'), function(button) {
+            if (button.tagName !== 'BUTTON') {
+                return;
+            }
+            var active = button.getAttribute('data-program-type') === state.programtype;
             button.classList.toggle('lom-active', active);
             button.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
     }
 
     root.addEventListener('click', function(event) {
-        var button = event.target.closest('[data-program-status]');
+        var button = event.target.closest('button[data-program-type]');
         if (!button) {
             return;
         }
-        state.status = button.getAttribute('data-program-status');
+        state.programtype = button.getAttribute('data-program-type');
         render();
     });
     input.addEventListener('input', function() {

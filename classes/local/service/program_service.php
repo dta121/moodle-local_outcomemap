@@ -22,17 +22,40 @@ use local_outcomemap\local\workflow;
 final class program_service extends base_service {
     private const TABLE = 'local_outcomemap_program';
 
+    public const TYPE_GRADUATE = 'graduate';
+    public const TYPE_UNDERGRADUATE = 'undergraduate';
+    public const TYPE_SPECIALIZATION = 'specialization';
+
+    public const CREDENTIAL_DEGREE = 'degree';
+    public const CREDENTIAL_CERTIFICATE = 'certificate';
+
+    /** @var string[] Supported governed program types. */
+    public const PROGRAM_TYPES = [
+        self::TYPE_GRADUATE,
+        self::TYPE_UNDERGRADUATE,
+        self::TYPE_SPECIALIZATION,
+    ];
+
+    /** @var string[] Supported credentials awarded by a program. */
+    public const CREDENTIALS = [
+        self::CREDENTIAL_DEGREE,
+        self::CREDENTIAL_CERTIFICATE,
+    ];
+
     /** Create a draft program. */
     public static function create(array $data): int {
         global $DB;
         $actorid = self::require_system('local/outcomemap:manageprograms');
         $now = time();
+        $programtype = self::normalize_program_type($data['programtype'] ?? null);
         $record = (object) [
             'uuid' => uuid::normalize_or_generate($data['uuid'] ?? null),
             'code' => input::required_text($data['code'] ?? '', 'code', 100),
             'name' => input::required_text($data['name'] ?? '', 'name', 255),
             'description' => input::optional_multiline($data['description'] ?? null),
             'externalid' => input::optional_text($data['externalid'] ?? null, 'externalid', 255),
+            'programtype' => $programtype,
+            'credential' => self::normalize_credential($data['credential'] ?? null, $programtype),
             'status' => workflow::DRAFT,
             'createdby' => $actorid,
             'modifiedby' => $actorid,
@@ -67,6 +90,12 @@ final class program_service extends base_service {
         $after->name = input::required_text($data['name'] ?? $before->name, 'name', 255);
         $after->description = input::optional_multiline($data['description'] ?? $before->description);
         $after->externalid = input::optional_text($data['externalid'] ?? $before->externalid, 'externalid', 255);
+        $after->programtype = array_key_exists('programtype', $data)
+            ? self::normalize_program_type($data['programtype'])
+            : self::normalize_program_type($before->programtype ?? null);
+        $after->credential = array_key_exists('credential', $data)
+            ? self::normalize_credential($data['credential'], $after->programtype)
+            : self::normalize_credential($before->credential ?? null, $after->programtype);
         $after->modifiedby = $actorid;
         $after->timemodified = time();
         self::require_unique($after->uuid, $after->code, $id);
@@ -122,6 +151,46 @@ final class program_service extends base_service {
         global $DB;
         self::require_system('local/outcomemap:viewdefinitions');
         return $DB->get_records(self::TABLE, null, 'code ASC');
+    }
+
+    /**
+     * Normalize and validate a program type while retaining compatibility with older callers.
+     *
+     * @param mixed $value Candidate program type.
+     * @return string Canonical program type.
+     */
+    public static function normalize_program_type($value): string {
+        $value = clean_param((string) ($value ?? ''), PARAM_ALPHA);
+        if ($value === '') {
+            $value = self::TYPE_GRADUATE;
+        }
+        if (!in_array($value, self::PROGRAM_TYPES, true)) {
+            throw new validation_exception('invalidprogramtype', 'programtype', $value);
+        }
+        return $value;
+    }
+
+    /**
+     * Normalize and validate the credential awarded by a program.
+     *
+     * Older callers default to a degree, except specializations, which default
+     * to a certificate in keeping with the program-type definition.
+     *
+     * @param mixed $value Candidate credential.
+     * @param string|null $programtype Normalized program type, when known.
+     * @return string Canonical credential.
+     */
+    public static function normalize_credential($value, ?string $programtype = null): string {
+        $value = clean_param((string) ($value ?? ''), PARAM_ALPHA);
+        if ($value === '') {
+            $value = $programtype === self::TYPE_SPECIALIZATION
+                ? self::CREDENTIAL_CERTIFICATE
+                : self::CREDENTIAL_DEGREE;
+        }
+        if (!in_array($value, self::CREDENTIALS, true)) {
+            throw new validation_exception('invalidcredential', 'credential', $value);
+        }
+        return $value;
     }
 
     /**

@@ -23,7 +23,7 @@ use renderable;
 use renderer_base;
 use templatable;
 
-/** Build the searchable, status-grouped program administration page. */
+/** Build the searchable, type-grouped program administration page. */
 final class programs_page implements renderable, templatable {
     /** @var \stdClass[] Programs with aggregate counts. */
     private array $programs;
@@ -39,32 +39,53 @@ final class programs_page implements renderable, templatable {
         $canmanage = has_capability('local/outcomemap:manageprograms', $context);
         $baseurl = new moodle_url('/local/outcomemap/programs.php');
         $frameworksurl = new moodle_url('/local/outcomemap/frameworks.php');
-        $statusmeta = [
-            workflow::APPROVED => ['class' => 'approved', 'title' => 'programs_group_approved'],
-            workflow::NEEDS_REVIEW => ['class' => 'review', 'title' => 'programs_group_review'],
-            workflow::DRAFT => ['class' => 'draft', 'title' => 'programs_group_draft'],
-            workflow::RETIRED => ['class' => 'retired', 'title' => 'programs_group_retired'],
+        $typemeta = [
+            program_service::TYPE_GRADUATE => [
+                'class' => 'graduate',
+                'title' => 'programs_group_graduate',
+                'description' => 'programs_group_graduate_desc',
+            ],
+            program_service::TYPE_UNDERGRADUATE => [
+                'class' => 'undergraduate',
+                'title' => 'programs_group_undergraduate',
+                'description' => 'programs_group_undergraduate_desc',
+            ],
+            program_service::TYPE_SPECIALIZATION => [
+                'class' => 'specialization',
+                'title' => 'programs_group_specialization',
+                'description' => 'programs_group_specialization_desc',
+            ],
         ];
-        $counts = array_fill_keys(array_keys($statusmeta), 0);
+        $statusclasses = [
+            workflow::APPROVED => 'approved',
+            workflow::NEEDS_REVIEW => 'review',
+            workflow::DRAFT => 'draft',
+            workflow::RETIRED => 'retired',
+        ];
+        $counts = array_fill_keys(array_keys($typemeta), 0);
         foreach ($this->programs as $program) {
-            if (isset($counts[$program->status])) {
-                $counts[$program->status]++;
+            if (isset($counts[$program->programtype])) {
+                $counts[$program->programtype]++;
             }
         }
 
         $groups = [];
-        foreach ($statusmeta as $status => $meta) {
+        foreach ($typemeta as $programtype => $meta) {
             $rows = [];
             foreach ($this->programs as $program) {
-                if ($program->status !== $status) {
+                if ($program->programtype !== $programtype) {
                     continue;
                 }
                 $description = trim((string) ($program->description ?? ''));
+                $credentiallabel = get_string('credential_' . $program->credential, 'local_outcomemap');
+                $typelabel = get_string('programtype_' . $program->programtype, 'local_outcomemap');
                 $searchtext = implode(' ', [
                     $program->code,
                     $program->name,
                     $description,
                     $program->externalid ?? '',
+                    $credentiallabel,
+                    $typelabel,
                     get_string('status_' . $program->status, 'local_outcomemap'),
                 ]);
                 $row = [
@@ -73,6 +94,7 @@ final class programs_page implements renderable, templatable {
                     'description' => $description !== ''
                         ? $description
                         : get_string('programs_nodescription', 'local_outcomemap'),
+                    'credentiallabel' => $credentiallabel,
                     'searchtext' => \core_text::strtolower($searchtext),
                     'coursecountline' => get_string(
                         (int) $program->coursecount === 1 ? 'programs_courses_one' : 'programs_courses',
@@ -90,7 +112,7 @@ final class programs_page implements renderable, templatable {
                         (int) $program->frameworkcount
                     ),
                     'statuslabel' => get_string('status_' . $program->status, 'local_outcomemap'),
-                    'statusclass' => $meta['class'],
+                    'statusclass' => $statusclasses[$program->status] ?? 'retired',
                     'outcomesurl' => $frameworksurl->out(false),
                     'canedit' => false,
                     'cansubmit' => false,
@@ -114,10 +136,10 @@ final class programs_page implements renderable, templatable {
                 continue;
             }
             $groups[] = [
-                'status' => $status,
-                'statusclass' => $meta['class'],
+                'programtype' => $programtype,
+                'typeclass' => $meta['class'],
                 'title' => get_string($meta['title'], 'local_outcomemap'),
-                'description' => get_string('programs_group_' . $meta['class'] . '_desc', 'local_outcomemap'),
+                'description' => get_string($meta['description'], 'local_outcomemap'),
                 'countline' => get_string(count($rows) === 1 ? 'programs_count_one' : 'programs_count',
                     'local_outcomemap', count($rows)),
                 'rows' => $rows,
@@ -131,10 +153,9 @@ final class programs_page implements renderable, templatable {
             'groups' => $groups,
             'statsline' => get_string('programs_statsline', 'local_outcomemap', (object) [
                 'total' => count($this->programs),
-                'approved' => $counts[workflow::APPROVED],
-                'review' => $counts[workflow::NEEDS_REVIEW],
-                'draft' => $counts[workflow::DRAFT],
-                'retired' => $counts[workflow::RETIRED],
+                'graduate' => $counts[program_service::TYPE_GRADUATE],
+                'undergraduate' => $counts[program_service::TYPE_UNDERGRADUATE],
+                'specialization' => $counts[program_service::TYPE_SPECIALIZATION],
             ]),
         ];
     }
