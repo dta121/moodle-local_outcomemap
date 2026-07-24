@@ -5,7 +5,10 @@ use local_outcomemap\form\framework_form;
 use local_outcomemap\form\outcome_form;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\outcome_service;
+use local_outcomemap\local\service\relation_service;
+use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
+use local_outcomemap\output\outcomes_hierarchy;
 
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
@@ -33,6 +36,85 @@ if ($action === 'submit' && $id) {
         framework_service::submit_for_review($id);
     }
     redirect($url, get_string('submittedforreview', 'local_outcomemap'));
+}
+
+if ($action === 'approveversion' && $id) {
+    require_sesskey();
+    try {
+        outcome_service::approve($id);
+        redirect($url, get_string('approved', 'local_outcomemap'));
+    } catch (validation_exception $e) {
+        redirect($url, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+    }
+}
+
+if ($action === 'savemap') {
+    require_sesskey();
+    require_capability('local/outcomemap:manageframeworks', context_system::instance());
+    $itemid = required_param('itemid', PARAM_INT);
+    $targets = optional_param_array('targets', [], PARAM_INT);
+    $existing = outcomes_hierarchy::current_targets($itemid);
+    try {
+        $created = 0;
+        foreach ($targets as $targetid) {
+            if (in_array((int) $targetid, $existing, true)) {
+                continue;
+            }
+            $relationid = relation_service::create([
+                'sourceitemid' => $itemid,
+                'targetitemid' => (int) $targetid,
+                'type' => relation_service::ALIGNS_TO,
+                'effectivefrom' => time(),
+                'notes' => get_string('hier_maprelationnote', 'local_outcomemap'),
+            ]);
+            relation_service::submit_for_review($relationid);
+            $created++;
+        }
+        redirect($url, $created
+            ? get_string('hier_mapsaved', 'local_outcomemap', $created)
+            : get_string('hier_mapnone', 'local_outcomemap'));
+    } catch (validation_exception $e) {
+        redirect($url, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+    }
+}
+
+if ($action === 'savenewversion') {
+    require_sesskey();
+    require_capability('local/outcomemap:manageframeworks', context_system::instance());
+    $itemid = required_param('itemid', PARAM_INT);
+    $statement = required_param('statement', PARAM_TEXT);
+    $latest = $DB->get_record_sql(
+        'SELECT v.* FROM {local_outcomemap_itemver} v
+          WHERE v.itemid = :itemid
+            AND v.version = (SELECT MAX(v2.version) FROM {local_outcomemap_itemver} v2 WHERE v2.itemid = v.itemid)',
+        ['itemid' => $itemid], MUST_EXIST);
+    try {
+        $versionid = outcome_service::create_version($itemid, [
+            'statement' => $statement,
+            'shortstatement' => $latest->shortstatement,
+            'bloomlevel' => $latest->bloomlevel,
+            'effectivefrom' => time(),
+            'changereason' => get_string('hier_editreason', 'local_outcomemap'),
+        ]);
+        outcome_service::submit_for_review($versionid);
+        redirect($url, get_string('hier_versionsaved', 'local_outcomemap'));
+    } catch (validation_exception $e) {
+        redirect($url, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+    }
+}
+
+if ($action === 'exportcsv') {
+    $hierarchy = new outcomes_hierarchy();
+    $rows = $hierarchy->csv_rows();
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="outcomes-hierarchy.csv"');
+    $stream = fopen('php://output', 'w');
+    fwrite($stream, "\xEF\xBB\xBF");
+    foreach ($rows as $row) {
+        fputcsv($stream, $row, ',', '"', '');
+    }
+    fclose($stream);
+    exit;
 }
 
 if (in_array($action, ['addoutcome', 'editoutcome', 'newversion'], true)) {
@@ -96,8 +178,11 @@ if ($action === 'addframework' || $action === 'editframework') {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('frameworks_heading', 'local_outcomemap'));
-echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'addframework']), get_string('addframework', 'local_outcomemap'));
+$hierarchy = new outcomes_hierarchy();
+echo $OUTPUT->render_from_template('local_outcomemap/outcomes_hierarchy',
+    $hierarchy->export_for_template($OUTPUT));
+
+// Framework governance fallback: draft frameworks are edited and submitted here.
 $fwtable = new html_table();
 $fwtable->head = [get_string('code', 'local_outcomemap'), get_string('name', 'local_outcomemap'),
     get_string('ownertype', 'local_outcomemap'), get_string('status', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
@@ -112,25 +197,8 @@ foreach (framework_service::list_all() as $record) {
         get_string('owner_' . $record->ownertype, 'local_outcomemap'),
         get_string('status_' . $record->status, 'local_outcomemap'), implode(' | ', $actions)];
 }
-echo html_writer::table($fwtable);
-echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'addoutcome']), get_string('addoutcome', 'local_outcomemap'));
-$outcometable = new html_table();
-$outcometable->head = [get_string('framework', 'local_outcomemap'), get_string('code', 'local_outcomemap'),
-    get_string('version', 'local_outcomemap'), get_string('statement', 'local_outcomemap'),
-    get_string('status', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
-foreach (outcome_service::list_all() as $record) {
-    $actions = [];
-    if ($record->versionstatus === workflow::DRAFT) {
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'editoutcome', 'id' => $record->id]), get_string('edit'));
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'submit', 'type' => 'outcome',
-            'id' => $record->id, 'sesskey' => sesskey()]), get_string('submitreview', 'local_outcomemap'));
-    }
-    if ($record->versionstatus === workflow::APPROVED) {
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'newversion', 'id' => $record->itemid]),
-            get_string('newoutcomeversion', 'local_outcomemap'));
-    }
-    $outcometable->data[] = [s($record->frameworkcode), s($record->code), (int) $record->version,
-        s($record->statement), get_string('status_' . $record->versionstatus, 'local_outcomemap'), implode(' | ', $actions)];
-}
-echo html_writer::table($outcometable);
+echo html_writer::tag('details',
+    html_writer::tag('summary', get_string('hier_frameworkadmin', 'local_outcomemap'))
+    . html_writer::table($fwtable),
+    ['class' => 'lom-fwadmin']);
 echo $OUTPUT->footer();

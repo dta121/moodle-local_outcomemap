@@ -1,0 +1,108 @@
+/* Frameworks and outcomes hierarchy page (local_outcomemap). */
+.lom-hier { font-size: 14px; color: #333; }
+.lom-hier .lom-hidden { display: none !important; }
+.lom-hier .lom-title { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+.lom-hier .lom-subtitle { font-size: 12.5px; color: #8a93a0; margin-bottom: 14px; }
+.lom-hier .lom-stats { font-size: 12.5px; color: #666; margin-bottom: 12px; }
+
+/* Toolbar. */
+.lom-hier .lom-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.lom-hier .lom-viewtoggle { display: flex; border: 1px solid #cfd6de; border-radius: 6px; overflow: hidden; }
+.lom-hier .lom-viewbtn { border: 0; padding: 7px 14px; font-size: 13px; background: #fff; color: #555; cursor: pointer; }
+.lom-hier .lom-viewbtn + .lom-viewbtn { border-left: 1px solid #cfd6de; }
+.lom-hier .lom-viewbtn.lom-active { background: #1f2a44; color: #fff; font-weight: 600; }
+.lom-hier .lom-search { display: flex; align-items: center; gap: 6px; border: 1px solid #cfd6de; border-radius: 6px; padding: 0 10px; background: #fff; flex: 1; max-width: 340px; min-width: 200px; }
+.lom-hier .lom-search-icon { color: #9aa3ad; font-size: 13px; }
+.lom-hier .lom-search input { border: 0; outline: none; padding: 8px 0; font-size: 13px; flex: 1; background: transparent; box-shadow: none; }
+.lom-hier .lom-clear { border: 0; background: none; color: #8a93a0; font-size: 15px; padding: 0; cursor: pointer; line-height: 1; }
+.lom-hier .lom-chipbtn { border: 1px solid #f2d9a4; border-radius: 16px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; color: #92400e; background: #fffbeb; cursor: pointer; }
+.lom-hier .lom-chipbtn.lom-active { background: #fde68a; border-color: #d9b96a; }
+.lom-hier .lom-toolbar-right { margin-left: auto; display: flex; gap: 8px; }
+.lom-hier .lom-btn { display: inline-block; border: 1px solid #cfd6de; border-radius: 6px; background: #fff; color: #333; padding: 7px 14px; font-size: 13px; cursor: pointer; text-decoration: none; }
+.lom-hier .lom-btn:hover { background: #f4f6f9; text-decoration: none; color: #333; }
+.lom-hier .lom-btn-primary { border-color: #1077d1; background: #1077d1; color: #fff; font-weight: 600; }
+.lom-hier .lom-btn-primary:hover { background: #0b5ca8; color: #fff; }
+.lom-hier .lom-btn-warn { border-color: #d9b96a; background: #fff; color: #92400e; font-weight: 600; font-size: 12.5px; padding: 5px 12px; }
+.lom-hier .lom-btn-warn:hover { background: #fffbeb; color: #92400e; }
+.lom-hier .lom-linkbtn { margin-left: auto; border: 0; background: none; color: #92400e; font-size: 12.5px; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+/* Callout. */
+.lom-hier .lom-callout { display: flex; align-items: center; gap: 12px; background: #fffbeb; border: 1px solid #f2d9a4; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: #78350f; }
+.lom-hier .lom-callout-count { font-weight: 700; background: #fde68a; border-radius: 4px; padding: 2px 8px; font-size: 12px; }
+.lom-hier .lom-callout-text { flex: 1; }
+.lom-hier .lom-noresults { border: 1px dashed #dfe3e8; border-radius: 6px; padding: 32px; text-align: center; color: #8a93a0; font-size: 14px; margin-bottom: 14px; }
+
+/* Cards. */
+.lom-hier .lom-card { border: 1px solid #e3e7ec; border-radius: 6px; overflow: hidden; margin-bottom: 16px; }
+.lom-hier .lom-card-head { display: flex; align-items: baseline; gap: 10px; background: #f4f6f9; padding: 11px 14px; border-bottom: 1px solid #e3e7ec; }
+.lom-hier .lom-card-head.lom-row-toggle { cursor: pointer; }
+.lom-hier .lom-card-head.lom-row-toggle:hover { background: #eef1f6; }
+.lom-hier .lom-card-title { font-weight: 700; color: #1f2a44; font-size: 16px; }
+.lom-hier .lom-card-sub { font-size: 12px; color: #8a93a0; }
+.lom-hier .lom-card-count { margin-left: auto; font-size: 12px; color: #8a93a0; }
+.lom-hier .lom-card-warn { border-color: #f2d9a4; }
+.lom-hier .lom-warnhead { display: flex; align-items: center; gap: 10px; background: #fffbeb; padding: 10px 14px; border-bottom: 1px solid #f2d9a4; }
+.lom-hier .lom-warnhead-title { font-weight: 700; color: #92400e; font-size: 14px; }
+.lom-hier .lom-warnhead-sub { font-size: 12.5px; color: #a16207; }
+
+/* Tree nodes. */
+.lom-hier .lom-node > .lom-children { display: none; }
+.lom-hier .lom-node.lom-open > .lom-children,
+.lom-hier .lom-node.lom-open-search > .lom-children { display: block; }
+.lom-hier .lom-row { display: flex; align-items: flex-start; gap: 9px; padding: 10px 14px; border-top: 1px solid #eceff2; }
+.lom-hier .lom-row-toggle { cursor: pointer; }
+.lom-hier .lom-row-toggle:hover { background: #f7fafc; }
+.lom-hier .lom-chev { border: 0; background: none; color: #9aa3ad; font-size: 11px; width: 14px; padding: 0; margin-top: 3px; cursor: pointer; flex-shrink: 0; }
+.lom-hier .lom-text { flex: 1; font-size: 13px; line-height: 1.5; color: #333; }
+.lom-hier .lom-text-plo { font-size: 14px; color: #222; }
+.lom-hier .lom-mark { background: #fde68a; border-radius: 2px; padding: 0; }
+
+/* Badges, chips, statuses. */
+.lom-hier .lom-badge { font-weight: 700; border-radius: 4px; white-space: nowrap; margin-top: 1px; flex-shrink: 0; }
+.lom-hier .lom-badge-plo { color: #1f2a44; font-size: 12.5px; background: #e8edf4; padding: 3px 9px; }
+.lom-hier .lom-badge-clo { color: #7c5a1e; font-size: 11.5px; background: #faf3e3; padding: 2px 7px; }
+.lom-hier .lom-badge-ulo { color: #6b7280; font-size: 11px; background: #f3f4f6; padding: 2px 6px; }
+.lom-hier .lom-count { font-size: 11.5px; color: #6b7280; background: #f3f4f6; border-radius: 10px; padding: 2px 8px; white-space: nowrap; flex-shrink: 0; }
+.lom-hier .lom-chipset { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; max-width: 180px; }
+.lom-hier .lom-chip { background: #eef4fb; color: #155a9c; font-size: 10.5px; font-weight: 700; border-radius: 10px; padding: 2px 8px; white-space: nowrap; }
+.lom-hier .lom-status { font-size: 11.5px; color: #9aa3ad; white-space: nowrap; margin-top: 1px; }
+.lom-hier .lom-pending { font-size: 11px; font-weight: 700; color: #92400e; background: #fef3c7; border-radius: 4px; padding: 2px 7px; white-space: nowrap; }
+.lom-hier .lom-action { font-size: 12px; white-space: nowrap; margin-top: 1px; color: #1077d1; text-decoration: none; }
+.lom-hier .lom-action:hover { color: #0b5ca8; text-decoration: underline; }
+
+/* Nesting. */
+.lom-hier .lom-children-plo { padding: 0 14px 12px 36px; }
+.lom-hier .lom-group-label { padding: 8px 0 4px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #8a93a0; font-weight: 700; }
+.lom-hier .lom-group-label-flat { padding: 9px 14px 4px; background: #fafafa; border-bottom: 1px solid #f0f0f0; }
+.lom-hier .lom-group-body { border-left: 2px solid #e8edf4; }
+.lom-hier .lom-group-body .lom-row { padding: 8px 10px 8px 12px; border-top: 1px solid #f2f4f6; }
+.lom-hier .lom-children-ulo { margin-left: 38px; border-left: 2px solid #f0e6cf; margin-bottom: 8px; margin-right: 14px; }
+.lom-hier .lom-children-ulo .lom-row { padding: 6px 12px; border-top: 1px solid #f5f5f5; }
+.lom-hier .lom-children-ulo .lom-row:hover { background: #fbfcfd; }
+.lom-hier .lom-ulo .lom-text { font-size: 12.5px; color: #444; }
+.lom-hier .lom-empty { padding: 7px 12px; font-size: 12.5px; color: #a16207; background: #fffbeb; }
+.lom-hier .lom-empty-plain { padding: 8px 14px; color: #8a93a0; background: none; }
+
+/* Unmapped unit outcomes section inside a course card. */
+.lom-hier .lom-unmapped-head { border-top: 1px solid #f2d9a4; background: #fffbeb; align-items: center; padding: 9px 14px; }
+.lom-hier .lom-unmapped-head:hover { background: #fdf6dd; }
+.lom-hier .lom-unmapped-title { font-size: 12.5px; font-weight: 700; color: #92400e; }
+.lom-hier .lom-unmapped-count { font-size: 11px; font-weight: 700; color: #92400e; background: #fde68a; border-radius: 10px; padding: 1px 8px; }
+.lom-hier .lom-unmapped-sub { font-size: 12px; color: #a16207; }
+.lom-hier .lom-unmapped-section > .lom-children .lom-row { padding-left: 34px; }
+
+/* Inline panels (map picker and edit). */
+.lom-hier .lom-panel { margin: 2px 14px 10px 36px; border: 1px solid #dbe3ec; background: #f8fafc; border-radius: 6px; padding: 12px 14px; max-width: 760px; }
+.lom-hier .lom-panel-title { font-size: 12.5px; font-weight: 700; color: #1f2a44; margin-bottom: 6px; }
+.lom-hier .lom-picker-opts { max-height: 240px; overflow: auto; }
+.lom-hier .lom-opt { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; font-size: 12.5px; cursor: pointer; line-height: 1.45; margin: 0; }
+.lom-hier .lom-opt input { margin-top: 2px; }
+.lom-hier .lom-opt.lom-locked { color: #8a93a0; cursor: default; }
+.lom-hier .lom-panel-actions { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.lom-hier .lom-panel-actions .lom-btn { padding: 5px 14px; font-size: 12.5px; }
+.lom-hier .lom-edit-input { width: 100%; box-sizing: border-box; border: 1px solid #cfd6de; border-radius: 5px; padding: 8px 10px; font-size: 13px; }
+.lom-hier .lom-note { font-size: 12px; color: #8a93a0; }
+
+/* Framework administration fallback. */
+.lom-hier + .lom-fwadmin { margin-top: 24px; }
+.lom-fwadmin summary { font-size: 13px; color: #555; cursor: pointer; }

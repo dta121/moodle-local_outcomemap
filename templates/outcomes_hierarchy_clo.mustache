@@ -1,0 +1,28 @@
+{{!
+    One course-outcome row with its aligned unit outcomes.
+    @template local_outcomemap/outcomes_hierarchy_clo
+}}
+<div class="lom-node lom-clo" data-search="{{searchtext}}">
+    <div class="lom-row lom-row-toggle" data-itemid="{{itemid}}" data-picker="{{pickerkey}}" data-mapped="{{mappedjson}}"
+         data-statement="{{statement}}" data-editnote="{{editnote}}">
+        <button type="button" class="lom-chev" data-lom-toggle aria-expanded="false"
+                aria-label="{{#str}} expand, core {{/str}}">&#9656;</button>
+        <span class="lom-badge lom-badge-clo">{{badge}}</span>
+        <span class="lom-text" data-text="{{statement}}">{{statement}}</span>
+        {{#haschips}}<span class="lom-chipset">{{#chips}}<span class="lom-chip">{{.}}</span>{{/chips}}</span>{{/haschips}}
+        {{#isunmapped}}<span class="lom-pending">{{#str}} hier_unmappedbadge, local_outcomemap {{/str}}</span>{{/isunmapped}}
+        <span class="lom-count">{{ulocountchip}}</span>
+        {{#approvedinfo}}<span class="lom-status">{{approvedinfo}}</span>{{/approvedinfo}}
+        {{#pendingbadge}}<span class="lom-pending">{{pendingbadge}}</span>{{/pendingbadge}}
+        {{#canapprove}}<a class="lom-action" href="{{approveurl}}">{{#str}} approve, local_outcomemap {{/str}}</a>{{/canapprove}}
+        {{#cansubmit}}<a class="lom-action" href="{{submiturl}}">{{#str}} submitreview, local_outcomemap {{/str}}</a>{{/cansubmit}}
+        {{#canmap}}<a class="lom-action" href="#" data-lom-map role="button">{{#str}} hier_maplink, local_outcomemap {{/str}}</a>{{/canmap}}
+        {{#caneditinline}}<a class="lom-action" href="#" data-lom-edit role="button">{{#str}} edit, core {{/str}}</a>{{/caneditinline}}
+        {{#editformurl}}<a class="lom-action" href="{{editformurl}}">{{#str}} edit, core {{/str}}</a>{{/editformurl}}
+    </div>
+    <div class="lom-inline-slot"></div>
+    <div class="lom-children lom-children-ulo">
+        {{#noulos}}<div class="lom-empty">{{#str}} hier_noulos, local_outcomemap {{/str}}</div>{{/noulos}}
+        {{#ulos}}{{> local_outcomemap/outcomes_hierarchy_ulo }}{{/ulos}}
+    </div>
+</div>
