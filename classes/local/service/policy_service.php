@@ -50,8 +50,16 @@ final class policy_service extends base_service {
     /** Student feedback-release policy type. */
     public const TYPE_RELEASE = 'release';
 
+    /** Accreditation aggregation and suppression policy type. */
+    public const TYPE_ACCREDITATION = 'accreditation';
+
     /** Supported policy types. */
-    public const TYPES = [self::TYPE_ATTEMPT_SELECTION, self::TYPE_CALCULATION, self::TYPE_RELEASE];
+    public const TYPES = [
+        self::TYPE_ATTEMPT_SELECTION,
+        self::TYPE_CALCULATION,
+        self::TYPE_RELEASE,
+        self::TYPE_ACCREDITATION,
+    ];
 
     /** Release after every contributing quiz attempt is fully graded. */
     public const RELEASE_FULLY_GRADED = 'fully_graded';
@@ -80,6 +88,9 @@ final class policy_service extends base_service {
     /** Institution scope. */
     public const SCOPE_INSTITUTION = 'institution';
 
+    /** Program scope, used by governed accreditation policies. */
+    public const SCOPE_PROGRAM = 'program';
+
     /** Catalog-course scope. */
     public const SCOPE_CATALOG_COURSE = 'catalog_course';
 
@@ -89,11 +100,20 @@ final class policy_service extends base_service {
     /** Assessment (course-module) scope. */
     public const SCOPE_ASSESSMENT = 'assessment';
 
-    /** Scope precedence from most to least specific. */
+    /** Calculation and release scope precedence from most to least specific. */
     public const SCOPE_PRECEDENCE = [
         self::SCOPE_ASSESSMENT,
         self::SCOPE_COURSE_INSTANCE,
         self::SCOPE_CATALOG_COURSE,
+        self::SCOPE_INSTITUTION,
+    ];
+
+    /** Every supported policy scope. */
+    public const SCOPES = [
+        self::SCOPE_ASSESSMENT,
+        self::SCOPE_COURSE_INSTANCE,
+        self::SCOPE_CATALOG_COURSE,
+        self::SCOPE_PROGRAM,
         self::SCOPE_INSTITUTION,
     ];
 
@@ -206,7 +226,8 @@ final class policy_service extends base_service {
         }
         $actorid = self::require_policy_capability($before);
         if ($DB->record_exists('local_outcomemap_evidence', ['policyid' => $id])
-                || $DB->record_exists('local_outcomemap_result', ['policyid' => $id])) {
+                || $DB->record_exists('local_outcomemap_result', ['policyid' => $id])
+                || $DB->record_exists('local_outcomemap_snapshot', ['policyid' => $id])) {
             throw new validation_exception('policyinuse', 'policy', $id);
         }
         $before->bands = self::get_bands($id);
@@ -650,7 +671,14 @@ final class policy_service extends base_service {
             throw new validation_exception('invalidfield', 'policytype', $policytype);
         }
         $scopetype = input::required_text($data['scopetype'] ?? '', 'scopetype', 30);
-        if (!in_array($scopetype, self::SCOPE_PRECEDENCE, true)) {
+        if (!in_array($scopetype, self::SCOPES, true)) {
+            throw new validation_exception('invalidfield', 'scopetype', $scopetype);
+        }
+        if ($policytype === self::TYPE_ACCREDITATION) {
+            if (!in_array($scopetype, [self::SCOPE_PROGRAM, self::SCOPE_INSTITUTION], true)) {
+                throw new validation_exception('invalidaccreditationscope', 'scopetype', $scopetype);
+            }
+        } else if ($scopetype === self::SCOPE_PROGRAM) {
             throw new validation_exception('invalidfield', 'scopetype', $scopetype);
         }
         $scopeid = null;
@@ -749,6 +777,9 @@ final class policy_service extends base_service {
                 $normalized['releaseat'] = (int) $releaseat;
             }
             return $normalized;
+        }
+        if ($policytype === self::TYPE_ACCREDITATION) {
+            return suppression_service::normalize_config($config);
         }
         $normalized = [];
         $minitems = $config['minitems'] ?? 1;
@@ -879,6 +910,7 @@ final class policy_service extends base_service {
     private static function require_scope_target(string $scopetype, int $scopeid): void {
         global $DB;
         $exists = match ($scopetype) {
+            self::SCOPE_PROGRAM => $DB->record_exists('local_outcomemap_program', ['id' => $scopeid]),
             self::SCOPE_CATALOG_COURSE => $DB->record_exists('local_outcomemap_course', ['id' => $scopeid]),
             self::SCOPE_COURSE_INSTANCE => $DB->record_exists('local_outcomemap_cinst', ['id' => $scopeid]),
             self::SCOPE_ASSESSMENT => $DB->record_exists('course_modules', ['id' => $scopeid]),

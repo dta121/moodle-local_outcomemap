@@ -10,6 +10,7 @@ namespace local_outcomemap\form;
 
 use local_outcomemap\local\decimal;
 use local_outcomemap\local\service\policy_service;
+use local_outcomemap\local\service\suppression_service;
 use local_outcomemap\local\validation_exception;
 
 /**
@@ -41,17 +42,22 @@ final class policy_form extends \moodleform {
             policy_service::TYPE_ATTEMPT_SELECTION => get_string('policytype_attempt_selection', 'local_outcomemap'),
             policy_service::TYPE_CALCULATION => get_string('policytype_calculation', 'local_outcomemap'),
             policy_service::TYPE_RELEASE => get_string('policytype_release', 'local_outcomemap'),
+            policy_service::TYPE_ACCREDITATION => get_string('policytype_accreditation', 'local_outcomemap'),
         ];
         $mform->addElement('select', 'policytype', get_string('policytype', 'local_outcomemap'), $policytypes);
 
         $scopetypes = [
             policy_service::SCOPE_INSTITUTION => get_string('policyscope_institution', 'local_outcomemap'),
+            policy_service::SCOPE_PROGRAM => get_string('policyscope_program', 'local_outcomemap'),
             policy_service::SCOPE_CATALOG_COURSE => get_string('policyscope_catalog_course', 'local_outcomemap'),
             policy_service::SCOPE_COURSE_INSTANCE => get_string('policyscope_course_instance', 'local_outcomemap'),
             policy_service::SCOPE_ASSESSMENT => get_string('policyscope_assessment', 'local_outcomemap'),
         ];
         $mform->addElement('select', 'scopetype', get_string('policyscope', 'local_outcomemap'), $scopetypes);
         $mform->setDefault('scopetype', policy_service::SCOPE_INSTITUTION);
+        $mform->addElement('autocomplete', 'programid', get_string('program', 'local_outcomemap'),
+            [0 => get_string('choosedots')] + $options['programs']);
+        $mform->hideIf('programid', 'scopetype', 'neq', policy_service::SCOPE_PROGRAM);
         $mform->addElement('autocomplete', 'catalogcourseid', get_string('catalogcourse', 'local_outcomemap'),
             [0 => get_string('choosedots')] + $options['catalogcourses']);
         $mform->hideIf('catalogcourseid', 'scopetype', 'neq', policy_service::SCOPE_CATALOG_COURSE);
@@ -63,7 +69,14 @@ final class policy_form extends \moodleform {
         $mform->hideIf('assessmentid', 'scopetype', 'neq', policy_service::SCOPE_ASSESSMENT);
 
         if ($lockedscope) {
-            $mform->freeze(['policytype', 'scopetype', 'catalogcourseid', 'courseinstanceid', 'assessmentid']);
+            $mform->freeze([
+                'policytype',
+                'scopetype',
+                'programid',
+                'catalogcourseid',
+                'courseinstanceid',
+                'assessmentid',
+            ]);
         }
 
         $mform->addElement('header', 'policyconfiguration', get_string('policyconfiguration', 'local_outcomemap'));
@@ -92,6 +105,32 @@ final class policy_form extends \moodleform {
         $mform->addElement('date_time_selector', 'releaseat', get_string('feedbackreleaseat', 'local_outcomemap'));
         $mform->hideIf('releaseat', 'policytype', 'neq', policy_service::TYPE_RELEASE);
         $mform->hideIf('releaseat', 'releasemode', 'neq', policy_service::RELEASE_SCHEDULED);
+
+        $mform->addElement('text', 'mincohortsize', get_string('minimumcohortsize', 'local_outcomemap'));
+        $mform->setType('mincohortsize', PARAM_INT);
+        $mform->hideIf('mincohortsize', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
+        $mform->addElement('select', 'populationsource', get_string('populationsource', 'local_outcomemap'), [
+            '' => get_string('choosedots'),
+            suppression_service::POPULATION_ACTIVE_ENROLMENTS =>
+                get_string('population_active_enrolments_at_freeze', 'local_outcomemap'),
+            suppression_service::POPULATION_MOODLE_COHORT =>
+                get_string('population_moodle_cohort_at_freeze', 'local_outcomemap'),
+        ]);
+        $mform->hideIf('populationsource', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
+        $mform->addElement('select', 'retentionbasis', get_string('retentionbasis', 'local_outcomemap'), [
+            '' => get_string('choosedots'),
+            suppression_service::RETENTION_ANONYMISED =>
+                get_string('retention_institutional_record_anonymised', 'local_outcomemap'),
+            suppression_service::RETENTION_PRIVACY_DELETION =>
+                get_string('retention_privacy_deletion', 'local_outcomemap'),
+        ]);
+        $mform->hideIf('retentionbasis', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
+        $mform->addElement('static', 'aggregationmethod', get_string('aggregationmethod', 'local_outcomemap'),
+            get_string('aggregation_sum_numerators_denominators', 'local_outcomemap'));
+        $mform->hideIf('aggregationmethod', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
+        $mform->addElement('static', 'correctionmethod', get_string('correctionmethod', 'local_outcomemap'),
+            get_string('correction_new_snapshot_version', 'local_outcomemap'));
+        $mform->hideIf('correctionmethod', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
 
         $mform->addElement('text', 'minitems', get_string('minimumdistinctitems', 'local_outcomemap'));
         $mform->setType('minitems', PARAM_INT);
@@ -180,6 +219,7 @@ final class policy_form extends \moodleform {
         $errors = parent::validation($data, $files);
         $scopetype = $data['scopetype'] ?? '';
         $scopefields = [
+            policy_service::SCOPE_PROGRAM => 'programid',
             policy_service::SCOPE_CATALOG_COURSE => 'catalogcourseid',
             policy_service::SCOPE_COURSE_INSTANCE => 'courseinstanceid',
             policy_service::SCOPE_ASSESSMENT => 'assessmentid',
@@ -188,7 +228,30 @@ final class policy_form extends \moodleform {
             $errors[$scopefields[$scopetype]] = get_string('required');
         }
 
-        if (($data['policytype'] ?? '') === policy_service::TYPE_ATTEMPT_SELECTION) {
+        $policytype = $data['policytype'] ?? '';
+        if ($policytype === policy_service::TYPE_ACCREDITATION) {
+            if (!in_array($scopetype, [policy_service::SCOPE_PROGRAM, policy_service::SCOPE_INSTITUTION], true)) {
+                $errors['scopetype'] = get_string('invalidaccreditationscope', 'local_outcomemap',
+                    (object) ['detail' => $scopetype]);
+            }
+            if (filter_var($data['mincohortsize'] ?? null, FILTER_VALIDATE_INT) === false
+                    || (int) $data['mincohortsize'] < 1) {
+                $errors['mincohortsize'] = get_string('invalidminimumcohortsize', 'local_outcomemap');
+            }
+            if (!in_array($data['populationsource'] ?? '', suppression_service::POPULATION_SOURCES, true)) {
+                $errors['populationsource'] = get_string('required');
+            }
+            if (!in_array($data['retentionbasis'] ?? '', suppression_service::RETENTION_BASES, true)) {
+                $errors['retentionbasis'] = get_string('required');
+            }
+            return $errors;
+        }
+        if ($scopetype === policy_service::SCOPE_PROGRAM) {
+            $errors['scopetype'] = get_string('invalidfield', 'local_outcomemap',
+                (object) ['field' => 'scopetype', 'detail' => $scopetype]);
+        }
+
+        if ($policytype === policy_service::TYPE_ATTEMPT_SELECTION) {
             if (!in_array($data['attemptmethod'] ?? '', policy_service::METHODS, true)) {
                 $errors['attemptmethod'] = get_string('required');
             }

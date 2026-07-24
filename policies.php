@@ -16,6 +16,7 @@
 
 use local_outcomemap\form\policy_form;
 use local_outcomemap\local\service\policy_service;
+use local_outcomemap\local\service\suppression_service;
 use local_outcomemap\local\workflow;
 
 $configpath = __DIR__ . '/../../config.php';
@@ -37,6 +38,11 @@ require_once($CFG->libdir . '/formslib.php');
  */
 function local_outcomemap_policy_editor_options(): array {
     global $DB;
+
+    $programs = [];
+    foreach ($DB->get_records('local_outcomemap_program', null, 'code, name') as $record) {
+        $programs[(int) $record->id] = $record->code . ' — ' . format_string($record->name);
+    }
 
     $catalogcourses = [];
     foreach ($DB->get_records('local_outcomemap_course', null, 'code, name') as $record) {
@@ -69,6 +75,7 @@ function local_outcomemap_policy_editor_options(): array {
     }
     asort($assessments, SORT_NATURAL | SORT_FLAG_CASE);
     return [
+        'programs' => $programs,
         'catalogcourses' => $catalogcourses,
         'courseinstances' => $courseinstances,
         'assessments' => $assessments,
@@ -83,6 +90,7 @@ function local_outcomemap_policy_editor_options(): array {
  */
 function local_outcomemap_policy_payload(stdClass $data): array {
     $scopeid = match ($data->scopetype) {
+        policy_service::SCOPE_PROGRAM => (int) $data->programid,
         policy_service::SCOPE_CATALOG_COURSE => (int) $data->catalogcourseid,
         policy_service::SCOPE_COURSE_INSTANCE => (int) $data->courseinstanceid,
         policy_service::SCOPE_ASSESSMENT => (int) $data->assessmentid,
@@ -96,6 +104,15 @@ function local_outcomemap_policy_payload(stdClass $data): array {
         if ($data->releasemode === policy_service::RELEASE_SCHEDULED) {
             $config['releaseat'] = (int) $data->releaseat;
         }
+        $bands = [];
+    } else if ($data->policytype === policy_service::TYPE_ACCREDITATION) {
+        $config = [
+            'mincohortsize' => (int) $data->mincohortsize,
+            'populationsource' => $data->populationsource,
+            'retentionbasis' => $data->retentionbasis,
+            'aggregationmethod' => suppression_service::AGGREGATION_METHOD,
+            'correctionmethod' => suppression_service::CORRECTION_METHOD,
+        ];
         $bands = [];
     } else {
         $config = [
@@ -147,7 +164,9 @@ function local_outcomemap_policy_payload(stdClass $data): array {
  * @return stdClass Form defaults.
  */
 function local_outcomemap_policy_form_data(stdClass $record): stdClass {
-    if ($record->scopetype === policy_service::SCOPE_CATALOG_COURSE) {
+    if ($record->scopetype === policy_service::SCOPE_PROGRAM) {
+        $record->programid = $record->scopeid;
+    } else if ($record->scopetype === policy_service::SCOPE_CATALOG_COURSE) {
         $record->catalogcourseid = $record->scopeid;
     } else if ($record->scopetype === policy_service::SCOPE_COURSE_INSTANCE) {
         $record->courseinstanceid = $record->scopeid;
@@ -159,6 +178,10 @@ function local_outcomemap_policy_form_data(stdClass $record): stdClass {
     } else if ($record->policytype === policy_service::TYPE_RELEASE) {
         $record->releasemode = $record->config['mode'] ?? '';
         $record->releaseat = $record->config['releaseat'] ?? time();
+    } else if ($record->policytype === policy_service::TYPE_ACCREDITATION) {
+        $record->mincohortsize = $record->config['mincohortsize'] ?? '';
+        $record->populationsource = $record->config['populationsource'] ?? '';
+        $record->retentionbasis = $record->config['retentionbasis'] ?? '';
     } else {
         $record->minitems = $record->config['minitems'] ?? 1;
         $record->minweightedpossible = $record->config['minweightedpossible'] ?? '';
@@ -189,6 +212,7 @@ function local_outcomemap_policy_scope_label(stdClass $record, array $options): 
         return get_string('policyscope_institution', 'local_outcomemap');
     }
     $optionkey = match ($record->scopetype) {
+        policy_service::SCOPE_PROGRAM => 'programs',
         policy_service::SCOPE_CATALOG_COURSE => 'catalogcourses',
         policy_service::SCOPE_COURSE_INSTANCE => 'courseinstances',
         policy_service::SCOPE_ASSESSMENT => 'assessments',
@@ -219,6 +243,15 @@ function local_outcomemap_policy_config_summary(stdClass $record): string {
                 : get_string('manualrelease_at', 'local_outcomemap', userdate($record->manualreleasedat)));
         }
         return $summary;
+    }
+    if ($record->policytype === policy_service::TYPE_ACCREDITATION) {
+        return implode('; ', [
+            get_string('minimumcohortsize_value', 'local_outcomemap', $record->config['mincohortsize'] ?? ''),
+            get_string('population_' . ($record->config['populationsource'] ?? ''), 'local_outcomemap'),
+            get_string('retention_' . ($record->config['retentionbasis'] ?? ''), 'local_outcomemap'),
+            get_string('aggregation_sum_numerators_denominators', 'local_outcomemap'),
+            get_string('correction_new_snapshot_version', 'local_outcomemap'),
+        ]);
     }
     $summary = [
         get_string('minimumdistinctitems_value', 'local_outcomemap', $record->config['minitems'] ?? 1),

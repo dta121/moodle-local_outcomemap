@@ -541,6 +541,85 @@
         <INDEX NAME="stale_ix" UNIQUE="false" FIELDS="stale"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_outcomemap_snapshot" COMMENT="Immutable versioned accreditation reporting snapshots">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="snapshotuuid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="version" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="previousid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="programid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="periodcode" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="cohortid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="policyid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="draft" SEQUENCE="false"/>
+        <FIELD NAME="notes" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="correctionreason" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="populationsource" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="retentionbasis" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="populationat" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="populationcount" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="suppressionthreshold" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="subjecthashmethod" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="pluginversion" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="algoversion" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="payloadhash" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="manifesthash" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="approvedby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="approvedat" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="previous_fk" TYPE="foreign" FIELDS="previousid" REFTABLE="local_outcomemap_snapshot" REFFIELDS="id"/>
+        <KEY NAME="program_fk" TYPE="foreign" FIELDS="programid" REFTABLE="local_outcomemap_program" REFFIELDS="id"/>
+        <KEY NAME="policy_fk" TYPE="foreign" FIELDS="policyid" REFTABLE="local_outcomemap_policy" REFFIELDS="id"/>
+        <KEY NAME="uuidversion_uq" TYPE="unique" FIELDS="snapshotuuid, version"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="programperiodstatus_ix" UNIQUE="false" FIELDS="programid, periodcode, status"/>
+        <INDEX NAME="cohortid_ix" UNIQUE="false" FIELDS="cohortid"/>
+        <INDEX NAME="policyid_ix" UNIQUE="false" FIELDS="policyid"/>
+        <INDEX NAME="approvedat_ix" UNIQUE="false" FIELDS="approvedat"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_outcomemap_snapitem" COMMENT="Canonical immutable rows captured in accreditation snapshots">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="snapshotid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="itemtype" TYPE="char" LENGTH="30" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="stablekey" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="subjectref" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="sourceuuid" TYPE="char" LENGTH="36" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="sourceid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="cinstid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="itemverid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="state" TYPE="char" LENGTH="30" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="bandcode" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="numerator" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="denominator" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="percentage" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="subjectcount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="suppressed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="payloadjson" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="payloadhash" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="snapshot_fk" TYPE="foreign" FIELDS="snapshotid" REFTABLE="local_outcomemap_snapshot" REFFIELDS="id"/>
+        <KEY NAME="cinst_fk" TYPE="foreign" FIELDS="cinstid" REFTABLE="local_outcomemap_cinst" REFFIELDS="id"/>
+        <KEY NAME="itemver_fk" TYPE="foreign" FIELDS="itemverid" REFTABLE="local_outcomemap_itemver" REFFIELDS="id"/>
+        <KEY NAME="item_uq" TYPE="unique" FIELDS="snapshotid, itemtype, stablekey"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="snapshottypeorder_ix" UNIQUE="false" FIELDS="snapshotid, itemtype, sortorder"/>
+        <INDEX NAME="subjectref_ix" UNIQUE="false" FIELDS="subjectref"/>
+        <INDEX NAME="sourceuuid_ix" UNIQUE="false" FIELDS="sourceuuid"/>
+        <INDEX NAME="itemversuppressed_ix" UNIQUE="false" FIELDS="itemverid, suppressed"/>
+      </INDEXES>
+    </TABLE>
     <TABLE NAME="local_outcomemap_audit" COMMENT="Append-only governance and mutation audit history">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>

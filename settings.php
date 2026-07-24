@@ -27,6 +27,8 @@ $pages = [
     'local_outcomemap_frameworks' => ['frameworks', 'manageframeworks'],
     'local_outcomemap_relations' => ['relations', 'manageframeworks'],
     'local_outcomemap_policies' => ['policies', 'managepolicies'],
+    'local_outcomemap_snapshots' => ['snapshots', 'managesnapshots'],
+    'local_outcomemap_reports' => ['reports', 'viewdefinitions'],
     'local_outcomemap_approvals' => ['approvalqueue', 'approve'],
     'local_outcomemap_import' => ['csvimport', 'manageframeworks'],
 ];

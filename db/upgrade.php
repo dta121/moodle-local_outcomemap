@@ -380,5 +380,84 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026072508, 'local', 'outcomemap');
     }
 
+    if ($oldversion < 2026072600) {
+        $table = new xmldb_table('local_outcomemap_snapshot');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field('snapshotuuid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL);
+        $table->add_field('version', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('previousid', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('programid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('periodcode', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL);
+        $table->add_field('cohortid', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('policyid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'draft');
+        $table->add_field('notes', XMLDB_TYPE_TEXT);
+        $table->add_field('correctionreason', XMLDB_TYPE_TEXT);
+        $table->add_field('populationsource', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL);
+        $table->add_field('retentionbasis', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL);
+        $table->add_field('populationat', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('populationcount', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('suppressionthreshold', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('subjecthashmethod', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL);
+        $table->add_field('pluginversion', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL);
+        $table->add_field('algoversion', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL);
+        $table->add_field('payloadhash', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL);
+        $table->add_field('manifesthash', XMLDB_TYPE_CHAR, '64');
+        $table->add_field('createdby', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('approvedby', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('approvedat', XMLDB_TYPE_INTEGER, '10');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('previous_fk', XMLDB_KEY_FOREIGN, ['previousid'], 'local_outcomemap_snapshot', ['id']);
+        $table->add_key('program_fk', XMLDB_KEY_FOREIGN, ['programid'], 'local_outcomemap_program', ['id']);
+        $table->add_key('policy_fk', XMLDB_KEY_FOREIGN, ['policyid'], 'local_outcomemap_policy', ['id']);
+        $table->add_key('uuidversion_uq', XMLDB_KEY_UNIQUE, ['snapshotuuid', 'version']);
+        $table->add_index('programperiodstatus_ix', XMLDB_INDEX_NOTUNIQUE,
+            ['programid', 'periodcode', 'status']);
+        $table->add_index('cohortid_ix', XMLDB_INDEX_NOTUNIQUE, ['cohortid']);
+        $table->add_index('policyid_ix', XMLDB_INDEX_NOTUNIQUE, ['policyid']);
+        $table->add_index('approvedat_ix', XMLDB_INDEX_NOTUNIQUE, ['approvedat']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        $table = new xmldb_table('local_outcomemap_snapitem');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field('snapshotid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('itemtype', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL);
+        $table->add_field('stablekey', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL);
+        $table->add_field('subjectref', XMLDB_TYPE_CHAR, '64');
+        $table->add_field('sourceuuid', XMLDB_TYPE_CHAR, '36');
+        $table->add_field('sourceid', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('cinstid', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('itemverid', XMLDB_TYPE_INTEGER, '10');
+        $table->add_field('state', XMLDB_TYPE_CHAR, '30');
+        $table->add_field('bandcode', XMLDB_TYPE_CHAR, '50');
+        $table->add_field('numerator', XMLDB_TYPE_NUMBER, '20, 10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('denominator', XMLDB_TYPE_NUMBER, '20, 10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('percentage', XMLDB_TYPE_NUMBER, '20, 10');
+        $table->add_field('subjectcount', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('suppressed', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('payloadjson', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL);
+        $table->add_field('payloadhash', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL);
+        $table->add_field('sortorder', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('snapshot_fk', XMLDB_KEY_FOREIGN, ['snapshotid'], 'local_outcomemap_snapshot', ['id']);
+        $table->add_key('cinst_fk', XMLDB_KEY_FOREIGN, ['cinstid'], 'local_outcomemap_cinst', ['id']);
+        $table->add_key('itemver_fk', XMLDB_KEY_FOREIGN, ['itemverid'], 'local_outcomemap_itemver', ['id']);
+        $table->add_key('item_uq', XMLDB_KEY_UNIQUE, ['snapshotid', 'itemtype', 'stablekey']);
+        $table->add_index('snapshottypeorder_ix', XMLDB_INDEX_NOTUNIQUE,
+            ['snapshotid', 'itemtype', 'sortorder']);
+        $table->add_index('subjectref_ix', XMLDB_INDEX_NOTUNIQUE, ['subjectref']);
+        $table->add_index('sourceuuid_ix', XMLDB_INDEX_NOTUNIQUE, ['sourceuuid']);
+        $table->add_index('itemversuppressed_ix', XMLDB_INDEX_NOTUNIQUE, ['itemverid', 'suppressed']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026072600, 'local', 'outcomemap');
+    }
+
     return true;
 }
