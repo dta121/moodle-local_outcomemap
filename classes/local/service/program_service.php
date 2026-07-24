@@ -124,6 +124,50 @@ final class program_service extends base_service {
         return $DB->get_records(self::TABLE, null, 'code ASC');
     }
 
+    /**
+     * Return programs with current governed course, framework, and outcome counts.
+     *
+     * Counts are loaded in one query so presentation code does not issue queries
+     * per program. Retired records and memberships outside their effective range
+     * are excluded from the summary.
+     */
+    public static function list_with_summary(?int $time = null): array {
+        global $DB;
+        self::require_system('local/outcomemap:viewdefinitions');
+        $time = $time ?? time();
+        $sql = "SELECT p.*,
+                       (SELECT COUNT(DISTINCT pc.courseid)
+                          FROM {local_outcomemap_progcourse} pc
+                         WHERE pc.programid = p.id
+                           AND pc.status <> :pcretired
+                           AND pc.effectivefrom <= :pcfrom
+                           AND (pc.effectiveto IS NULL OR pc.effectiveto > :pcto)) AS coursecount,
+                       (SELECT COUNT(1)
+                          FROM {local_outcomemap_fw} fw
+                         WHERE fw.ownertype = :fwownertype
+                           AND fw.ownerid = p.id
+                           AND fw.status <> :fwretired) AS frameworkcount,
+                       (SELECT COUNT(1)
+                          FROM {local_outcomemap_item} item
+                          JOIN {local_outcomemap_fw} itemfw ON itemfw.id = item.frameworkid
+                         WHERE itemfw.ownertype = :itemfwownertype
+                           AND itemfw.ownerid = p.id
+                           AND itemfw.status <> :itemfwretired
+                           AND item.status <> :itemretired) AS outcomecount
+                  FROM {local_outcomemap_program} p
+              ORDER BY p.code ASC";
+        return $DB->get_records_sql($sql, [
+            'pcretired' => workflow::RETIRED,
+            'pcfrom' => $time,
+            'pcto' => $time,
+            'fwownertype' => framework_service::OWNER_PROGRAM,
+            'fwretired' => workflow::RETIRED,
+            'itemfwownertype' => framework_service::OWNER_PROGRAM,
+            'itemfwretired' => workflow::RETIRED,
+            'itemretired' => workflow::RETIRED,
+        ]);
+    }
+
     private static function change_status(int $id, string $required, string $status, string $action,
             ?string $reason, string $capability, bool $separateapprover): void {
         global $DB;

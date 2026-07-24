@@ -3,7 +3,7 @@
 
 use local_outcomemap\form\relation_form;
 use local_outcomemap\local\service\relation_service;
-use local_outcomemap\local\workflow;
+use local_outcomemap\output\relations_page;
 
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
@@ -21,14 +21,34 @@ admin_externalpage_setup('local_outcomemap_relations');
 $url = new moodle_url('/local/outcomemap/relations.php');
 $action = optional_param('action', '', PARAM_ALPHA);
 $id = optional_param('id', 0, PARAM_INT);
+$sourceitemid = optional_param('sourceitemid', 0, PARAM_INT);
+$targetitemid = optional_param('targetitemid', 0, PARAM_INT);
+$relationtype = optional_param('relationtype', '', PARAM_ALPHANUMEXT);
 
 if ($action === 'submit' && $id) {
     require_sesskey();
     relation_service::submit_for_review($id);
     redirect($url, get_string('submittedforreview', 'local_outcomemap'));
 }
+if ($action === 'exportcsv') {
+    $page = new relations_page();
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="outcome-relations.csv"');
+    $stream = fopen('php://output', 'w');
+    fwrite($stream, "\xEF\xBB\xBF");
+    foreach ($page->csv_rows() as $row) {
+        fputcsv($stream, $row, ',', '"', '');
+    }
+    fclose($stream);
+    exit;
+}
+
 if (in_array($action, ['add', 'edit', 'newversion'], true)) {
-    $form = new relation_form($url);
+    $formurl = new moodle_url($url, ['action' => $action]);
+    if ($id) {
+        $formurl->param('id', $id);
+    }
+    $form = new relation_form($formurl);
     if ($form->is_cancelled()) {
         redirect($url);
     }
@@ -50,6 +70,15 @@ if (in_array($action, ['add', 'edit', 'newversion'], true)) {
             $record->effectiveto = null;
         }
         $form->set_data($record);
+    } else if ($action === 'add' && !$form->is_submitted()
+            && $sourceitemid && $targetitemid
+            && in_array($relationtype, relation_service::TYPES, true)) {
+        $form->set_data((object) [
+            'sourceitemid' => $sourceitemid,
+            'targetitemid' => $targetitemid,
+            'type' => $relationtype,
+            'effectivefrom' => time(),
+        ]);
     }
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string($action === 'newversion' ? 'newrelationversion' :
@@ -60,27 +89,6 @@ if (in_array($action, ['add', 'edit', 'newversion'], true)) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('relations_heading', 'local_outcomemap'));
-echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']), get_string('addrelation', 'local_outcomemap'));
-$table = new html_table();
-$table->head = [get_string('sourceoutcome', 'local_outcomemap'), get_string('relationtype', 'local_outcomemap'),
-    get_string('targetoutcome', 'local_outcomemap'), get_string('weight', 'local_outcomemap'),
-    get_string('version', 'local_outcomemap'), get_string('status', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
-foreach (relation_service::list_all() as $record) {
-    $actions = [];
-    if ($record->status === workflow::DRAFT) {
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'edit', 'id' => $record->id]), get_string('edit'));
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'submit', 'id' => $record->id,
-            'sesskey' => sesskey()]), get_string('submitreview', 'local_outcomemap'));
-    }
-    if ($record->status === workflow::APPROVED) {
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'newversion', 'id' => $record->id]),
-            get_string('newrelationversion', 'local_outcomemap'));
-    }
-    $table->data[] = [s($record->sourceframework . '.' . $record->sourcecode),
-        get_string('relation_' . $record->type, 'local_outcomemap'), s($record->targetframework . '.' . $record->targetcode),
-        $record->weight === null ? '' : s($record->weight), (int) $record->version,
-        get_string('status_' . $record->status, 'local_outcomemap'), implode(' | ', $actions)];
-}
-echo html_writer::table($table);
+$page = new relations_page();
+echo $OUTPUT->render_from_template('local_outcomemap/relations_page', $page->export_for_template($OUTPUT));
 echo $OUTPUT->footer();

@@ -1,0 +1,172 @@
+{{!
+    Grouped and matrix Outcome relations page.
+    @template local_outcomemap/relations_page
+}}
+<div id="lom-relations" class="lom-page lom-relations">
+    <h2 class="lom-page-title">{{#str}} relations_heading, local_outcomemap {{/str}}</h2>
+    <div class="lom-page-subtitle">{{#str}} relations_subtitle, local_outcomemap {{/str}}</div>
+
+    <div class="lom-page-toolbar">
+        <div class="lom-viewtoggle" role="group" aria-label="{{#str}} relations_view, local_outcomemap {{/str}}">
+            <button type="button" class="lom-viewbtn lom-active" data-relation-view="grouped" aria-pressed="true">{{#str}} relations_grouped, local_outcomemap {{/str}}</button>
+            <button type="button" class="lom-viewbtn" data-relation-view="matrix" aria-pressed="false">{{#str}} relations_matrix, local_outcomemap {{/str}}</button>
+        </div>
+        <div class="lom-page-search">
+            <span aria-hidden="true">&#128269;</span>
+            <input id="lom-relation-search" type="search" autocomplete="off"
+                   placeholder="{{#str}} relations_searchplaceholder, local_outcomemap {{/str}}"
+                   aria-label="{{#str}} relations_searchplaceholder, local_outcomemap {{/str}}">
+        </div>
+        <div class="lom-page-toolbar-end">
+            <a class="lom-page-btn" href="{{exporturl}}">{{#str}} hier_exportcsv, local_outcomemap {{/str}}</a>
+            {{#canmanage}}<a class="lom-page-btn lom-page-btn-primary" href="{{addurl}}">{{#str}} addrelation, local_outcomemap {{/str}}</a>{{/canmanage}}
+        </div>
+    </div>
+    <div class="lom-page-stats">{{statsline}}</div>
+    <div id="lom-relation-noresults" class="lom-page-noresults lom-hidden">{{#str}} relations_noresults, local_outcomemap {{/str}}</div>
+
+    <div id="lom-relation-grouped">
+        {{#groups}}
+        <section class="lom-section lom-relation-group" data-search="{{searchtext}}">
+            <div class="lom-section-head">
+                <span class="lom-section-title">{{title}}</span>
+                <span class="lom-section-subtitle">{{subtitle}}</span>
+                <span class="lom-section-count">{{countline}}</span>
+            </div>
+            <div class="lom-section-body">
+                {{#rows}}
+                <article class="lom-relation-row lom-filter-row" data-search="{{searchtext}}">
+                    <span class="lom-code-badge lom-code-relation">{{badge}}</span>
+                    <span class="lom-relation-statement">{{statement}}</span>
+                    <span class="lom-relation-arrow" aria-hidden="true">{{#str}} relations_aligns_to_short, local_outcomemap {{/str}}</span>
+                    <span class="lom-targets">
+                        {{#targets}}
+                        <span class="lom-target-chip" title="{{statement}}">
+                            <strong>{{label}}</strong>
+                            <span class="lom-target-meta lom-workflow-{{statusclass}}">{{statuslabel}} · {{versionlabel}}{{#hasweight}} · {{weightlabel}}{{/hasweight}}</span>
+                            {{#hasactions}}
+                            <span class="lom-target-actions">
+                                {{#actions}}<a href="{{url}}">{{label}}</a>{{/actions}}
+                            </span>
+                            {{/hasactions}}
+                        </span>
+                        {{/targets}}
+                    </span>
+                </article>
+                {{/rows}}
+            </div>
+        </section>
+        {{/groups}}
+    </div>
+
+    <div id="lom-relation-matrix" class="lom-hidden">
+        {{#groups}}
+        <section class="lom-section lom-relation-group" data-search="{{searchtext}}">
+            <div class="lom-section-head">
+                <span class="lom-section-title">{{title}}</span>
+                <span class="lom-section-subtitle">{{subtitle}}</span>
+                <span class="lom-section-count">{{countline}}</span>
+            </div>
+            {{#hasmatrix}}
+            <div class="lom-matrix-wrap">
+                <table class="lom-matrix">
+                    <caption class="sr-only">{{title}} — {{subtitle}}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="lom-matrix-source">{{#str}} sourceoutcome, local_outcomemap {{/str}}</th>
+                            {{#columns}}
+                            <th scope="col" title="{{label}} — {{statement}}"><span>{{code}}</span></th>
+                            {{/columns}}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#matrixrows}}
+                        <tr class="lom-filter-row" data-search="{{searchtext}}">
+                            <th scope="row" class="lom-matrix-source" title="{{code}} — {{statement}}"><strong>{{code}}</strong><span>{{statement}}</span></th>
+                            {{#cells}}
+                            <td title="{{title}}">
+                                {{#hasrelation}}
+                                    {{#hasaction}}<a class="lom-matrix-cell" href="{{actionurl}}"><span class="lom-matrix-dot lom-dot-{{statusclass}}"></span><span class="sr-only">{{title}}</span></a>{{/hasaction}}
+                                    {{^hasaction}}<span class="lom-matrix-cell"><span class="lom-matrix-dot lom-dot-{{statusclass}}"></span><span class="sr-only">{{title}}</span></span>{{/hasaction}}
+                                {{/hasrelation}}
+                                {{^hasrelation}}
+                                    {{#canadd}}<a class="lom-matrix-cell lom-matrix-empty" href="{{addurl}}"><span aria-hidden="true">+</span><span class="sr-only">{{title}}</span></a>{{/canadd}}
+                                    {{^canadd}}<span class="lom-matrix-cell lom-matrix-empty"><span class="sr-only">{{title}}</span></span>{{/canadd}}
+                                {{/hasrelation}}
+                            </td>
+                            {{/cells}}
+                        </tr>
+                        {{/matrixrows}}
+                    </tbody>
+                </table>
+            </div>
+            <div class="lom-matrix-help">{{#str}} relations_matrix_help, local_outcomemap {{/str}}</div>
+            {{/hasmatrix}}
+        </section>
+        {{/groups}}
+    </div>
+
+    {{^hasrelations}}
+    <div class="lom-page-empty">{{#str}} relations_empty, local_outcomemap {{/str}}</div>
+    {{/hasrelations}}
+</div>
+{{#js}}
+(function() {
+    var root = document.getElementById('lom-relations');
+    if (!root) {
+        return;
+    }
+    var grouped = document.getElementById('lom-relation-grouped');
+    var matrix = document.getElementById('lom-relation-matrix');
+    var input = document.getElementById('lom-relation-search');
+    var noresults = document.getElementById('lom-relation-noresults');
+    var state = {view: 'grouped', query: ''};
+
+    function filterView(view) {
+        var visible = 0;
+        Array.prototype.forEach.call(view.querySelectorAll('.lom-relation-group'), function(group) {
+            var groupself = !state.query || (group.getAttribute('data-search') || '').indexOf(state.query) !== -1;
+            var rowvisible = 0;
+            Array.prototype.forEach.call(group.querySelectorAll('.lom-filter-row'), function(row) {
+                var show = groupself || (row.getAttribute('data-search') || '').indexOf(state.query) !== -1;
+                row.classList.toggle('lom-hidden', !show);
+                if (show) {
+                    rowvisible++;
+                }
+            });
+            var showgroup = groupself || rowvisible > 0;
+            group.classList.toggle('lom-hidden', !showgroup);
+            if (showgroup) {
+                visible++;
+            }
+        });
+        return visible;
+    }
+
+    function render() {
+        grouped.classList.toggle('lom-hidden', state.view !== 'grouped');
+        matrix.classList.toggle('lom-hidden', state.view !== 'matrix');
+        var visible = filterView(state.view === 'grouped' ? grouped : matrix);
+        noresults.classList.toggle('lom-hidden', visible !== 0 || !state.query);
+        Array.prototype.forEach.call(root.querySelectorAll('[data-relation-view]'), function(button) {
+            var active = button.getAttribute('data-relation-view') === state.view;
+            button.classList.toggle('lom-active', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    }
+
+    root.addEventListener('click', function(event) {
+        var button = event.target.closest('[data-relation-view]');
+        if (!button) {
+            return;
+        }
+        state.view = button.getAttribute('data-relation-view');
+        render();
+    });
+    input.addEventListener('input', function() {
+        state.query = input.value.trim().toLowerCase();
+        render();
+    });
+    render();
+})();
+{{/js}}

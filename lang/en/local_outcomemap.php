@@ -442,3 +442,51 @@ $string['bandfeedback'] = 'Feedback';
 $string['remediation_required'] = 'Required';
 $string['remediation_recommended'] = 'Recommended';
 $string['noremediation'] = 'No curated recommendations apply.';
+
+
+// Redesigned Programs page.
+$string['programs_subtitle'] = 'Governed academic programs with catalog-course and program-outcome coverage.';
+$string['programs_filter_status'] = 'Filter programs by workflow status';
+$string['programs_searchplaceholder'] = 'Search programs and codes…';
+$string['programs_group_approved'] = 'Approved programs';
+$string['programs_group_review'] = 'Programs awaiting review';
+$string['programs_group_draft'] = 'Draft programs';
+$string['programs_group_retired'] = 'Retired programs';
+$string['programs_group_approved_desc'] = 'Official governed program definitions';
+$string['programs_group_review_desc'] = 'Submitted definitions pending independent approval';
+$string['programs_group_draft_desc'] = 'Editable definitions not yet submitted';
+$string['programs_group_retired_desc'] = 'Definitions retained for historical traceability';
+$string['programs_nodescription'] = 'No description provided.';
+$string['programs_courses'] = '{$a} catalog courses';
+$string['programs_courses_one'] = '1 catalog course';
+$string['programs_outcomes'] = '{$a} program outcomes';
+$string['programs_outcomes_one'] = '1 program outcome';
+$string['programs_frameworks'] = '{$a} outcome frameworks';
+$string['programs_frameworks_one'] = '1 outcome framework';
+$string['programs_count'] = '{$a} programs';
+$string['programs_count_one'] = '1 program';
+$string['programs_statsline'] = '{$a->total} programs · {$a->approved} approved · {$a->review} awaiting review · {$a->draft} draft · {$a->retired} retired';
+$string['programs_outcomes_action'] = 'Outcomes';
+$string['programs_noresults'] = 'No programs match the current search and status filter.';
+$string['programs_empty'] = 'No program definitions have been created.';
+
+// Redesigned Outcome relations page.
+$string['relations_subtitle'] = 'Every governed relationship between outcome frameworks, grouped by source and target.';
+$string['relations_view'] = 'Outcome relation view';
+$string['relations_grouped'] = 'Grouped';
+$string['relations_matrix'] = 'Matrix';
+$string['relations_searchplaceholder'] = 'Search outcomes, statements, and codes…';
+$string['relations_newversion_short'] = 'New version';
+$string['relations_version_short'] = 'v{$a}';
+$string['relations_weight_short'] = 'weight {$a}';
+$string['relations_matrix_existing'] = '{$a->source} to {$a->target}: {$a->status}, version {$a->version}';
+$string['relations_matrix_empty'] = 'Add a relation from {$a->source} to {$a->target}';
+$string['relations_group_title'] = '{$a->source} → {$a->target}';
+$string['relations_group_subtitle'] = 'Relationship: {$a}';
+$string['relations_count'] = '{$a} relation versions';
+$string['relations_count_one'] = '1 relation version';
+$string['relations_statsline'] = '{$a->active} active relationships · {$a->versions} versions · {$a->review} awaiting review · {$a->draft} draft';
+$string['relations_noresults'] = 'No relations match the current search.';
+$string['relations_aligns_to_short'] = 'relates to';
+$string['relations_matrix_help'] = 'Select an empty cell to prefill a new draft relation. Existing cells open the permitted governed edit or new-version workflow.';
+$string['relations_empty'] = 'No outcome relations have been created.';

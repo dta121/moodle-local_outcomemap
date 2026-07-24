@@ -151,6 +151,48 @@ final class relation_service extends base_service {
         return $DB->get_records_sql($sql);
     }
 
+    /**
+     * Return all relation versions with endpoint framework and latest wording details.
+     *
+     * This read model is intentionally presentation-oriented and capability-aware.
+     * It keeps relation pages and other consumers from reading governed tables
+     * directly or issuing endpoint queries per row.
+     */
+    public static function list_detailed(): array {
+        global $DB;
+        self::require_system('local/outcomemap:viewdefinitions');
+        $sql = "SELECT r.*,
+                       source.code AS sourcecode, source.status AS sourceitemstatus,
+                       target.code AS targetcode, target.status AS targetitemstatus,
+                       sf.id AS sourceframeworkid, sf.code AS sourceframework,
+                       sf.name AS sourceframeworkname, sf.ownertype AS sourceownertype,
+                       sf.ownerid AS sourceownerid,
+                       tf.id AS targetframeworkid, tf.code AS targetframework,
+                       tf.name AS targetframeworkname, tf.ownertype AS targetownertype,
+                       tf.ownerid AS targetownerid,
+                       sv.id AS sourceversionid, sv.version AS sourceversion,
+                       sv.statement AS sourcestatement, sv.status AS sourceversionstatus,
+                       tv.id AS targetversionid, tv.version AS targetversion,
+                       tv.statement AS targetstatement, tv.status AS targetversionstatus
+                  FROM {local_outcomemap_rel} r
+                  JOIN {local_outcomemap_item} source ON source.id = r.sourceitemid
+                  JOIN {local_outcomemap_item} target ON target.id = r.targetitemid
+                  JOIN {local_outcomemap_fw} sf ON sf.id = source.frameworkid
+                  JOIN {local_outcomemap_fw} tf ON tf.id = target.frameworkid
+                  JOIN {local_outcomemap_itemver} sv
+                    ON sv.itemid = source.id
+                   AND sv.version = (SELECT MAX(sv2.version)
+                                       FROM {local_outcomemap_itemver} sv2
+                                      WHERE sv2.itemid = source.id)
+                  JOIN {local_outcomemap_itemver} tv
+                    ON tv.itemid = target.id
+                   AND tv.version = (SELECT MAX(tv2.version)
+                                       FROM {local_outcomemap_itemver} tv2
+                                      WHERE tv2.itemid = target.id)
+              ORDER BY sf.code, source.code, r.type, tf.code, target.code, r.version DESC";
+        return $DB->get_records_sql($sql);
+    }
+
     /** Validate whether a candidate edge would be acyclic. */
     public static function validate_acyclic(int $sourceitemid, int $targetitemid, string $type,
             int $effectivefrom, ?int $effectiveto, int $excludeid = 0): bool {

@@ -3,7 +3,7 @@
 
 use local_outcomemap\form\program_form;
 use local_outcomemap\local\service\program_service;
-use local_outcomemap\local\workflow;
+use local_outcomemap\output\programs_page;
 
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
@@ -29,7 +29,11 @@ if ($action === 'submit' && $id) {
 }
 
 if ($action === 'edit' || $action === 'add') {
-    $form = new program_form($url);
+    $formurl = new moodle_url($url, ['action' => $action]);
+    if ($id) {
+        $formurl->param('id', $id);
+    }
+    $form = new program_form($formurl);
     if ($form->is_cancelled()) {
         redirect($url);
     }
@@ -52,21 +56,6 @@ if ($action === 'edit' || $action === 'add') {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('programs_heading', 'local_outcomemap'));
-echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']), get_string('addprogram', 'local_outcomemap'));
-$table = new html_table();
-$table->head = [get_string('code', 'local_outcomemap'), get_string('name', 'local_outcomemap'),
-    get_string('status', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
-foreach (program_service::list_all() as $record) {
-    $actions = [];
-    if ($record->status === workflow::DRAFT) {
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'edit', 'id' => $record->id]),
-            get_string('edit'));
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'submit', 'id' => $record->id,
-            'sesskey' => sesskey()]), get_string('submitreview', 'local_outcomemap'));
-    }
-    $table->data[] = [s($record->code), format_string($record->name),
-        get_string('status_' . $record->status, 'local_outcomemap'), implode(' | ', $actions)];
-}
-echo html_writer::table($table);
+$page = new programs_page();
+echo $OUTPUT->render_from_template('local_outcomemap/programs_page', $page->export_for_template($OUTPUT));
 echo $OUTPUT->footer();
