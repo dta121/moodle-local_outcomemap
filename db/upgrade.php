@@ -416,7 +416,6 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         $table->add_index('programperiodstatus_ix', XMLDB_INDEX_NOTUNIQUE,
             ['programid', 'periodcode', 'status']);
         $table->add_index('cohortid_ix', XMLDB_INDEX_NOTUNIQUE, ['cohortid']);
-        $table->add_index('policyid_ix', XMLDB_INDEX_NOTUNIQUE, ['policyid']);
         $table->add_index('approvedat_ix', XMLDB_INDEX_NOTUNIQUE, ['approvedat']);
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);

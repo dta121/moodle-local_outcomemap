@@ -603,7 +603,6 @@
       <INDEXES>
         <INDEX NAME="programperiodstatus_ix" UNIQUE="false" FIELDS="programid, periodcode, status"/>
         <INDEX NAME="cohortid_ix" UNIQUE="false" FIELDS="cohortid"/>
-        <INDEX NAME="policyid_ix" UNIQUE="false" FIELDS="policyid"/>
         <INDEX NAME="approvedat_ix" UNIQUE="false" FIELDS="approvedat"/>
       </INDEXES>
     </TABLE>
