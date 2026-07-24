@@ -20,8 +20,9 @@ use local_outcomemap\local\workflow;
  * Creates, verifies, freezes, and versions accreditation snapshots.
  *
  * A draft is a complete immutable capture. Freezing only verifies its row
- * hashes and adds independent reviewer metadata. Corrections always recapture
- * authoritative records into a new version under the same snapshot UUID.
+ * hashes and adds approval or finalization metadata. Corrections always
+ * recapture authoritative records into a new version under the same snapshot
+ * UUID.
  *
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
@@ -183,25 +184,24 @@ final class snapshot_service extends base_service {
     }
 
     /**
-     * Verify and irreversibly freeze a draft as an independent reviewer.
+     * Verify and irreversibly freeze a draft as an authorized finalizer.
+     *
+     * Independent approval requires the approval capability and a different
+     * actor. When disabled, snapshot managers may freeze their own captures.
      *
      * @param int $snapshotid Snapshot ID.
      */
     public static function freeze(int $snapshotid): void {
-        global $DB, $USER;
+        global $DB;
 
-        self::require_system('local/outcomemap:managesnapshots');
-        require_capability('local/outcomemap:approve', \context_system::instance());
-        $actorid = (int) $USER->id;
+        $actorid = self::require_approval_system('local/outcomemap:managesnapshots');
         $transaction = $DB->start_delegated_transaction();
         try {
             $before = $DB->get_record('local_outcomemap_snapshot', ['id' => $snapshotid], '*', MUST_EXIST);
             if ($before->status !== self::STATUS_DRAFT) {
                 throw new validation_exception('snapshotimmutable', 'status', $before->status);
             }
-            if ((int) $before->createdby === $actorid) {
-                throw new validation_exception('snapshotcreatorcannotapprove', 'createdby', $actorid);
-            }
+            workflow::require_approver_separation((int) $before->createdby, $actorid);
             $items = self::load_items($snapshotid);
             audit_lineage_service::verify_snapshot_payload($before, $items);
 
@@ -508,6 +508,8 @@ final class snapshot_service extends base_service {
                 'uuid' => (string) $program->uuid,
                 'code' => (string) $program->code,
                 'name' => (string) $program->name,
+                'programtype' => (string) $program->programtype,
+                'credential' => (string) $program->credential,
                 'status' => (string) $program->status,
                 'periodcode' => $periodcode,
             ],

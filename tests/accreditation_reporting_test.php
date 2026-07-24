@@ -20,6 +20,7 @@ use local_outcomemap\local\service\aggregate_service;
 use local_outcomemap\local\service\calculation_service;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\policy_service;
+use local_outcomemap\local\service\program_service;
 use local_outcomemap\local\service\snapshot_service;
 use local_outcomemap\local\service\suppression_service;
 use local_outcomemap\local\uuid;
@@ -107,7 +108,7 @@ final class accreditation_reporting_test extends \advanced_testcase {
         if (empty($CFG->passwordsaltmain)) {
             $CFG->passwordsaltmain = 'local_outcomemap_phpunit_snapshot_secret';
         }
-        set_config('version', 2026072601, 'local_outcomemap');
+        set_config('version', 2026072603, 'local_outcomemap');
         $now = time();
         $effectivefrom = $now - DAYSECS;
         $course = $this->getDataGenerator()->create_course([
@@ -132,6 +133,8 @@ final class accreditation_reporting_test extends \advanced_testcase {
             'name' => 'M6 reporting program',
             'description' => null,
             'externalid' => null,
+            'programtype' => program_service::TYPE_SPECIALIZATION,
+            'credential' => program_service::CREDENTIAL_CERTIFICATE,
             'status' => workflow::APPROVED,
             'createdby' => null,
             'modifiedby' => null,
@@ -399,12 +402,44 @@ final class accreditation_reporting_test extends \advanced_testcase {
     }
 
     /**
+     * Test an authorized snapshot creator may finalize when independent approval is disabled.
+     */
+    public function test_snapshot_creator_can_freeze_when_independent_approval_disabled(): void {
+        global $USER;
+
+        $this->resetAfterTest(true);
+        set_config('requireapproval', 0, 'local_outcomemap');
+        $this->assertFalse(workflow::requires_independent_approval());
+        $this->setAdminUser();
+        $creatorid = (int) $USER->id;
+        $this->reviewer = $this->create_reviewer();
+        $fixture = $this->create_snapshot_fixture();
+
+        $snapshotid = snapshot_service::create_draft([
+            'programid' => $fixture['programid'],
+            'periodcode' => '2026-T1',
+            'cohortid' => $fixture['cohortid'],
+            'notes' => 'Creator-finalized accreditation baseline',
+        ]);
+        snapshot_service::freeze($snapshotid);
+
+        $snapshot = snapshot_service::get($snapshotid);
+        $this->assertSame(snapshot_service::STATUS_FROZEN, $snapshot->status);
+        $this->assertSame($creatorid, (int) $snapshot->createdby);
+        $this->assertSame($creatorid, (int) $snapshot->approvedby);
+        $this->assertNotNull($snapshot->approvedat);
+        $this->assertNotEmpty($snapshot->manifesthash);
+    }
+
+    /**
      * Test independent freeze, immutable corrections, redaction, hashes, and export reconstruction.
      */
     public function test_snapshot_versions_are_immutable_and_exports_are_reconstructable(): void {
         global $DB;
 
         $this->resetAfterTest(true);
+        unset_config('requireapproval', 'local_outcomemap');
+        $this->assertTrue(workflow::requires_independent_approval());
         $this->setAdminUser();
         $this->reviewer = $this->create_reviewer();
         $fixture = $this->create_snapshot_fixture();
@@ -419,7 +454,7 @@ final class accreditation_reporting_test extends \advanced_testcase {
             snapshot_service::freeze($snapshotid);
             $this->fail('A snapshot creator must not freeze their own capture.');
         } catch (validation_exception $exception) {
-            $this->assertSame('snapshotcreatorcannotapprove', $exception->errorcode);
+            $this->assertSame('creatorcannotapprove', $exception->errorcode);
         }
 
         $this->setUser($this->reviewer);
@@ -434,6 +469,14 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $this->assertNotEmpty($snapshotv1->manifesthash);
 
         $packagev1 = accreditation_export_service::package($snapshotid);
+        $programitems = array_values(array_filter(
+            $packagev1['items'],
+            static fn(array $item): bool => $item['itemtype'] === snapshot_service::ITEM_PROGRAM
+        ));
+        $this->assertCount(1, $programitems);
+        $programpayload = $programitems[0]['payload']['payload'];
+        $this->assertSame(program_service::TYPE_SPECIALIZATION, $programpayload['programtype']);
+        $this->assertSame(program_service::CREDENTIAL_CERTIFICATE, $programpayload['credential']);
         $this->assertSame('local_outcomemap-accreditation-export-v1', $packagev1['schema']);
         $this->assertSame('standard', $packagev1['mode']);
         foreach (['snapshotuuid', 'version', 'policyid', 'pluginversion', 'algoversion',
