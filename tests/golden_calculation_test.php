@@ -45,6 +45,8 @@ use mod_quiz\quiz_settings;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class golden_calculation_test extends \advanced_testcase {
+    use \local_outcomemap\tests\moodle_compat_trait;
+
     /** @var int Governance effective start. */
     private const EFFECTIVEFROM = 1704067200;
 
@@ -291,9 +293,8 @@ final class golden_calculation_test extends \advanced_testcase {
 
         // Questions: exact marks come from manual grading of essay questions.
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
-        $qbank = $this->getDataGenerator()->create_module('qbank', ['course' => $course->id]);
         $category = $generator->create_question_category([
-            'contextid' => \context_module::instance($qbank->cmid)->id,
+            'contextid' => $this->question_bank_contextid($course),
         ]);
         $plan = [
             // Question key => [maxmark, mark, mappings [code => weight]].
@@ -349,8 +350,7 @@ final class golden_calculation_test extends \advanced_testcase {
             $responses[$slotnumber] = ['answer' => 'Response for ' . $key, 'answerformat' => FORMAT_HTML];
         }
         $attemptobj->process_submitted_actions($timenow, false, $responses);
-        $attemptobj->process_submit($timenow + 60, false);
-        $attemptobj->process_grade_submission($timenow + 60);
+        $this->finish_quiz_attempt($attemptobj, $timenow + 60);
 
         // Before manual grading every result must be calculation_pending.
         $summary = calculation_service::recalculate_attempt((int) $attempt->id);

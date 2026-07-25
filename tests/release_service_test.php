@@ -26,6 +26,8 @@ use mod_quiz\quiz_settings;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class release_service_test extends \advanced_testcase {
+    use \local_outcomemap\tests\moodle_compat_trait;
+
     /**
      * Build a resolved release-policy record.
      *
@@ -133,10 +135,9 @@ final class release_service_test extends \advanced_testcase {
             'grade' => 100,
             'sumgrades' => 10,
         ]);
-        $qbank = $this->getDataGenerator()->create_module('qbank', ['course' => $course->id]);
         $questiongenerator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $questiongenerator->create_question_category([
-            'contextid' => \context_module::instance($qbank->cmid)->id,
+            'contextid' => $this->question_bank_contextid($course),
         ]);
         $question = $questiongenerator->create_question('essay', 'editor', [
             'category' => $category->id,
@@ -158,8 +159,7 @@ final class release_service_test extends \advanced_testcase {
             $attemptobj->process_submitted_actions($timenow, false, [
                 1 => ['answer' => 'Essay response', 'answerformat' => FORMAT_HTML],
             ]);
-            $attemptobj->process_submit($timenow + 30, false);
-            $attemptobj->process_grade_submission($timenow + 30);
+            $this->finish_quiz_attempt($attemptobj, $timenow + 30);
             if ($grade) {
                 $attemptobj = quiz_attempt::create($attempt->id);
                 $usage = $attemptobj->get_question_usage();

@@ -255,10 +255,17 @@ class behat_local_outcomemap extends behat_base {
 
         require_once($CFG->libdir . '/testing/generator/lib.php');
         $datagenerator = new testing_data_generator();
-        $qbank = $datagenerator->create_module('qbank', ['course' => $course->id]);
+        // Moodle 5.0 moved shared question banks into mod_qbank; on the declared
+        // 4.5 minimum, question categories live in the course context instead.
+        if (file_exists($CFG->dirroot . '/mod/qbank/version.php')) {
+            $qbank = $datagenerator->create_module('qbank', ['course' => $course->id]);
+            $questionbankcontextid = (int) context_module::instance($qbank->cmid)->id;
+        } else {
+            $questionbankcontextid = (int) context_course::instance($course->id)->id;
+        }
         $questiongenerator = $datagenerator->get_plugin_generator('core_question');
         $category = $questiongenerator->create_question_category([
-            'contextid' => context_module::instance($qbank->cmid)->id,
+            'contextid' => $questionbankcontextid,
         ]);
         $question = $questiongenerator->create_question('essay', 'editor', [
             'category' => $category->id,
@@ -311,8 +318,13 @@ class behat_local_outcomemap extends behat_base {
                 'answerformat' => FORMAT_HTML,
             ],
         ]);
-        $attemptobj->process_submit($now + 30, false);
-        $attemptobj->process_grade_submission($now + 30);
+        // Moodle 5.0 split process_finish() into submission and grading steps.
+        if (method_exists($attemptobj, 'process_submit')) {
+            $attemptobj->process_submit($now + 30, false);
+            $attemptobj->process_grade_submission($now + 30);
+        } else {
+            $attemptobj->process_finish($now + 30, false);
+        }
         $attemptobj = \mod_quiz\quiz_attempt::create($attempt->id);
         $usage = $attemptobj->get_question_usage();
         $usage->manual_grade(1, 'M5_PROTECTED_CORRECTNESS_7f1', 5.0, FORMAT_HTML);

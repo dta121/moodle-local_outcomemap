@@ -39,6 +39,8 @@ use local_outcomemap\local\workflow;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class backup_restore_test extends \advanced_testcase {
+    use \local_outcomemap\tests\moodle_compat_trait;
+
     /**
      * Creates a system manager who can independently approve course mappings.
      *
@@ -306,10 +308,9 @@ final class backup_restore_test extends \advanced_testcase {
             'shortname' => 'OMQBACKUP',
             'fullname' => 'Question mapping backup source',
         ]);
-        $qbank = $this->getDataGenerator()->create_module('qbank', ['course' => $course->id]);
         $questiongenerator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $questiongenerator->create_question_category([
-            'contextid' => \context_module::instance($qbank->cmid)->id,
+            'contextid' => $this->question_bank_contextid($course),
         ]);
         $question = $questiongenerator->create_question('shortanswer', null, ['category' => $category->id]);
         $reviewer = $this->create_reviewer();

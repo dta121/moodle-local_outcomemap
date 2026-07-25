@@ -13,7 +13,7 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->dirroot . '/cohort/lib.php');
 
-use core_reportbuilder\local\helpers\report as report_helper;
+use core_reportbuilder\tests\core_reportbuilder_testcase;
 use core_reportbuilder\local\report\filter;
 use core_reportbuilder\manager;
 use lang_string;
@@ -34,7 +34,7 @@ use local_outcomemap\reportbuilder\local\filters\cohort_membership;
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-final class reportbuilder_datasource_test extends \advanced_testcase {
+final class reportbuilder_datasource_test extends core_reportbuilder_testcase {
     /**
      * Exact default contracts for every Milestone 6 source.
      *
@@ -201,7 +201,7 @@ final class reportbuilder_datasource_test extends \advanced_testcase {
         $this->assertInstanceOf($source, $instance);
         $this->assertSame($expectedcolumns, $instance->get_default_columns());
         $this->assertSame($expectedfilters, $instance->get_default_filters());
-        $this->assertSame(0, report_helper::get_report_row_count((int) $report->get('id')));
+        $this->assertCount(0, $this->get_custom_report_content((int) $report->get('id')));
     }
 
     /**
@@ -222,7 +222,7 @@ final class reportbuilder_datasource_test extends \advanced_testcase {
         $filter = new filter(
             cohort_membership::class,
             'cohortid',
-            new lang_string('cohort'),
+            new lang_string('cohort', 'core_cohort'),
             'outcomemap',
             'u.id'
         );
@@ -236,7 +236,7 @@ final class reportbuilder_datasource_test extends \advanced_testcase {
         $this->assertStringContainsString('.userid = u.id', $select);
         $this->assertCount(2, $params, 'Duplicate and empty cohort IDs must be normalized.');
         $userids = $DB->get_fieldset_sql("SELECT u.id FROM {user} u WHERE {$select} ORDER BY u.id", $params);
-        $this->assertSame([$userone->id, $usertwo->id], array_map('intval', $userids));
+        $this->assertSame([(int) $userone->id, (int) $usertwo->id], array_map('intval', $userids));
 
         [$emptyselect, $emptyparams] = cohort_membership::create($filter)->get_sql_filter([
             $identifier => [],

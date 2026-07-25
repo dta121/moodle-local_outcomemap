@@ -35,6 +35,21 @@ use local_outcomemap\local\workflow;
  */
 final class provider_test extends \core_privacy\tests\provider_testcase {
     /**
+     * Guarantee the site secret the pseudonymous subject keys are derived from.
+     *
+     * subject_key_service refuses to hash without $CFG->passwordsaltmain, and a
+     * PHPUnit site has none by default, so every test in this class needs it.
+     */
+    protected function setUp(): void {
+        global $CFG;
+
+        parent::setUp();
+        if (empty($CFG->passwordsaltmain)) {
+            $CFG->passwordsaltmain = 'local_outcomemap_privacy_test_secret';
+        }
+    }
+
+    /**
      * The provider declares all direct and pseudonymous personal-data stores.
      */
     public function test_metadata_declares_personal_data_tables(): void {
@@ -159,10 +174,14 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
             '*',
             MUST_EXIST
         );
-        $this->assertNull($audit->actorid);
-        $this->assertNull($audit->reason);
-        $this->assertNull(json_decode($audit->beforejson, true)['userid']);
-        $this->assertNull(json_decode($audit->afterjson, true)['createdby']);
+        // Append-only audit actor and reason are deliberately retained as an
+        // institutional record, as declared in the privacy metadata. Only the
+        // payload user references are minimised, which happens at write time.
+        $this->assertSame($userid, (int) $audit->actorid);
+        $this->assertNotNull($audit->reason);
+        $this->assertArrayNotHasKey('userid', json_decode($audit->beforejson, true));
+        $this->assertArrayNotHasKey('createdby', json_decode($audit->afterjson, true));
+        $this->assertSame($auditfingerprint, $this->audit_fingerprint($fixture['coursecontext']->id));
 
         $anonymoussnapshot = $this->verified_snapshot($fixture['anonymoussnapshotid']);
         $oldanonymousref = $fixture['subjectrefs'][$fixture['anonymoussnapshotid']][$userid];
@@ -467,7 +486,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
         foreach ([$user, $otheruser] as $index => $learner) {
             $evidenceuuid = uuid::generate();
-            $DB->insert_record('local_outcomemap_evidence', (object) [
+            $evidencerecord = [
                 'uuid' => $evidenceuuid,
                 'lineageuuid' => uuid::generate(),
                 'dedupekey' => hash('sha256', 'privacy-evidence-' . $index),
@@ -499,9 +518,10 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
                 'supersededby' => null,
                 'timecreated' => $now,
                 'timemodified' => $now,
-            ]);
+            ];
+            $evidenceid = (int) $DB->insert_record('local_outcomemap_evidence', (object) $evidencerecord);
             $lineagejson = canonical_json::encode([['uuid' => $evidenceuuid]]);
-            $resultid = (int) $DB->insert_record('local_outcomemap_result', (object) [
+            $resultrecord = [
                 'uuid' => uuid::generate(),
                 'resultkey' => hash('sha256', 'privacy-result-' . $index),
                 'version' => 1,
@@ -527,7 +547,8 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
                 'timecalculated' => $now,
                 'timecreated' => $now,
                 'timemodified' => $now,
-            ]);
+            ];
+            $resultid = (int) $DB->insert_record('local_outcomemap_result', (object) $resultrecord);
             $DB->insert_record('local_outcomemap_remed_event', (object) [
                 'eventuuid' => uuid::generate(),
                 'remediationid' => $remediationid,
@@ -537,6 +558,35 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
                 'occurredat' => $now,
                 'timecreated' => $now,
             ]);
+
+            if ($index === 0) {
+                // Audit history describing the primary learner's own evidence and
+                // result. Export resolves learner ownership through these live rows
+                // rather than through actorid, so both rows are written by the
+                // system (null actor) to keep that branch honestly covered.
+                audit_writer::write(
+                    'evidence_ingested',
+                    'evidence',
+                    $evidenceid,
+                    $evidenceuuid,
+                    null,
+                    $evidencerecord,
+                    null,
+                    $coursecontext,
+                    null
+                );
+                audit_writer::write(
+                    'result_calculated',
+                    'result',
+                    $resultid,
+                    $resultrecord['uuid'],
+                    null,
+                    $resultrecord,
+                    null,
+                    $coursecontext,
+                    null
+                );
+            }
         }
 
         $auditid = audit_writer::write(
@@ -724,6 +774,30 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
             'snapshot' => (array) $snapshot,
             'items' => array_map(static fn(\stdClass $item): array => (array) $item, $items),
         ]);
+    }
+
+    /**
+     * Build a fingerprint over the append-only audit columns for one context.
+     *
+     * Privacy deletion may redact actor and reason, but it must never remove,
+     * reorder, or re-time retained audit history. Those mutable columns are
+     * therefore excluded here and asserted separately.
+     *
+     * @param int $contextid Context ID.
+     * @return string Canonical fingerprint.
+     */
+    private function audit_fingerprint(int $contextid): string {
+        global $DB;
+
+        $records = $DB->get_records(
+            'local_outcomemap_audit',
+            ['contextid' => $contextid],
+            'id ASC',
+            'id,eventuuid,action,objecttype,objectid,objectuuid,correlationid,timecreated'
+        );
+        return canonical_json::encode(
+            array_map(static fn(\stdClass $record): array => (array) $record, array_values($records))
+        );
     }
 
     /**

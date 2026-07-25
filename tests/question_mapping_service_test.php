@@ -32,6 +32,8 @@ use local_outcomemap\local\workflow;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class question_mapping_service_test extends \advanced_testcase {
+    use \local_outcomemap\tests\moodle_compat_trait;
+
     /** @var int Outcome effective start shared across fixtures. */
     private const EFFECTIVEFROM = 1704067200;
 
@@ -92,10 +94,9 @@ final class question_mapping_service_test extends \advanced_testcase {
      */
     private function create_question(): \stdClass {
         $course = $this->getDataGenerator()->create_course();
-        $qbank = $this->getDataGenerator()->create_module('qbank', ['course' => $course->id]);
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category([
-            'contextid' => \context_module::instance($qbank->cmid)->id,
+            'contextid' => $this->question_bank_contextid($course),
         ]);
         return $generator->create_question('shortanswer', null, ['category' => $category->id]);
     }

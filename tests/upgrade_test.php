@@ -19,6 +19,7 @@ namespace local_outcomemap;
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
+require_once($CFG->libdir . '/upgradelib.php');
 require_once($CFG->dirroot . '/local/outcomemap/db/upgrade.php');
 
 /**
@@ -42,6 +43,32 @@ final class upgrade_test extends \advanced_testcase {
         set_config('version', $oldversion, 'local_outcomemap');
         $this->assertTrue(xmldb_local_outcomemap_upgrade($oldversion));
         $this->assertSame(self::CURRENT_VERSION, (int) get_config('local_outcomemap', 'version'));
+    }
+
+    /**
+     * Rebuilds the plugin schema from install.xml.
+     *
+     * These tests perform schema surgery, which resetAfterTest() cannot undo because
+     * it only restores row data. Without this, an upgrade that fails part way leaves
+     * dropped tables missing and every later test in the run dies during reset.
+     */
+    protected function tearDown(): void {
+        global $CFG, $DB;
+
+        $installfile = $CFG->dirroot . '/local/outcomemap/db/install.xml';
+        $dbman = $DB->get_manager();
+        $file = new \xmldb_file($installfile);
+        if ($file->loadXMLStructure()) {
+            foreach ($file->getStructure()->getTables() as $xmldbtable) {
+                $table = new \xmldb_table($xmldbtable->getName());
+                if ($dbman->table_exists($table)) {
+                    $dbman->drop_table($table);
+                }
+            }
+            $dbman->install_from_xmldb_file($installfile);
+        }
+
+        parent::tearDown();
     }
 
     /**

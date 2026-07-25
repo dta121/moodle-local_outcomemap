@@ -38,6 +38,8 @@ use mod_quiz\quiz_settings;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class student_result_service_test extends \advanced_testcase {
+    use \local_outcomemap\tests\moodle_compat_trait;
+
     /** Governance effective start. */
     private const EFFECTIVEFROM = 1704067200;
 
@@ -260,10 +262,9 @@ final class student_result_service_test extends \advanced_testcase {
         // Create a real essay question, exact approved mapping, completed
         // learner attempt, and manual grade so report lineage comes entirely
         // from the production calculation path.
-        $qbank = $this->getDataGenerator()->create_module('qbank', ['course' => $course->id]);
         $questiongenerator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $questiongenerator->create_question_category([
-            'contextid' => \context_module::instance($qbank->cmid)->id,
+            'contextid' => $this->question_bank_contextid($course),
         ]);
         $question = $questiongenerator->create_question('essay', 'editor', [
             'category' => $category->id,
@@ -298,8 +299,7 @@ final class student_result_service_test extends \advanced_testcase {
                 'answerformat' => FORMAT_HTML,
             ],
         ]);
-        $attemptobj->process_submit($timenow + 60, false);
-        $attemptobj->process_grade_submission($timenow + 60);
+        $this->finish_quiz_attempt($attemptobj, $timenow + 60);
         $attemptobj = quiz_attempt::create($attempt->id);
         $usage = $attemptobj->get_question_usage();
         $usage->manual_grade(1, 'M5_PROTECTED_CORRECTNESS_7f1', 5.0, FORMAT_HTML);
