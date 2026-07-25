@@ -169,16 +169,29 @@ final class question_mappings {
     /**
      * Build a parameterized exact-version mapped-state qbank filter.
      *
+     * Retained for companion compatibility. New callers should use
+     * {@see question_mapping_filters::build()} directly, which additionally
+     * accepts the full set of question-bank contexts for the current view.
+     *
      * @param \context $context Question-bank context authorizing mapping metadata access.
      * @param bool $mapped True for mapped versions, false for unmapped versions.
      * @return array{0:string,1:array} WHERE fragment and named parameters.
      */
     public static function build_mapped_filter_query(\context $context, bool $mapped): array {
-        return question_mapping_service::build_mapped_filter_query($context, $mapped);
+        require_capability('local/outcomemap:viewdefinitions', $context);
+        return question_mapping_filters::build(
+            question_mapping_filters::MAPPED,
+            ['values' => [$mapped ? 1 : 0]],
+            [$context]
+        );
     }
 
     /**
      * Build a parameterized exact-version outcome-code qbank filter.
+     *
+     * Retained for companion compatibility. New callers should use
+     * {@see question_mapping_filters::build()} directly, which additionally
+     * accepts the full set of question-bank contexts for the current view.
      *
      * @param \context $context Question-bank context authorizing mapping metadata access.
      * @param string[] $values Outcome-code or framework.outcome-code fragments.
@@ -186,7 +199,12 @@ final class question_mappings {
      * @return array{0:string,1:array} WHERE fragment and named parameters.
      */
     public static function build_outcome_filter_query(\context $context, array $values, int $jointype): array {
-        return question_mapping_service::build_outcome_filter_query($context, $values, $jointype);
+        require_capability('local/outcomemap:viewdefinitions', $context);
+        return question_mapping_filters::build(
+            question_mapping_filters::OUTCOME,
+            ['values' => $values, 'jointype' => $jointype],
+            [$context]
+        );
     }
 
     /**

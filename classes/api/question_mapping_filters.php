@@ -152,7 +152,7 @@ final class question_mapping_filters {
             return ['', []];
         }
 
-        $jointype = (int) ($filter['jointype'] ?? datafilter::JOINTYPE_ANY);
+        $jointype = self::jointype($filter);
         $fragments = [];
         $params = [];
         $fullcode = $DB->sql_concat('qbomf.code', "'.'", 'qbomi.code');
@@ -187,6 +187,25 @@ final class question_mapping_filters {
         return ['(' . implode($glue, $fragments) . ')', $params];
     }
 
+    /**
+     * Resolve a supported core join type, clamping unknown values to ANY.
+     *
+     * Without this an out-of-range value would fall through to the restrictive
+     * AND glue rather than the documented permissive default.
+     *
+     * @param array $filter Core question-bank filter data.
+     * @return int One of datafilter's supported join types.
+     */
+    private static function jointype(array $filter): int {
+        $jointype = (int) ($filter['jointype'] ?? datafilter::JOINTYPE_ANY);
+        $allowed = [
+            datafilter::JOINTYPE_ANY,
+            datafilter::JOINTYPE_ALL,
+            datafilter::JOINTYPE_NONE,
+        ];
+        return in_array($jointype, $allowed, true) ? $jointype : datafilter::JOINTYPE_ANY;
+    }
+
     /** Build role/status predicates where separate mappings may satisfy each selected value. */
     private static function field_values(array $filter, string $field, array $allowed, string $prefix): array {
         $values = [];
@@ -200,7 +219,7 @@ final class question_mapping_filters {
             return ['', []];
         }
 
-        $jointype = (int) ($filter['jointype'] ?? datafilter::JOINTYPE_ANY);
+        $jointype = self::jointype($filter);
         $fragments = [];
         $params = [];
         foreach (array_values(array_unique($values)) as $index => $value) {
