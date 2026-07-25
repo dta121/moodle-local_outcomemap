@@ -24,6 +24,8 @@
 
 namespace local_outcomemap\local\service;
 
+use local_outcomemap\local\workflow;
+
 /**
  * Builds course coverage projections from bulk-loaded mapping records.
  */
@@ -31,16 +33,23 @@ final class coverage_service extends base_service {
     /**
      * Build a course coverage matrix without per-target queries.
      *
+     * Every outcome the course is responsible for is represented, including
+     * outcomes nothing maps to yet: an uncovered outcome is the finding a
+     * coverage report exists to surface. Rows carry a `covered` flag so callers
+     * can distinguish "no mapping" from "not applicable".
+     *
      * @param int $courseid Moodle course identifier.
      * @return array<int,object> Rows keyed by exact outcome-version ID.
      */
     public static function matrix(int $courseid): array {
+        $rows = self::course_outcome_baseline($courseid);
         $mappings = content_mapping_service::list_for_course($courseid);
-        $rows = [];
         foreach (['sections', 'modules'] as $collection) {
             foreach ($mappings[$collection] as $mapping) {
                 $itemverid = (int) $mapping->itemverid;
                 if (!isset($rows[$itemverid])) {
+                    // Mapped outside the course's own frameworks, or under an
+                    // outcome version that is no longer current. Still reported.
                     $rows[$itemverid] = (object) [
                         'itemverid' => $itemverid,
                         'frameworkcode' => $mapping->frameworkcode,
@@ -49,15 +58,75 @@ final class coverage_service extends base_service {
                         'statement' => $mapping->outcomestatement,
                         'sections' => [],
                         'modules' => [],
+                        'covered' => false,
                     ];
                 }
                 $rows[$itemverid]->{$collection}[] = $mapping;
+                $rows[$itemverid]->covered = true;
             }
         }
         uasort($rows, static function (\stdClass $a, \stdClass $b): int {
             return [$a->frameworkcode, $a->outcomecode, $a->outcomeversion]
                 <=> [$b->frameworkcode, $b->outcomecode, $b->outcomeversion];
         });
+        return $rows;
+    }
+
+    /**
+     * Return the currently effective outcomes the course is responsible for.
+     *
+     * Scope is the approved frameworks owned by the catalog courses this Moodle
+     * course is associated with through an approved, confirmed course instance —
+     * the same association that makes a mapping valid in the first place.
+     *
+     * @param int $courseid Moodle course identifier.
+     * @return array<int,object> Uncovered baseline rows keyed by outcome-version ID.
+     */
+    public static function course_outcome_baseline(int $courseid): array {
+        global $DB;
+
+        $now = time();
+        $records = $DB->get_records_sql(
+            "SELECT v.id AS itemverid, f.code AS frameworkcode, i.code AS outcomecode,
+                    v.version AS outcomeversion, v.statement AS outcomestatement
+               FROM {local_outcomemap_cinst} ci
+               JOIN {local_outcomemap_fw} f
+                 ON f.ownertype = :ownertype AND f.ownerid = ci.courseid
+               JOIN {local_outcomemap_item} i ON i.frameworkid = f.id
+               JOIN {local_outcomemap_itemver} v ON v.itemid = i.id
+              WHERE ci.moodlecourseid = :courseid
+                AND ci.status = :cinststatus
+                AND ci.confirmed = 1
+                AND f.status = :fstatus
+                AND i.status = :istatus
+                AND v.status = :vstatus
+                AND v.effectivefrom <= :at1
+                AND (v.effectiveto IS NULL OR v.effectiveto > :at2)
+           ORDER BY f.code, i.code, v.version",
+            [
+                'ownertype' => framework_service::OWNER_COURSE,
+                'courseid' => $courseid,
+                'cinststatus' => workflow::APPROVED,
+                'fstatus' => workflow::APPROVED,
+                'istatus' => workflow::APPROVED,
+                'vstatus' => workflow::APPROVED,
+                'at1' => $now,
+                'at2' => $now,
+            ]
+        );
+        $rows = [];
+        foreach ($records as $record) {
+            $rows[(int) $record->itemverid] = (object) [
+                'itemverid' => (int) $record->itemverid,
+                'frameworkcode' => $record->frameworkcode,
+                'outcomecode' => $record->outcomecode,
+                'outcomeversion' => (int) $record->outcomeversion,
+                'statement' => $record->outcomestatement,
+                'sections' => [],
+                'modules' => [],
+                'covered' => false,
+            ];
+        }
         return $rows;
     }
 }

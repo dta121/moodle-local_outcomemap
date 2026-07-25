@@ -55,9 +55,11 @@ $table->caption = get_string('coverage_heading', 'local_outcomemap');
 $table->head = [
     get_string('outcomeversion', 'local_outcomemap'),
     get_string('statement', 'local_outcomemap'),
+    get_string('coveragestatus', 'local_outcomemap'),
     get_string('coursesections', 'local_outcomemap'),
     get_string('coursemodules', 'local_outcomemap'),
 ];
+$coveredcount = 0;
 foreach ($matrix as $row) {
     $sections = [];
     foreach ($row->sections as $mapping) {
@@ -73,17 +75,54 @@ foreach ($matrix as $row) {
             . get_string('mappingrole_' . $mapping->role, 'local_outcomemap') . ' ('
             . workflow::status_label($mapping->status) . ')';
     }
-    $table->data[] = [
+    if ($row->covered) {
+        $coveredcount++;
+        $status = html_writer::span(
+            get_string('coverage_covered', 'local_outcomemap'),
+            'badge bg-success text-white'
+        );
+    } else {
+        $status = html_writer::span(
+            get_string('coverage_uncovered', 'local_outcomemap'),
+            'badge bg-warning text-dark'
+        );
+    }
+    $tablerow = new html_table_row([
         s($row->frameworkcode . '.' . $row->outcomecode . ' v' . $row->outcomeversion),
         format_text($row->statement, FORMAT_PLAIN),
+        $status,
         implode(html_writer::empty_tag('br'), $sections),
         implode(html_writer::empty_tag('br'), $modules),
-    ];
+    ]);
+    if (!$row->covered) {
+        $tablerow->attributes['class'] = 'local-outcomemap-uncovered';
+    }
+    $table->data[] = $tablerow;
 }
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('coverage_heading', 'local_outcomemap'));
 if ($matrix) {
+    $total = count($matrix);
+    echo html_writer::div(
+        get_string('coveragesummary', 'local_outcomemap', [
+            'covered' => $coveredcount,
+            'total' => $total,
+            'uncovered' => $total - $coveredcount,
+        ]),
+        'alert ' . ($coveredcount === $total ? 'alert-success' : 'alert-info')
+    );
+    if (has_capability('local/outcomemap:mapcourse', $context)
+            || has_capability('local/outcomemap:mapactivities', $context)) {
+        echo html_writer::div(
+            html_writer::link(
+                new moodle_url('/local/outcomemap/contentmapping.php', ['courseid' => $courseid]),
+                get_string('contentmapping_heading', 'local_outcomemap'),
+                ['class' => 'btn btn-secondary']
+            ),
+            'mb-3'
+        );
+    }
     echo html_writer::div(html_writer::table($table), 'table-responsive');
 } else {
     echo $OUTPUT->notification(

@@ -391,3 +391,15 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
 .lom-matrix-empty { opacity: 0.35; }
 .lom-matrix td:hover .lom-matrix-empty,
 .lom-matrix-empty:focus-visible { opacity: 1; }
+
+/* Content mapping and coverage: highlight targets/outcomes with no mapping. */
+.local-outcomemap-uncovered > td:first-child,
+.local-outcomemap-uncovered > td {
+    background-color: rgba(255, 193, 7, 0.06);
+}
+.local-outcomemap-contentmap td { vertical-align: middle; }
+.local-outcomemap-mapping-item + .local-outcomemap-mapping-item {
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    margin-top: 3px;
+    padding-top: 3px;
+}
