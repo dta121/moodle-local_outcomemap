@@ -351,14 +351,20 @@ $string['mappingunderreview'] = 'This mapping is under review and cannot be chan
 $string['remediationtargetinvalid'] = 'Select exactly one valid internal target or external URL.';
 
 $string['nav_settings'] = 'Settings';
-$string['autocopyquestionmappings'] = 'Copy question mappings to new versions';
-$string['autocopyquestionmappings_desc'] = 'When a new question version is created, copy the approved outcome mappings of the immediately preceding version onto the new version as drafts. Copied drafts must be reviewed and approved before they generate attainment evidence.';
-$string['autocopyquestionmappings_desc_finalization'] = 'When a new question version is created, copy the finalized outcome mappings of the immediately preceding version onto the new version as drafts. Copied drafts must be explicitly finalized before they generate attainment evidence.';
+$string['autocopyquestionmappings'] = 'Automatically copy question mappings to new versions (legacy opt-in)';
+$string['autocopyquestionmappings_desc'] = 'Optional compatibility behavior. When enabled, creation of a new question version immediately copies eligible approved mappings as drafts. Leave disabled to use the recommended explicit preview and copy action in the question bank. Copied drafts still require review and approval.';
+$string['autocopyquestionmappings_desc_finalization'] = 'Optional compatibility behavior. When enabled, creation of a new question version immediately copies eligible finalized mappings as drafts. Leave disabled to use the recommended explicit preview and copy action in the question bank. Copied drafts must still be explicitly finalized.';
 $string['questionmapping'] = 'Question mapping';
 $string['questionversionmismatch'] = 'The question and question-version identifiers do not match the Moodle question bank.';
 $string['assessedweightrequired'] = 'An assesses mapping requires an explicit positive weight. Weights are never inferred.';
 $string['weightnotallowedforrole'] = 'Only assesses mappings carry an evidence weight; the "{$a->detail}" role must not have one.';
 $string['assessedweighttotalinvalid'] = 'Approved assessed weights for a question version must total exactly 1.0000000000; the resulting total is {$a->detail}.';
+$string['bulkmappingselectionrequired'] = 'Select at least one draft mapping for this bulk operation.';
+$string['bulkmappingselectioninvalid'] = 'Mapping ID {$a} is not a mapping on one of the selected exact question versions.';
+$string['bulkonlydrafts'] = 'Mapping ID {$a} is no longer a draft and cannot be changed by this operation.';
+$string['bulkpreviewinvalid'] = 'The bulk operation has validation errors and was not committed: {$a->detail}';
+$string['bulkpreviewstale'] = 'The selected questions or mappings changed after the preview. Preview the operation again before committing.';
+$string['bulklocktimeout'] = 'Another mapping operation is updating question ID {$a->detail}. Wait and preview this bulk operation again.';
 
 $string['taskreconcile'] = 'Reconcile outcome evidence and stale results';
 $string['invalidpolicyconfig'] = 'The policy configuration field {$a->field} is invalid: {$a->detail}';

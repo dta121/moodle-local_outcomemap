@@ -303,6 +303,8 @@
         <FIELD NAME="version" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="questionversionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="sourceqmapid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="sourcequestionversionid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="itemverid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="role" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="weight" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="false" SEQUENCE="false"/>
@@ -319,11 +321,13 @@
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="itemver_fk" TYPE="foreign" FIELDS="itemverid" REFTABLE="local_outcomemap_itemver" REFFIELDS="id"/>
+        <KEY NAME="sourceqmap_fk" TYPE="foreign" FIELDS="sourceqmapid" REFTABLE="local_outcomemap_qmap" REFFIELDS="id"/>
         <KEY NAME="mappingversion_uq" TYPE="unique" FIELDS="mappinguuid, version"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="qverstatus_ix" UNIQUE="false" FIELDS="questionversionid, status"/>
         <INDEX NAME="questionstatus_ix" UNIQUE="false" FIELDS="questionid, status"/>
+        <INDEX NAME="sourceqver_ix" UNIQUE="false" FIELDS="sourcequestionversionid"/>
         <INDEX NAME="itemverrolestatus_ix" UNIQUE="false" FIELDS="itemverid, role, status"/>
         <INDEX NAME="effectivefrom_ix" UNIQUE="false" FIELDS="effectivefrom"/>
         <INDEX NAME="effectiveto_ix" UNIQUE="false" FIELDS="effectiveto"/>

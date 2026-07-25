@@ -27,6 +27,125 @@ use local_outcomemap\local\validation_exception;
 final class question_mappings {
     public const API_VERSION = '1.1';
 
+    public const BULK_INSPECT = 'inspect';
+    public const BULK_ADD = 'add';
+    public const BULK_CHANGE_ROLE = 'change_role';
+    public const BULK_DELETE_DRAFTS = 'delete_drafts';
+    public const BULK_SUBMIT_DRAFTS = 'submit_drafts';
+
+    /**
+     * Preview a bulk operation against selected core question IDs.
+     *
+     * @param int[] $questionids Untrusted selected core question IDs.
+     * @param array $operation Public operation data using stable UUIDs.
+     * @return \stdClass Structured, capability-filtered validation preview.
+     */
+    public static function preview_bulk(array $questionids, array $operation): \stdClass {
+        $publicoperation = self::normalize_bulk_operation($operation);
+        $serviceoperation = $publicoperation;
+        if ($publicoperation['action'] === self::BULK_ADD) {
+            $serviceoperation['itemverid'] = self::resolve_outcome_version(
+                (string) $publicoperation['outcomeversionuuid']
+            );
+        }
+        $preview = question_mapping_service::preview_bulk($questionids, $serviceoperation);
+        $preview->operation = $publicoperation;
+        unset(
+            $preview->actorid,
+            $preview->reason,
+            $preview->_changes,
+            $preview->_assessedquestionversions
+        );
+        foreach ($preview->questions as $index => $question) {
+            $question = clone $question;
+            $context = \context::instance_by_id((int) $question->contextid);
+            $question->name = format_string($question->name, true, ['context' => $context]);
+            unset($question->createdby, $question->contextid);
+            $preview->questions[$index] = $question;
+        }
+        return $preview;
+    }
+
+    /**
+     * Atomically commit a bulk operation after an explicit preview.
+     *
+     * The service re-resolves exact question versions, repeats every capability
+     * and validation check, and rejects stale preview tokens.
+     *
+     * @param int[] $questionids Untrusted selected core question IDs.
+     * @param array $operation Public operation data returned with the preview.
+     * @param string $previewtoken Preview token.
+     * @return \stdClass Commit summary.
+     */
+    public static function commit_bulk(
+        array $questionids,
+        array $operation,
+        string $previewtoken
+    ): \stdClass {
+        $publicoperation = self::normalize_bulk_operation($operation);
+        if ($publicoperation['action'] === self::BULK_INSPECT) {
+            throw new validation_exception('invalidfield', 'operation', self::BULK_INSPECT);
+        }
+        $serviceoperation = $publicoperation;
+        if ($publicoperation['action'] === self::BULK_ADD) {
+            $serviceoperation['itemverid'] = self::resolve_outcome_version(
+                (string) $publicoperation['outcomeversionuuid']
+            );
+        }
+        return question_mapping_service::commit_bulk(
+            $questionids,
+            $serviceoperation,
+            $previewtoken
+        );
+    }
+
+    /** Normalize the public request so preview and commit hash identical data. */
+    private static function normalize_bulk_operation(array $operation): array {
+        $action = (string) ($operation['action'] ?? '');
+        $normalized = ['action' => $action];
+        if ($action === self::BULK_ADD || $action === self::BULK_CHANGE_ROLE) {
+            $normalized['role'] = (string) ($operation['role'] ?? '');
+        }
+        if ($action === self::BULK_ADD) {
+            $normalized['outcomeversionuuid'] = uuid::normalize(
+                (string) ($operation['outcomeversionuuid'] ?? '')
+            );
+            $normalized['effectivefrom'] = isset($operation['effectivefrom'])
+                ? (int) $operation['effectivefrom']
+                : time();
+        }
+        if (in_array($action, [
+            self::BULK_CHANGE_ROLE,
+            self::BULK_DELETE_DRAFTS,
+            self::BULK_SUBMIT_DRAFTS,
+        ], true)) {
+            $mappingids = array_values(array_unique(array_filter(array_map(
+                'intval',
+                (array) ($operation['mappingids'] ?? [])
+            ))));
+            sort($mappingids);
+            $normalized['mappingids'] = $mappingids;
+        }
+        $weights = [];
+        foreach ((array) ($operation['weights'] ?? []) as $id => $weight) {
+            $id = (int) $id;
+            if ($id > 0 && trim((string) $weight) !== '') {
+                $weights[$id] = trim((string) $weight);
+            }
+        }
+        ksort($weights);
+        if ($weights) {
+            $normalized['weights'] = $weights;
+        }
+        foreach (['notes', 'reason'] as $field) {
+            $value = trim((string) ($operation[$field] ?? ''));
+            if ($value !== '') {
+                $normalized[$field] = $value;
+            }
+        }
+        return $normalized;
+    }
+
     /**
      * Bulk-load mappings for a page of question versions.
      *
@@ -110,7 +229,7 @@ final class question_mappings {
      *
      * @param int $mappingid Draft mapping ID.
      * @param array $data Changed fields: outcomeversionuuid, role, weight, notes,
-     *     effectivefrom, effectiveto.
+     *     effectivefrom, effectiveto, and optional audit reason.
      * @return void
      */
     public static function update_draft(int $mappingid, array $data): void {
@@ -167,6 +286,23 @@ final class question_mappings {
      */
     public static function validate_assessed_weights(int $questionversionid, ?int $effectiveat = null): \stdClass {
         return question_mapping_service::validate_assessed_weights($questionversionid, $effectiveat);
+    }
+
+    /**
+     * Preview eligible mappings from the immediately preceding question version.
+     *
+     * @param int $targetquestionversionid Target exact question-version ID.
+     * @param int|null $sourcequestionversionid Optional explicit earlier source.
+     * @return \stdClass Companion-safe eligibility and provenance summary.
+     */
+    public static function preview_copy_to_version(
+        int $targetquestionversionid,
+        ?int $sourcequestionversionid = null
+    ): \stdClass {
+        return question_mapping_service::preview_copy_to_version(
+            $targetquestionversionid,
+            $sourcequestionversionid
+        );
     }
 
     /**

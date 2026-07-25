@@ -81,6 +81,51 @@ final class outcome_search {
         return $results;
     }
 
+    /**
+     * Require one exact outcome version to be visible and effective in a context.
+     *
+     * This repeats the same owner scoping as {@see search()} for mutation APIs
+     * that receive a posted stable UUID rather than trusting form options.
+     *
+     * @param \context $context Authoritative question context.
+     * @param string $versionuuid Exact outcome-version UUID.
+     * @param int $effectiveat Proposed mapping effective timestamp.
+     * @return void
+     */
+    public static function require_visible_version(
+        \context $context,
+        string $versionuuid,
+        int $effectiveat
+    ): void {
+        global $DB;
+        require_capability('local/outcomemap:viewdefinitions', $context);
+        $params = [
+            'versionuuid' => $versionuuid,
+            'approvedfw' => workflow::APPROVED,
+            'approveditem' => workflow::APPROVED,
+            'approvedversion' => workflow::APPROVED,
+            'effectiveat1' => $effectiveat,
+            'effectiveat2' => $effectiveat,
+        ];
+        $where = [
+            'v.uuid = :versionuuid',
+            'f.status = :approvedfw',
+            'i.status = :approveditem',
+            'v.status = :approvedversion',
+            'v.effectivefrom <= :effectiveat1',
+            '(v.effectiveto IS NULL OR v.effectiveto > :effectiveat2)',
+        ];
+        self::add_context_scope($context, $effectiveat, $where, $params);
+        $sql = "SELECT v.id
+                  FROM {local_outcomemap_itemver} v
+                  JOIN {local_outcomemap_item} i ON i.id = v.itemid
+                  JOIN {local_outcomemap_fw} f ON f.id = i.frameworkid
+                 WHERE " . implode(' AND ', $where);
+        if (!$DB->record_exists_sql($sql, $params)) {
+            throw new validation_exception('recordnotfound', 'outcome_version', $versionuuid);
+        }
+    }
+
     /** Add owner scoping for non-system contexts. */
     private static function add_context_scope(\context $context, int $effectiveat, array &$where, array &$params): void {
         global $DB;

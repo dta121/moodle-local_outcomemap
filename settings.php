@@ -62,7 +62,7 @@ if ($hassiteconfig) {
                 : 'autocopyquestionmappings_desc_finalization',
             'local_outcomemap'
         ),
-        1
+        0
     ));
     $ADMIN->add('local_outcomemap', $settings);
 }

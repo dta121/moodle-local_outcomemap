@@ -580,5 +580,37 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026072701, 'local', 'outcomemap');
     }
 
+    if ($oldversion < 2026072702) {
+        $table = new xmldb_table('local_outcomemap_qmap');
+
+        $field = new xmldb_field('sourceqmapid', XMLDB_TYPE_INTEGER, '10', null, null, null,
+            null, 'questionid');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('sourcequestionversionid', XMLDB_TYPE_INTEGER, '10', null, null, null,
+            null, 'sourceqmapid');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // The foreign key creates its own index on sourceqmapid; a separate
+        // sourceqmapid index would collide with it in XMLDB.
+        $key = new xmldb_key('sourceqmap_fk', XMLDB_KEY_FOREIGN,
+            ['sourceqmapid'], 'local_outcomemap_qmap', ['id']);
+        $keyindex = new xmldb_index('sourceqmap_fk', XMLDB_INDEX_NOTUNIQUE, ['sourceqmapid']);
+        if (!$dbman->index_exists($table, $keyindex) && !$dbman->find_key_name($table, $key)) {
+            $dbman->add_key($table, $key);
+        }
+
+        $index = new xmldb_index('sourceqver_ix', XMLDB_INDEX_NOTUNIQUE, ['sourcequestionversionid']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        upgrade_plugin_savepoint(true, 2026072702, 'local', 'outcomemap');
+    }
+
     return true;
 }

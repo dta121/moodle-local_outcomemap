@@ -77,7 +77,7 @@ final class observer {
      */
     public static function question_created(\core\event\question_created $event): void {
         global $DB;
-        if (get_config('local_outcomemap', 'autocopyquestionmappings') === '0') {
+        if (get_config('local_outcomemap', 'autocopyquestionmappings') !== '1') {
             return;
         }
         $version = $DB->get_record('question_versions', ['questionid' => $event->objectid]);

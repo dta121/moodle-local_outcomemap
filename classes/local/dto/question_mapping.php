@@ -30,6 +30,16 @@ final class question_mapping implements \JsonSerializable {
     public readonly int $questionversionid;
     /** @var int Core question ID recorded for provenance. */
     public readonly int $questionid;
+    /** @var int|null Source mapping record ID when copied from an earlier question version. */
+    public readonly ?int $sourceqmapid;
+    /** @var int|null Source core question-version ID when copied. */
+    public readonly ?int $sourcequestionversionid;
+    /** @var string|null Stable source mapping UUID when copied. */
+    public readonly ?string $sourcemappinguuid;
+    /** @var int|null Source mapping version number when copied. */
+    public readonly ?int $sourcemappingversion;
+    /** @var int|null Human-facing source question version number when copied. */
+    public readonly ?int $sourcequestionversion;
     /** @var string Stable outcome UUID. */
     public readonly string $outcomeuuid;
     /** @var string Outcome code. */
@@ -70,6 +80,19 @@ final class question_mapping implements \JsonSerializable {
         $this->mappingversion = (int) $record->version;
         $this->questionversionid = (int) $record->questionversionid;
         $this->questionid = (int) $record->questionid;
+        $this->sourceqmapid = empty($record->sourceqmapid) ? null : (int) $record->sourceqmapid;
+        $this->sourcequestionversionid = empty($record->sourcequestionversionid)
+            ? null
+            : (int) $record->sourcequestionversionid;
+        $this->sourcemappinguuid = empty($record->sourcemappinguuid)
+            ? null
+            : (string) $record->sourcemappinguuid;
+        $this->sourcemappingversion = empty($record->sourcemappingversion)
+            ? null
+            : (int) $record->sourcemappingversion;
+        $this->sourcequestionversion = empty($record->sourcequestionversion)
+            ? null
+            : (int) $record->sourcequestionversion;
         $this->outcomeuuid = $record->outcomeuuid;
         $this->outcomecode = $record->outcomecode;
         $this->outcomeversionuuid = $record->outcomeversionuuid;

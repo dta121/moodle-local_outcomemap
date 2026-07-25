@@ -66,8 +66,10 @@ final class question_mapping_service_test extends \advanced_testcase {
             'ownertype' => framework_service::OWNER_INSTITUTION,
         ]);
         framework_service::submit_for_review($frameworkid);
-        $this->setUser($reviewer);
-        framework_service::approve($frameworkid);
+        if (workflow::requires_independent_approval()) {
+            $this->setUser($reviewer);
+            framework_service::approve($frameworkid);
+        }
         $itemverids = [];
         foreach ($codes as $code) {
             $this->setAdminUser();
@@ -79,8 +81,10 @@ final class question_mapping_service_test extends \advanced_testcase {
             ]);
             $itemverid = (int) $DB->get_field('local_outcomemap_itemver', 'id', ['itemid' => $itemid], MUST_EXIST);
             outcome_service::submit_for_review($itemverid);
-            $this->setUser($reviewer);
-            outcome_service::approve($itemverid);
+            if (workflow::requires_independent_approval()) {
+                $this->setUser($reviewer);
+                outcome_service::approve($itemverid);
+            }
             $itemverids[$code] = $itemverid;
         }
         $this->setAdminUser();
@@ -88,7 +92,7 @@ final class question_mapping_service_test extends \advanced_testcase {
     }
 
     /**
-     * Creates a question inside a question-bank module context.
+     * Creates a question in a course-context question bank category.
      *
      * @return \stdClass Question data including versionid.
      */
@@ -316,6 +320,12 @@ final class question_mapping_service_test extends \advanced_testcase {
             'questionversionid' => $newversion->versionid,
         ]));
 
+        $preview = question_mapping_service::preview_copy_to_version((int) $newversion->versionid);
+        $this->assertSame((int) $question->versionid, $preview->sourcequestionversionid);
+        $this->assertSame(1, $preview->sourceversion);
+        $this->assertSame(2, $preview->eligiblecount);
+        $this->assertCount(2, $preview->mappings);
+
         $newids = question_mapping_service::copy_to_version((int) $newversion->versionid);
         $this->assertCount(2, $newids);
         $copies = $DB->get_records('local_outcomemap_qmap', ['questionversionid' => $newversion->versionid]);
@@ -326,12 +336,35 @@ final class question_mapping_service_test extends \advanced_testcase {
             $this->assertFalse($DB->record_exists_select('local_outcomemap_qmap',
                 'mappinguuid = :uuid AND id <> :id', ['uuid' => $copy->mappinguuid, 'id' => $copy->id]));
         }
+        $dtos = question_mappings::get_for_question_versions([(int) $newversion->versionid]);
+        $copiedto = $dtos[(int) $newversion->versionid][0];
+        $this->assertSame((int) $question->versionid, $copiedto->sourcequestionversionid);
+        $this->assertSame(1, $copiedto->sourcequestionversion);
+        $this->assertNotNull($copiedto->sourcemappinguuid);
+        $this->assertSame(1, $copiedto->sourcemappingversion);
+
+        $afterpreview = question_mappings::preview_copy_to_version((int) $newversion->versionid);
+        $this->assertSame(0, $afterpreview->eligiblecount);
+        $this->assertSame(2, $afterpreview->duplicatecount);
+
         // Source mappings stay approved on the old version for historical attempts.
         $this->assertSame(workflow::APPROVED,
             $DB->get_field('local_outcomemap_qmap', 'status', ['id' => $assessed]));
 
         // The copy is idempotent.
         $this->assertSame([], question_mapping_service::copy_to_version((int) $newversion->versionid));
+
+        // An explicit source must still be the immediately preceding version.
+        $thirdversion = $generator->update_question(clone $newversion, null, ['name' => 'Third version']);
+        try {
+            question_mapping_service::preview_copy_to_version(
+                (int) $thirdversion->versionid,
+                (int) $question->versionid
+            );
+            $this->fail('A non-immediate source version must be rejected.');
+        } catch (validation_exception $e) {
+            $this->assertSame('questionversionmismatch', $e->errorcode);
+        }
 
         // Automatic copy through the question_created observer.
         set_config('autocopyquestionmappings', 1, 'local_outcomemap');
@@ -450,6 +483,267 @@ final class question_mapping_service_test extends \advanced_testcase {
         question_mapping_service::submit_for_review($first);
         $report = question_mapping_service::validate_assessed_weights((int) $question->versionid);
         $this->assertSame('1.0000000000', $report->combinedtotal);
+    }
+
+    /**
+     * Tests bulk preview, explicit weights, stale protection, and every mutation.
+     */
+    public function test_bulk_preview_and_atomic_operations(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        set_config('requireapproval', 1, 'local_outcomemap');
+        $this->setAdminUser();
+        $reviewer = $this->create_reviewer();
+        $itemverids = $this->create_outcomes($reviewer, ['BULK1']);
+        $outcomeuuid = (string) $DB->get_field('local_outcomemap_itemver', 'uuid', [
+            'id' => $itemverids['BULK1'],
+        ], MUST_EXIST);
+        $firstquestion = $this->create_question();
+        $secondquestion = $this->create_question();
+        $questionids = [(int) $firstquestion->id, (int) $secondquestion->id];
+
+        $invalid = question_mappings::preview_bulk($questionids, [
+            'action' => question_mappings::BULK_ADD,
+            'outcomeversionuuid' => $outcomeuuid,
+            'role' => 'assesses',
+            'weights' => [(int) $firstquestion->id => '1.0'],
+        ]);
+        $this->assertFalse($invalid->valid);
+        $this->assertNotEmpty($invalid->questions[1]->errors);
+        $this->assertSame(0, $DB->count_records('local_outcomemap_qmap'));
+
+        $addoperation = [
+            'action' => question_mappings::BULK_ADD,
+            'outcomeversionuuid' => $outcomeuuid,
+            'role' => 'assesses',
+            'weights' => [
+                (int) $firstquestion->id => '1.0000000000',
+                (int) $secondquestion->id => '1',
+            ],
+        ];
+        $addpreview = question_mappings::preview_bulk($questionids, $addoperation);
+        $this->assertTrue($addpreview->valid);
+        $addresult = question_mappings::commit_bulk(
+            $questionids,
+            $addpreview->operation,
+            $addpreview->previewtoken
+        );
+        $this->assertSame(2, $addresult->affected);
+        $mappings = array_values($DB->get_records('local_outcomemap_qmap', [], 'questionid ASC'));
+        $this->assertCount(2, $mappings);
+        $this->assertSame('1.0000000000', $mappings[0]->weight);
+        $this->assertSame('1.0000000000', $mappings[1]->weight);
+
+        $mappingids = array_map(static fn(\stdClass $mapping): int => (int) $mapping->id, $mappings);
+        $roleoperation = [
+            'action' => question_mappings::BULK_CHANGE_ROLE,
+            'mappingids' => $mappingids,
+            'role' => 'teaches',
+        ];
+        $stalepreview = question_mappings::preview_bulk($questionids, $roleoperation);
+        $this->assertTrue($stalepreview->valid);
+        question_mappings::update_draft($mappingids[0], ['notes' => 'Changed after preview']);
+        try {
+            question_mappings::commit_bulk(
+                $questionids,
+                $stalepreview->operation,
+                $stalepreview->previewtoken
+            );
+            $this->fail('A stale bulk preview must not be committed.');
+        } catch (validation_exception $e) {
+            $this->assertSame('bulkpreviewstale', $e->errorcode);
+        }
+        $this->assertSame('assesses', $DB->get_field('local_outcomemap_qmap', 'role', [
+            'id' => $mappingids[1],
+        ]));
+
+        $rolepreview = question_mappings::preview_bulk($questionids, $roleoperation);
+        question_mappings::commit_bulk($questionids, $rolepreview->operation, $rolepreview->previewtoken);
+        foreach ($mappingids as $mappingid) {
+            $this->assertSame('teaches', $DB->get_field('local_outcomemap_qmap', 'role', ['id' => $mappingid]));
+            $this->assertNull($DB->get_field('local_outcomemap_qmap', 'weight', ['id' => $mappingid]));
+        }
+
+        $deletepreview = question_mappings::preview_bulk($questionids, [
+            'action' => question_mappings::BULK_DELETE_DRAFTS,
+            'mappingids' => [$mappingids[0]],
+        ]);
+        $this->assertTrue($deletepreview->valid);
+        question_mappings::commit_bulk($questionids, $deletepreview->operation, $deletepreview->previewtoken);
+        $this->assertFalse($DB->record_exists('local_outcomemap_qmap', ['id' => $mappingids[0]]));
+
+        $submitpreview = question_mappings::preview_bulk($questionids, [
+            'action' => question_mappings::BULK_SUBMIT_DRAFTS,
+            'mappingids' => [$mappingids[1]],
+            'reason' => 'Bulk review submission.',
+        ]);
+        $this->assertTrue($submitpreview->valid);
+        question_mappings::commit_bulk($questionids, $submitpreview->operation, $submitpreview->previewtoken);
+        $this->assertSame(workflow::NEEDS_REVIEW, $DB->get_field('local_outcomemap_qmap', 'status', [
+            'id' => $mappingids[1],
+        ]));
+    }
+
+    /**
+     * Tests approval-disabled bulk finalization across future effective segments.
+     */
+    public function test_bulk_finalization_validates_future_effective_segment(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        set_config('requireapproval', 0, 'local_outcomemap');
+        $this->setAdminUser();
+        $reviewer = $this->create_reviewer();
+        $itemverids = $this->create_outcomes($reviewer, ['BULKFUTURE']);
+        $outcomeuuid = (string) $DB->get_field('local_outcomemap_itemver', 'uuid', [
+            'id' => $itemverids['BULKFUTURE'],
+        ], MUST_EXIST);
+        $question = $this->create_question();
+        $effectivefrom = time() + DAYSECS;
+
+        $addpreview = question_mappings::preview_bulk([(int) $question->id], [
+            'action' => question_mappings::BULK_ADD,
+            'outcomeversionuuid' => $outcomeuuid,
+            'role' => 'assesses',
+            'weights' => [(int) $question->id => '1'],
+            'effectivefrom' => $effectivefrom,
+        ]);
+        $this->assertTrue($addpreview->valid);
+        question_mappings::commit_bulk(
+            [(int) $question->id],
+            $addpreview->operation,
+            $addpreview->previewtoken
+        );
+        $mappingid = (int) $DB->get_field('local_outcomemap_qmap', 'id', [
+            'questionversionid' => $question->versionid,
+        ], MUST_EXIST);
+
+        $submitpreview = question_mappings::preview_bulk([(int) $question->id], [
+            'action' => question_mappings::BULK_SUBMIT_DRAFTS,
+            'mappingids' => [$mappingid],
+        ]);
+        $this->assertTrue($submitpreview->valid);
+        question_mappings::commit_bulk(
+            [(int) $question->id],
+            $submitpreview->operation,
+            $submitpreview->previewtoken
+        );
+        $this->assertSame(workflow::APPROVED, $DB->get_field('local_outcomemap_qmap', 'status', [
+            'id' => $mappingid,
+        ]));
+    }
+
+    /**
+     * Tests mutation APIs repeat local and Moodle question capability checks.
+     */
+    public function test_public_mutations_denied_without_mapping_capabilities(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        set_config('autocopyquestionmappings', 0, 'local_outcomemap');
+        $this->setAdminUser();
+        $reviewer = $this->create_reviewer();
+        $itemverids = $this->create_outcomes($reviewer, ['DENIED']);
+        $outcomeuuid = (string) $DB->get_field('local_outcomemap_itemver', 'uuid', [
+            'id' => $itemverids['DENIED'],
+        ], MUST_EXIST);
+        $question = $this->create_question();
+        $updatedraft = question_mappings::create_draft(
+            (int) $question->versionid,
+            $outcomeuuid,
+            'alignment_only'
+        );
+        $deletedraft = question_mappings::create_draft(
+            (int) $question->versionid,
+            $outcomeuuid,
+            'teaches'
+        );
+        $submitdraft = question_mappings::create_draft(
+            (int) $question->versionid,
+            $outcomeuuid,
+            'practices'
+        );
+        $bulkoperation = [
+            'action' => question_mappings::BULK_ADD,
+            'outcomeversionuuid' => $outcomeuuid,
+            'role' => 'assesses',
+            'weights' => [(int) $question->id => '1.0000000000'],
+        ];
+        $bulkpreview = question_mappings::preview_bulk([(int) $question->id], $bulkoperation);
+        $questiongenerator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $target = $questiongenerator->update_question(clone $question, null, ['name' => 'Denied copy target']);
+        $context = \local_outcomemap\api\context_resolver::for_question_version((int) $question->versionid);
+
+        $coreonly = $this->getDataGenerator()->create_user();
+        $coreonlyrole = create_role('Core question editor only', 'corequestiononly', '');
+        assign_capability('moodle/question:editall', CAP_ALLOW, $coreonlyrole, $context->id, true);
+        assign_capability('moodle/question:viewall', CAP_ALLOW, $coreonlyrole, $context->id, true);
+        role_assign($coreonlyrole, $coreonly->id, $context->id);
+
+        $localonly = $this->getDataGenerator()->create_user();
+        $localonlyrole = create_role('Outcome mapper only', 'outcomemaponly', '');
+        assign_capability('local/outcomemap:mapquestions', CAP_ALLOW, $localonlyrole, $context->id, true);
+        assign_capability('local/outcomemap:viewdefinitions', CAP_ALLOW, $localonlyrole, $context->id, true);
+        role_assign($localonlyrole, $localonly->id, $context->id);
+
+        $this->setUser($coreonly);
+        $this->assertTrue(has_capability('moodle/question:editall', $context));
+        $this->assertFalse(has_capability('local/outcomemap:mapquestions', $context));
+        $this->setUser($localonly);
+        $this->assertTrue(has_capability('local/outcomemap:mapquestions', $context));
+        $this->assertFalse(question_has_capability_on((int) $question->id, 'edit'));
+
+        $operations = [
+            'create' => static function () use ($question, $outcomeuuid): void {
+                question_mappings::create_draft(
+                    (int) $question->versionid,
+                    $outcomeuuid,
+                    'assesses',
+                    '1.0000000000'
+                );
+            },
+            'update' => static function () use ($updatedraft): void {
+                question_mappings::update_draft($updatedraft, ['notes' => 'Unauthorized update']);
+            },
+            'delete' => static function () use ($deletedraft): void {
+                question_mappings::delete_draft($deletedraft);
+            },
+            'submit' => static function () use ($submitdraft): void {
+                question_mappings::submit_for_review($submitdraft);
+            },
+            'bulk preview' => static function () use ($question, $bulkoperation): void {
+                question_mappings::preview_bulk([(int) $question->id], $bulkoperation);
+            },
+            'bulk commit' => static function () use ($question, $bulkpreview): void {
+                question_mappings::commit_bulk(
+                    [(int) $question->id],
+                    $bulkpreview->operation,
+                    $bulkpreview->previewtoken
+                );
+            },
+            'copy preview' => static function () use ($target): void {
+                question_mappings::preview_copy_to_version((int) $target->versionid);
+            },
+            'copy commit' => static function () use ($target): void {
+                question_mappings::copy_to_version((int) $target->versionid);
+            },
+        ];
+        $assertdenied = function (\stdClass $user, string $boundary) use ($operations): void {
+            $this->setUser($user);
+            foreach ($operations as $operationname => $operation) {
+                try {
+                    $operation();
+                    $this->fail($boundary . ' did not deny operation: ' . $operationname);
+                } catch (\required_capability_exception $e) {
+                    $this->assertNotEmpty($e->getMessage());
+                }
+            }
+        };
+
+        $assertdenied($coreonly, 'Missing local/outcomemap:mapquestions');
+        $assertdenied($localonly, 'Missing Moodle question edit capability');
+        $this->assertSame(3, $DB->count_records('local_outcomemap_qmap'));
+        $this->assertSame(0, $DB->count_records('local_outcomemap_qmap', [
+            'questionversionid' => $target->versionid,
+        ]));
     }
 
     /**
