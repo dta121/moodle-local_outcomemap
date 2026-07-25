@@ -16,8 +16,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$ADMIN->add('localplugins', new admin_category('local_outcomemap',
-    get_string('pluginname', 'local_outcomemap')));
+// Outcome mapping spans programs, courses, frameworks, and accreditation
+// reporting, so it sits alongside Competencies in the General section rather
+// than buried under Local plugins. The third argument inserts the category
+// immediately before Competencies, which core registers directly after
+// Analytics; if that sibling is ever absent the category is simply appended.
+$ADMIN->add('root', new admin_category('local_outcomemap',
+    get_string('pluginname', 'local_outcomemap')), 'competencies');
 
 $pages = [
     'local_outcomemap_dashboard' => ['dashboard', 'viewdefinitions'],

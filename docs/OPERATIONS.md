@@ -32,7 +32,7 @@ Review role overrides after changing archetypes. In particular, a course or modu
 ## Initial administrator setup
 
 1. Record institutional decisions before entering production data: authoritative program/course identifiers, reporting periods, assessed-item rules, explicit weighting method, attempt selection, evidence sufficiency, performance bands, release timing, suppression threshold, population source, retention basis, and snapshot correction policy.
-2. In **Site administration > Plugins > Learning outcome mapping**, create programs, catalog courses, program-course memberships, frameworks, and outcome versions.
+2. In **Site administration > General > Learning outcome mapping**, create programs, catalog courses, program-course memberships, frameworks, and outcome versions.
 3. Submit governed drafts. When independent approval is enabled, a different authorized reviewer approves them in **Approval queue**.
 4. Associate each Moodle course shell with a stable catalog course and reporting-period code. Submit and confirm the association before it governs mappings or results.
 5. Create and approve the required attempt-selection, calculation/band, feedback-release, and accreditation policies. The plugin seeds no institutional thresholds or weights.
