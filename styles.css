@@ -586,3 +586,193 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
 .lom-cov-missing { color: #c0392b; font-size: 11.5px; }
 .lom-cov-maplink { font-size: 11.5px; }
 .lom-cov-hit { background: #fff3bf; border-radius: 2px; padding: 0; }
+
+/* ---------------------------------------------------------------------------
+   Course content mappings: content tree beside a sticky apply panel.
+   --------------------------------------------------------------------------- */
+.lom-map-layout { align-items: flex-start; display: flex; gap: 18px; }
+.lom-map-content {
+    border: 1px solid #e3e7ec;
+    border-radius: 6px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+@media (max-width: 1100px) {
+    .lom-map-layout { flex-direction: column; }
+    .lom-map-apply { position: static !important; width: 100% !important; }
+}
+
+.lom-map-toolbar {
+    align-items: center;
+    background: #f4f6f9;
+    border-bottom: 1px solid #e3e7ec;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 9px 12px;
+}
+.lom-map-search { align-items: center; display: flex; gap: 6px; }
+.lom-map-search input[type="search"] { max-width: 220px; min-width: 150px; }
+.lom-map-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.lom-map-filter {
+    background: #fff;
+    border: 1px solid #cfd6de;
+    border-radius: 14px;
+    color: #555;
+    font-size: 12px;
+    padding: 5px 11px;
+    text-decoration: none;
+}
+.lom-map-filter:hover { background: #eef1f6; color: #333; text-decoration: none; }
+.lom-map-filter-active {
+    background: #1f2a44;
+    border-color: #1f2a44;
+    color: #fff;
+    font-weight: 600;
+}
+.lom-map-filter-active:hover { background: #1f2a44; color: #fff; }
+.lom-map-collapse { color: #155a9c; font-size: 12px; font-weight: 600; margin-left: auto; }
+.lom-map-empty { color: #8a93a0; font-size: 13px; padding: 28px; text-align: center; }
+
+.lom-map-section { border-top: 1px solid #e3e7ec; }
+.lom-map-section-head {
+    align-items: center;
+    background: #f4f6f9;
+    cursor: pointer;
+    display: flex;
+    gap: 9px;
+    padding: 10px 12px;
+}
+.lom-map-section-head:hover { background: #eef1f6; }
+.lom-map-section-name { color: #1f2a44; font-size: 13.5px; font-weight: 700; }
+.lom-map-section-count { color: #8a93a0; font-size: 11.5px; }
+
+.lom-map-row {
+    align-items: flex-start;
+    border-top: 1px solid #f2f4f6;
+    cursor: pointer;
+    display: flex;
+    gap: 9px;
+    margin: 0;
+    padding: 7px 12px 7px 22px;
+}
+.lom-map-row:hover { background: #f7fafc; }
+.lom-map-row-sectiontarget { background: #fcfdfe; }
+.lom-map-check { margin-top: 3px; }
+.lom-map-check-spacer { display: inline-block; width: 13px; }
+.lom-map-icon { color: #9aa3ad; flex-shrink: 0; font-size: 11.5px; width: 18px; }
+.lom-map-node-name { color: #155a9c; flex: 1; font-size: 12.5px; line-height: 1.45; }
+.lom-map-node-section { color: #3b4a5f; font-weight: 600; }
+.lom-map-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-end;
+    margin-left: auto;
+    max-width: 300px;
+}
+.lom-map-chip {
+    align-items: center;
+    border-radius: 10px;
+    display: inline-flex;
+    font-size: 10.5px;
+    font-weight: 700;
+    gap: 4px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+.lom-map-chip-teach { background: #f1f5f0; color: #3f6b4a; }
+.lom-map-chip-assess { background: #eef4fb; color: #155a9c; }
+.lom-map-chip-role { font-weight: 400; opacity: 0.75; }
+.lom-map-chip-remove {
+    color: inherit;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1;
+    opacity: 0.5;
+    text-decoration: none;
+}
+.lom-map-chip-remove:hover { color: inherit; opacity: 1; text-decoration: none; }
+.lom-map-unmapped { color: #b6bcc4; font-size: 11px; }
+
+.lom-map-apply {
+    border: 1px solid #dbe3ec;
+    border-radius: 6px;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: sticky;
+    top: 14px;
+    width: 380px;
+}
+.lom-map-apply-head { background: #f4f9fe; border-bottom: 1px solid #dbe3ec; padding: 11px 14px; }
+.lom-map-apply-title { color: #1f2a44; font-size: 13.5px; font-weight: 700; }
+.lom-map-apply-hint { color: #667180; font-size: 12px; margin-top: 2px; }
+.lom-map-apply-body { padding: 12px 14px; }
+.lom-map-label {
+    color: #8a93a0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    margin-bottom: 7px;
+    text-transform: uppercase;
+}
+.lom-map-roles { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.lom-map-role {
+    background: #fff;
+    border: 1px solid #cfd6de;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12.5px;
+    margin: 0;
+    padding: 6px 10px;
+}
+.lom-map-role:has(.lom-map-role-input:checked) {
+    background: #1f2a44;
+    border-color: #1f2a44;
+    color: #fff;
+    font-weight: 600;
+}
+.lom-map-role-input { margin-right: 5px; }
+.lom-map-outlist {
+    border: 1px solid #eceff2;
+    border-radius: 6px;
+    margin-top: 8px;
+    max-height: 340px;
+    overflow: auto;
+}
+.lom-map-outgroup {
+    background: #fafafa;
+    border-bottom: 1px solid #f0f0f0;
+    color: #8a93a0;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 6px 10px;
+    text-transform: uppercase;
+}
+.lom-map-out {
+    align-items: flex-start;
+    border-bottom: 1px solid #f5f5f5;
+    cursor: pointer;
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 0;
+    padding: 6px 10px;
+}
+.lom-map-out:hover { background: #f7fafc; }
+.lom-map-out-label { flex: 1; }
+.lom-map-outempty { color: #8a93a0; font-size: 12px; padding: 14px; text-align: center; }
+.lom-map-adv { border-top: 1px solid #eceff2; margin-top: 12px; padding-top: 10px; }
+.lom-map-adv-head { color: #155a9c; cursor: pointer; font-size: 12px; font-weight: 600; }
+.lom-map-adv-grid {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 9px;
+}
+.lom-map-adv-field { color: #667180; font-size: 11.5px; }
+.lom-map-apply-btn { margin-top: 12px; width: 100%; }
+.lom-map-apply-note { color: #8a93a0; font-size: 11.5px; margin-top: 7px; text-align: center; }

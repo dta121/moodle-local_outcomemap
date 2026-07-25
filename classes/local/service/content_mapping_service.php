@@ -135,6 +135,45 @@ final class content_mapping_service extends base_service {
     }
 
     /**
+     * Delete a draft mapping.
+     *
+     * Only drafts are removable. An approved mapping is governed history and is
+     * superseded with a new version instead.
+     *
+     * @param string $targettype Mapping target type.
+     * @param int $id Mapping record ID.
+     * @param string|null $reason Optional audit reason.
+     * @return void
+     */
+    public static function delete_draft(string $targettype, int $id, ?string $reason = null): void {
+        global $DB;
+        [$table, $targetfield] = self::table_definition($targettype);
+        $before = self::get_required($table, $id, 'content_mapping');
+        if ($before->status !== workflow::DRAFT) {
+            throw new validation_exception('approvedimmutable', 'content_mapping', $id);
+        }
+        $actorid = self::require_mapping_capabilities($targettype, $before);
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $DB->delete_records($table, ['id' => $id]);
+            audit_writer::write(
+                'delete',
+                'content_mapping',
+                $id,
+                $before->mappinguuid,
+                $before,
+                null,
+                $reason,
+                self::mapping_context($targettype, (int) $before->{$targetfield}),
+                $actorid
+            );
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+    }
+
+    /**
      * Create the next draft version of an approved mapping.
      *
      * @param string $targettype Mapping target type.
