@@ -30,6 +30,47 @@ use local_outcomemap\local\workflow;
  * Builds course coverage projections from bulk-loaded mapping records.
  */
 final class coverage_service extends base_service {
+    /** Taught and assessed by mapped content. */
+    public const STATUS_FULL = 'full';
+
+    /** Assessed, but no teaching content is mapped. */
+    public const STATUS_ASSESSED_ONLY = 'assessedonly';
+
+    /** Taught, but no assessing content is mapped. */
+    public const STATUS_TAUGHT = 'taught';
+
+    /** No content mapped at all. */
+    public const STATUS_NONE = 'none';
+
+    /**
+     * Classify one matrix row by the roles of the content mapped to it.
+     *
+     * The assessing role is what makes an outcome measurable, so it is the axis
+     * that separates a complete outcome from a gap. Every other role counts as
+     * teaching content for this purpose.
+     *
+     * @param \stdClass $row Matrix row produced by {@see matrix()}.
+     * @return string One of this class's STATUS_* values.
+     */
+    public static function row_status(\stdClass $row): string {
+        $taught = false;
+        $assessed = false;
+        foreach (array_merge($row->sections, $row->modules) as $mapping) {
+            if ($mapping->role === content_mapping_service::ROLE_ASSESSES) {
+                $assessed = true;
+            } else {
+                $taught = true;
+            }
+        }
+        if ($taught && $assessed) {
+            return self::STATUS_FULL;
+        }
+        if ($assessed) {
+            return self::STATUS_ASSESSED_ONLY;
+        }
+        return $taught ? self::STATUS_TAUGHT : self::STATUS_NONE;
+    }
+
     /**
      * Build a course coverage matrix without per-target queries.
      *

@@ -403,3 +403,186 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
     margin-top: 3px;
     padding-top: 3px;
 }
+
+/* ---------------------------------------------------------------------------
+   Course outcome coverage report.
+   --------------------------------------------------------------------------- */
+.lom-cov-toolbar {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.lom-cov-toolbar-label { color: #667180; font-size: 12.5px; }
+.lom-cov-chip {
+    background: #fff;
+    border: 1px solid #cfd6de;
+    border-radius: 6px;
+    color: #333;
+    font-size: 13px;
+    padding: 6px 12px;
+}
+.lom-cov-toolbar-actions { display: flex; gap: 8px; margin-left: auto; }
+.lom-cov-title {
+    color: #1f2a44;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+.lom-cov-subtitle { color: #8a93a0; font-size: 12.5px; margin-bottom: 16px; }
+
+.lom-cov-cards {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(3, 1fr);
+    margin-bottom: 8px;
+}
+@media (max-width: 760px) {
+    .lom-cov-cards { grid-template-columns: 1fr; }
+}
+.lom-cov-card { border: 1px solid #e3e7ec; border-radius: 8px; padding: 14px 16px; }
+.lom-cov-card-label {
+    color: #8a93a0;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.lom-cov-card-figure { align-items: baseline; display: flex; gap: 8px; margin-top: 6px; }
+.lom-cov-card-value {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 26px;
+    font-weight: 700;
+}
+.lom-cov-card-of { color: #667180; font-size: 12.5px; }
+.lom-cov-card-note { color: #8a93a0; font-size: 11.5px; margin-top: 7px; }
+.lom-cov-card-full .lom-cov-card-value { color: #166534; }
+.lom-cov-card-full .lom-cov-bar-fill { background: #166534; }
+.lom-cov-card-partial .lom-cov-card-value { color: #b45309; }
+.lom-cov-card-partial .lom-cov-bar-fill { background: #b45309; }
+.lom-cov-card-none .lom-cov-card-value { color: #991b1b; }
+.lom-cov-card-none .lom-cov-bar-fill { background: #991b1b; }
+
+.lom-cov-bar {
+    background: #eef0f3;
+    border-radius: 3px;
+    height: 6px;
+    margin-top: 10px;
+    overflow: hidden;
+}
+.lom-cov-bar-fill { background: #1f2a44; border-radius: 3px; height: 6px; }
+.lom-cov-bar-inline { margin-top: 0; width: 110px; }
+.lom-cov-bar-full { background: #166534; }
+.lom-cov-bar-partial { background: #b45309; }
+.lom-cov-bar-none { background: #991b1b; }
+
+.lom-cov-controls {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 16px 0 12px;
+}
+.lom-cov-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.lom-cov-filter {
+    background: #fff;
+    border: 1px solid #cfd6de;
+    border-radius: 16px;
+    color: #555;
+    font-size: 12.5px;
+    padding: 6px 13px;
+    text-decoration: none;
+}
+.lom-cov-filter:hover { background: #f4f6f9; color: #333; text-decoration: none; }
+.lom-cov-filter-active {
+    background: #1f2a44;
+    border-color: #1f2a44;
+    color: #fff;
+    font-weight: 600;
+}
+.lom-cov-filter-active:hover { background: #1f2a44; color: #fff; }
+.lom-cov-chip-count { color: #9aa3ad; font-weight: 600; margin-left: 5px; }
+.lom-cov-filter-active .lom-cov-chip-count { color: #c9d2de; }
+.lom-cov-search { align-items: center; display: flex; gap: 6px; margin-left: auto; }
+.lom-cov-search input[type="search"] { max-width: 260px; min-width: 170px; }
+.lom-cov-empty {
+    border: 1px dashed #dfe3e8;
+    border-radius: 6px;
+    color: #8a93a0;
+    font-size: 14px;
+    padding: 32px;
+    text-align: center;
+}
+
+.lom-cov-group {
+    border: 1px solid #e3e7ec;
+    border-radius: 6px;
+    margin-bottom: 14px;
+    overflow: hidden;
+}
+.lom-cov-group-head {
+    align-items: center;
+    background: #f4f6f9;
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    padding: 10px 14px;
+}
+.lom-cov-group-head:hover { background: #eef1f6; }
+.lom-cov-group-title { color: #1f2a44; font-size: 13.5px; font-weight: 700; }
+.lom-cov-group-sub { color: #8a93a0; font-size: 12px; }
+.lom-cov-group-meta { align-items: center; display: flex; gap: 9px; margin-left: auto; }
+.lom-cov-group-count {
+    color: #667180;
+    font-size: 12px;
+    min-width: 92px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.lom-cov-row { display: flex; gap: 12px; padding: 9px 14px; align-items: flex-start; }
+.lom-cov-row + .lom-cov-row { border-top: 1px solid #f2f4f6; }
+.lom-cov-row:not(.lom-cov-head):hover { background: #fbfcfd; }
+.lom-cov-head {
+    background: #fbfcfd;
+    border-top: 1px solid #eceff2;
+    color: #9aa3ad;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 7px 14px;
+    text-transform: uppercase;
+}
+.lom-cov-c-code { flex-shrink: 0; width: 150px; }
+.lom-cov-c-statement { color: #333; flex: 1; font-size: 12.5px; line-height: 1.5; }
+.lom-cov-c-status { flex-shrink: 0; width: 150px; }
+.lom-cov-c-taught { flex-shrink: 0; width: 190px; }
+.lom-cov-c-assessed { flex-shrink: 0; width: 170px; }
+@media (max-width: 980px) {
+    .lom-cov-row { flex-wrap: wrap; }
+    .lom-cov-c-code,
+    .lom-cov-c-status,
+    .lom-cov-c-taught,
+    .lom-cov-c-assessed { width: auto; }
+    .lom-cov-c-statement { flex-basis: 100%; }
+}
+.lom-cov-code { color: #155a9c; font-size: 11.5px; font-weight: 600; }
+.lom-cov-ver { color: #b6bcc4; font-size: 11.5px; margin-left: 4px; }
+.lom-cov-badge {
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    white-space: nowrap;
+}
+.lom-cov-badge-full { background: #dcfce7; color: #166534; }
+.lom-cov-badge-partial { background: #fef3c7; color: #92400e; }
+.lom-cov-badge-none { background: #fee2e2; color: #991b1b; }
+.lom-cov-entry { font-size: 11.5px; line-height: 1.4; }
+.lom-cov-entry + .lom-cov-entry { margin-top: 3px; }
+.lom-cov-meta { color: #8a93a0; display: block; font-size: 10.5px; }
+.lom-cov-missing { color: #c0392b; font-size: 11.5px; }
+.lom-cov-maplink { font-size: 11.5px; }
+.lom-cov-hit { background: #fff3bf; border-radius: 2px; padding: 0; }
