@@ -24,13 +24,13 @@
         {{/canmanage}}
     </div>
     <div class="lom-page-stats">{{statsline}}</div>
-    <div id="lom-program-noresults" class="lom-page-noresults lom-hidden">{{#str}} programs_noresults, local_outcomemap {{/str}}</div>
+    <div id="lom-program-noresults" class="lom-page-noresults lom-hidden" role="status" aria-live="polite">{{#str}} programs_noresults, local_outcomemap {{/str}}</div>
 
     {{#groups}}
     <section class="lom-section lom-program-group lom-section-type-{{typeclass}}" data-program-type="{{programtype}}">
         <div class="lom-section-head">
             <span class="lom-section-swatch" aria-hidden="true"></span>
-            <span class="lom-section-title">{{title}}</span>
+            <h3 class="lom-section-title">{{title}}</h3>
             <span class="lom-section-subtitle">{{description}}</span>
             <span class="lom-section-count">{{countline}}</span>
         </div>

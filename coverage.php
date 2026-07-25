@@ -51,6 +51,7 @@ $PAGE->set_heading($course->fullname);
 $matrix = coverage_service::matrix($courseid);
 $modinfo = get_fast_modinfo($courseid);
 $table = new html_table();
+$table->caption = get_string('coverage_heading', 'local_outcomemap');
 $table->head = [
     get_string('outcomeversion', 'local_outcomemap'),
     get_string('statement', 'local_outcomemap'),
@@ -83,7 +84,7 @@ foreach ($matrix as $row) {
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('coverage_heading', 'local_outcomemap'));
 if ($matrix) {
-    echo html_writer::table($table);
+    echo html_writer::div(html_writer::table($table), 'table-responsive');
 } else {
     echo $OUTPUT->notification(
         get_string('nocoveragemappings', 'local_outcomemap'),

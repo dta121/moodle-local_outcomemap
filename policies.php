@@ -356,6 +356,7 @@ if ($action === 'view' && $id) {
     echo $OUTPUT->header();
     echo $OUTPUT->heading(format_string($record->name));
     $details = new html_table();
+    $details->caption = format_string($record->name);
     $details->data = [
         [get_string('policytype', 'local_outcomemap'),
             get_string('policytype_' . $record->policytype, 'local_outcomemap')],
@@ -367,10 +368,11 @@ if ($action === 'view' && $id) {
         [get_string('effectiveto', 'local_outcomemap'), $record->effectiveto
             ? userdate($record->effectiveto) : get_string('noenddate', 'local_outcomemap')],
     ];
-    echo html_writer::table($details);
+    echo html_writer::div(html_writer::table($details), 'table-responsive');
     if ($record->bands) {
         echo $OUTPUT->heading(get_string('performancebands', 'local_outcomemap'), 3);
         $bands = new html_table();
+        $bands->caption = get_string('performancebands', 'local_outcomemap');
         $bands->head = [
             get_string('code', 'local_outcomemap'),
             get_string('name', 'local_outcomemap'),
@@ -393,7 +395,7 @@ if ($action === 'view' && $id) {
                         : ' (' . get_string('exclusive', 'local_outcomemap') . ')'),
             ];
         }
-        echo html_writer::table($bands);
+        echo html_writer::div(html_writer::table($bands), 'table-responsive');
     }
     echo $OUTPUT->single_button($url, get_string('back'));
     echo $OUTPUT->footer();
@@ -408,6 +410,7 @@ echo html_writer::div(get_string(
 ), 'mb-3');
 echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']), get_string('addpolicy', 'local_outcomemap'));
 $table = new html_table();
+$table->caption = get_string('policies_heading', 'local_outcomemap');
 $table->head = [
     get_string('name', 'local_outcomemap'),
     get_string('policytype', 'local_outcomemap'),
@@ -457,5 +460,5 @@ foreach (policy_service::list_all() as $record) {
         implode(' | ', $actions),
     ];
 }
-echo html_writer::table($table);
+echo html_writer::div(html_writer::table($table), 'table-responsive');
 echo $OUTPUT->footer();

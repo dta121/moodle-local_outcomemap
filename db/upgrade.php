@@ -29,7 +29,7 @@
  * @return bool
  */
 function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
-    global $DB;
+    global $CFG, $DB;
 
     $dbman = $DB->get_manager();
 
@@ -335,7 +335,10 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         }
 
         $key = new xmldb_key('band_fk', XMLDB_KEY_FOREIGN, ['bandid'], 'local_outcomemap_band', ['id']);
-        $dbman->add_key($table, $key);
+        $keyindex = new xmldb_index('band_fk', XMLDB_INDEX_NOTUNIQUE, ['bandid']);
+        if (!$dbman->index_exists($table, $keyindex)) {
+            $dbman->add_key($table, $key);
+        }
 
         upgrade_plugin_savepoint(true, 2026072502, 'local', 'outcomemap');
     }
@@ -483,6 +486,98 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         }
 
         upgrade_plugin_savepoint(true, 2026072601, 'local', 'outcomemap');
+    }
+
+    if ($oldversion < 2026072700) {
+        $table = new xmldb_table('local_outcomemap_privkey');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field('userhash', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL);
+        $table->add_field('keyvalue', XMLDB_TYPE_CHAR, '64');
+        $table->add_field('legacyerased', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('userhash_uq', XMLDB_KEY_UNIQUE, ['userhash']);
+        $table->add_index('legacyerased_ix', XMLDB_INDEX_NOTUNIQUE, ['legacyerased']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026072700, 'local', 'outcomemap');
+    }
+
+    if ($oldversion < 2026072701) {
+        $table = new xmldb_table('local_outcomemap_privkey');
+        $field = new xmldb_field('userid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'id');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $index = new xmldb_index('userid_ix', XMLDB_INDEX_NOTUNIQUE, ['userid']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // Recover discoverability for active 0.7.0 keys once. Runtime Privacy
+        // API discovery then uses userid_ix and never scans Moodle's user table.
+        if (!empty($CFG->passwordsaltmain)) {
+            $keyids = [];
+            $keys = $DB->get_records_select(
+                'local_outcomemap_privkey',
+                'userid IS NULL AND keyvalue IS NOT NULL',
+                [],
+                '',
+                'id,userhash'
+            );
+            foreach ($keys as $key) {
+                $keyids[(string) $key->userhash] = (int) $key->id;
+            }
+            if ($keyids) {
+                $users = $DB->get_recordset('user', null, '', 'id');
+                foreach ($users as $user) {
+                    $hash = hash_hmac(
+                        'sha256',
+                        'local_outcomemap:privacy-subject:' . (int) $user->id,
+                        (string) $CFG->passwordsaltmain
+                    );
+                    if (isset($keyids[$hash])) {
+                        $DB->set_field('local_outcomemap_privkey', 'userid', (int) $user->id, [
+                            'id' => $keyids[$hash],
+                        ]);
+                    }
+                }
+                $users->close();
+            }
+        }
+
+        // This one-time privacy migration is the only supported rewrite of
+        // historical audit payloads. It removes learner data written before
+        // insertion-time minimisation; normal APIs remain strictly insert-only.
+        $audits = $DB->get_recordset(
+            'local_outcomemap_audit',
+            null,
+            'id ASC',
+            'id,objecttype,beforejson,afterjson'
+        );
+        foreach ($audits as $audit) {
+            $before = \local_outcomemap\local\audit_payload::minimise_json(
+                (string) $audit->objecttype,
+                $audit->beforejson
+            );
+            $after = \local_outcomemap\local\audit_payload::minimise_json(
+                (string) $audit->objecttype,
+                $audit->afterjson
+            );
+            if ($before !== $audit->beforejson || $after !== $audit->afterjson) {
+                $DB->update_record('local_outcomemap_audit', (object) [
+                    'id' => (int) $audit->id,
+                    'beforejson' => $before,
+                    'afterjson' => $after,
+                ]);
+            }
+        }
+        $audits->close();
+
+        upgrade_plugin_savepoint(true, 2026072701, 'local', 'outcomemap');
     }
 
     return true;

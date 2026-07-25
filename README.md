@@ -1,22 +1,45 @@
 # Moodle Learning Outcome Mapping
 
-`local_outcomemap` is the system-of-record plugin for a university learning-outcome mapping, attainment, remediation, and accreditation platform.
+`local_outcomemap` is the system-of-record Moodle plugin for governed learning-outcome definitions, mappings, attainment, remediation, audit, privacy, and accreditation reporting. The optional [`qbank_outcomemap`](https://github.com/dta121/moodle-qbank_outcomemap) companion supplies question-bank presentation and workflows while all governed data remains here.
 
-The canonical build specification is in [docs/OUTCOME_MAPPING_SPEC.md](docs/OUTCOME_MAPPING_SPEC.md).
+Current release: **0.7.0 beta** (`2026072701`).
 
-The companion question-bank plugin is maintained in the sibling `moodle-qbank_outcomemap` repository and installs as `qbank_outcomemap`.
+## Compatibility and installation
 
-## Repository and installation locations
+- Minimum Moodle: 4.5 (`2024100700`)
+- Validated source/API target: Moodle 5.2 with PHP 8.3
+- Source syntax baseline: PHP 8.1-compatible
+- Install path: `<moodleroot>/local/outcomemap`
+- Component: `local_outcomemap`
 
-- Repository: `D:\wamp64\www\moodle-local_outcomemap`
-- Minimum supported Moodle version: 4.5 (`2024100700`)
-- Moodle 5.2 validation target: `D:\wamp64\www\moodle502\public\local\outcomemap`
-- Component name: `local_outcomemap`
+Install and upgrade this plugin before installing a companion qbank release that depends on it. Run Moodle's normal plugin upgrade and cron; do not modify Moodle core.
+
+## Architecture
+
+This plugin owns all programs, catalog courses, course instances, frameworks, exact outcome versions, relationships, content/question/remediation mappings, policies, evidence, deterministic results, audit events, frozen snapshots, reports, backup/restore payloads, and personal-data handling.
+
+Important invariants:
+
+- approved and frozen history is never rewritten in place;
+- question mappings bind to exact `question_versions.id` records;
+- copied question mappings are drafts requiring explicit review;
+- assessed multi-outcome weights are explicit and total exactly `1.0000000000` when approved;
+- access/completion is not evidence of mastery without an approved policy;
+- calculations are decimal-safe, idempotent, traceable, and preserve frozen snapshots; and
+- companion plugins use public service classes rather than plugin tables.
+
+If `qbank_outcomemap` is absent, existing mappings remain stored and calculable; only the qbank column, filters, editor, and bulk action are unavailable.
+
+## Documentation
+
+- [Canonical specification and milestone plan](docs/OUTCOME_MAPPING_SPEC.md)
+- [Operations guide](docs/OPERATIONS.md)
+- [Release checklist](docs/RELEASE_CHECKLIST.md)
+- [Architecture decision records](docs/adr)
+- [Companion qbank implementation plan](https://github.com/dta121/moodle-qbank_outcomemap/blob/main/docs/QBANK_IMPLEMENTATION_PLAN.md)
+
+The operations guide covers administrator, instructor, reviewer, accreditation reviewer, and student workflows; capability boundaries; privacy/retention; backup/restore; qbank-absence behavior; upgrades; rollback; and troubleshooting.
 
 ## Milestone status
 
-- Milestone 0 is complete in [`docs/adr`](docs/adr): the selected APIs are compatible with Moodle 4.5 and verified against the installed Moodle 5.2 tree.
-- Milestone 1 (governed outcome foundation) and Milestone 2 (course content mapping, remediation, coverage, and backup/restore) are complete with passing PHPUnit coverage.
-- Milestone 3 is complete across both repositories: the `local_outcomemap_qmap` table, `question_mapping_service` (draft lifecycle, set-based assessed-weight approval totalling exactly `1.0000000000`, version-copy-as-draft), the public `\local_outcomemap\api\question_mappings` facade and DTO, the `question_created` observer (setting `local_outcomemap | autocopyquestionmappings`), approval-queue integration, question-level backup/restore, and the `qbank_outcomemap` companion UI (column, filters, editor, bulk action).
-- Milestone 4 (quiz evidence and calculation) is complete: the `policy`, `band`, `evidence`, and `result` tables; the float-free signed decimal engine in `\local_outcomemap\local\decimal`; `policy_service` (versioned attempt-selection and calculation policies with bands, canonical config hashes, and assessment → course-instance → catalog-course → institution resolution — no thresholds are seeded); the site-administration policy CRUD and draft-version UI with separate approval-queue governance; `calculation_service` (algorithm `outcomemap-v1`: DML-sourced evidence with dedupe keys, regrade supersede, `contributes_to` propagation with per-lineage path selection, fixed sufficiency-state order, banding on unrounded percentages, versioned results with input and lineage hashes); quiz event observers feeding a deduplicated ad hoc task plus a scheduled reconciliation task; and golden MBA614-like PHPUnit fixtures asserting canonical numerators, denominators, percentages, bands, and hashes.
-- Milestone 5 (student feedback and remediation) is complete: the learner outcome-results page enforces five governed release modes, exact historical result and policy versions, fail-closed provenance checks, accessible approved remediation filtering, and aggregate-only output that excludes protected quiz details. Manual release is a separate audited action, remediation metadata is backup/restore-safe, and the critical workflows have PHPUnit and Behat coverage.
+Milestones 0–6 are implemented. Milestone 7 hardening adds Privacy API coverage, immutable-snapshot erasure keys, upgrade/schema reconstruction tests, backup/restore review, fixed-query-budget qbank bulk loading, public filter boundaries, accessibility remediation, role operations guidance, and paired release checklists. Final production approval is governed by the release checklist and must include runnable PHPUnit/Behat evidence from a generated Moodle test environment.

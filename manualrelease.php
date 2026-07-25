@@ -143,6 +143,6 @@ if (!$policies) {
             $actions,
         ];
     }
-    echo html_writer::table($table);
+    echo html_writer::div(html_writer::table($table), 'table-responsive');
 }
 echo $OUTPUT->footer();

@@ -108,7 +108,7 @@ final class accreditation_reporting_test extends \advanced_testcase {
         if (empty($CFG->passwordsaltmain)) {
             $CFG->passwordsaltmain = 'local_outcomemap_phpunit_snapshot_secret';
         }
-        set_config('version', 2026072603, 'local_outcomemap');
+        set_config('version', 2026072701, 'local_outcomemap');
         $now = time();
         $effectivefrom = $now - DAYSECS;
         $course = $this->getDataGenerator()->create_course([

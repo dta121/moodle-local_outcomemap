@@ -51,14 +51,25 @@ $PAGE->set_pagelayout('incourse');
 $PAGE->set_title(get_string('remediation_heading', 'local_outcomemap'));
 $PAGE->set_heading($course->fullname);
 
+$canmanage = has_capability('local/outcomemap:mapcourse', $context)
+    && has_capability('moodle/course:update', $context);
+
 $action = optional_param('action', '', PARAM_ALPHA);
 $id = optional_param('id', 0, PARAM_INT);
 if ($action === 'submit' && $id) {
+    if (!$canmanage) {
+        require_capability('local/outcomemap:mapcourse', $context);
+        require_capability('moodle/course:update', $context);
+    }
     require_sesskey();
     remediation_service::submit_for_review($id);
     redirect($url, workflow::submission_success_message());
 }
 if (in_array($action, ['add', 'edit', 'newversion'], true)) {
+    if (!$canmanage) {
+        require_capability('local/outcomemap:mapcourse', $context);
+        require_capability('moodle/course:update', $context);
+    }
     $options = content_mapping_service::editor_options($courseid);
     $options['bands'] = remediation_service::band_options_for_course($courseid);
     if (!$options['instances']) {
@@ -114,8 +125,14 @@ if (in_array($action, ['add', 'edit', 'newversion'], true)) {
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('remediation_heading', 'local_outcomemap'));
-echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']), get_string('addremediation', 'local_outcomemap'));
+if ($canmanage) {
+    echo $OUTPUT->single_button(
+        new moodle_url($url, ['action' => 'add']),
+        get_string('addremediation', 'local_outcomemap')
+    );
+}
 $table = new html_table();
+$table->caption = get_string('remediation_heading', 'local_outcomemap');
 $table->head = [get_string('outcomeversion', 'local_outcomemap'), get_string('title', 'local_outcomemap'),
     get_string('performanceband', 'local_outcomemap'), get_string('remediationpurpose', 'local_outcomemap'),
     get_string('target', 'local_outcomemap'), get_string('priority', 'local_outcomemap'),
@@ -132,12 +149,15 @@ foreach (remediation_service::list_for_course($courseid) as $record) {
         $target = html_writer::link($record->externalurl, s($record->externalurl));
     }
     $actions = [];
-    if ($record->status === workflow::DRAFT) {
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'edit', 'id' => $record->id]), get_string('edit'));
-        $actions[] = html_writer::link(new moodle_url($url, [
-            'action' => 'submit', 'id' => $record->id, 'sesskey' => sesskey(),
-        ]), workflow::submit_action_label());
-    } else if ($record->status === workflow::APPROVED) {
+    if ($canmanage && $record->status === workflow::DRAFT) {
+        $actions[] = html_writer::link(
+            new moodle_url($url, ['action' => 'edit', 'id' => $record->id]),
+            get_string('edit')
+        );
+        $actions[] = $OUTPUT->single_button(new moodle_url($url, [
+            'action' => 'submit', 'id' => $record->id,
+        ]), workflow::submit_action_label(), 'post');
+    } else if ($canmanage && $record->status === workflow::APPROVED) {
         $actions[] = html_writer::link(
             new moodle_url($url, ['action' => 'newversion', 'id' => $record->id]),
             get_string('newremediationversion', 'local_outcomemap')
@@ -153,8 +173,8 @@ foreach (remediation_service::list_for_course($courseid) as $record) {
         (int) $record->priority,
         (int) $record->sortorder,
         workflow::status_label($record->status),
-        implode(' | ', $actions),
+        html_writer::div(implode(' ', $actions), 'd-flex flex-wrap align-items-center gap-2'),
     ];
 }
-echo html_writer::table($table);
+echo html_writer::div(html_writer::table($table), 'table-responsive');
 echo $OUTPUT->footer();

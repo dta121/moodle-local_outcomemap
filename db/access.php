@@ -20,7 +20,7 @@ $capabilities = [
     'local/outcomemap:viewdefinitions' => [
         'captype' => 'read',
         'contextlevel' => CONTEXT_COURSE,
-        'archetypes' => ['manager' => CAP_ALLOW],
+        'archetypes' => ['editingteacher' => CAP_ALLOW, 'manager' => CAP_ALLOW],
     ],
     'local/outcomemap:manageprograms' => [
         'riskbitmask' => RISK_CONFIG,

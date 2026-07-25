@@ -156,21 +156,11 @@ function local_outcomemap_extend_navigation_course(
             new moodle_url('/local/outcomemap/coverage.php', ['courseid' => $course->id]),
             navigation_node::TYPE_SETTING
         );
-    }
-    $canmapmodules = $canviewdefinitions
-        && has_capability('local/outcomemap:mapactivities', $context)
-        && has_capability('moodle/course:manageactivities', $context);
-    $canmapcourse = $canviewdefinitions
-        && has_capability('local/outcomemap:mapcourse', $context)
-        && has_capability('moodle/course:update', $context);
-    if ($canmapmodules || $canmapcourse) {
         $node->add(
             get_string('nav_contentmapping', 'local_outcomemap'),
             new moodle_url('/local/outcomemap/contentmapping.php', ['courseid' => $course->id]),
             navigation_node::TYPE_SETTING
         );
-    }
-    if ($canmapcourse) {
         $node->add(
             get_string('nav_remediation', 'local_outcomemap'),
             new moodle_url('/local/outcomemap/remediation.php', ['courseid' => $course->id]),

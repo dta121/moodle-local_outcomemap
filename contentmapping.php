@@ -50,6 +50,12 @@ $PAGE->set_pagelayout('incourse');
 $PAGE->set_title(get_string('contentmapping_heading', 'local_outcomemap'));
 $PAGE->set_heading($course->fullname);
 
+$canmapcourse = has_capability('local/outcomemap:mapcourse', $context)
+    && has_capability('moodle/course:update', $context);
+$canmapactivities = has_capability('local/outcomemap:mapactivities', $context)
+    && has_capability('moodle/course:manageactivities', $context);
+$canmanage = $canmapcourse || $canmapactivities;
+
 $action = optional_param('action', '', PARAM_ALPHA);
 $targettype = optional_param('targettype', '', PARAM_ALPHANUMEXT);
 $id = optional_param('id', 0, PARAM_INT);
@@ -61,6 +67,14 @@ if ($action === 'submit' && $id) {
 }
 
 if (in_array($action, ['add', 'edit', 'newversion'], true)) {
+    if (!$canmanage) {
+        throw new required_capability_exception(
+            $context,
+            'local/outcomemap:mapcourse',
+            'nopermissions',
+            ''
+        );
+    }
     $options = content_mapping_service::editor_options($courseid);
     if (!$options['instances']) {
         redirect(
@@ -117,13 +131,16 @@ if (in_array($action, ['add', 'edit', 'newversion'], true)) {
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('contentmapping_heading', 'local_outcomemap'));
-echo $OUTPUT->single_button(
-    new moodle_url($url, ['action' => 'add']),
-    get_string('addcontentmapping', 'local_outcomemap')
-);
+if ($canmanage) {
+    echo $OUTPUT->single_button(
+        new moodle_url($url, ['action' => 'add']),
+        get_string('addcontentmapping', 'local_outcomemap')
+    );
+}
 $mappings = content_mapping_service::list_for_course($courseid);
 $modinfo = get_fast_modinfo($courseid);
 $table = new html_table();
+$table->caption = get_string('contentmapping_heading', 'local_outcomemap');
 $table->head = [get_string('target', 'local_outcomemap'), get_string('outcomeversion', 'local_outcomemap'),
     get_string('mappingrole', 'local_outcomemap'), get_string('weight', 'local_outcomemap'),
     get_string('periodcode', 'local_outcomemap'), get_string('status', 'local_outcomemap'),
@@ -136,18 +153,22 @@ foreach (
         if ($type === content_mapping_service::TARGET_MODULE) {
             $cm = $modinfo->get_cm($record->cmid);
             $target = $cm->get_formatted_name();
+            $recordcontext = context_module::instance((int) $record->cmid);
+            $canedit = has_capability('local/outcomemap:mapactivities', $recordcontext)
+                && has_capability('moodle/course:manageactivities', $recordcontext);
         } else {
             $target = get_section_name($courseid, $record->sectionnumber);
+            $canedit = $canmapcourse;
         }
         $actions = [];
-        if ($record->status === workflow::DRAFT) {
+        if ($canedit && $record->status === workflow::DRAFT) {
             $actions[] = html_writer::link(new moodle_url($url, [
                 'action' => 'edit', 'targettype' => $type, 'id' => $record->id,
             ]), get_string('edit'));
-            $actions[] = html_writer::link(new moodle_url($url, [
+            $actions[] = $OUTPUT->single_button(new moodle_url($url, [
                 'action' => 'submit', 'targettype' => $type, 'id' => $record->id, 'sesskey' => sesskey(),
-            ]), workflow::submit_action_label());
-        } else if ($record->status === workflow::APPROVED) {
+            ]), workflow::submit_action_label(), 'post');
+        } else if ($canedit && $record->status === workflow::APPROVED) {
             $actions[] = html_writer::link(new moodle_url($url, [
                 'action' => 'newversion', 'targettype' => $type, 'id' => $record->id,
             ]), get_string('newmappingversion', 'local_outcomemap'));
@@ -155,8 +176,9 @@ foreach (
         $table->data[] = [format_string($target), s($record->frameworkcode . '.' . $record->outcomecode
             . ' v' . $record->outcomeversion), get_string('mappingrole_' . $record->role, 'local_outcomemap'),
             $record->weight === null ? '' : s($record->weight), s($record->periodcode),
-            workflow::status_label($record->status), implode(' | ', $actions)];
+            workflow::status_label($record->status),
+            html_writer::div(implode(' ', $actions), 'd-flex flex-wrap align-items-center gap-2')];
     }
 }
-echo html_writer::table($table);
+echo html_writer::div(html_writer::table($table), 'table-responsive');
 echo $OUTPUT->footer();

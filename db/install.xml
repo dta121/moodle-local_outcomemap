@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/outcomemap/db" VERSION="20260728" COMMENT="XMLDB file for local_outcomemap"
+<XMLDB PATH="local/outcomemap/db" VERSION="20260730" COMMENT="XMLDB file for local_outcomemap"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
   <TABLES>
@@ -640,6 +640,25 @@
         <INDEX NAME="subjectref_ix" UNIQUE="false" FIELDS="subjectref"/>
         <INDEX NAME="sourceuuid_ix" UNIQUE="false" FIELDS="sourceuuid"/>
         <INDEX NAME="itemversuppressed_ix" UNIQUE="false" FIELDS="itemverid, suppressed"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_outcomemap_privkey" COMMENT="Erasable pseudonymisation keys for immutable snapshot subject references">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="userhash" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="keyvalue" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="legacyerased" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userhash_uq" TYPE="unique" FIELDS="userhash"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid_ix" UNIQUE="false" FIELDS="userid"/>
+        <INDEX NAME="legacyerased_ix" UNIQUE="false" FIELDS="legacyerased"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="local_outcomemap_audit" COMMENT="Append-only governance and mutation audit history">

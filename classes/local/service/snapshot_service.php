@@ -12,6 +12,7 @@ use local_outcomemap\local\audit_writer;
 use local_outcomemap\local\canonical_json;
 use local_outcomemap\local\decimal;
 use local_outcomemap\local\input;
+use local_outcomemap\local\privacy\subject_key_service;
 use local_outcomemap\local\uuid;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
@@ -36,8 +37,11 @@ final class snapshot_service extends base_service {
     /** Snapshot payload algorithm. */
     public const ALGO_VERSION = 'outcomemap-accreditation-v1';
 
-    /** Protected subject-reference method. */
-    public const SUBJECT_HASH_METHOD = 'hmac-sha256-site-secret-v1';
+    /** Erasable protected subject-reference method for new snapshots. */
+    public const SUBJECT_HASH_METHOD = 'hmac-sha256-subject-key-v2';
+
+    /** Legacy site-secret method retained for immutable historical snapshots. */
+    public const LEGACY_SUBJECT_HASH_METHOD = 'hmac-sha256-site-secret-v1';
 
     /** Snapshot item types. */
     public const ITEM_PROGRAM = 'program';
@@ -289,23 +293,63 @@ final class snapshot_service extends base_service {
     }
 
     /**
-     * Produce the protected snapshot-specific reference for a Moodle user.
+     * Produce an erasable snapshot-specific reference for a Moodle user.
      *
-     * This is intentionally recomputable only inside this Moodle site so an
-     * approved privacy deletion can locate privacy-deletable snapshot rows.
-     * The raw user ID and site secret are never persisted in snapshot items.
+     * New snapshots use random per-user key material. Privacy erasure forgets
+     * that key without changing immutable frozen rows or their hashes.
      *
      * @param string $snapshotuuid Snapshot UUID.
      * @param int $userid Moodle user ID.
      * @return string
      */
     public static function subject_reference(string $snapshotuuid, int $userid): string {
-        global $CFG;
-        $snapshotuuid = uuid::normalize($snapshotuuid);
-        if ($userid < 1 || empty($CFG->passwordsaltmain)) {
+        $reference = subject_key_service::reference($snapshotuuid, $userid, true);
+        if ($reference === null) {
             throw new validation_exception('invalidfield', 'userid', $userid);
         }
-        return hash_hmac('sha256', $snapshotuuid . ':' . $userid, (string) $CFG->passwordsaltmain);
+        return $reference;
+    }
+
+    /**
+     * Resolve an existing subject reference without issuing new key material.
+     *
+     * @param string $snapshotuuid Snapshot UUID.
+     * @param int $userid Moodle user ID.
+     * @param string $method Subject hash method frozen with the snapshot.
+     * @return string|null Existing reference, or null after privacy erasure.
+     */
+    public static function subject_reference_for_lookup(
+        string $snapshotuuid,
+        int $userid,
+        string $method
+    ): ?string {
+        if ($method === self::SUBJECT_HASH_METHOD) {
+            return subject_key_service::reference($snapshotuuid, $userid, false);
+        }
+        if ($method === self::LEGACY_SUBJECT_HASH_METHOD) {
+            return subject_key_service::legacy_reference($snapshotuuid, $userid);
+        }
+        return null;
+    }
+
+    /**
+     * Resolve references for many snapshots with one key/marker lookup.
+     *
+     * @param \stdClass[] $snapshots Records containing id, snapshotuuid, and subjecthashmethod.
+     * @param int $userid Moodle user ID.
+     * @return array<int,string> Resolvable subject references keyed by snapshot ID.
+     */
+    public static function subject_references_for_lookup(array $snapshots, int $userid): array {
+        $active = [];
+        $legacy = [];
+        foreach ($snapshots as $snapshot) {
+            if ((string) $snapshot->subjecthashmethod === self::SUBJECT_HASH_METHOD) {
+                $active[(int) $snapshot->id] = (string) $snapshot->snapshotuuid;
+            } else if ((string) $snapshot->subjecthashmethod === self::LEGACY_SUBJECT_HASH_METHOD) {
+                $legacy[(int) $snapshot->id] = (string) $snapshot->snapshotuuid;
+            }
+        }
+        return subject_key_service::references_for_lookup($active, $legacy, $userid);
     }
 
     /**

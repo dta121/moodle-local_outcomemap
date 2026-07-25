@@ -130,10 +130,12 @@ if ($action === 'view' && $id) {
     }
     ksort($counts, SORT_STRING);
 
+    $snapshotheading = get_string('snapshot', 'local_outcomemap') . ' '
+        . s($snapshot->snapshotuuid) . ' v' . (int) $snapshot->version;
     echo $OUTPUT->header();
-    echo $OUTPUT->heading(get_string('snapshot', 'local_outcomemap') . ' '
-        . s($snapshot->snapshotuuid) . ' v' . (int) $snapshot->version);
+    echo $OUTPUT->heading($snapshotheading);
     $details = new html_table();
+    $details->caption = $snapshotheading;
     $details->attributes['aria-label'] = get_string('snapshot', 'local_outcomemap');
     $details->data = [
         [get_string('program', 'local_outcomemap'), (int) $snapshot->programid],
@@ -153,7 +155,7 @@ if ($action === 'view' && $id) {
         [get_string('approvedby', 'local_outcomemap'),
             $snapshot->approvedby === null ? get_string('none') : (int) $snapshot->approvedby],
     ];
-    echo html_writer::table($details);
+    echo html_writer::div(html_writer::table($details), 'table-responsive');
     $itemtable = new html_table();
     $itemtable->caption = get_string('snapshotitems_caption', 'local_outcomemap');
     $itemtable->head = [
@@ -164,7 +166,7 @@ if ($action === 'view' && $id) {
     foreach ($counts as $type => $count) {
         $itemtable->data[] = [s($type), $count['total'], $count['suppressed']];
     }
-    echo html_writer::table($itemtable);
+    echo html_writer::div(html_writer::table($itemtable), 'table-responsive');
     if ($snapshot->status === snapshot_service::STATUS_FROZEN
             && has_capability('local/outcomemap:exportaccreditation', $context)) {
         echo $OUTPUT->single_button(new moodle_url('/local/outcomemap/export.php', [
@@ -234,5 +236,5 @@ foreach (snapshot_service::list_all() as $snapshot) {
         implode(' | ', $actions),
     ];
 }
-echo html_writer::table($table);
+echo html_writer::div(html_writer::table($table), 'table-responsive');
 echo $OUTPUT->footer();

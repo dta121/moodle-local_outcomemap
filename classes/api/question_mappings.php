@@ -25,7 +25,7 @@ use local_outcomemap\local\validation_exception;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class question_mappings {
-    public const API_VERSION = '1.0';
+    public const API_VERSION = '1.1';
 
     /**
      * Bulk-load mappings for a page of question versions.
@@ -45,6 +45,29 @@ final class question_mappings {
             );
         }
         return $result;
+    }
+
+    /**
+     * Build a parameterized exact-version mapped-state qbank filter.
+     *
+     * @param \context $context Question-bank context authorizing mapping metadata access.
+     * @param bool $mapped True for mapped versions, false for unmapped versions.
+     * @return array{0:string,1:array} WHERE fragment and named parameters.
+     */
+    public static function build_mapped_filter_query(\context $context, bool $mapped): array {
+        return question_mapping_service::build_mapped_filter_query($context, $mapped);
+    }
+
+    /**
+     * Build a parameterized exact-version outcome-code qbank filter.
+     *
+     * @param \context $context Question-bank context authorizing mapping metadata access.
+     * @param string[] $values Outcome-code or framework.outcome-code fragments.
+     * @param int $jointype Core data-filter join type.
+     * @return array{0:string,1:array} WHERE fragment and named parameters.
+     */
+    public static function build_outcome_filter_query(\context $context, array $values, int $jointype): array {
+        return question_mapping_service::build_outcome_filter_query($context, $values, $jointype);
     }
 
     /**

@@ -28,9 +28,10 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('dashboard_heading', 'local_outcomemap'));
 echo html_writer::tag('p', get_string('dashboard_summary', 'local_outcomemap'));
 $table = new html_table();
+$table->caption = get_string('dashboard_summary', 'local_outcomemap');
 $table->head = [get_string('objecttype', 'local_outcomemap'), get_string('count')];
 foreach ($counts as $type => $count) {
     $table->data[] = [get_string('nav_' . $type, 'local_outcomemap'), $count];
 }
-echo html_writer::table($table);
+echo html_writer::div(html_writer::table($table), 'table-responsive');
 echo $OUTPUT->footer();

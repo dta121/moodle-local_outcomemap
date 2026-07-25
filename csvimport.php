@@ -83,6 +83,7 @@ if ($preview === null) {
 } else {
     echo $OUTPUT->heading(get_string('importpreview', 'local_outcomemap'), 3);
     $table = new html_table();
+    $table->caption = get_string('importpreview', 'local_outcomemap');
     $table->head = array_merge([get_string('rownumber', 'local_outcomemap')],
         foundation_import_service::HEADERS[$entity], [get_string('validation', 'local_outcomemap')]);
     foreach ($preview->rows as $row) {
@@ -93,7 +94,7 @@ if ($preview === null) {
         $cells[] = $row->errors ? s(implode('; ', $row->errors)) : get_string('valid', 'local_outcomemap');
         $table->data[] = $cells;
     }
-    echo html_writer::table($table);
+    echo html_writer::div(html_writer::table($table), 'table-responsive');
     if ($preview->valid) {
         echo $OUTPUT->notification(get_string('importvalid', 'local_outcomemap'), 'notifysuccess');
         $commitform = new csv_commit_form($url);

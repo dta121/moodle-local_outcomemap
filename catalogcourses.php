@@ -83,6 +83,7 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('catalogcourses_heading', 'local_outcomemap'));
 echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']), get_string('addcatalogcourse', 'local_outcomemap'));
 $table = new html_table();
+$table->caption = get_string('catalogcourses_heading', 'local_outcomemap');
 $table->head = [get_string('code', 'local_outcomemap'), get_string('name', 'local_outcomemap'),
     get_string('status', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
 foreach (catalog_course_service::list_all() as $record) {
@@ -95,10 +96,11 @@ foreach (catalog_course_service::list_all() as $record) {
     $table->data[] = [s($record->code), format_string($record->name),
         workflow::status_label($record->status), implode(' | ', $actions)];
 }
-echo html_writer::table($table);
-echo $OUTPUT->heading(get_string('addprogramcourse', 'local_outcomemap'), 3);
+echo html_writer::div(html_writer::table($table), 'table-responsive');
+echo $OUTPUT->heading(get_string('programcoursememberships', 'local_outcomemap'), 3);
 echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'addmembership']), get_string('addprogramcourse', 'local_outcomemap'));
 $membershiptable = new html_table();
+$membershiptable->caption = get_string('programcoursememberships', 'local_outcomemap');
 $membershiptable->head = [get_string('program', 'local_outcomemap'), get_string('catalogcourse', 'local_outcomemap'),
     get_string('effectivefrom', 'local_outcomemap'), get_string('effectiveto', 'local_outcomemap'),
     get_string('status', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
@@ -112,5 +114,5 @@ foreach (program_course_service::list_all() as $record) {
         $record->effectiveto ? userdate($record->effectiveto) : get_string('none', 'local_outcomemap'),
         workflow::status_label($record->status), implode(' | ', $actions)];
 }
-echo html_writer::table($membershiptable);
+echo html_writer::div(html_writer::table($membershiptable), 'table-responsive');
 echo $OUTPUT->footer();

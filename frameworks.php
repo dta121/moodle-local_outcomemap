@@ -191,6 +191,7 @@ echo $OUTPUT->render_from_template('local_outcomemap/outcomes_hierarchy',
 
 // Framework governance fallback: draft frameworks are edited and submitted here.
 $fwtable = new html_table();
+$fwtable->caption = get_string('hier_frameworkadmin', 'local_outcomemap');
 $fwtable->head = [get_string('code', 'local_outcomemap'), get_string('name', 'local_outcomemap'),
     get_string('ownertype', 'local_outcomemap'), get_string('status', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
 foreach (framework_service::list_all() as $record) {
@@ -206,6 +207,6 @@ foreach (framework_service::list_all() as $record) {
 }
 echo html_writer::tag('details',
     html_writer::tag('summary', get_string('hier_frameworkadmin', 'local_outcomemap'))
-    . html_writer::table($fwtable),
+    . html_writer::div(html_writer::table($fwtable), 'table-responsive'),
     ['class' => 'lom-fwadmin']);
 echo $OUTPUT->footer();

@@ -7,9 +7,9 @@
     <div class="lom-subtitle">{{frameworksline}}</div>
 
     <div class="lom-toolbar">
-        <div class="lom-viewtoggle" role="group">
-            <button type="button" class="lom-viewbtn lom-active" data-lom-view="program">{{#str}} hier_byprogram, local_outcomemap {{/str}}</button>
-            <button type="button" class="lom-viewbtn" data-lom-view="course">{{#str}} hier_bycourse, local_outcomemap {{/str}}</button>
+        <div class="lom-viewtoggle" role="group" aria-label="{{#str}} hier_view, local_outcomemap {{/str}}">
+            <button type="button" class="lom-viewbtn lom-active" data-lom-view="program" aria-pressed="true">{{#str}} hier_byprogram, local_outcomemap {{/str}}</button>
+            <button type="button" class="lom-viewbtn" data-lom-view="course" aria-pressed="false">{{#str}} hier_bycourse, local_outcomemap {{/str}}</button>
         </div>
         <div class="lom-search">
             <span class="lom-search-icon" aria-hidden="true">&#128269;</span>
@@ -19,7 +19,7 @@
             <button type="button" id="lom-clear" class="lom-clear lom-hidden" aria-label="{{#str}} clear, core {{/str}}">&times;</button>
         </div>
         {{#hasunmapped}}
-        <button type="button" id="lom-chip" class="lom-chipbtn">{{#str}} hier_unmappedchip, local_outcomemap, {{unmappedcount}} {{/str}}</button>
+        <button type="button" id="lom-chip" class="lom-chipbtn" aria-pressed="false">{{#str}} hier_unmappedchip, local_outcomemap, {{unmappedcount}} {{/str}}</button>
         {{/hasunmapped}}
         <div class="lom-toolbar-right">
             <a class="lom-btn" href="{{exporturl}}">{{#str}} hier_exportcsv, local_outcomemap {{/str}}</a>
@@ -39,7 +39,7 @@
     </div>
     {{/hasunmapped}}
 
-    <div id="lom-noresults" class="lom-noresults lom-hidden">{{#str}} hier_noresults, local_outcomemap {{/str}}</div>
+    <div id="lom-noresults" class="lom-noresults lom-hidden" role="status" aria-live="polite">{{#str}} hier_noresults, local_outcomemap {{/str}}</div>
 
     <div id="lom-view-unmapped" class="lom-hidden">
         <div class="lom-card lom-card-warn">
@@ -72,6 +72,8 @@
                     <div class="lom-row lom-row-toggle" data-itemid="{{itemid}}" data-statement="{{statement}}"
                          data-editnote="{{editnote}}">
                         <button type="button" class="lom-chev" data-lom-toggle aria-expanded="false"
+                                data-expand-label="{{#str}} expand, core {{/str}}"
+                                data-collapse-label="{{#str}} collapse, core {{/str}}"
                                 aria-label="{{#str}} expand, core {{/str}}">&#9656;</button>
                         <span class="lom-badge lom-badge-plo">{{badge}}</span>
                         <span class="lom-text lom-text-plo" data-text="{{statement}}">{{statement}}</span>
@@ -80,7 +82,7 @@
                         {{#pendingbadge}}<span class="lom-pending">{{pendingbadge}}</span>{{/pendingbadge}}
                         {{#canapprove}}<a class="lom-action" href="{{approveurl}}">{{#str}} approve, local_outcomemap {{/str}}</a>{{/canapprove}}
                         {{#cansubmit}}<a class="lom-action" href="{{submiturl}}">{{submitlabel}}</a>{{/cansubmit}}
-                        {{#caneditinline}}<a class="lom-action" href="#" data-lom-edit role="button">{{#str}} edit, core {{/str}}</a>{{/caneditinline}}
+                        {{#caneditinline}}<button type="button" class="lom-action lom-action-button" data-lom-edit aria-expanded="false">{{#str}} edit, core {{/str}}</button>{{/caneditinline}}
                         {{#editformurl}}<a class="lom-action" href="{{editformurl}}">{{#str}} edit, core {{/str}}</a>{{/editformurl}}
                     </div>
                     <div class="lom-inline-slot"></div>
@@ -107,7 +109,9 @@
         <div class="lom-card lom-node lom-open" data-search="{{searchtext}}">
             <div class="lom-card-head lom-row-toggle">
                 <button type="button" class="lom-chev" data-lom-toggle aria-expanded="true"
-                        aria-label="{{#str}} expand, core {{/str}}">&#9662;</button>
+                        data-expand-label="{{#str}} expand, core {{/str}}"
+                        data-collapse-label="{{#str}} collapse, core {{/str}}"
+                        aria-label="{{#str}} collapse, core {{/str}}">&#9662;</button>
                 <span class="lom-card-title">{{course}}</span>
                 <span class="lom-card-sub">{{subtitle}}</span>
                 <span class="lom-card-count">{{countline}}</span>
@@ -118,6 +122,8 @@
                 <div class="lom-node lom-unmapped-section" data-search="">
                     <div class="lom-row lom-row-toggle lom-unmapped-head">
                         <button type="button" class="lom-chev" data-lom-toggle aria-expanded="false"
+                                data-expand-label="{{#str}} expand, core {{/str}}"
+                                data-collapse-label="{{#str}} collapse, core {{/str}}"
                                 aria-label="{{#str}} expand, core {{/str}}">&#9656;</button>
                         <span class="lom-unmapped-title">{{#str}} hier_unmappedunit_header, local_outcomemap {{/str}}</span>
                         <span class="lom-unmapped-count">{{unmappedcount}}</span>
@@ -137,22 +143,24 @@
     {{#pickers}}
     <template id="lom-picker-{{key}}">
         <form method="post" action="{{baseurl}}" class="lom-panel">
-            <input type="hidden" name="action" value="savemap">
-            <input type="hidden" name="sesskey" value="{{sesskey}}">
-            <input type="hidden" name="itemid" value="">
-            <div class="lom-panel-title">{{title}}</div>
-            <div class="lom-picker-opts">
-                {{#options}}
-                <label class="lom-opt">
-                    <input type="checkbox" name="targets[]" value="{{itemid}}">
-                    <span><strong>{{label}}</strong> &mdash; {{text}}</span>
-                </label>
-                {{/options}}
-            </div>
-            <div class="lom-panel-actions">
-                <button type="submit" class="lom-btn lom-btn-primary">{{#str}} hier_done, local_outcomemap {{/str}}</button>
-                <button type="button" class="lom-btn" data-lom-close>{{#str}} cancel, core {{/str}}</button>
-            </div>
+            <fieldset class="lom-panel-fieldset">
+                <legend class="lom-panel-title">{{title}}</legend>
+                <input type="hidden" name="action" value="savemap">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="itemid" value="">
+                <div class="lom-picker-opts">
+                    {{#options}}
+                    <label class="lom-opt">
+                        <input type="checkbox" name="targets[]" value="{{itemid}}">
+                        <span><strong>{{label}}</strong> &mdash; {{text}}</span>
+                    </label>
+                    {{/options}}
+                </div>
+                <div class="lom-panel-actions">
+                    <button type="submit" class="lom-btn lom-btn-primary">{{#str}} hier_done, local_outcomemap {{/str}}</button>
+                    <button type="button" class="lom-btn" data-lom-close>{{#str}} cancel, core {{/str}}</button>
+                </div>
+            </fieldset>
         </form>
     </template>
     {{/pickers}}
@@ -162,7 +170,8 @@
             <input type="hidden" name="action" value="savenewversion">
             <input type="hidden" name="sesskey" value="{{sesskey}}">
             <input type="hidden" name="itemid" value="">
-            <input type="text" name="statement" class="lom-edit-input" maxlength="1333" required>
+            <label class="lom-edit-label" for="lom-edit-statement">{{#str}} statement, local_outcomemap {{/str}}</label>
+            <input id="lom-edit-statement" type="text" name="statement" class="lom-edit-input" maxlength="1333" required>
             <div class="lom-panel-actions">
                 <button type="submit" class="lom-btn lom-btn-primary">{{#str}} hier_savenewversion, local_outcomemap {{/str}}</button>
                 <button type="button" class="lom-btn" data-lom-close>{{#str}} cancel, core {{/str}}</button>
@@ -188,12 +197,22 @@
     var chip = document.getElementById('lom-chip');
     var callout = document.getElementById('lom-callout');
     var noresults = document.getElementById('lom-noresults');
+    var activePanelTrigger = null;
 
-    function closePanels() {
+    function closePanels(restoreFocus) {
+        var trigger = activePanelTrigger;
         Array.prototype.forEach.call(root.querySelectorAll('.lom-inline-slot'), function(slot) {
             slot.innerHTML = '';
             slot.removeAttribute('data-panel');
         });
+        if (trigger) {
+            trigger.setAttribute('aria-expanded', 'false');
+            trigger.removeAttribute('aria-controls');
+        }
+        activePanelTrigger = null;
+        if (restoreFocus && trigger && document.contains(trigger)) {
+            trigger.focus();
+        }
     }
 
     function syncChevrons() {
@@ -205,6 +224,10 @@
             var open = n.classList.contains('lom-open') || n.classList.contains('lom-open-search');
             chev.innerHTML = open ? '&#9662;' : '&#9656;';
             chev.setAttribute('aria-expanded', open ? 'true' : 'false');
+            var label = open ? chev.getAttribute('data-collapse-label') : chev.getAttribute('data-expand-label');
+            if (label) {
+                chev.setAttribute('aria-label', label);
+            }
         });
     }
 
@@ -304,11 +327,13 @@
         views.course.classList.toggle('lom-hidden', state.unmappedOnly || state.view !== 'course');
         views.unmapped.classList.toggle('lom-hidden', !state.unmappedOnly);
         Array.prototype.forEach.call(root.querySelectorAll('[data-lom-view]'), function(btn) {
-            btn.classList.toggle('lom-active',
-                !state.unmappedOnly && btn.getAttribute('data-lom-view') === state.view);
+            var active = !state.unmappedOnly && btn.getAttribute('data-lom-view') === state.view;
+            btn.classList.toggle('lom-active', active);
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
         if (chip) {
             chip.classList.toggle('lom-active', state.unmappedOnly);
+            chip.setAttribute('aria-pressed', state.unmappedOnly ? 'true' : 'false');
         }
         if (callout) {
             callout.classList.toggle('lom-hidden',
@@ -325,20 +350,28 @@
         }
         var frag = tpl.content.cloneNode(true);
         var form = frag.querySelector('form');
-        form.querySelector('input[name=itemid]').value = row.getAttribute('data-itemid');
+        var itemid = row.getAttribute('data-itemid');
+        form.querySelector('input[name=itemid]').value = itemid;
+        form.id = 'lom-panel-' + itemid + '-' + templateId.replace(/[^a-zA-Z0-9_-]/g, '-');
         return form;
     }
 
-    function openPicker(row) {
+    function connectPanelTrigger(trigger, form) {
+        activePanelTrigger = trigger;
+        trigger.setAttribute('aria-expanded', 'true');
+        trigger.setAttribute('aria-controls', form.id);
+    }
+
+    function openPicker(row, trigger) {
         var slot = row.nextElementSibling;
         if (!slot || !slot.classList.contains('lom-inline-slot')) {
             return;
         }
         if (slot.getAttribute('data-panel') === 'map') {
-            closePanels();
+            closePanels(true);
             return;
         }
-        closePanels();
+        closePanels(false);
         var form = buildPanel('lom-picker-' + row.getAttribute('data-picker'), row);
         if (!form) {
             return;
@@ -353,24 +386,34 @@
             if (mapped.indexOf(parseInt(box.value, 10)) !== -1) {
                 box.checked = true;
                 box.disabled = true;
-                box.closest('label').classList.add('lom-locked');
-                box.closest('label').title = root.getAttribute('data-lockedmsg');
+                var label = box.closest('label');
+                label.classList.add('lom-locked');
+                label.title = root.getAttribute('data-lockedmsg');
+                var explanation = document.createElement('span');
+                explanation.className = 'sr-only';
+                explanation.textContent = root.getAttribute('data-lockedmsg');
+                label.appendChild(explanation);
             }
         });
         slot.setAttribute('data-panel', 'map');
         slot.appendChild(form);
+        connectPanelTrigger(trigger, form);
+        var firstcontrol = form.querySelector('input[type=checkbox]:not([disabled]), button');
+        if (firstcontrol) {
+            firstcontrol.focus();
+        }
     }
 
-    function openEdit(row) {
+    function openEdit(row, trigger) {
         var slot = row.nextElementSibling;
         if (!slot || !slot.classList.contains('lom-inline-slot')) {
             return;
         }
         if (slot.getAttribute('data-panel') === 'edit') {
-            closePanels();
+            closePanels(true);
             return;
         }
-        closePanels();
+        closePanels(false);
         var form = buildPanel('lom-edit-template', row);
         if (!form) {
             return;
@@ -379,6 +422,7 @@
         form.querySelector('[data-lom-editnote]').textContent = row.getAttribute('data-editnote');
         slot.setAttribute('data-panel', 'edit');
         slot.appendChild(form);
+        connectPanelTrigger(trigger, form);
         form.querySelector('input[name=statement]').focus();
     }
 
@@ -403,19 +447,19 @@
         }
         if (target.closest('[data-lom-close]')) {
             e.preventDefault();
-            closePanels();
+            closePanels(true);
             return;
         }
-        var mapLink = target.closest('[data-lom-map]');
-        if (mapLink) {
+        var mapButton = target.closest('[data-lom-map]');
+        if (mapButton) {
             e.preventDefault();
-            openPicker(mapLink.closest('.lom-row'));
+            openPicker(mapButton.closest('.lom-row'), mapButton);
             return;
         }
-        var editLink = target.closest('[data-lom-edit]');
-        if (editLink) {
+        var editButton = target.closest('[data-lom-edit]');
+        if (editButton) {
             e.preventDefault();
-            openEdit(editLink.closest('.lom-row'));
+            openEdit(editButton.closest('.lom-row'), editButton);
             return;
         }
         var toggle = target.closest('[data-lom-toggle]');
@@ -432,6 +476,13 @@
                 node.classList.toggle('lom-open');
                 syncChevrons();
             }
+        }
+    });
+
+    root.addEventListener('keydown', function(e) {
+        if ((e.key === 'Escape' || e.key === 'Esc') && e.target.closest('.lom-panel')) {
+            e.preventDefault();
+            closePanels(true);
         }
     });
 

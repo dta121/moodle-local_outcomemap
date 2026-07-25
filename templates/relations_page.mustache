@@ -23,13 +23,13 @@
         </div>
     </div>
     <div class="lom-page-stats">{{statsline}}</div>
-    <div id="lom-relation-noresults" class="lom-page-noresults lom-hidden">{{#str}} relations_noresults, local_outcomemap {{/str}}</div>
+    <div id="lom-relation-noresults" class="lom-page-noresults lom-hidden" role="status" aria-live="polite">{{#str}} relations_noresults, local_outcomemap {{/str}}</div>
 
     <div id="lom-relation-grouped">
         {{#groups}}
         <section class="lom-section lom-relation-group" data-search="{{searchtext}}">
             <div class="lom-section-head">
-                <span class="lom-section-title">{{title}}</span>
+                <h3 class="lom-section-title">{{title}}</h3>
                 <span class="lom-section-subtitle">{{subtitle}}</span>
                 <span class="lom-section-count">{{countline}}</span>
             </div>
@@ -41,8 +41,9 @@
                     <span class="lom-relation-arrow" aria-hidden="true">{{#str}} relations_aligns_to_short, local_outcomemap {{/str}}</span>
                     <span class="lom-targets">
                         {{#targets}}
-                        <span class="lom-target-chip" title="{{statement}}">
+                        <span class="lom-target-chip">
                             <strong>{{label}}</strong>
+                            <span class="lom-target-statement">{{statement}}</span>
                             <span class="lom-target-meta lom-workflow-{{statusclass}}">{{statuslabel}} · {{versionlabel}}{{#hasweight}} · {{weightlabel}}{{/hasweight}}</span>
                             {{#hasactions}}
                             <span class="lom-target-actions">
@@ -63,7 +64,7 @@
         {{#groups}}
         <section class="lom-section lom-relation-group" data-search="{{searchtext}}">
             <div class="lom-section-head">
-                <span class="lom-section-title">{{title}}</span>
+                <h3 class="lom-section-title">{{title}}</h3>
                 <span class="lom-section-subtitle">{{subtitle}}</span>
                 <span class="lom-section-count">{{countline}}</span>
             </div>
@@ -75,7 +76,10 @@
                         <tr>
                             <th scope="col" class="lom-matrix-source">{{#str}} sourceoutcome, local_outcomemap {{/str}}</th>
                             {{#columns}}
-                            <th scope="col" title="{{label}} — {{statement}}"><span>{{code}}</span></th>
+                            <th scope="col">
+                                <span class="lom-matrix-column-code">{{code}}</span>
+                                <span class="lom-matrix-column-statement">{{statement}}</span>
+                            </th>
                             {{/columns}}
                         </tr>
                     </thead>
@@ -99,6 +103,12 @@
                         {{/matrixrows}}
                     </tbody>
                 </table>
+            </div>
+            <div class="lom-matrix-legend" role="list" aria-label="{{#str}} relations_matrix_legend, local_outcomemap {{/str}}">
+                <span role="listitem"><span class="lom-matrix-dot lom-dot-approved" aria-hidden="true"></span>{{#str}} status_approved, local_outcomemap {{/str}}</span>
+                <span role="listitem"><span class="lom-matrix-dot lom-dot-review" aria-hidden="true"></span>{{#str}} status_needs_review, local_outcomemap {{/str}}</span>
+                <span role="listitem"><span class="lom-matrix-dot lom-dot-draft" aria-hidden="true"></span>{{#str}} status_draft, local_outcomemap {{/str}}</span>
+                <span role="listitem"><span class="lom-matrix-dot lom-dot-retired" aria-hidden="true"></span>{{#str}} status_retired, local_outcomemap {{/str}}</span>
             </div>
             <div class="lom-matrix-help">{{#str}} relations_matrix_help, local_outcomemap {{/str}}</div>
             {{/hasmatrix}}

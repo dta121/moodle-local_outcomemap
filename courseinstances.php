@@ -59,6 +59,7 @@ echo html_writer::tag('p', get_string('courseinstances_coursevisibility', 'local
 ]);
 echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']), get_string('addcourseinstance', 'local_outcomemap'));
 $table = new html_table();
+$table->caption = get_string('courseinstances_heading', 'local_outcomemap');
 $table->head = [get_string('catalogcourse', 'local_outcomemap'), get_string('moodlecourse', 'local_outcomemap'),
     get_string('periodcode', 'local_outcomemap'), get_string('status', 'local_outcomemap'),
     get_string('confirmed', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
@@ -72,5 +73,5 @@ foreach (course_instance_service::list_all() as $record) {
         workflow::status_label($record->status), $record->confirmed ? get_string('yes') : get_string('no'),
         implode(' | ', $actions)];
 }
-echo html_writer::table($table);
+echo html_writer::div(html_writer::table($table), 'table-responsive');
 echo $OUTPUT->footer();

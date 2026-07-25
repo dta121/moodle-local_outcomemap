@@ -38,6 +38,7 @@ if ($action === 'approve' && $id && $objecttype) {
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('approvalqueue_heading', 'local_outcomemap'));
 $table = new html_table();
+$table->caption = get_string('approvalqueue_heading', 'local_outcomemap');
 $table->head = [get_string('objecttype', 'local_outcomemap'), get_string('code', 'local_outcomemap'),
     get_string('name', 'local_outcomemap'), get_string('createdby', 'local_outcomemap'),
     get_string('timemodified', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
@@ -46,5 +47,5 @@ foreach (approval_service::list_pending() as $record) {
     $table->data[] = [s($record->objecttype), s($record->code), s($record->name), (int) $record->createdby,
         userdate($record->timemodified), html_writer::link($approveurl, get_string('approve', 'local_outcomemap'))];
 }
-echo html_writer::table($table);
+echo html_writer::div(html_writer::table($table), 'table-responsive');
 echo $OUTPUT->footer();
