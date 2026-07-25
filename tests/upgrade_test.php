@@ -31,8 +31,30 @@ require_once($CFG->dirroot . '/local/outcomemap/db/upgrade.php');
  * @coversNothing
  */
 final class upgrade_test extends \advanced_testcase {
-    /** Current plugin version under test. */
-    private const CURRENT_VERSION = 2026072701;
+    /**
+     * Return the version of the last savepoint in the upgrade script.
+     *
+     * Derived rather than hardcoded: a literal here silently goes stale every
+     * time a savepoint is added, which reports as three failing upgrade tests
+     * instead of the missing update it actually is. Note this is deliberately
+     * not $plugin->version, which legitimately moves ahead of the last
+     * savepoint whenever a release carries no schema change.
+     *
+     * @return int Highest savepoint version in db/upgrade.php.
+     */
+    private function final_savepoint_version(): int {
+        global $CFG;
+
+        $source = file_get_contents($CFG->dirroot . '/local/outcomemap/db/upgrade.php');
+        $this->assertNotFalse($source, 'db/upgrade.php could not be read.');
+        $found = preg_match_all(
+            '/upgrade_plugin_savepoint\(\s*true\s*,\s*(\d+)\s*,/',
+            $source,
+            $matches
+        );
+        $this->assertGreaterThan(0, $found, 'No upgrade savepoints found.');
+        return max(array_map('intval', $matches[1]));
+    }
 
     /**
      * Executes an upgrade from the supplied version with a matching saved version.
@@ -42,7 +64,10 @@ final class upgrade_test extends \advanced_testcase {
     private function run_upgrade_from(int $oldversion): void {
         set_config('version', $oldversion, 'local_outcomemap');
         $this->assertTrue(xmldb_local_outcomemap_upgrade($oldversion));
-        $this->assertSame(self::CURRENT_VERSION, (int) get_config('local_outcomemap', 'version'));
+        $this->assertSame(
+            $this->final_savepoint_version(),
+            (int) get_config('local_outcomemap', 'version')
+        );
     }
 
     /**

@@ -595,12 +595,15 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
             $dbman->add_field($table, $field);
         }
 
-        // The foreign key creates its own index on sourceqmapid; a separate
-        // sourceqmapid index would collide with it in XMLDB.
+        // The foreign key supplies its own index on sourceqmapid, so no separate
+        // sourceqmapid index is declared -- one would collide with it in XMLDB.
+        // Guard on that index alone: find_key_name() reports a match here even
+        // when the index has not been created, which skipped the add entirely
+        // and left the upgraded schema short of install.xml.
         $key = new xmldb_key('sourceqmap_fk', XMLDB_KEY_FOREIGN,
             ['sourceqmapid'], 'local_outcomemap_qmap', ['id']);
         $keyindex = new xmldb_index('sourceqmap_fk', XMLDB_INDEX_NOTUNIQUE, ['sourceqmapid']);
-        if (!$dbman->index_exists($table, $keyindex) && !$dbman->find_key_name($table, $key)) {
+        if (!$dbman->index_exists($table, $keyindex)) {
             $dbman->add_key($table, $key);
         }
 

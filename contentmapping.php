@@ -158,7 +158,10 @@ if ($action === 'apply') {
 
 $PAGE->set_context($context);
 $PAGE->set_course($course);
-$PAGE->set_url($stateurl);
+// The canonical URL must stay free of view state: Moodle matches the course
+// navigation node against $PAGE->url with URL_MATCH_EXACT, and that match is
+// what renders the report selector shared with the other course pages.
+$PAGE->set_url($url);
 $PAGE->set_pagelayout('incourse');
 $PAGE->set_title(get_string('contentmapping_heading', 'local_outcomemap'));
 $PAGE->set_heading($course->fullname);
