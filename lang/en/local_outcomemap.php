@@ -365,6 +365,7 @@ $string['bulkonlydrafts'] = 'Mapping ID {$a} is no longer a draft and cannot be 
 $string['bulkpreviewinvalid'] = 'The bulk operation has validation errors and was not committed: {$a->detail}';
 $string['bulkpreviewstale'] = 'The selected questions or mappings changed after the preview. Preview the operation again before committing.';
 $string['bulklocktimeout'] = 'Another mapping operation is updating question ID {$a->detail}. Wait and preview this bulk operation again.';
+$string['privacysecretunavailable'] = 'The privacy subject secret could not be initialised ({$a->detail}). Try again shortly.';
 
 $string['taskreconcile'] = 'Reconcile outcome evidence and stale results';
 $string['invalidpolicyconfig'] = 'The policy configuration field {$a->field} is invalid: {$a->detail}';

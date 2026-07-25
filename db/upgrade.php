@@ -612,5 +612,19 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026072702, 'local', 'outcomemap');
     }
 
+    if ($oldversion < 2026072703) {
+        // Subject markers move off the legacy $CFG->passwordsaltmain, which
+        // modern Moodle neither sets nor uses, onto a durable plugin secret.
+        // Seed from the legacy value while it is still present so every marker
+        // already issued keeps hashing to the same value; erased markers retain
+        // no user ID and could never be recomputed under a different secret.
+        if (get_config('local_outcomemap', 'privacysubjectsecret') === false
+                && !empty($CFG->passwordsaltmain)) {
+            set_config('privacysubjectsecret', (string) $CFG->passwordsaltmain, 'local_outcomemap');
+        }
+
+        upgrade_plugin_savepoint(true, 2026072703, 'local', 'outcomemap');
+    }
+
     return true;
 }

@@ -35,10 +35,14 @@ use local_outcomemap\local\workflow;
  */
 final class provider_test extends \core_privacy\tests\provider_testcase {
     /**
-     * Guarantee the site secret the pseudonymous subject keys are derived from.
+     * Guarantee the legacy site secret used by pre-v2 snapshot references.
      *
-     * subject_key_service refuses to hash without $CFG->passwordsaltmain, and a
-     * PHPUnit site has none by default, so every test in this class needs it.
+     * Active subject markers derive from a durable plugin secret and no longer
+     * need this. Legacy references still reproduce hashes frozen under
+     * $CFG->passwordsaltmain, which a PHPUnit site does not set by default, so
+     * the legacy-resolution coverage in this class supplies one.
+     *
+     * @see subject_key_service_test for coverage without any legacy secret.
      */
     protected function setUp(): void {
         global $CFG;

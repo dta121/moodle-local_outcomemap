@@ -33,6 +33,9 @@ final class subject_key_service {
     /** Namespaced marker that can never be a positive integer user marker. */
     private const GLOBAL_LEGACY_ERASURE_MARKER = 'global-legacy-erasure';
 
+    /** Plugin config name holding the durable marker secret. */
+    private const SECRET_CONFIG_NAME = 'privacysubjectsecret';
+
     /**
      * Return a v2 snapshot reference, optionally creating fresh key material.
      *
@@ -122,7 +125,10 @@ final class subject_key_service {
 
         $legacyblocked = ($userrecord && (int) $userrecord->legacyerased === 1)
             || ($globalrecord && (int) $globalrecord->legacyerased === 1);
-        if (!$legacyblocked) {
+        // Legacy references reproduce hashes frozen under the legacy site
+        // secret, so they are only resolvable while that secret still exists.
+        // Without it they are unresolvable, never hashed with an empty key.
+        if (!$legacyblocked && !empty($CFG->passwordsaltmain)) {
             foreach ($legacy as $snapshotid => $snapshotuuid) {
                 $references[(int) $snapshotid] = hash_hmac(
                     'sha256',
@@ -284,15 +290,13 @@ final class subject_key_service {
      * @return string
      */
     private static function user_hash(int $userid): string {
-        global $CFG;
-
-        if ($userid < 1 || empty($CFG->passwordsaltmain)) {
+        if ($userid < 1) {
             throw new validation_exception('invalidfield', 'userid', $userid);
         }
         return hash_hmac(
             'sha256',
             'local_outcomemap:privacy-subject:' . $userid,
-            (string) $CFG->passwordsaltmain
+            self::site_secret()
         );
     }
 
@@ -302,15 +306,56 @@ final class subject_key_service {
      * @return string
      */
     private static function global_marker_hash(): string {
-        global $CFG;
-
-        if (empty($CFG->passwordsaltmain)) {
-            throw new validation_exception('invalidfield', 'userid', 'site secret unavailable');
-        }
         return hash_hmac(
             'sha256',
             'local_outcomemap:privacy-subject:' . self::GLOBAL_LEGACY_ERASURE_MARKER,
-            (string) $CFG->passwordsaltmain
+            self::site_secret()
         );
+    }
+
+    /**
+     * Return the durable plugin-owned secret used to derive subject markers.
+     *
+     * Markers must stay stable for the life of the site. An erased record keeps
+     * only its hash marker, so a changed secret would orphan those markers and
+     * make already-erased users appear un-erased. The secret is therefore
+     * generated once and stored in plugin configuration rather than read from
+     * site configuration on each call.
+     *
+     * Sites that issued markers under the legacy `$CFG->passwordsaltmain` seed
+     * from that value, which preserves every existing marker byte-for-byte.
+     * That setting is a pre-2.5 password-salting leftover that modern Moodle
+     * neither sets nor uses, so sites without it get fresh random key material
+     * instead of failing.
+     *
+     * @return string
+     */
+    private static function site_secret(): string {
+        global $CFG;
+
+        $secret = get_config('local_outcomemap', self::SECRET_CONFIG_NAME);
+        if (is_string($secret) && $secret !== '') {
+            return $secret;
+        }
+
+        // Serialize generation so concurrent requests cannot store rival
+        // secrets, which would orphan any marker written by the loser.
+        $factory = \core\lock\lock_config::get_lock_factory('local_outcomemap');
+        $lock = $factory->get_lock('privacy_subject_secret', 10);
+        if (!$lock) {
+            throw new validation_exception('privacysecretunavailable', 'userid', 'lock timeout');
+        }
+        try {
+            $secret = get_config('local_outcomemap', self::SECRET_CONFIG_NAME);
+            if (!is_string($secret) || $secret === '') {
+                $secret = !empty($CFG->passwordsaltmain)
+                    ? (string) $CFG->passwordsaltmain
+                    : bin2hex(random_bytes(32));
+                set_config(self::SECRET_CONFIG_NAME, $secret, 'local_outcomemap');
+            }
+        } finally {
+            $lock->release();
+        }
+        return $secret;
     }
 }
