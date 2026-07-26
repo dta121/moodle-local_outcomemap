@@ -14,7 +14,34 @@ use local_outcomemap\local\workflow;
 
 /** Public context-scoped search service for approved effective outcomes. */
 final class outcome_search {
-    public const API_VERSION = '1.0';
+    /** 1.1 adds {@see count()} and the optional search offset. */
+    public const API_VERSION = '1.1';
+
+    /**
+     * Count approved outcome versions visible in a Moodle context.
+     *
+     * Callers that page or cap {@see search()} use this to report how much of
+     * the visible set they are showing, rather than implying the list is whole.
+     *
+     * @param \context $context Authoritative caller context.
+     * @param string $query Code or statement fragment.
+     * @param int|null $effectiveat Effective timestamp; defaults to now.
+     * @return int Total matching outcome versions.
+     */
+    public static function count(\context $context, string $query = '', ?int $effectiveat = null): int {
+        global $DB;
+        require_capability('local/outcomemap:viewdefinitions', $context);
+        $effectiveat = $effectiveat ?? time();
+        [$where, $params] = self::build_filter($context, $query, $effectiveat);
+        return (int) $DB->count_records_sql(
+            "SELECT COUNT(1)
+               FROM {local_outcomemap_itemver} v
+               JOIN {local_outcomemap_item} i ON i.id = v.itemid
+               JOIN {local_outcomemap_fw} f ON f.id = i.frameworkid
+              WHERE " . implode(' AND ', $where),
+            $params
+        );
+    }
 
     /**
      * Search approved outcome versions visible in a Moodle context.
@@ -23,36 +50,17 @@ final class outcome_search {
      * @param string $query Code or statement fragment.
      * @param int|null $effectiveat Effective timestamp; defaults to now.
      * @param int $limit Maximum 1-200 records.
+     * @param int $offset Records to skip, for callers paging a larger set.
      * @return outcome[]
      */
     public static function search(\context $context, string $query = '', ?int $effectiveat = null,
-            int $limit = 50): array {
+            int $limit = 50, int $offset = 0): array {
         global $DB;
         require_capability('local/outcomemap:viewdefinitions', $context);
         $effectiveat = $effectiveat ?? time();
         $limit = max(1, min(200, $limit));
-        $params = [
-            'approvedfw' => workflow::APPROVED,
-            'approveditem' => workflow::APPROVED,
-            'approvedversion' => workflow::APPROVED,
-            'effectiveat1' => $effectiveat,
-            'effectiveat2' => $effectiveat,
-        ];
-        $where = [
-            'f.status = :approvedfw',
-            'i.status = :approveditem',
-            'v.status = :approvedversion',
-            'v.effectivefrom <= :effectiveat1',
-            '(v.effectiveto IS NULL OR v.effectiveto > :effectiveat2)',
-        ];
-        $query = trim(clean_param($query, PARAM_TEXT));
-        if ($query !== '') {
-            $params['querycode'] = '%' . $DB->sql_like_escape($query) . '%';
-            $params['querystatement'] = '%' . $DB->sql_like_escape($query) . '%';
-            $where[] = '(' . $DB->sql_like('i.code', ':querycode', false)
-                . ' OR ' . $DB->sql_like('v.statement', ':querystatement', false) . ')';
-        }
-        self::add_context_scope($context, $effectiveat, $where, $params);
+        $offset = max(0, $offset);
+        [$where, $params] = self::build_filter($context, $query, $effectiveat);
         $sql = "SELECT v.id, i.uuid, i.code, f.uuid AS frameworkuuid, f.code AS frameworkcode,
                        v.uuid AS versionuuid, v.version, v.statement, v.shortstatement,
                        v.bloomlevel, v.effectivefrom, v.effectiveto
@@ -61,7 +69,7 @@ final class outcome_search {
                   JOIN {local_outcomemap_fw} f ON f.id = i.frameworkid
                  WHERE " . implode(' AND ', $where) . '
               ORDER BY f.code, i.code, v.version DESC';
-        $records = $DB->get_records_sql($sql, $params, 0, $limit);
+        $records = $DB->get_records_sql($sql, $params, $offset, $limit);
         $results = [];
         foreach ($records as $record) {
             $results[] = new outcome(
@@ -124,6 +132,44 @@ final class outcome_search {
         if (!$DB->record_exists_sql($sql, $params)) {
             throw new validation_exception('recordnotfound', 'outcome_version', $versionuuid);
         }
+    }
+
+    /**
+     * Build the shared approved-and-effective filter with owner scoping.
+     *
+     * Extracted so {@see search()} and {@see count()} can never disagree about
+     * which outcome versions a context may see.
+     *
+     * @param \context $context Authoritative caller context.
+     * @param string $query Code or statement fragment.
+     * @param int $effectiveat Effective timestamp.
+     * @return array{0:string[],1:array} WHERE fragments and named parameters.
+     */
+    private static function build_filter(\context $context, string $query, int $effectiveat): array {
+        global $DB;
+        $params = [
+            'approvedfw' => workflow::APPROVED,
+            'approveditem' => workflow::APPROVED,
+            'approvedversion' => workflow::APPROVED,
+            'effectiveat1' => $effectiveat,
+            'effectiveat2' => $effectiveat,
+        ];
+        $where = [
+            'f.status = :approvedfw',
+            'i.status = :approveditem',
+            'v.status = :approvedversion',
+            'v.effectivefrom <= :effectiveat1',
+            '(v.effectiveto IS NULL OR v.effectiveto > :effectiveat2)',
+        ];
+        $query = trim(clean_param($query, PARAM_TEXT));
+        if ($query !== '') {
+            $params['querycode'] = '%' . $DB->sql_like_escape($query) . '%';
+            $params['querystatement'] = '%' . $DB->sql_like_escape($query) . '%';
+            $where[] = '(' . $DB->sql_like('i.code', ':querycode', false)
+                . ' OR ' . $DB->sql_like('v.statement', ':querystatement', false) . ')';
+        }
+        self::add_context_scope($context, $effectiveat, $where, $params);
+        return [$where, $params];
     }
 
     /** Add owner scoping for non-system contexts. */

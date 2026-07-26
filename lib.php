@@ -113,6 +113,21 @@ function local_outcomemap_coursemodule_edit_post_actions(stdClass $moduleinfo, s
 }
 
 /**
+ * Whether the companion question-bank plugin is installed and enabled.
+ *
+ * The question mapping page links into `qbank_outcomemap` for per-question and
+ * bulk editing, so it is offered only when that plugin can serve those pages.
+ *
+ * @return bool
+ */
+function local_outcomemap_qbank_available(): bool {
+    if (!core_component::get_component_directory('qbank_outcomemap')) {
+        return false;
+    }
+    return \core\plugininfo\qbank::is_plugin_enabled('qbank_outcomemap');
+}
+
+/**
  * Add course outcome-mapping pages to course navigation.
  *
  * @param navigation_node $navigation Course navigation node.
@@ -161,6 +176,13 @@ function local_outcomemap_extend_navigation_course(
             new moodle_url('/local/outcomemap/contentmapping.php', ['courseid' => $course->id]),
             navigation_node::TYPE_SETTING
         );
+        if (local_outcomemap_qbank_available()) {
+            $node->add(
+                get_string('nav_questionmapping', 'local_outcomemap'),
+                new moodle_url('/local/outcomemap/questionmapping.php', ['courseid' => $course->id]),
+                navigation_node::TYPE_SETTING
+            );
+        }
         $node->add(
             get_string('nav_remediation', 'local_outcomemap'),
             new moodle_url('/local/outcomemap/remediation.php', ['courseid' => $course->id]),

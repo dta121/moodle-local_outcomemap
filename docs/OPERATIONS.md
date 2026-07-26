@@ -45,9 +45,10 @@ Review role overrides after changing archetypes. In particular, a course or modu
 1. Open **Course outcome mapping > Outcome coverage** to inspect the exact approved outcome versions and mapped course content.
 2. Use **Content mappings** to draft section or activity/resource mappings. Select the mapping role deliberately; `teaches`, `practices`, `remediates`, and `alignment_only` do not become assessed evidence merely because a mapping exists.
 3. For `assesses`, enter an approved explicit decimal weight. Never infer equal weights for a multi-outcome item.
-4. Use **Remediation** to curate an approved course module, section, or HTTP(S) URL for an exact outcome version and optional performance band. Learners see only released recommendations that pass current Moodle visibility, availability, group, and access checks.
-5. Submit drafts for review. Approved records are immutable; create a new version for later changes.
-6. Use **Manual feedback release** only for an effective approved manual-release policy. Release is audited and cannot be reversed.
+4. Use **Question mappings** to browse the course's quizzes, drill into the exact question versions each quiz uses, and map outcomes onto them without leaving the course. The page appears only when `qbank_outcomemap` is installed and enabled. Random slots list the pool a draw can select from, so a randomised exam can be mapped question by question. The assessed weight entered there applies to every selected question: a weight splits one question's marks across the outcomes that question assesses, so `1.0000000000` is correct when the outcome is the only one each selected question assesses. Relative influence on an outcome comes from each question's maximum mark in the quiz, not from the mapping weight.
+5. Use **Remediation** to curate an approved course module, section, or HTTP(S) URL for an exact outcome version and optional performance band. Learners see only released recommendations that pass current Moodle visibility, availability, group, and access checks.
+6. Submit drafts for review. Approved records are immutable; create a new version for later changes.
+7. Use **Manual feedback release** only for an effective approved manual-release policy. Release is audited and cannot be reversed.
 
 Question authors use the companion workflow documented in the `qbank_outcomemap` operations guide. Every question mapping binds to `question_versions.id`, not only a question-bank entry.
 

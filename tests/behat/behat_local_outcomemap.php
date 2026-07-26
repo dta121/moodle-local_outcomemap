@@ -649,4 +649,118 @@ class behat_local_outcomemap extends behat_base {
             );
         }
     }
+
+    /**
+     * Adds a random-question slot drawing from one question category.
+     *
+     * Core provides no declarative step for random slots, and a randomised exam
+     * is the case the question mapping page's pool expansion exists for.
+     *
+     * @Given /^quiz "([^"]+)" contains a random question from category "([^"]+)"$/
+     * @param string $quizname Quiz activity name.
+     * @param string $categoryname Question category name.
+     */
+    public function quiz_contains_a_random_question_from_category(string $quizname, string $categoryname): void {
+        global $DB;
+        $quizid = (int) $DB->get_field('quiz', 'id', ['name' => $quizname], MUST_EXIST);
+        $categoryid = (int) $DB->get_field('question_categories', 'id', ['name' => $categoryname], MUST_EXIST);
+        $structure = \mod_quiz\structure::create_for_quiz(\mod_quiz\quiz_settings::create($quizid));
+        $structure->add_random_questions(0, 1, [
+            'filter' => [
+                'category' => [
+                    'values' => [$categoryid],
+                    'filteroptions' => ['includesubcategories' => false],
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Opens the course question mapping page at its quiz picker.
+     *
+     * @When /^I am on the "([^"]+)" course question mapping page$/
+     * @param string $courseshortname Moodle course shortname.
+     */
+    public function i_am_on_the_course_question_mapping_index(string $courseshortname): void {
+        global $DB;
+        $courseid = (int) $DB->get_field('course', 'id', ['shortname' => $courseshortname], MUST_EXIST);
+        $this->execute('behat_general::i_visit', [
+            new moodle_url('/local/outcomemap/questionmapping.php', ['courseid' => $courseid]),
+        ]);
+    }
+
+    /**
+     * Opens the course question mapping page already drilled into one quiz.
+     *
+     * @When /^I am on the "([^"]+)" course question mapping page for quiz "([^"]+)"$/
+     * @param string $courseshortname Moodle course shortname.
+     * @param string $quizname Quiz activity name.
+     */
+    public function i_am_on_the_course_question_mapping_page(string $courseshortname, string $quizname): void {
+        global $DB;
+        $courseid = (int) $DB->get_field('course', 'id', ['shortname' => $courseshortname], MUST_EXIST);
+        $cmid = (int) $DB->get_field_sql(
+            "SELECT cm.id
+               FROM {course_modules} cm
+               JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
+               JOIN {quiz} q ON q.id = cm.instance
+              WHERE cm.course = :courseid AND q.name = :name",
+            ['courseid' => $courseid, 'name' => $quizname],
+            MUST_EXIST
+        );
+        $this->execute('behat_general::i_visit', [
+            new moodle_url('/local/outcomemap/questionmapping.php', ['courseid' => $courseid, 'cmid' => $cmid]),
+        ]);
+    }
+
+    /**
+     * Ticks one question's mapping checkbox by its exact resolved version.
+     *
+     * The checkbox value carries the question-version ID rather than a name, so
+     * the step resolves the same version the page rendered.
+     *
+     * @When /^I select question "([^"]+)" for outcome mapping$/
+     * @param string $questionname Question name.
+     */
+    public function i_select_question_for_outcome_mapping(string $questionname): void {
+        global $DB;
+        $versionid = (int) $DB->get_field_sql(
+            "SELECT MAX(qv.id)
+               FROM {question_versions} qv
+               JOIN {question} q ON q.id = qv.questionid
+              WHERE q.name = :name",
+            ['name' => $questionname],
+            MUST_EXIST
+        );
+        $this->execute('behat_forms::i_set_the_field_with_xpath_to', [
+            "//input[@name='questions[]' and @value='qv-{$versionid}']",
+            '1',
+        ]);
+    }
+
+    /**
+     * Ticks one outcome's mapping checkbox by its approved version UUID.
+     *
+     * @When /^I select outcome "([^"]+)" for question mapping$/
+     * @param string $outcomecode Outcome code.
+     */
+    public function i_select_outcome_for_question_mapping(string $outcomecode): void {
+        global $DB;
+        $uuid = (string) $DB->get_field_sql(
+            "SELECT v.uuid
+               FROM {local_outcomemap_itemver} v
+               JOIN {local_outcomemap_item} i ON i.id = v.itemid
+              WHERE i.code = :code AND v.status = :status
+           ORDER BY v.version DESC",
+            ['code' => $outcomecode, 'status' => workflow::APPROVED],
+            IGNORE_MULTIPLE
+        );
+        if ($uuid === '') {
+            throw new \RuntimeException("No approved outcome version found for code {$outcomecode}.");
+        }
+        $this->execute('behat_forms::i_set_the_field_with_xpath_to', [
+            "//input[@name='outcomes[]' and @value='{$uuid}']",
+            '1',
+        ]);
+    }
 }
