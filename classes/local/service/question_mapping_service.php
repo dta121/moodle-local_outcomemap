@@ -60,7 +60,40 @@ final class question_mapping_service extends base_service {
      */
     public static function create(array $data): int {
         $record = self::build_record($data, uuid::normalize_or_generate($data['mappinguuid'] ?? null), 1);
-        return self::insert($record, 'create', $data['reason'] ?? null);
+        $id = self::insert($record, 'create', $data['reason'] ?? null);
+        self::maybe_autosubmit($record, $id, $data['reason'] ?? null);
+        return $id;
+    }
+
+    /**
+     * Submit a freshly created mapping when the site opts out of manual submission.
+     *
+     * An assessed mapping cannot be submitted on its own unless the question
+     * version's assessed weights already total exactly 1.0000000000, so a
+     * multi-outcome set stays draft until its final member is created and the
+     * total lands — at which point the existing set-approval carries the whole
+     * group through together. Submission failures are therefore an expected
+     * intermediate state, not an error, and leave the record a draft.
+     *
+     * Copies are excluded: a mapping carried onto a new question version is
+     * deliberately a draft until someone confirms it still applies.
+     *
+     * @param \stdClass $record The inserted mapping record.
+     * @param int $id The new mapping ID.
+     * @param string|null $reason Optional audit reason.
+     * @return void
+     */
+    private static function maybe_autosubmit(\stdClass $record, int $id, ?string $reason): void {
+        if (!workflow::autosubmits_question_mappings() || $record->sourceqmapid !== null) {
+            return;
+        }
+        try {
+            self::submit_for_review($id, $reason);
+        } catch (validation_exception $e) {
+            // The set is not complete yet; the mapping stays a draft.
+            debugging('local_outcomemap: question mapping ' . $id . ' left as a draft by autosubmit: '
+                . $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 
     /**

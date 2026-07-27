@@ -38,6 +38,19 @@ final class workflow {
     }
 
     /**
+     * Whether a newly created question mapping submits itself.
+     *
+     * Off unless an administrator opts in, so the draft-then-submit boundary
+     * stays the default. With independent approval also disabled, this carries
+     * a mapping all the way to approved at creation.
+     *
+     * @return bool
+     */
+    public static function autosubmits_question_mappings(): bool {
+        return (bool) get_config('local_outcomemap', 'autosubmitquestionmappings');
+    }
+
+    /**
      * Return the visible action label for the submission boundary.
      *
      * @return string

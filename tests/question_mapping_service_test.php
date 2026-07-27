@@ -758,4 +758,104 @@ final class question_mapping_service_test extends \advanced_testcase {
         $this->assertSame('0.9999999999', decimal::add('0.9999999998', '0.0000000001'));
         $this->assertSame('2.5000000000', decimal::add('1.2500000000', '1.2500000000'));
     }
+
+    /**
+     * Autosubmit finalizes a sole assessed mapping without a manual submit step.
+     */
+    public function test_autosubmit_finalizes_a_single_assessed_mapping(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+        set_config('autosubmitquestionmappings', 1, 'local_outcomemap');
+        $reviewer = $this->create_reviewer();
+        $itemverids = $this->create_outcomes($reviewer, ['CLO1']);
+        $question = $this->create_question();
+
+        $id = question_mapping_service::create([
+            'questionversionid' => $question->versionid,
+            'itemverid' => $itemverids['CLO1'],
+            'role' => 'assesses',
+            'weight' => '1',
+            'effectivefrom' => self::EFFECTIVEFROM,
+        ]);
+        $this->assertSame(workflow::APPROVED, question_mapping_service::get($id)->status);
+    }
+
+    /**
+     * A multi-outcome assessed set stays draft until its weights total 1.0, then
+     * the final creation carries the whole set through together.
+     */
+    public function test_autosubmit_defers_until_a_multi_outcome_set_totals_one(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+        set_config('autosubmitquestionmappings', 1, 'local_outcomemap');
+        $reviewer = $this->create_reviewer();
+        $itemverids = $this->create_outcomes($reviewer, ['CLO1', 'CLO2', 'CLO3', 'CLO4']);
+        $question = $this->create_question();
+
+        $ids = [];
+        foreach (['CLO1', 'CLO2', 'CLO3'] as $code) {
+            $ids[$code] = question_mapping_service::create([
+                'questionversionid' => $question->versionid,
+                'itemverid' => $itemverids[$code],
+                'role' => 'assesses',
+                'weight' => '0.25',
+                'effectivefrom' => self::EFFECTIVEFROM,
+            ]);
+            $this->assertSame(
+                workflow::DRAFT,
+                question_mapping_service::get($ids[$code])->status,
+                "{$code} must stay a draft while the assessed total is below 1.0"
+            );
+        }
+
+        $ids['CLO4'] = question_mapping_service::create([
+            'questionversionid' => $question->versionid,
+            'itemverid' => $itemverids['CLO4'],
+            'role' => 'assesses',
+            'weight' => '0.25',
+            'effectivefrom' => self::EFFECTIVEFROM,
+        ]);
+        foreach ($ids as $code => $id) {
+            $this->assertSame(
+                workflow::APPROVED,
+                question_mapping_service::get($id)->status,
+                "{$code} must be carried through once the set totals 1.0"
+            );
+        }
+    }
+
+    /**
+     * Autosubmit stays off by default and never touches copied mappings.
+     */
+    public function test_autosubmit_is_opt_in_and_skips_copies(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+        $reviewer = $this->create_reviewer();
+        $itemverids = $this->create_outcomes($reviewer, ['CLO1']);
+        $question = $this->create_question();
+
+        // Unset by default.
+        $id = question_mapping_service::create([
+            'questionversionid' => $question->versionid,
+            'itemverid' => $itemverids['CLO1'],
+            'role' => 'alignment_only',
+            'effectivefrom' => self::EFFECTIVEFROM,
+        ]);
+        $this->assertSame(workflow::DRAFT, question_mapping_service::get($id)->status);
+
+        // Enabled, but a copy carries provenance and must remain a draft.
+        set_config('autosubmitquestionmappings', 1, 'local_outcomemap');
+        $copyid = question_mapping_service::create([
+            'questionversionid' => $question->versionid,
+            'itemverid' => $itemverids['CLO1'],
+            'role' => 'teaches',
+            'effectivefrom' => self::EFFECTIVEFROM,
+            'sourceqmapid' => $id,
+            'sourcequestionversionid' => $question->versionid,
+        ]);
+        $this->assertSame(workflow::DRAFT, question_mapping_service::get($copyid)->status);
+    }
 }

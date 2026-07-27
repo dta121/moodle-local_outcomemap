@@ -69,5 +69,16 @@ if ($hassiteconfig) {
         ),
         0
     ));
+    $settings->add(new admin_setting_configcheckbox(
+        'local_outcomemap/autosubmitquestionmappings',
+        get_string('autosubmitquestionmappings', 'local_outcomemap'),
+        get_string(
+            \local_outcomemap\local\workflow::requires_independent_approval()
+                ? 'autosubmitquestionmappings_desc'
+                : 'autosubmitquestionmappings_desc_finalization',
+            'local_outcomemap'
+        ),
+        0
+    ));
     $ADMIN->add('local_outcomemap', $settings);
 }
