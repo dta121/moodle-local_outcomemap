@@ -20,6 +20,7 @@ use local_outcomemap\local\service\course_instance_service;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\outcome_service;
 use local_outcomemap\local\service\policy_service;
+use local_outcomemap\local\service\program_service;
 use local_outcomemap\local\service\question_mapping_service;
 use local_outcomemap\local\service\remediation_engagement_service;
 use local_outcomemap\local\service\remediation_service;
@@ -462,5 +463,131 @@ final class student_result_service_test extends \advanced_testcase {
         $this->assertCount(1, $historical['rows']);
         $this->assertSame('Integrate evidence into a recommendation.', $historical['rows'][0]['shortstatement']);
         $this->assertSame('50.0000000000', $historical['rows'][0]['percentage']);
+    }
+
+    /**
+     * Build a course whose catalog course optionally belongs to a programme, with
+     * one course outcome and one programme outcome defined.
+     *
+     * @param bool $joinprogramme Whether to record programme membership.
+     * @return array{0:\stdClass,1:\stdClass} Course and enrolled learner.
+     */
+    private function create_programme_fixture(bool $joinprogramme): array {
+        global $DB;
+        $this->setAdminUser();
+        $this->reviewer = $this->create_reviewer();
+        $suffix = strtoupper(random_string(4));
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
+
+        $catalogid = catalog_course_service::create([
+            'code' => 'PLOSCOPE' . $suffix,
+            'name' => 'Programme scoping course',
+        ]);
+        $cinstid = course_instance_service::create([
+            'courseid' => $catalogid,
+            'moodlecourseid' => $course->id,
+            'periodcode' => '2026-T1',
+        ]);
+        course_instance_service::submit_for_review($cinstid);
+        $this->setUser($this->reviewer);
+        course_instance_service::confirm($cinstid);
+        $this->setAdminUser();
+
+        // Course-owned outcome: visible before and after the change.
+        $this->create_outcome_in(framework_service::OWNER_COURSE, $catalogid, 'CLOFW' . $suffix, 'C1');
+
+        // Through the service so programme type and credential normalise correctly.
+        $programid = program_service::create([
+            'code' => 'PROG' . $suffix,
+            'name' => 'Test programme',
+            'programtype' => program_service::TYPE_GRADUATE,
+        ]);
+        program_service::submit_for_review($programid);
+        if (workflow::requires_independent_approval()) {
+            $this->setUser($this->reviewer);
+            program_service::approve($programid);
+            $this->setAdminUser();
+        }
+        if ($joinprogramme) {
+            $DB->insert_record('local_outcomemap_progcourse', (object) [
+                'uuid' => uuid::generate(), 'programid' => $programid, 'courseid' => $catalogid,
+                'effectivefrom' => self::EFFECTIVEFROM, 'effectiveto' => null,
+                'status' => workflow::APPROVED, 'createdby' => null, 'approvedby' => null,
+                'timecreated' => time(), 'timemodified' => time(), 'approvedat' => time(),
+            ]);
+        }
+        $this->create_outcome_in(framework_service::OWNER_PROGRAM, $programid, 'PLOFW' . $suffix, 'P1');
+
+        return [$course, $student];
+    }
+
+    /**
+     * Create one approved outcome in a framework owned by the given object.
+     *
+     * @param string $ownertype Framework owner type.
+     * @param int $ownerid Owner record ID.
+     * @param string $fwcode Framework code.
+     * @param string $code Outcome code.
+     * @return void
+     */
+    private function create_outcome_in(string $ownertype, int $ownerid, string $fwcode, string $code): void {
+        global $DB;
+        $frameworkid = framework_service::create([
+            'code' => $fwcode,
+            'name' => $fwcode,
+            'ownertype' => $ownertype,
+            'ownerid' => $ownerid,
+        ]);
+        framework_service::submit_for_review($frameworkid);
+        if (workflow::requires_independent_approval()) {
+            $this->setUser($this->reviewer);
+            framework_service::approve($frameworkid);
+            $this->setAdminUser();
+        }
+        $itemid = outcome_service::create([
+            'frameworkid' => $frameworkid,
+            'code' => $code,
+            'statement' => 'Outcome ' . $code,
+            'effectivefrom' => self::EFFECTIVEFROM,
+        ]);
+        $itemverid = (int) $DB->get_field('local_outcomemap_itemver', 'id', ['itemid' => $itemid], MUST_EXIST);
+        outcome_service::submit_for_review($itemverid);
+        if (workflow::requires_independent_approval()) {
+            $this->setUser($this->reviewer);
+            outcome_service::approve($itemverid);
+            $this->setAdminUser();
+        }
+    }
+
+    /**
+     * A learner sees the outcomes of every programme their catalog course joins,
+     * so attainment can be read as unit, course, and programme levels together.
+     */
+    public function test_report_includes_programme_outcomes_when_the_course_joins_one(): void {
+        $this->resetAfterTest(true);
+        [$course, $student] = $this->create_programme_fixture(true);
+
+        $this->setUser($student);
+        $report = student_result_service::get_own_report((int) $course->id);
+        $codes = array_column($report['rows'], 'code');
+        $this->assertContains('C1', $codes, 'The catalog course outcome must still be reported.');
+        $this->assertContains('P1', $codes, 'The programme outcome must be reported.');
+    }
+
+    /**
+     * Without programme membership the report stays limited to the catalog course.
+     */
+    public function test_report_excludes_programme_outcomes_without_membership(): void {
+        $this->resetAfterTest(true);
+        [$course, $student] = $this->create_programme_fixture(false);
+
+        $this->setUser($student);
+        $report = student_result_service::get_own_report((int) $course->id);
+        $codes = array_column($report['rows'], 'code');
+        $this->assertContains('C1', $codes);
+        $this->assertNotContains('P1', $codes,
+            'A programme the course does not belong to must not leak into the learner report.');
     }
 }

@@ -67,6 +67,17 @@ final class student_result_service {
             SQL_PARAMS_NAMED,
             'clocourse'
         );
+        // The learner's outcomes are those their catalog course owns — both course
+        // and unit level — plus the outcomes of every programme that course belongs
+        // to, so a report can show attainment rolling up to programme level.
+        $programids = $DB->get_fieldset_sql(
+            "SELECT DISTINCT programid
+               FROM {local_outcomemap_progcourse}
+              WHERE courseid $catalogsql AND status = :pcapproved
+                AND effectivefrom <= :pcat1 AND (effectiveto IS NULL OR effectiveto > :pcat2)",
+            $catalogparams + ['pcapproved' => workflow::APPROVED, 'pcat1' => $at, 'pcat2' => $at]
+        );
+        $ownerclauses = ["(f.ownertype = :ownertype AND f.ownerid $catalogsql)"];
         $outcomeparams = $catalogparams + [
             'ownertype' => framework_service::OWNER_COURSE,
             'approved1' => workflow::APPROVED,
@@ -75,12 +86,18 @@ final class student_result_service {
             'at1' => $at,
             'at2' => $at,
         ];
+        if ($programids) {
+            [$programsql, $programparams] = $DB->get_in_or_equal(
+                array_map('intval', $programids), SQL_PARAMS_NAMED, 'ploprog');
+            $ownerclauses[] = "(f.ownertype = :programowner AND f.ownerid $programsql)";
+            $outcomeparams += $programparams + ['programowner' => framework_service::OWNER_PROGRAM];
+        }
         $outcomesql = "SELECT v.id, v.itemid, v.shortstatement, v.statement,
-                              i.code, f.ownerid AS catalogcourseid
+                              i.code, f.ownerid AS catalogcourseid, f.ownertype
                          FROM {local_outcomemap_itemver} v
                          JOIN {local_outcomemap_item} i ON i.id = v.itemid
                          JOIN {local_outcomemap_fw} f ON f.id = i.frameworkid
-                        WHERE f.ownertype = :ownertype AND f.ownerid $catalogsql
+                        WHERE (" . implode(' OR ', $ownerclauses) . ")
                           AND f.status = :approved1 AND i.status = :approved2
                           AND v.status = :approved3
                           AND v.effectivefrom <= :at1
@@ -94,7 +111,11 @@ final class student_result_service {
         $relevant = [];
         foreach ($instances as $instance) {
             foreach ($outcomes as $outcome) {
-                if ((int) $outcome->catalogcourseid !== (int) $instance->courseid) {
+                // A programme framework's ownerid is the programme, not the catalog
+                // course, and the query already limited those to programmes this
+                // course belongs to. Course-owned outcomes still match by owner.
+                $isprogramme = $outcome->ownertype === framework_service::OWNER_PROGRAM;
+                if (!$isprogramme && (int) $outcome->catalogcourseid !== (int) $instance->courseid) {
                     continue;
                 }
                 $key = (int) $instance->id . ':' . (int) $outcome->itemid;
@@ -124,6 +145,15 @@ final class student_result_service {
             'assessmentscope' => calculation_service::SCOPE_ASSESSMENT,
             'courseowner' => framework_service::OWNER_COURSE,
         ];
+        // Stored programme-level results are admitted on the same programme
+        // membership used to pick the outcome list above.
+        $programresultclause = '';
+        if ($programids) {
+            [$progresultsql, $progresultparams] = $DB->get_in_or_equal(
+                array_map('intval', $programids), SQL_PARAMS_NAMED, 'plores');
+            $programresultclause = "OR (f.ownertype = :programresultowner AND f.ownerid {$progresultsql})";
+            $resultparams += $progresultparams + ['programresultowner' => framework_service::OWNER_PROGRAM];
+        }
         // Result rows own exact version references. Do not require those
         // historical versions or policies to remain effective at view time.
         $resultsql = "SELECT r.*, p.configjson, b.name AS bandname, b.description AS banddescription,
@@ -139,7 +169,10 @@ final class student_result_service {
                        WHERE r.userid = :userid AND r.cinstid $cinstsql
                          AND r.supersededby IS NULL
                          AND r.scopetype IN (:coursescope, :assessmentscope)
-                         AND f.ownertype = :courseowner AND f.ownerid = ci.courseid
+                         AND (
+                             (f.ownertype = :courseowner AND f.ownerid = ci.courseid)
+                             {$programresultclause}
+                         )
                     ORDER BY r.timecalculated DESC, r.id DESC";
         $results = $DB->get_records_sql($resultsql, $resultparams);
         $candidates = [];
