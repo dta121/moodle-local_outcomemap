@@ -1,0 +1,182 @@
+{{!
+    Searchable, catalog-grouped Course instances page.
+    @template local_outcomemap/course_instances_page
+
+    Context variables required for this template:
+    * canmanage boolean Whether the reader may act on associations.
+    * addurl string URL of the add-association form.
+    * searchprefill string Catalog code the page opens filtered to.
+    * filters array Lifecycle filter chips with id, label, count, active.
+    * groups array Catalog courses, each with code, name, countline, rows.
+    * hasinstances boolean Whether any association exists.
+    * hasdrafts boolean Whether any association is still unconfirmed.
+    * draftcount int Number of unconfirmed associations.
+    * draftnotice string Sentence describing the unconfirmed associations.
+    * statsline string Aggregate summary line.
+    * introline string Governance explanation for the current approval mode.
+    * visibilityline string What confirmation makes visible in the course.
+
+    Example context (json):
+    {
+        "canmanage": true,
+        "addurl": "#",
+        "searchprefill": "",
+        "filters": [{"id": "all", "label": "All", "count": 2, "active": true}],
+        "groups": [{
+            "code": "MBA601",
+            "name": "Financial Management",
+            "countline": "2 instances · 1 active",
+            "rows": [{
+                "periodcode": "2026-SP",
+                "window": "5 January 2026 – 1 May 2026",
+                "moodlename": "MBA601: Financial Management",
+                "moodleurl": "#",
+                "hidden": false,
+                "enrolledline": "48 learners enrolled",
+                "statelabel": "Finalized · active",
+                "stateclass": "active",
+                "phase": "active",
+                "searchtext": "mba601",
+                "cansubmit": false,
+                "candelete": false,
+                "blockers": "",
+                "coverageurl": "#",
+                "mappingurl": "#"
+            }]
+        }],
+        "hasinstances": true,
+        "hasdrafts": false,
+        "draftcount": 0,
+        "draftnotice": "",
+        "statsline": "2 associations",
+        "introline": "Connect a Moodle course shell to its catalog course.",
+        "visibilityline": "Authorized course staff can then map content."
+    }
+}}
+<div id="lom-instances" class="lom-page lom-instances">
+    <h2 class="lom-page-title">{{#str}} courseinstances_heading, local_outcomemap {{/str}}</h2>
+    <div class="lom-page-subtitle">{{#str}} courseinstances_subtitle, local_outcomemap {{/str}}</div>
+
+    {{#hasdrafts}}
+    <div class="lom-page-callout" role="status">
+        <span class="lom-page-callout-count">{{draftcount}}</span>
+        <span class="lom-page-callout-text">{{draftnotice}}</span>
+        {{#canmanage}}
+        <button type="button" class="lom-page-callout-action" data-instance-filter="draft">{{#str}} instances_reviewdrafts, local_outcomemap {{/str}}</button>
+        {{/canmanage}}
+    </div>
+    {{/hasdrafts}}
+
+    <div class="lom-page-toolbar">
+        <div class="lom-page-search">
+            <span aria-hidden="true">&#128269;</span>
+            <input id="lom-instance-search" type="search" autocomplete="off" value="{{searchprefill}}"
+                   placeholder="{{#str}} instances_searchplaceholder, local_outcomemap {{/str}}"
+                   aria-label="{{#str}} instances_searchplaceholder, local_outcomemap {{/str}}">
+        </div>
+        <div class="lom-filterchips" role="group" aria-label="{{#str}} instances_filter_label, local_outcomemap {{/str}}">
+            {{#filters}}
+            <button type="button" class="lom-filterchip {{#active}}lom-active{{/active}}" data-instance-filter="{{id}}"
+                    aria-pressed="{{#active}}true{{/active}}{{^active}}false{{/active}}">{{label}}
+                <span class="lom-filterchip-count">{{count}}</span></button>
+            {{/filters}}
+        </div>
+        {{#canmanage}}
+        <a class="lom-page-btn lom-page-btn-primary lom-page-toolbar-end" href="{{addurl}}">{{#str}} addcourseinstance, local_outcomemap {{/str}}</a>
+        {{/canmanage}}
+    </div>
+    <div class="lom-page-stats">{{statsline}}</div>
+    <div id="lom-instance-noresults" class="lom-page-noresults lom-hidden" role="status" aria-live="polite">{{#str}} instances_noresults, local_outcomemap {{/str}}</div>
+
+    {{#groups}}
+    <section class="lom-section lom-instance-group">
+        <div class="lom-section-head">
+            <span class="lom-code-badge lom-code-catalog">{{code}}</span>
+            <h3 class="lom-section-title">{{name}}</h3>
+            <span class="lom-section-subtitle">{{#str}} catalogcourse, local_outcomemap {{/str}}</span>
+            <span class="lom-section-count">{{countline}}</span>
+        </div>
+        <div class="lom-section-body">
+            {{#rows}}
+            <article class="lom-instance-row lom-filter-row" data-search="{{searchtext}}" data-phase="{{phase}}">
+                <span class="lom-instance-period">
+                    <span class="lom-instance-term">{{periodcode}}</span>
+                    <span class="lom-instance-window">{{window}}</span>
+                </span>
+                <span class="lom-instance-course">
+                    <a href="{{moodleurl}}">{{moodlename}}</a>
+                    {{#hidden}}<span class="lom-instance-flag">{{#str}} instances_coursehidden, local_outcomemap {{/str}}</span>{{/hidden}}
+                    <span class="lom-instance-enrolled">{{enrolledline}}</span>
+                </span>
+                <span class="lom-workflow lom-workflow-{{stateclass}}">{{statelabel}}</span>
+                <span class="lom-row-actions">
+                    {{#cansubmit}}<a class="lom-page-btn lom-page-btn-primary lom-page-btn-sm" href="{{submiturl}}">{{submitlabel}}</a>{{/cansubmit}}
+                    {{#coverageurl}}<a href="{{coverageurl}}">{{#str}} instances_coverage, local_outcomemap {{/str}}</a>{{/coverageurl}}
+                    {{#mappingurl}}<a href="{{mappingurl}}">{{#str}} instances_mappings, local_outcomemap {{/str}}</a>{{/mappingurl}}
+                    {{#candelete}}<a href="{{deleteurl}}">{{#str}} remove, core {{/str}}</a>{{/candelete}}
+                    {{#blockers}}<span class="lom-instance-blocked">{{blockers}}</span>{{/blockers}}
+                </span>
+            </article>
+            {{/rows}}
+        </div>
+    </section>
+    {{/groups}}
+
+    {{#hasinstances}}
+    <div class="lom-page-help">{{introline}}</div>
+    <div class="lom-page-help">{{visibilityline}}</div>
+    {{/hasinstances}}
+
+    {{^hasinstances}}
+    <div class="lom-page-empty">{{#str}} instances_empty, local_outcomemap {{/str}}</div>
+    {{/hasinstances}}
+</div>
+{{#js}}
+(function() {
+    var root = document.getElementById('lom-instances');
+    if (!root) {
+        return;
+    }
+    var input = document.getElementById('lom-instance-search');
+    var noresults = document.getElementById('lom-instance-noresults');
+    var state = {phase: 'all', query: input.value.trim().toLowerCase()};
+
+    function render() {
+        var visible = 0;
+        Array.prototype.forEach.call(root.querySelectorAll('.lom-instance-group'), function(group) {
+            var groupvisible = 0;
+            Array.prototype.forEach.call(group.querySelectorAll('.lom-filter-row'), function(row) {
+                var phasematch = state.phase === 'all' || row.getAttribute('data-phase') === state.phase;
+                var querymatch = !state.query || (row.getAttribute('data-search') || '').indexOf(state.query) !== -1;
+                var show = phasematch && querymatch;
+                row.classList.toggle('lom-hidden', !show);
+                if (show) {
+                    groupvisible++;
+                    visible++;
+                }
+            });
+            group.classList.toggle('lom-hidden', groupvisible === 0);
+        });
+        noresults.classList.toggle('lom-hidden', visible !== 0 || (state.phase === 'all' && !state.query));
+        Array.prototype.forEach.call(root.querySelectorAll('.lom-filterchip[data-instance-filter]'), function(button) {
+            var active = button.getAttribute('data-instance-filter') === state.phase;
+            button.classList.toggle('lom-active', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    }
+
+    root.addEventListener('click', function(event) {
+        var button = event.target.closest('button[data-instance-filter]');
+        if (!button) {
+            return;
+        }
+        state.phase = button.getAttribute('data-instance-filter');
+        render();
+    });
+    input.addEventListener('input', function() {
+        state.query = input.value.trim().toLowerCase();
+        render();
+    });
+    render();
+})();
+{{/js}}

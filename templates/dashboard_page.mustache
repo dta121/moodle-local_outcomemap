@@ -1,0 +1,134 @@
+{{!
+    Outcome mapping dashboard led by what blocks accreditation reporting.
+    @template local_outcomemap/dashboard_page
+
+    Context variables required for this template:
+    * tiles array Gap tiles, each with label, value, unit, note, tone, url.
+    * tasks array Work queue rows, most blocking first.
+    * allclear boolean Whether the work queue is empty.
+    * programs array Program readiness rows.
+    * hasprograms boolean Whether any program exists.
+    * activity array Recent governance changes.
+    * hasactivity boolean Whether any change has been recorded.
+    * inventory array Governed record counts with navigation targets.
+
+    Example context (json):
+    {
+        "tiles": [{
+            "label": "Outcomes unaligned", "value": 3, "unit": "outcomes",
+            "note": "not mapped to a parent outcome", "tone": "danger", "url": "#"
+        }],
+        "tasks": [{
+            "title": "3 course outcomes roll up to no program outcome",
+            "detail": "Evidence collected against them reaches no accreditation report.",
+            "severity": "Blocks reporting", "tone": "danger",
+            "action": "Align outcomes", "url": "#"
+        }],
+        "allclear": false,
+        "programs": [{
+            "code": "MBA", "name": "Master of Business Administration",
+            "typeclass": "graduate", "meta": "30 program outcomes · 3 courses",
+            "percent": 62, "percentlabel": "62%", "barstyle": "width: 62%;",
+            "bartone": "partial", "state": "Gaps to fix", "statetone": "gaps",
+            "scopeline": "19 of 30 outcomes taught and assessed"
+        }],
+        "hasprograms": true,
+        "activity": [{ "when": "27/07/26", "text": "1 accreditation snapshot frozen" }],
+        "hasactivity": true,
+        "inventory": [{ "label": "Programs", "count": "1", "url": "#" }]
+    }
+}}
+<div class="lom-page lom-dash">
+    <h2 class="lom-page-title">{{#str}} dashboard_heading, local_outcomemap {{/str}}</h2>
+    <div class="lom-page-subtitle">{{#str}} dashboard_subtitle, local_outcomemap {{/str}}</div>
+
+    <div class="lom-dash-tiles">
+        {{#tiles}}
+        <a class="lom-dash-tile lom-dash-tone-{{tone}}" href="{{url}}">
+            <span class="lom-dash-tile-label">{{label}}</span>
+            <span class="lom-dash-tile-figure">
+                <span class="lom-dash-tile-value">{{value}}</span>
+                <span class="lom-dash-tile-unit">{{unit}}</span>
+            </span>
+            <span class="lom-dash-tile-note">{{note}}</span>
+        </a>
+        {{/tiles}}
+    </div>
+
+    <h3 class="lom-dash-heading">{{#str}} dash_tasks_heading, local_outcomemap {{/str}}</h3>
+    <div class="lom-dash-subheading">{{#str}} dash_tasks_subheading, local_outcomemap {{/str}}</div>
+    <div class="lom-section lom-dash-list">
+        {{#tasks}}
+        <article class="lom-dash-task">
+            <span class="lom-dash-dot lom-dash-dot-{{tone}}" aria-hidden="true"></span>
+            <span class="lom-dash-task-main">
+                <span class="lom-dash-task-title">{{title}}</span>
+                <span class="lom-dash-task-detail">{{detail}}</span>
+            </span>
+            <span class="lom-dash-severity lom-dash-severity-{{tone}}">{{severity}}</span>
+            <span class="lom-row-actions"><a href="{{url}}">{{action}}</a></span>
+        </article>
+        {{/tasks}}
+        {{#allclear}}
+        <div class="lom-dash-allclear">{{#str}} dash_tasks_allclear, local_outcomemap {{/str}}</div>
+        {{/allclear}}
+    </div>
+
+    <h3 class="lom-dash-heading">{{#str}} dash_programs_heading, local_outcomemap {{/str}}</h3>
+    <div class="lom-dash-subheading">{{#str}} dash_programs_subheading, local_outcomemap {{/str}}</div>
+    {{#hasprograms}}
+    <div class="lom-section lom-dash-list">
+        {{#programs}}
+        <article class="lom-dash-program">
+            <span class="lom-code-badge lom-code-type-{{typeclass}}">{{code}}</span>
+            <span class="lom-dash-program-main">
+                <span class="lom-dash-program-name">{{name}}</span>
+                <span class="lom-dash-program-meta">{{meta}}</span>
+            </span>
+            <span class="lom-dash-readiness">
+                <span class="lom-snap-bar">
+                    <span class="lom-snap-bar-fill lom-dash-bar-{{bartone}}" style="{{barstyle}}"></span>
+                </span>
+                <span class="lom-dash-pct lom-dash-pct-{{bartone}}">{{percentlabel}}</span>
+            </span>
+            <span class="lom-dash-state lom-dash-state-{{statetone}}">{{state}}</span>
+            <span class="lom-dash-program-scope">{{scopeline}}</span>
+        </article>
+        {{/programs}}
+    </div>
+    {{/hasprograms}}
+    {{^hasprograms}}
+    <div class="lom-page-empty">{{#str}} dash_programs_empty, local_outcomemap {{/str}}</div>
+    {{/hasprograms}}
+
+    <div class="lom-dash-columns">
+        <section>
+            <h3 class="lom-dash-heading">{{#str}} dash_activity_heading, local_outcomemap {{/str}}</h3>
+            {{#hasactivity}}
+            <div class="lom-section lom-dash-list">
+                {{#activity}}
+                <div class="lom-dash-activity">
+                    <span class="lom-dash-activity-when">{{when}}</span>
+                    <span class="lom-dash-activity-text">{{text}}</span>
+                </div>
+                {{/activity}}
+            </div>
+            {{/hasactivity}}
+            {{^hasactivity}}
+            <div class="lom-page-empty">{{#str}} dash_activity_empty, local_outcomemap {{/str}}</div>
+            {{/hasactivity}}
+        </section>
+        <section>
+            <h3 class="lom-dash-heading">{{#str}} dash_inventory_heading, local_outcomemap {{/str}}</h3>
+            <div class="lom-section lom-dash-inventory">
+                {{#inventory}}
+                <div class="lom-dash-inventory-row">
+                    <a href="{{url}}">{{label}}</a>
+                    <span class="lom-dash-inventory-count">{{count}}</span>
+                </div>
+                {{/inventory}}
+                <div class="lom-dash-inventory-note">{{#str}} dash_inventory_note, local_outcomemap {{/str}}</div>
+            </div>
+        </section>
+    </div>
+</div>

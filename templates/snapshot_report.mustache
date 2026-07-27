@@ -1,0 +1,243 @@
+{{!
+    One accreditation snapshot presented as a readable evidence report.
+    @template local_outcomemap/snapshot_report
+
+    Context variables required for this template:
+    * programcode, programname, versionline string Snapshot identity.
+    * isfrozen boolean Whether the snapshot is frozen and immutable.
+    * statuslabel string Integrity/state badge text.
+    * facts array Four headline facts, each with label, value, note.
+    * outcomes array Framework groups, each with framework, countline, rows.
+    * hasoutcomes boolean Whether any program-scope aggregate was captured.
+    * totals object Aggregate learners, results, percent, frameworkcount.
+    * courses array Course evidence rows.
+    * methods array Method cards, each with label and value.
+    * provenance array Label/value/mono rows.
+    * rowtypes array Captured row counts by object type.
+    * rowsline string Total captured and suppressed rows.
+    * exports object Export availability and URLs.
+    * backurl, canfreeze, freezeurl, cancorrect, correcturl, candelete, deleteurl Navigation and actions.
+
+    Example context (json):
+    {
+        "programcode": "MBA",
+        "programname": "Master of Business Administration",
+        "versionline": "Version 1 · frozen 27 July 2026 · reporting period MBA601",
+        "isfrozen": true,
+        "statuslabel": "Frozen & integrity verified",
+        "facts": [{"label": "Population size", "value": "133 learners", "note": "Active enrolled users"}],
+        "outcomes": [{
+            "framework": "MBA-PLO",
+            "countline": "2 outcomes reported",
+            "rows": [{
+                "code": "PLO1", "statement": "Analyse financial statements.",
+                "evidence": ["MBA601"], "hasevidence": true, "suppressed": false,
+                "learners": "128", "results": "868", "percent": "87.5%", "barwidth": 87.5, "hasbar": true
+            }]
+        }],
+        "hasoutcomes": true,
+        "totals": {"learners": "133", "results": "1,484", "percent": "82.1%", "frameworkcount": 3},
+        "courses": [{
+            "code": "MBA601", "name": "Financial Management",
+            "shell": "MBA601: Financial Management · period MBA601",
+            "outcomes": "8 outcomes reported", "learners": "133 learners", "results": "868 results"
+        }],
+        "methods": [{"label": "Small-cell suppression", "value": "Figures from fewer than 5 learners are withheld."}],
+        "provenance": [{"label": "Snapshot UUID", "value": "c1b5a6f9", "mono": true}],
+        "rowtypes": [{"type": "evidence", "count": "27,100", "suppressed": 0}],
+        "rowsline": "29,220 rows captured · 0 suppressed · threshold 5",
+        "exports": {"canexport": true, "csvurl": "#", "jsonurl": "#", "canevidence": false, "notfrozen": false},
+        "backurl": "#", "canfreeze": false, "freezeurl": "#", "cancorrect": true, "correcturl": "#",
+        "candelete": true, "deleteurl": "#"
+    }
+}}
+<div id="lom-snapreport" class="lom-page lom-snapreport">
+    <h2 class="lom-page-title">{{#str}} snapreport_heading, local_outcomemap {{/str}}</h2>
+    <div class="lom-page-subtitle">{{#str}} snapreport_subtitle, local_outcomemap {{/str}}</div>
+
+    <section class="lom-snap-identity">
+        <div class="lom-snap-identity-head">
+            <div class="lom-snap-identity-main">
+                <div class="lom-snap-eyebrow">{{#str}} snapreport_eyebrow, local_outcomemap {{/str}}</div>
+                <div class="lom-snap-program">{{programcode}} &mdash; {{programname}}</div>
+                <div class="lom-snap-versionline">{{versionline}}</div>
+            </div>
+            <span class="lom-snap-state {{#isfrozen}}lom-snap-state-frozen{{/isfrozen}}{{^isfrozen}}lom-snap-state-draft{{/isfrozen}}">{{statuslabel}}</span>
+        </div>
+        <div class="lom-snap-facts">
+            {{#facts}}
+            <div class="lom-snap-fact">
+                <div class="lom-snap-fact-label">{{label}}</div>
+                <div class="lom-snap-fact-value">{{value}}</div>
+                <div class="lom-snap-fact-note">{{note}}</div>
+            </div>
+            {{/facts}}
+        </div>
+    </section>
+
+    <h3 class="lom-snap-section-title">{{#str}} snapreport_attainment_heading, local_outcomemap {{/str}}</h3>
+    <div class="lom-snap-section-sub">{{#str}} snapreport_attainment_sub, local_outcomemap {{/str}}</div>
+    {{#hasoutcomes}}
+    <div class="lom-snap-table">
+        <div class="lom-snap-row lom-snap-head">
+            <span>{{#str}} snapreport_col_outcome, local_outcomemap {{/str}}</span>
+            <span>{{#str}} snapreport_col_statement, local_outcomemap {{/str}}</span>
+            <span class="lom-snap-num">{{#str}} snapreport_col_learners, local_outcomemap {{/str}}</span>
+            <span class="lom-snap-num">{{#str}} snapreport_col_results, local_outcomemap {{/str}}</span>
+            <span>{{#str}} snapreport_col_attainment, local_outcomemap {{/str}}</span>
+        </div>
+        {{#outcomes}}
+        <div class="lom-snap-fwrow">
+            <span class="lom-snap-fwcode">{{framework}}</span>
+            <span class="lom-snap-fwcount">{{countline}}</span>
+        </div>
+        {{#rows}}
+        <div class="lom-snap-row">
+            <span class="lom-code-badge lom-code-catalog lom-snap-code">{{code}}</span>
+            <span class="lom-snap-statement">
+                <span class="lom-snap-statement-text">{{statement}}</span>
+                {{#hasevidence}}
+                <span class="lom-snap-evidence">
+                    <span class="lom-snap-evidence-label">{{#str}} snapreport_evidence, local_outcomemap {{/str}}</span>
+                    {{#evidence}}<span class="lom-snap-evidence-chip">{{.}}</span>{{/evidence}}
+                </span>
+                {{/hasevidence}}
+            </span>
+            {{^suppressed}}
+            <span class="lom-snap-num">{{learners}}</span>
+            <span class="lom-snap-num">{{results}}</span>
+            <span class="lom-snap-attain">
+                {{#hasbar}}<span class="lom-snap-bar"><span class="lom-snap-bar-fill" style="width: {{barwidth}}%"></span></span>{{/hasbar}}
+                <span class="lom-snap-pct">{{percent}}</span>
+            </span>
+            {{/suppressed}}
+            {{#suppressed}}
+            <span class="lom-snap-num lom-snap-withheld">&mdash;</span>
+            <span class="lom-snap-num lom-snap-withheld">&mdash;</span>
+            <span class="lom-workflow lom-workflow-review">{{#str}} exportsuppressed, local_outcomemap {{/str}}</span>
+            {{/suppressed}}
+        </div>
+        {{/rows}}
+        {{/outcomes}}
+        <div class="lom-snap-row lom-snap-total">
+            <span></span>
+            <span class="lom-snap-total-label">{{#str}} snapreport_programaggregate, local_outcomemap {{/str}}</span>
+            <span class="lom-snap-num">{{totals.learners}}</span>
+            <span class="lom-snap-num">{{totals.results}}</span>
+            <span class="lom-snap-attain"><span class="lom-snap-pct">{{totals.percent}}</span></span>
+        </div>
+    </div>
+    {{/hasoutcomes}}
+    {{^hasoutcomes}}
+    <div class="lom-page-empty">{{#str}} snapreport_nooutcomes, local_outcomemap {{/str}}</div>
+    {{/hasoutcomes}}
+
+    <h3 class="lom-snap-section-title">{{#str}} snapreport_courses_heading, local_outcomemap {{/str}}</h3>
+    <div class="lom-snap-section-sub">{{#str}} snapreport_courses_sub, local_outcomemap {{/str}}</div>
+    <div class="lom-snap-table">
+        {{#courses}}
+        <div class="lom-snap-courserow">
+            <span class="lom-code-badge lom-code-catalog lom-snap-code">{{code}}</span>
+            <span class="lom-snap-coursemain">
+                <span class="lom-snap-coursename">{{name}}</span>
+                <span class="lom-snap-courseshell">{{shell}}</span>
+            </span>
+            <span class="lom-snap-coursefact">{{outcomes}}</span>
+            <span class="lom-snap-coursefact">{{learners}}</span>
+            <span class="lom-snap-coursefact">{{results}}</span>
+        </div>
+        {{/courses}}
+    </div>
+
+    <h3 class="lom-snap-section-title">{{#str}} snapreport_method_heading, local_outcomemap {{/str}}</h3>
+    <div class="lom-snap-section-sub">{{#str}} snapreport_method_sub, local_outcomemap {{/str}}</div>
+    <div class="lom-snap-methods">
+        {{#methods}}
+        <div class="lom-snap-method">
+            <div class="lom-snap-method-label">{{label}}</div>
+            <div class="lom-snap-method-value">{{value}}</div>
+        </div>
+        {{/methods}}
+    </div>
+
+    <div class="lom-section lom-snap-prov">
+        <button type="button" class="lom-snap-prov-head" data-lom-toggle aria-expanded="false"
+                aria-controls="lom-snap-prov-body"
+                data-expand-label="{{#str}} expand, core {{/str}}"
+                data-collapse-label="{{#str}} collapse, core {{/str}}">
+            <span class="lom-chev" aria-hidden="true">&#9656;</span>
+            <span class="lom-snap-prov-title">{{#str}} snapreport_provenance_heading, local_outcomemap {{/str}}</span>
+            <span class="lom-snap-prov-sub">{{#str}} snapreport_provenance_sub, local_outcomemap {{/str}}</span>
+        </button>
+        <div class="lom-snap-prov-body" id="lom-snap-prov-body">
+            <dl class="lom-snap-provgrid">
+                {{#provenance}}
+                <dt>{{label}}</dt>
+                <dd class="{{#mono}}lom-snap-mono{{/mono}}">{{value}}</dd>
+                {{/provenance}}
+            </dl>
+            <div class="lom-snap-prov-label">{{#str}} snapreport_capturedrows, local_outcomemap {{/str}}</div>
+            <div class="lom-snap-rowchips">
+                {{#rowtypes}}
+                <span class="lom-snap-rowchip">{{type}} <b>{{count}}</b></span>
+                {{/rowtypes}}
+            </div>
+            <div class="lom-snap-rowsline">{{rowsline}}</div>
+        </div>
+    </div>
+
+    <div class="lom-snap-actions">
+        {{#exports.canexport}}
+        <a class="lom-page-btn lom-page-btn-primary" href="{{exports.jsonurl}}">{{#str}} exportpackagejson, local_outcomemap {{/str}}</a>
+        <a class="lom-page-btn" href="{{exports.csvurl}}">{{#str}} exportsummarycsv, local_outcomemap {{/str}}</a>
+        {{#exports.canevidence}}
+        <a class="lom-page-btn" href="{{exports.evidenceurl}}">{{#str}} exportevidencedetail, local_outcomemap {{/str}}</a>
+        {{/exports.canevidence}}
+        {{/exports.canexport}}
+        {{#canfreeze}}
+        <a class="lom-page-btn lom-page-btn-primary" href="{{freezeurl}}">{{#str}} freezesnapshot, local_outcomemap {{/str}}</a>
+        {{/canfreeze}}
+        {{#cancorrect}}
+        <a class="lom-page-btn" href="{{correcturl}}">{{#str}} correctsnapshot, local_outcomemap {{/str}}</a>
+        {{/cancorrect}}
+        {{#candelete}}
+        <a class="lom-page-btn lom-page-btn-danger" href="{{deleteurl}}">{{#str}} deletesnapshot, local_outcomemap {{/str}}</a>
+        {{/candelete}}
+        <a class="lom-page-btn" href="{{backurl}}">{{#str}} back, core {{/str}}</a>
+    </div>
+    {{#exports.notfrozen}}
+    <div class="lom-page-help">{{#str}} exportnotfrozen, local_outcomemap {{/str}}</div>
+    {{/exports.notfrozen}}
+</div>
+{{#js}}
+(function() {
+    var root = document.getElementById('lom-snapreport');
+    if (!root) {
+        return;
+    }
+    var trigger = root.querySelector('.lom-snap-prov-head');
+    var panel = document.getElementById('lom-snap-prov-body');
+    if (!trigger || !panel) {
+        return;
+    }
+    function setOpen(open) {
+        root.classList.toggle('lom-snap-prov-open', open);
+        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        var chev = trigger.querySelector('.lom-chev');
+        if (chev) {
+            chev.innerHTML = open ? '&#9662;' : '&#9656;';
+        }
+        var label = open ? trigger.getAttribute('data-collapse-label') : trigger.getAttribute('data-expand-label');
+        if (label) {
+            trigger.setAttribute('title', label);
+        }
+    }
+    trigger.addEventListener('click', function() {
+        setOpen(!root.classList.contains('lom-snap-prov-open'));
+    });
+    // The record ships expanded so it stays readable without JavaScript; this
+    // script collapses it and takes over the disclosure.
+    root.classList.add('lom-snapreport-js');
+    setOpen(false);
+})();
+{{/js}}

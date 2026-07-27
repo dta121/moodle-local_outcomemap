@@ -14,6 +14,11 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core_reportbuilder\datasource;
+use core_reportbuilder\local\models\report as report_model;
+use core_reportbuilder\permission as report_permission;
+use local_outcomemap\reportbuilder\local\sources;
+
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     $configpath = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . '/config.php';
@@ -25,27 +30,58 @@ require_once($CFG->libdir . '/adminlib.php');
 admin_externalpage_setup('local_outcomemap_reports');
 require_capability('local/outcomemap:viewdefinitions', context_system::instance());
 
-$sources = [
-    'outcome_definitions',
-    'mapping_coverage',
-    'assessment_coverage',
-    'student_attainment',
-    'course_aggregates',
-    'program_aggregates',
-    'audit_history',
-];
-if (\local_outcomemap\local\feature::remediation_enabled()) {
-    array_splice($sources, array_search('audit_history', $sources, true), 0, ['remediation_engagement']);
+/**
+ * Load the custom reports built on one data source that the viewer may open.
+ *
+ * Report Builder access is independent of this page, so every candidate is
+ * rechecked rather than assumed visible from the plugin capability alone.
+ *
+ * @param string $class Data source class name.
+ * @return array<int,string> Report names keyed by report ID.
+ */
+function local_outcomemap_source_reports(string $class): array {
+    global $DB;
+    $reports = [];
+    $records = $DB->get_records('reportbuilder_report', [
+        'source' => $class,
+        'type' => datasource::TYPE_CUSTOM_REPORT,
+    ], 'name, id');
+    foreach ($records as $record) {
+        $model = new report_model(0, $record);
+        if (report_permission::can_view_report($model)) {
+            $reports[(int) $record->id] = (string) $record->name;
+        }
+    }
+    return $reports;
 }
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('reports_heading', 'local_outcomemap'));
 echo html_writer::tag('p', get_string('reports_intro', 'local_outcomemap'));
-$list = [];
-foreach ($sources as $source) {
-    $list[] = get_string('report_source_' . $source, 'local_outcomemap');
+
+$table = new html_table();
+$table->caption = get_string('reports_heading', 'local_outcomemap');
+$table->head = [
+    get_string('reports_source', 'local_outcomemap'),
+    get_string('reports_existing', 'local_outcomemap'),
+];
+foreach (sources::all() as $key => $class) {
+    $links = [];
+    foreach (local_outcomemap_source_reports($class) as $reportid => $name) {
+        $links[] = html_writer::link(
+            new moodle_url('/reportbuilder/view.php', ['id' => $reportid]),
+            format_string($name)
+        );
+    }
+    $table->data[] = [
+        sources::name($key),
+        $links === []
+            ? html_writer::span(get_string('reports_none', 'local_outcomemap'), 'text-muted')
+            : html_writer::alist($links),
+    ];
 }
-echo html_writer::alist($list);
+echo html_writer::div(html_writer::table($table), 'table-responsive');
+echo html_writer::tag('p', get_string('reports_seedhint', 'local_outcomemap'));
 echo $OUTPUT->single_button(
     new moodle_url('/reportbuilder/index.php'),
     get_string('reportbuildernav', 'local_outcomemap')

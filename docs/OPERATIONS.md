@@ -59,6 +59,24 @@ Question authors use the companion workflow documented in the `qbank_outcomemap`
 3. For assessed mappings, confirm the approved weights for the exact question version total exactly `1.0000000000`. Pending or missing weights must not be approved.
 4. Verify policy scope and configuration. No pass threshold, population, or release default is supplied implicitly.
 5. Verify snapshot population, suppression threshold, policy version, hashes, and creator before freezing. A frozen snapshot is immutable; a correction creates a linked new version with a reason.
+6. To report a different figure, correct the snapshot. Delete a version only when the capture should never have been taken — a wrong period, a wrong population, or a capture taken to rehearse the workflow. **Accreditation snapshots** offers deletion for the newest version of a snapshot only, so any remaining correction chain still verifies; it removes every row that version captured and records the deletion in the audit history.
+
+## Seeding examples on an evaluation site
+
+An evaluation or demonstration site can be given one example custom report per governed data source, plus one frozen accreditation snapshot, without hand-building them:
+
+```
+php local/outcomemap/cli/seed_examples.php
+```
+
+- The examples are built from records the site already holds. The script creates no outcome, mapping, or attainment data.
+- Each example report takes its source's own default columns, filters, and sorting, and appears in **Outcome Report Builder sources** against the source it uses.
+- The snapshot targets the approved program and reporting period with the most captured course-scope results, unless `--program` and `--period` name one. It is captured and frozen through the ordinary snapshot service, so its payload and manifest hashes verify like any other.
+- A capture needs an effective approved accreditation policy. Any policy the institution has already approved is used unchanged. Only when there is none does the script draft one, with an explicit example suppression threshold set by `--mincohortsize`. The plugin itself still supplies no threshold, population, or retention default.
+- Seeding is idempotent, and `--reports`, `--snapshot`, and `--draft` narrow what it does. Run `--help` for the full list.
+- `--snapshot --replace` reseeds: it deletes every existing snapshot version of the selected program and period, then captures the example again from current results. Use it after the underlying mappings, policies, or results change. The deletions are audited and cannot be undone.
+
+Do not run this on a production site: it writes governed records, and it can delete existing ones.
 
 ## Student behavior
 

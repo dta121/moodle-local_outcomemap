@@ -18,6 +18,119 @@ use local_outcomemap\local\workflow;
 final class course_instance_service extends base_service {
     private const TABLE = 'local_outcomemap_cinst';
 
+    /**
+     * Create an association and finalize it where governance allows.
+     *
+     * An association is a factual link between a catalog course and a Moodle
+     * course, so when a site has disabled independent approval there is nothing
+     * for a second pair of eyes to weigh and the draft-then-submit step is pure
+     * ceremony. With independent approval enabled the record is left a draft for
+     * a reviewer, exactly as before.
+     *
+     * @param array $data Association data.
+     * @return int The new association ID.
+     */
+    public static function create_confirmed(array $data): int {
+        $id = self::create($data);
+        if (!workflow::requires_independent_approval()) {
+            // submit_for_review() confirms in the same transaction when
+            // independent approval is off.
+            self::submit_for_review($id);
+        }
+        return $id;
+    }
+
+    /**
+     * Load one association with its catalog course and Moodle course names.
+     *
+     * @param int $id Association ID.
+     * @return \stdClass Association record.
+     */
+    public static function get(int $id): \stdClass {
+        global $DB;
+        self::require_system('local/outcomemap:viewdefinitions');
+        $record = $DB->get_record_sql(
+            "SELECT ci.*, c.code AS catalogcode, c.name AS catalogname, mc.fullname AS moodlename
+               FROM {local_outcomemap_cinst} ci
+               JOIN {local_outcomemap_course} c ON c.id = ci.courseid
+               JOIN {course} mc ON mc.id = ci.moodlecourseid
+              WHERE ci.id = :id",
+            ['id' => $id]
+        );
+        if (!$record) {
+            throw new validation_exception('recordnotfound', 'course_instance', $id);
+        }
+        return $record;
+    }
+
+    /**
+     * Report why an association cannot be deleted.
+     *
+     * Deleting is offered only to undo a mistake, so anything already built on
+     * the association blocks it: mapped content, calculated evidence or results,
+     * remediation, a frozen snapshot row, or a policy scoped to it.
+     *
+     * @param int $id Association ID.
+     * @return string[] Human-readable blockers; empty when deletion is safe.
+     */
+    public static function deletion_blockers(int $id): array {
+        global $DB;
+        self::require_system('local/outcomemap:viewdefinitions');
+        self::get_required(self::TABLE, $id, 'course_instance');
+        $counts = [
+            'blocker_contentmappings' => $DB->count_records('local_outcomemap_cmmap', ['cinstid' => $id])
+                + $DB->count_records('local_outcomemap_secmap', ['cinstid' => $id]),
+            'blocker_evidence' => $DB->count_records('local_outcomemap_evidence', ['cinstid' => $id]),
+            'blocker_results' => $DB->count_records('local_outcomemap_result', ['cinstid' => $id]),
+            'blocker_remediation' => $DB->count_records('local_outcomemap_remed', ['cinstid' => $id]),
+            'blocker_snapshots' => $DB->count_records('local_outcomemap_snapitem', ['cinstid' => $id]),
+            'blocker_policies' => $DB->count_records('local_outcomemap_policy', [
+                'scopetype' => policy_service::SCOPE_COURSE_INSTANCE,
+                'scopeid' => $id,
+            ]),
+        ];
+        $blockers = [];
+        foreach ($counts as $identifier => $count) {
+            if ($count > 0) {
+                $blockers[] = get_string($identifier, 'local_outcomemap', $count);
+            }
+        }
+        return $blockers;
+    }
+
+    /**
+     * Delete an association that nothing depends on.
+     *
+     * Approved associations are normally immutable, but an association carries no
+     * governed judgement of its own: once nothing references it, removing it
+     * erases no history. The deletion is audited like any other change.
+     *
+     * @param int $id Association ID.
+     * @param string|null $reason Optional audit reason.
+     * @return void
+     */
+    public static function delete(int $id, ?string $reason = null): void {
+        global $DB;
+        $actorid = self::require_system('local/outcomemap:managecatalogcourses');
+        $before = self::get_required(self::TABLE, $id, 'course_instance');
+        $blockers = self::deletion_blockers($id);
+        if ($blockers) {
+            throw new validation_exception('courseinstanceinuse', 'id', implode(' ', $blockers));
+        }
+        $context = $DB->record_exists('course', ['id' => $before->moodlecourseid])
+            ? \context_course::instance($before->moodlecourseid)
+            : \context_system::instance();
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $DB->delete_records(self::TABLE, ['id' => $id]);
+            audit_writer::write('delete', 'course_instance', $id, $before->uuid, $before, null, $reason,
+                $context, $actorid);
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+    }
+
     /** Create an unconfirmed draft course-instance association. */
     public static function create(array $data): int {
         global $DB;
@@ -138,5 +251,38 @@ final class course_instance_service extends base_service {
                   JOIN {course} mc ON mc.id = ci.moodlecourseid
               ORDER BY ci.periodcode DESC, c.code ASC";
         return $DB->get_records_sql($sql);
+    }
+
+    /**
+     * Return every association with the Moodle course facts a reader needs.
+     *
+     * The delivery window and active enrolment count come from the Moodle course
+     * shell itself, so an administrator can tell an association that is running
+     * from one that has ended without opening each course. Ordering groups the
+     * associations under their catalog course, newest reporting period first.
+     *
+     * @return \stdClass[] Associations keyed by id.
+     */
+    public static function list_with_summary(): array {
+        global $DB;
+        self::require_system('local/outcomemap:viewdefinitions');
+        $sql = "SELECT ci.*, c.code AS catalogcode, c.name AS catalogname,
+                       mc.fullname AS moodlename, mc.shortname AS moodleshortname,
+                       mc.visible AS moodlevisible, mc.startdate AS moodlestartdate,
+                       mc.enddate AS moodleenddate,
+                       (SELECT COUNT(DISTINCT ue.userid)
+                          FROM {user_enrolments} ue
+                          JOIN {enrol} e ON e.id = ue.enrolid
+                         WHERE e.courseid = mc.id
+                           AND e.status = :enrolenabled
+                           AND ue.status = :useractive) AS enrolledcount
+                  FROM {local_outcomemap_cinst} ci
+                  JOIN {local_outcomemap_course} c ON c.id = ci.courseid
+                  JOIN {course} mc ON mc.id = ci.moodlecourseid
+              ORDER BY c.code ASC, ci.periodcode DESC";
+        return $DB->get_records_sql($sql, [
+            'enrolenabled' => ENROL_INSTANCE_ENABLED,
+            'useractive' => ENROL_USER_ACTIVE,
+        ]);
     }
 }

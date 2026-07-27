@@ -117,6 +117,74 @@ final class catalog_course_service extends base_service {
         return $DB->get_records(self::TABLE, null, 'code ASC');
     }
 
+    /**
+     * Return catalog courses with their governed outcome and association counts.
+     *
+     * Counts are loaded in a fixed number of queries so presentation code never
+     * queries per course. Retired frameworks, outcomes, and associations are
+     * excluded because they no longer describe what the catalog course claims.
+     *
+     * The course-level and unit-level split follows the same ULO code-suffix
+     * convention the outcome hierarchy uses. It is resolved in PHP rather than
+     * with a case-insensitive LIKE, which is not portable across databases.
+     *
+     * @return \stdClass[] Catalog courses keyed by id, ordered by code.
+     */
+    public static function list_with_summary(): array {
+        global $DB;
+        self::require_system('local/outcomemap:viewdefinitions');
+        $courses = $DB->get_records(self::TABLE, null, 'code ASC');
+        if (!$courses) {
+            return [];
+        }
+        foreach ($courses as $course) {
+            $course->frameworkcount = 0;
+            $course->courseoutcomecount = 0;
+            $course->unitoutcomecount = 0;
+            $course->instancecount = 0;
+            $course->confirmedinstancecount = 0;
+        }
+        $frameworks = $DB->get_records_sql(
+            "SELECT fw.id, fw.ownerid, fw.code,
+                    (SELECT COUNT(1)
+                       FROM {local_outcomemap_item} item
+                      WHERE item.frameworkid = fw.id
+                        AND item.status <> :itemretired) AS outcomecount
+               FROM {local_outcomemap_fw} fw
+              WHERE fw.ownertype = :ownertype
+                AND fw.status <> :fwretired",
+            [
+                'itemretired' => workflow::RETIRED,
+                'ownertype' => framework_service::OWNER_COURSE,
+                'fwretired' => workflow::RETIRED,
+            ]
+        );
+        foreach ($frameworks as $framework) {
+            $ownerid = (int) $framework->ownerid;
+            if (!isset($courses[$ownerid])) {
+                continue;
+            }
+            $courses[$ownerid]->frameworkcount++;
+            $field = preg_match('/ULO$/i', $framework->code) ? 'unitoutcomecount' : 'courseoutcomecount';
+            $courses[$ownerid]->{$field} += (int) $framework->outcomecount;
+        }
+        $instances = $DB->get_records_sql(
+            "SELECT ci.courseid, COUNT(1) AS instancecount, SUM(ci.confirmed) AS confirmedcount
+               FROM {local_outcomemap_cinst} ci
+              WHERE ci.status <> :retired
+           GROUP BY ci.courseid",
+            ['retired' => workflow::RETIRED]
+        );
+        foreach ($instances as $courseid => $counts) {
+            if (!isset($courses[$courseid])) {
+                continue;
+            }
+            $courses[$courseid]->instancecount = (int) $counts->instancecount;
+            $courses[$courseid]->confirmedinstancecount = (int) $counts->confirmedcount;
+        }
+        return $courses;
+    }
+
     private static function change_status(int $id, string $required, string $status, string $action,
             ?string $reason, string $capability, bool $separateapprover): void {
         global $DB;

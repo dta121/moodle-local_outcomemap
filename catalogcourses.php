@@ -6,6 +6,7 @@ use local_outcomemap\form\program_course_form;
 use local_outcomemap\local\service\catalog_course_service;
 use local_outcomemap\local\service\program_course_service;
 use local_outcomemap\local\workflow;
+use local_outcomemap\output\catalog_courses_page;
 
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
@@ -36,7 +37,13 @@ if ($action === 'submit' && $id) {
 }
 
 if ($action === 'addmembership') {
+    // A membership is added from one catalog course's card, so that course is
+    // preselected rather than searched for again in the form.
+    $courseid = optional_param('courseid', 0, PARAM_INT);
     $formurl = new moodle_url($url, ['action' => 'addmembership']);
+    if ($courseid) {
+        $formurl->param('courseid', $courseid);
+    }
     $form = new program_course_form($formurl);
     if ($form->is_cancelled()) {
         redirect($url);
@@ -44,6 +51,9 @@ if ($action === 'addmembership') {
     if ($data = $form->get_data()) {
         program_course_service::create((array) $data);
         redirect($url, get_string('saved', 'local_outcomemap'));
+    }
+    if ($courseid && $DB->record_exists('local_outcomemap_course', ['id' => $courseid])) {
+        $form->set_data(['courseid' => $courseid]);
     }
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string('addprogramcourse', 'local_outcomemap'));
@@ -80,39 +90,6 @@ if ($action === 'edit' || $action === 'add') {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('catalogcourses_heading', 'local_outcomemap'));
-echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']), get_string('addcatalogcourse', 'local_outcomemap'));
-$table = new html_table();
-$table->caption = get_string('catalogcourses_heading', 'local_outcomemap');
-$table->head = [get_string('code', 'local_outcomemap'), get_string('name', 'local_outcomemap'),
-    get_string('status', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
-foreach (catalog_course_service::list_all() as $record) {
-    $actions = [];
-    if ($record->status === workflow::DRAFT) {
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'edit', 'id' => $record->id]), get_string('edit'));
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'submit', 'id' => $record->id,
-            'sesskey' => sesskey()]), workflow::submit_action_label());
-    }
-    $table->data[] = [s($record->code), format_string($record->name),
-        workflow::status_label($record->status), implode(' | ', $actions)];
-}
-echo html_writer::div(html_writer::table($table), 'table-responsive');
-echo $OUTPUT->heading(get_string('programcoursememberships', 'local_outcomemap'), 3);
-echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'addmembership']), get_string('addprogramcourse', 'local_outcomemap'));
-$membershiptable = new html_table();
-$membershiptable->caption = get_string('programcoursememberships', 'local_outcomemap');
-$membershiptable->head = [get_string('program', 'local_outcomemap'), get_string('catalogcourse', 'local_outcomemap'),
-    get_string('effectivefrom', 'local_outcomemap'), get_string('effectiveto', 'local_outcomemap'),
-    get_string('status', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
-foreach (program_course_service::list_all() as $record) {
-    $actions = [];
-    if ($record->status === workflow::DRAFT) {
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'submit', 'type' => 'membership',
-            'id' => $record->id, 'sesskey' => sesskey()]), workflow::submit_action_label());
-    }
-    $membershiptable->data[] = [s($record->programcode), s($record->coursecode), userdate($record->effectivefrom),
-        $record->effectiveto ? userdate($record->effectiveto) : get_string('none', 'local_outcomemap'),
-        workflow::status_label($record->status), implode(' | ', $actions)];
-}
-echo html_writer::div(html_writer::table($membershiptable), 'table-responsive');
+$page = new catalog_courses_page();
+echo $OUTPUT->render_from_template('local_outcomemap/catalog_courses_page', $page->export_for_template($OUTPUT));
 echo $OUTPUT->footer();

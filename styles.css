@@ -136,6 +136,8 @@
 .lom-page-btn:hover { background: #f4f6f9; color: #333; text-decoration: none; }
 .lom-page-btn-primary { background: #1077d1; border-color: #1077d1; color: #fff; font-weight: 600; }
 .lom-page-btn-primary:hover { background: #0b5ca8; color: #fff; }
+.lom-page-btn-danger { border-color: #e2b3aa; color: #991b1b; }
+.lom-page-btn-danger:hover { background: #fdf3f1; color: #991b1b; }
 .lom-page-noresults { border: 1px dashed #dfe3e8; border-radius: 6px; color: #6a737b; font-size: var(--lom-fs-md); margin-bottom: 14px; padding: 32px; text-align: center; }
 .lom-page-empty { border: 1px dashed #dfe3e8; border-radius: 6px; color: #6a737b; padding: 24px; text-align: center; }
 .lom-section { border: 1px solid #e3e7ec; border-radius: 6px; margin-bottom: 16px; overflow: hidden; }
@@ -158,9 +160,23 @@
 .lom-viewbtn { background: #fff; border: 0; color: #555; cursor: pointer; font-size: var(--lom-fs-sm); padding: 7px 14px; }
 .lom-viewbtn + .lom-viewbtn { border-left: 1px solid #cfd6de; }
 .lom-viewbtn.lom-active { background: #1f2a44; color: #fff; font-weight: 600; }
+.lom-filterchip-count { color: #9aa3ad; font-weight: 600; }
+.lom-filterchip.lom-active .lom-filterchip-count { color: #cfd8e6; }
+.lom-page-btn-sm { font-size: var(--lom-fs-2xs); padding: 4px 11px; }
+.lom-page-help { color: #6a737b; font-size: var(--lom-fs-xs); margin-top: 4px; max-width: 52rem; }
+.lom-page-callout { align-items: center; background: #fffbeb; border: 1px solid #f2d9a4; border-radius: 6px;
+    color: #78350f; display: flex; flex-wrap: wrap; font-size: var(--lom-fs-xs); gap: 12px;
+    margin-bottom: 16px; padding: 11px 14px; }
+.lom-page-callout-count { background: #fde68a; border-radius: 4px; font-weight: 700; padding: 2px 8px; }
+.lom-page-callout-text { flex: 1; min-width: 12rem; }
+.lom-page-callout-action { background: #fff; border: 1px solid #d9b96a; border-radius: 6px; color: #92400e;
+    cursor: pointer; font-size: var(--lom-fs-xs); font-weight: 600; padding: 5px 12px; }
+.lom-page .lom-chev { background: none; border: 0; color: #6a737b; cursor: pointer; flex-shrink: 0;
+    font-size: var(--lom-fs-2xs); padding: 0; width: 14px; }
 .lom-filterchip:focus-visible,
 .lom-viewbtn:focus-visible,
 .lom-page-btn:focus-visible,
+.lom-page-callout-action:focus-visible,
 .lom-matrix-cell:focus-visible { outline: 2px solid #1077d1; outline-offset: 2px; }
 
 /* Program summaries. */
@@ -186,7 +202,153 @@
 .lom-workflow-draft { background: #eef4fb; color: #155a9c; }
 .lom-workflow-retired { background: #f3f4f6; color: #6b7280; }
 .lom-row-actions { display: flex; flex-wrap: wrap; font-size: var(--lom-fs-xs); gap: 10px; justify-content: flex-end; white-space: nowrap; }
+
+/* An action that destroys a governed record sits beside ordinary ones, so it
+   has to read as the exception before it is clicked, not after. */
+.lom-row-action-danger, .lom-row-action-danger:hover, .lom-row-action-danger:focus { color: #991b1b; }
 .lom-programs-help { color: #6a737b; font-size: var(--lom-fs-xs); margin-top: 2px; }
+.lom-code-catalog { background: #e8edf4; color: #1f2a44; }
+
+/* Course-instance lifecycle, which is distinct from the governance status: a
+   finalized association still needs to say whether anyone is learning in it. */
+.lom-workflow-active { background: #dcfce7; color: #166534; }
+.lom-workflow-ended { background: #f3f4f6; color: #667180; }
+
+/* Course instances grouped under their catalog course. */
+.lom-instance-row { align-items: center; border-top: 1px solid #f2f4f6; display: flex; gap: 14px; padding: 11px 16px; }
+.lom-instance-row:first-child { border-top: 0; }
+.lom-instance-row:hover { background: #fbfcfd; }
+.lom-instance-period { flex-shrink: 0; width: 11rem; }
+.lom-instance-term { color: #1f2a44; display: block; font-size: var(--lom-fs-sm); font-weight: 600; }
+.lom-instance-window { color: #6a737b; display: block; font-size: var(--lom-fs-2xs); margin-top: 1px; }
+.lom-instance-course { flex: 1; min-width: 11rem; }
+.lom-instance-course a { font-size: var(--lom-fs-sm); }
+.lom-instance-flag { background: #f3f4f6; border-radius: 4px; color: #6b7280; font-size: var(--lom-fs-3xs);
+    font-weight: 700; margin-left: 6px; padding: 2px 6px; }
+.lom-instance-enrolled { color: #6a737b; display: block; font-size: var(--lom-fs-2xs); margin-top: 1px; }
+.lom-instance-blocked { color: #6a737b; font-size: var(--lom-fs-3xs); max-width: 18rem; white-space: normal; }
+
+/* Catalog courses with their program memberships folded in. */
+.lom-cat-card { background: #fff; border: 1px solid #e3e7ec; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+.lom-cat-head { align-items: center; cursor: pointer; display: flex; gap: 12px; padding: 13px 16px; }
+.lom-cat-head:hover { background: #f7fafc; }
+.lom-cat-summary { flex: 1; min-width: 12rem; }
+.lom-cat-name { color: #1f2a44; display: block; font-size: var(--lom-fs-md); font-weight: 600; }
+.lom-cat-meta { color: #6a737b; display: block; font-size: var(--lom-fs-2xs); margin-top: 2px; }
+.lom-cat-programs { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; max-width: 17rem; }
+/* Cards collapse only once the page script has taken over the chevrons, so
+   without JavaScript every membership and action stays reachable. */
+.lom-catalog-js .lom-cat-card:not(.lom-open) .lom-cat-panel { display: none; }
+.lom-cat-panel { background: #fbfcfd; border-top: 1px solid #eceff2; padding: 12px 16px 14px 42px; }
+.lom-cat-panel-head { align-items: baseline; display: flex; gap: 10px; margin-bottom: 8px; }
+.lom-cat-panel-label { color: #6a737b; font-size: var(--lom-fs-3xs); font-weight: 700;
+    letter-spacing: 0.07em; text-transform: uppercase; }
+.lom-cat-panel-head a { font-size: var(--lom-fs-2xs); }
+.lom-cat-warn { background: #fffbeb; border: 1px solid #f2d9a4; border-radius: 6px; color: #a16207;
+    font-size: var(--lom-fs-2xs); max-width: 42rem; padding: 8px 12px; }
+.lom-cat-membership { align-items: center; border-top: 1px solid #f2f4f6; display: flex; gap: 12px;
+    max-width: 54rem; padding: 7px 0; }
+.lom-cat-membership-name { color: #444; flex: 1; font-size: var(--lom-fs-2xs); min-width: 8rem; }
+.lom-cat-membership-effective { color: #667180; font-size: var(--lom-fs-2xs); white-space: nowrap; }
+.lom-cat-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.lom-cat-actions .lom-page-btn { font-size: var(--lom-fs-2xs); padding: 6px 13px; }
+
+/* Accreditation snapshot lineages. */
+.lom-snapshot-row { align-items: center; border-top: 1px solid #f2f4f6; display: flex; gap: 14px; padding: 11px 16px; }
+.lom-snapshot-row:first-child { border-top: 0; }
+.lom-snapshot-row:hover { background: #fbfcfd; }
+.lom-snapshot-version { flex-shrink: 0; width: 7rem; }
+.lom-snapshot-versionlabel { color: #1f2a44; display: block; font-size: var(--lom-fs-sm); font-weight: 700; }
+.lom-snapshot-correction { color: #92400e; display: block; font-size: var(--lom-fs-3xs); font-weight: 700; margin-top: 1px; }
+.lom-snapshot-main { flex: 1; min-width: 10rem; }
+.lom-snapshot-facts { color: #444; display: block; font-size: var(--lom-fs-2xs); }
+.lom-snapshot-created { color: #6a737b; display: block; font-size: var(--lom-fs-3xs); margin-top: 1px; }
+
+/* One snapshot presented as an accreditation evidence report. */
+.lom-snap-identity { border: 1px solid #dbe3ec; border-radius: 8px; margin-bottom: 22px; overflow: hidden; }
+.lom-snap-identity-head { align-items: flex-start; background: #f4f9fe; border-bottom: 1px solid #dbe3ec;
+    display: flex; flex-wrap: wrap; gap: 16px; padding: 16px 20px; }
+.lom-snap-identity-main { flex: 1; min-width: 17rem; }
+.lom-snap-eyebrow { color: #6a737b; font-size: var(--lom-fs-3xs); font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; }
+.lom-snap-program { color: #1f2a44; font-size: var(--lom-fs-2xl); font-weight: 700; margin-top: 4px; }
+.lom-snap-versionline { color: #667180; font-size: var(--lom-fs-xs); margin-top: 3px; }
+.lom-snap-state { border-radius: 16px; font-size: var(--lom-fs-3xs); font-weight: 700;
+    padding: 5px 12px; white-space: nowrap; }
+.lom-snap-state-frozen { background: #dcfce7; border: 1px solid #a7d8b6; color: #166534; }
+.lom-snap-state-draft { background: #fef3c7; border: 1px solid #f2d9a4; color: #92400e; }
+.lom-snap-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.lom-snap-fact { border-bottom: 1px solid #eceff2; border-right: 1px solid #eceff2; padding: 13px 20px; }
+.lom-snap-fact:last-child { border-right: 0; }
+.lom-snap-fact-label { color: #6a737b; font-size: var(--lom-fs-3xs); font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; }
+.lom-snap-fact-value { color: #1f2a44; font-size: var(--lom-fs-xs); font-weight: 600; margin-top: 4px; }
+.lom-snap-fact-note { color: #6a737b; font-size: var(--lom-fs-3xs); margin-top: 2px; }
+.lom-snap-section-title { color: #1f2a44; font-size: var(--lom-fs-lg); font-weight: 700; margin: 0 0 3px; }
+.lom-snap-section-sub { color: #6a737b; font-size: var(--lom-fs-xs); margin-bottom: 12px; }
+.lom-snap-table { border: 1px solid #e3e7ec; border-radius: 6px; margin-bottom: 26px; overflow: hidden; }
+.lom-snap-row { align-items: start; border-top: 1px solid #f2f4f6; display: grid; gap: 12px;
+    grid-template-columns: 4rem minmax(10rem, 1fr) 5rem 5rem 9rem; padding: 11px 16px; }
+.lom-snap-row:hover { background: #fbfcfd; }
+.lom-snap-head { background: #f4f6f9; border-bottom: 1px solid #e3e7ec; border-top: 0; color: #6a737b;
+    font-size: var(--lom-fs-3xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.lom-snap-head:hover { background: #f4f6f9; }
+.lom-snap-fwrow { align-items: baseline; background: #fafafa; border-top: 1px solid #f0f0f0; display: flex;
+    gap: 10px; padding: 8px 16px 5px; }
+.lom-snap-fwcode { color: #6a737b; font-size: var(--lom-fs-3xs); font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; }
+.lom-snap-fwcount { color: #9aa3ad; font-size: var(--lom-fs-3xs); }
+.lom-snap-code { text-align: center; }
+.lom-snap-num { text-align: right; }
+.lom-snap-head .lom-snap-num { text-align: right; }
+.lom-snap-statement { min-width: 0; }
+.lom-snap-statement-text { color: #333; display: block; font-size: var(--lom-fs-2xs); line-height: 1.5; }
+.lom-snap-evidence { align-items: center; display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.lom-snap-evidence-label { color: #9aa3ad; font-size: var(--lom-fs-3xs); }
+.lom-snap-evidence-chip { background: #eef4fb; border-radius: 10px; color: #155a9c;
+    font-size: var(--lom-fs-3xs); font-weight: 700; padding: 2px 8px; white-space: nowrap; }
+.lom-snap-attain { align-items: center; display: flex; gap: 9px; }
+.lom-snap-bar { background: #eef0f3; border-radius: 4px; flex: 1; height: 8px; overflow: hidden; }
+.lom-snap-bar-fill { background: #1077d1; border-radius: 4px; display: block; height: 8px; }
+.lom-snap-pct { color: #1f2a44; font-size: var(--lom-fs-2xs); font-weight: 700; text-align: right; }
+.lom-snap-withheld { color: #9aa3ad; }
+.lom-snap-total { background: #fafbfc; border-top: 2px solid #e3e7ec; }
+.lom-snap-total:hover { background: #fafbfc; }
+.lom-snap-total-label { color: #1f2a44; font-size: var(--lom-fs-2xs); font-weight: 700; }
+.lom-snap-total .lom-snap-num { color: #1f2a44; font-weight: 700; }
+.lom-snap-courserow { align-items: center; border-top: 1px solid #f2f4f6; display: grid; gap: 14px;
+    grid-template-columns: 5rem minmax(12rem, 1fr) auto auto auto; padding: 12px 16px; }
+.lom-snap-courserow:first-child { border-top: 0; }
+.lom-snap-courserow:hover { background: #fbfcfd; }
+.lom-snap-coursemain { min-width: 0; }
+.lom-snap-coursename { color: #1f2a44; display: block; font-size: var(--lom-fs-sm); font-weight: 600; }
+.lom-snap-courseshell { color: #6a737b; display: block; font-size: var(--lom-fs-3xs); margin-top: 2px; }
+.lom-snap-coursefact { color: #444; font-size: var(--lom-fs-2xs); text-align: right; white-space: nowrap; }
+.lom-snap-methods { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 26px; }
+.lom-snap-method { border: 1px solid #e3e7ec; border-radius: 6px; padding: 12px 14px; }
+.lom-snap-method-label { color: #1f2a44; font-size: var(--lom-fs-2xs); font-weight: 700; }
+.lom-snap-method-value { color: #555; font-size: var(--lom-fs-2xs); line-height: 1.5; margin-top: 4px; }
+.lom-snap-prov { margin-bottom: 22px; }
+.lom-snap-prov-head { align-items: center; background: #f4f6f9; border: 0; cursor: pointer; display: flex;
+    flex-wrap: wrap; gap: 10px; padding: 11px 16px; text-align: left; width: 100%; }
+.lom-snap-prov-head:hover { background: #eef1f6; }
+.lom-snap-prov-title { color: #1f2a44; font-size: var(--lom-fs-sm); font-weight: 700; }
+.lom-snap-prov-sub { color: #6a737b; font-size: var(--lom-fs-2xs); }
+.lom-snapreport-js:not(.lom-snap-prov-open) .lom-snap-prov-body { display: none; }
+.lom-snap-prov-body { border-top: 1px solid #eceff2; padding: 14px 16px; }
+.lom-snap-provgrid { align-items: baseline; display: grid; font-size: var(--lom-fs-2xs); gap: 7px 14px;
+    grid-template-columns: 12rem 1fr; margin: 0; }
+.lom-snap-provgrid dt { color: #667180; font-weight: 400; margin: 0; }
+.lom-snap-provgrid dd { color: #1f2a44; margin: 0; overflow-wrap: anywhere; }
+.lom-snap-mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+.lom-snap-prov-label { color: #6a737b; font-size: var(--lom-fs-3xs); font-weight: 700;
+    letter-spacing: 0.06em; margin: 16px 0 7px; text-transform: uppercase; }
+.lom-snap-rowchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.lom-snap-rowchip { background: #f6f7f9; border: 1px solid #eceff2; border-radius: 4px; color: #444;
+    font-size: var(--lom-fs-3xs); padding: 3px 9px; white-space: nowrap; }
+.lom-snap-rowchip b { color: #1f2a44; }
+.lom-snap-rowsline { color: #6a737b; font-size: var(--lom-fs-3xs); margin-top: 10px; }
+.lom-snap-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 8px; }
 
 /* Add/Edit program form. */
 .lom-program-form { max-width: 54rem; }
@@ -289,6 +451,13 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
     .lom-row-actions { margin-left: auto; }
     .lom-section-head { align-items: flex-start; flex-wrap: wrap; }
     .lom-section-count { width: 100%; }
+    .lom-instance-row,
+    .lom-cat-head { align-items: flex-start; flex-wrap: wrap; }
+    .lom-instance-period { width: auto; }
+    .lom-instance-course { flex-basis: 100%; }
+    .lom-cat-summary { flex-basis: calc(100% - 100px); }
+    .lom-cat-programs { justify-content: flex-start; max-width: none; }
+    .lom-cat-panel { padding-left: 16px; }
 }
 
 @media (max-width: 600px) {
@@ -298,6 +467,29 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
     .lom-relation-statement { flex-basis: 100%; min-width: 0; }
     .lom-relation-arrow { display: none; }
     .lom-targets { flex-basis: 100%; }
+    .lom-cat-summary { flex-basis: 100%; min-width: 0; }
+    .lom-cat-membership { align-items: flex-start; flex-wrap: wrap; }
+    .lom-instance-blocked { max-width: none; }
+    .lom-snap-provgrid { grid-template-columns: 1fr; }
+    .lom-snap-provgrid dt { font-weight: 700; margin-top: 6px; }
+}
+
+@media (max-width: 900px) {
+    .lom-snap-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .lom-snap-fact:nth-child(2n) { border-right: 0; }
+    .lom-snap-methods { grid-template-columns: 1fr; }
+    .lom-snapshot-row { align-items: flex-start; flex-wrap: wrap; }
+    .lom-snapshot-main { flex-basis: 100%; }
+    /* The attainment and course grids carry numeric columns that must stay
+       aligned, so they scroll rather than reflow into an unreadable stack. */
+    .lom-snap-table { overflow-x: auto; }
+    .lom-snap-row,
+    .lom-snap-courserow { min-width: 40rem; }
+}
+
+@media (max-width: 600px) {
+    .lom-snap-facts { grid-template-columns: 1fr; }
+    .lom-snap-fact { border-right: 0; }
 }
 
 /* Milestone 7 accessibility hardening. */
@@ -859,3 +1051,100 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
 .lom-q-missing { color: #92400e; display: block; font-size: var(--lom-fs-2xs); margin-top: 2px; }
 .lom-q-weightbox { border-top: 1px solid #eceff2; margin-top: 12px; padding-top: 10px; }
 .lom-q-weightbox input[type="text"] { margin-bottom: 6px; }
+
+/* Dashboard: gaps first, inventory last.
+   Tones carry the meaning here — danger blocks reporting outright, warn limits
+   what can be measured, info is work in progress, clear is resolved — so each
+   tone is also given a text colour and label rather than relying on hue alone. */
+.lom-dash-tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    margin-bottom: 24px; }
+.lom-dash-tile { background: #fff; border: 1px solid #e3e7ec; border-radius: 8px; color: #333;
+    display: block; padding: 13px 15px; text-decoration: none; }
+.lom-dash-tile:hover { border-color: #9db4cc; color: #333; text-decoration: none; }
+.lom-dash-tile:focus-visible { outline: 2px solid #1077d1; outline-offset: 2px; }
+/* Tile internals deliberately match .lom-cov-card, which is the same figure in
+   a different place: same label treatment, same serif figure, same note. */
+.lom-dash-tile-label { color: #6a737b; display: block; font-size: var(--lom-fs-2xs); font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; }
+.lom-dash-tile-figure { align-items: baseline; display: flex; gap: 8px; margin-top: 6px; }
+.lom-dash-tile-value { color: #1f2a44; font-family: Georgia, "Times New Roman", serif;
+    font-size: var(--lom-fs-3xl); font-weight: 700; line-height: 1.1; }
+.lom-dash-tile-unit { color: #667180; font-size: var(--lom-fs-xs); }
+.lom-dash-tile-note { color: #6a737b; display: block; font-size: var(--lom-fs-2xs); line-height: 1.45;
+    margin-top: 7px; }
+.lom-dash-tone-danger { background: #fffaf8; border-color: #f0c9c0; }
+.lom-dash-tone-danger .lom-dash-tile-value { color: #991b1b; }
+.lom-dash-tone-warn { background: #fffdf7; border-color: #f2d9a4; }
+.lom-dash-tone-warn .lom-dash-tile-value { color: #b45309; }
+.lom-dash-tone-info .lom-dash-tile-value { color: #155a9c; }
+.lom-dash-tone-clear .lom-dash-tile-value { color: #1f6b46; }
+
+.lom-dash-heading { color: #1f2a44; font-family: Georgia, "Times New Roman", serif;
+    font-size: var(--lom-fs-lg); font-weight: 700; margin: 0 0 3px; }
+.lom-dash-subheading { color: #6a737b; font-size: var(--lom-fs-xs); margin-bottom: 12px; }
+.lom-dash-list { margin-bottom: 26px; }
+.lom-dash-allclear { background: #f7fbf8; color: #1f6b46; font-size: var(--lom-fs-xs); padding: 22px;
+    text-align: center; }
+
+.lom-dash-task { align-items: center; border-top: 1px solid #f2f4f6; display: flex; gap: 12px;
+    padding: 11px 14px; }
+.lom-dash-task:first-child { border-top: 0; }
+.lom-dash-task:hover { background: #fbfcfd; }
+.lom-dash-dot { border-radius: 50%; flex-shrink: 0; height: 7px; width: 7px; }
+.lom-dash-dot-danger { background: #991b1b; }
+.lom-dash-dot-warn { background: #b45309; }
+.lom-dash-dot-info { background: #1077d1; }
+.lom-dash-task-main { flex: 1; min-width: 12rem; }
+.lom-dash-task-title { color: #1f2a44; display: block; font-size: var(--lom-fs-md); font-weight: 600; }
+.lom-dash-task-detail { color: #5f6874; display: block; font-size: var(--lom-fs-xs); line-height: 1.45;
+    margin-top: 2px; }
+.lom-dash-severity { border-radius: 4px; font-size: var(--lom-fs-3xs); font-weight: 700; padding: 3px 9px;
+    white-space: nowrap; }
+.lom-dash-severity-danger { background: #fee2e2; color: #991b1b; }
+.lom-dash-severity-warn { background: #fef3c7; color: #92400e; }
+.lom-dash-severity-info { background: #eef4fb; color: #155a9c; }
+
+/* Readiness rows keep the code, name, bar, and verdict on one line at desk
+   width and stack in reading order when the column is too narrow for that. */
+.lom-dash-program { align-items: center; border-top: 1px solid #f2f4f6; display: grid; gap: 6px 12px;
+    grid-template-areas: "badge main bar state" "scope scope scope scope";
+    grid-template-columns: auto minmax(11rem, 1fr) minmax(9rem, 13rem) auto; padding: 11px 14px; }
+.lom-dash-program:first-child { border-top: 0; }
+.lom-dash-program:hover { background: #fbfcfd; }
+.lom-dash-program .lom-code-badge { grid-area: badge; }
+.lom-dash-program-main { grid-area: main; min-width: 0; }
+.lom-dash-program-name { color: #1f2a44; display: block; font-size: var(--lom-fs-md); font-weight: 600; }
+.lom-dash-program-meta { color: #6a737b; display: block; font-size: var(--lom-fs-3xs); margin-top: 2px; }
+.lom-dash-readiness { align-items: center; display: flex; gap: 9px; grid-area: bar; }
+.lom-dash-pct { font-size: var(--lom-fs-2xs); font-weight: 700; min-width: 2.5rem; text-align: right; }
+.lom-dash-bar-ready { background: #1f6b46; }
+.lom-dash-bar-partial { background: #b45309; }
+.lom-dash-bar-low { background: #991b1b; }
+.lom-dash-pct-ready { color: #1f6b46; }
+.lom-dash-pct-partial { color: #b45309; }
+.lom-dash-pct-low { color: #991b1b; }
+.lom-dash-state { border-radius: 4px; font-size: var(--lom-fs-3xs); font-weight: 700; grid-area: state;
+    padding: 3px 9px; text-align: center; white-space: nowrap; }
+.lom-dash-state-ready { background: #dcfce7; color: #166534; }
+.lom-dash-state-gaps { background: #fef3c7; color: #92400e; }
+.lom-dash-state-none { background: #fee2e2; color: #991b1b; }
+.lom-dash-program-scope { color: #6a737b; font-size: var(--lom-fs-3xs); grid-area: scope; }
+
+.lom-dash-columns { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); }
+.lom-dash-activity { align-items: flex-start; border-top: 1px solid #f2f4f6; display: flex; gap: 10px;
+    padding: 9px 14px; }
+.lom-dash-activity:first-child { border-top: 0; }
+.lom-dash-activity-when { color: #6a737b; flex-shrink: 0; font-size: var(--lom-fs-3xs); width: 5rem; }
+.lom-dash-activity-text { color: #333; flex: 1; font-size: var(--lom-fs-2xs); line-height: 1.45; }
+.lom-dash-inventory { padding: 4px 14px 11px; }
+.lom-dash-inventory-row { align-items: baseline; border-bottom: 1px solid #f5f5f5; display: flex; gap: 10px;
+    justify-content: space-between; padding: 6px 0; }
+.lom-dash-inventory-row:last-of-type { border-bottom: 0; }
+.lom-dash-inventory-row a { font-size: var(--lom-fs-2xs); }
+.lom-dash-inventory-count { color: #1f2a44; font-size: var(--lom-fs-2xs); font-weight: 700; }
+.lom-dash-inventory-note { color: #6a737b; font-size: var(--lom-fs-3xs); margin-top: 9px; }
+
+@media (max-width: 47rem) {
+    .lom-dash-program { grid-template-areas: "badge main" "bar bar" "state state" "scope scope";
+        grid-template-columns: auto 1fr; }
+}

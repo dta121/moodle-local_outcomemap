@@ -1,6 +1,16 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
 
+/**
+ * Outcome mapping dashboard.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+use local_outcomemap\output\dashboard_page;
+
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     // Windows junctions resolve __DIR__ to the repository target rather than
@@ -15,23 +25,7 @@ require_once($CFG->libdir . '/adminlib.php');
 admin_externalpage_setup('local_outcomemap_dashboard');
 require_capability('local/outcomemap:viewdefinitions', context_system::instance());
 
-$counts = [
-    'programs' => $DB->count_records('local_outcomemap_program'),
-    'catalogcourses' => $DB->count_records('local_outcomemap_course'),
-    'courseinstances' => $DB->count_records('local_outcomemap_cinst'),
-    'frameworks' => $DB->count_records('local_outcomemap_fw'),
-    'outcomes' => $DB->count_records('local_outcomemap_item'),
-    'relations' => $DB->count_records('local_outcomemap_rel'),
-];
-
+$page = new dashboard_page();
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('dashboard_heading', 'local_outcomemap'));
-echo html_writer::tag('p', get_string('dashboard_summary', 'local_outcomemap'));
-$table = new html_table();
-$table->caption = get_string('dashboard_summary', 'local_outcomemap');
-$table->head = [get_string('objecttype', 'local_outcomemap'), get_string('count')];
-foreach ($counts as $type => $count) {
-    $table->data[] = [get_string('nav_' . $type, 'local_outcomemap'), $count];
-}
-echo html_writer::div(html_writer::table($table), 'table-responsive');
+echo $OUTPUT->render_from_template('local_outcomemap/dashboard_page', $page->export_for_template($OUTPUT));
 echo $OUTPUT->footer();

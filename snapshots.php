@@ -17,6 +17,8 @@
 use local_outcomemap\form\snapshot_form;
 use local_outcomemap\local\service\snapshot_service;
 use local_outcomemap\local\workflow;
+use local_outcomemap\output\snapshot_report;
+use local_outcomemap\output\snapshots_page;
 
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
@@ -78,6 +80,36 @@ if ($action === 'freeze' && $id) {
     redirect($url, get_string('snapshotfrozen', 'local_outcomemap'));
 }
 
+if ($action === 'delete' && $id) {
+    $snapshot = snapshot_service::summary($id);
+    if (!$confirmed) {
+        // Withdrawal destroys a governed record, so the confirmation names the
+        // exact version and the number of immutable rows that go with it.
+        echo $OUTPUT->header();
+        echo $OUTPUT->confirm(
+            get_string('confirmdeletesnapshot', 'local_outcomemap', (object) [
+                'program' => s($snapshot->programcode),
+                'period' => s($snapshot->periodcode),
+                'version' => get_string('snapreport_shortversion', 'local_outcomemap',
+                    (int) $snapshot->version),
+                'rows' => number_format((int) $snapshot->itemcount),
+            ]),
+            new moodle_url($url, [
+                'action' => 'delete',
+                'id' => $id,
+                'confirm' => 1,
+                'sesskey' => sesskey(),
+            ]),
+            $url
+        );
+        echo $OUTPUT->footer();
+        exit;
+    }
+    require_sesskey();
+    snapshot_service::delete($id);
+    redirect($url, get_string('snapshotdeleted', 'local_outcomemap'));
+}
+
 if (in_array($action, ['add', 'correct'], true)) {
     $previous = $action === 'correct' && $id ? snapshot_service::get($id) : null;
     $formurl = new moodle_url($url, ['action' => $action, 'id' => $id]);
@@ -89,6 +121,10 @@ if (in_array($action, ['add', 'correct'], true)) {
         redirect($url);
     }
     if ($data = $form->get_data()) {
+        // A capture holds every evidence, result, and aggregate row of the
+        // reporting period in memory before hashing it, so a real accreditation
+        // period needs more than the default request allowance.
+        raise_memory_limit(MEMORY_HUGE);
         snapshot_service::create_draft([
             'programid' => (int) $data->programid,
             'periodcode' => $data->periodcode,
@@ -117,124 +153,17 @@ if (in_array($action, ['add', 'correct'], true)) {
 }
 
 if ($action === 'view' && $id) {
-    $snapshot = snapshot_service::get($id);
-    $items = snapshot_service::items($id);
-    snapshot_service::verify($snapshot, $items);
-    $counts = [];
-    foreach ($items as $item) {
-        if (!isset($counts[$item->itemtype])) {
-            $counts[$item->itemtype] = ['total' => 0, 'suppressed' => 0];
-        }
-        $counts[$item->itemtype]['total']++;
-        $counts[$item->itemtype]['suppressed'] += (int) $item->suppressed;
-    }
-    ksort($counts, SORT_STRING);
-
-    $snapshotheading = get_string('snapshot', 'local_outcomemap') . ' '
-        . s($snapshot->snapshotuuid) . ' v' . (int) $snapshot->version;
+    // The report model loads and verifies the capture, so a snapshot whose hashes
+    // no longer match cannot render as though it were sound.
+    $report = new snapshot_report($id);
     echo $OUTPUT->header();
-    echo $OUTPUT->heading($snapshotheading);
-    $details = new html_table();
-    $details->caption = $snapshotheading;
-    $details->attributes['aria-label'] = get_string('snapshot', 'local_outcomemap');
-    $details->data = [
-        [get_string('program', 'local_outcomemap'), (int) $snapshot->programid],
-        [get_string('periodcode', 'local_outcomemap'), s($snapshot->periodcode)],
-        [get_string('status', 'local_outcomemap'),
-            get_string('snapshotstatus_' . $snapshot->status, 'local_outcomemap')],
-        [get_string('populationat', 'local_outcomemap'), userdate($snapshot->populationat)],
-        [get_string('populationsource', 'local_outcomemap'),
-            get_string('population_' . $snapshot->populationsource, 'local_outcomemap')],
-        [get_string('populationcount', 'local_outcomemap'), (int) $snapshot->populationcount],
-        [get_string('suppressionthreshold', 'local_outcomemap'), (int) $snapshot->suppressionthreshold],
-        [get_string('retentionbasis', 'local_outcomemap'),
-            get_string('retention_' . $snapshot->retentionbasis, 'local_outcomemap')],
-        [get_string('payloadhash', 'local_outcomemap'), s($snapshot->payloadhash)],
-        [get_string('manifesthash', 'local_outcomemap'), s($snapshot->manifesthash ?? get_string('none'))],
-        [get_string('createdby', 'local_outcomemap'), (int) $snapshot->createdby],
-        [get_string('approvedby', 'local_outcomemap'),
-            $snapshot->approvedby === null ? get_string('none') : (int) $snapshot->approvedby],
-    ];
-    echo html_writer::div(html_writer::table($details), 'table-responsive');
-    $itemtable = new html_table();
-    $itemtable->caption = get_string('snapshotitems_caption', 'local_outcomemap');
-    $itemtable->head = [
-        get_string('objecttype', 'local_outcomemap'),
-        get_string('itemcount', 'local_outcomemap'),
-        get_string('exportsuppressed', 'local_outcomemap'),
-    ];
-    foreach ($counts as $type => $count) {
-        $itemtable->data[] = [s($type), $count['total'], $count['suppressed']];
-    }
-    echo html_writer::div(html_writer::table($itemtable), 'table-responsive');
-    if ($snapshot->status === snapshot_service::STATUS_FROZEN
-            && has_capability('local/outcomemap:exportaccreditation', $context)) {
-        echo $OUTPUT->single_button(new moodle_url('/local/outcomemap/export.php', [
-            'id' => $snapshot->id,
-            'format' => 'json',
-        ]), get_string('exportpackagejson', 'local_outcomemap'));
-        echo $OUTPUT->single_button(new moodle_url('/local/outcomemap/export.php', [
-            'id' => $snapshot->id,
-            'format' => 'csv',
-        ]), get_string('exportsummarycsv', 'local_outcomemap'));
-        if (has_capability('local/outcomemap:viewallresults', $context)) {
-            echo $OUTPUT->single_button(new moodle_url('/local/outcomemap/export.php', [
-                'id' => $snapshot->id,
-                'format' => 'json',
-                'evidence' => 1,
-            ]), get_string('exportevidencedetail', 'local_outcomemap'));
-        }
-    }
-    echo $OUTPUT->single_button($url, get_string('back'));
+    echo $OUTPUT->render_from_template('local_outcomemap/snapshot_report',
+        $report->export_for_template($OUTPUT));
     echo $OUTPUT->footer();
     exit;
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('snapshots_heading', 'local_outcomemap'));
-echo html_writer::tag('p', get_string('snapshots_intro', 'local_outcomemap'));
-echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']),
-    get_string('createsnapshot', 'local_outcomemap'));
-$table = new html_table();
-$table->caption = get_string('snapshotlist_caption', 'local_outcomemap');
-$table->head = [
-    get_string('snapshotuuid', 'local_outcomemap'),
-    get_string('version', 'local_outcomemap'),
-    get_string('program', 'local_outcomemap'),
-    get_string('periodcode', 'local_outcomemap'),
-    get_string('status', 'local_outcomemap'),
-    get_string('populationcount', 'local_outcomemap'),
-    get_string('itemcount', 'local_outcomemap'),
-    get_string('timecreated', 'local_outcomemap'),
-    get_string('actions', 'local_outcomemap'),
-];
-foreach (snapshot_service::list_all() as $snapshot) {
-    $actions = [html_writer::link(new moodle_url($url, [
-        'action' => 'view',
-        'id' => $snapshot->id,
-    ]), get_string('view'))];
-    if ($snapshot->status === snapshot_service::STATUS_DRAFT) {
-        $actions[] = html_writer::link(new moodle_url($url, [
-            'action' => 'freeze',
-            'id' => $snapshot->id,
-        ]), get_string('freezesnapshot', 'local_outcomemap'));
-    } else if ($snapshot->status === snapshot_service::STATUS_FROZEN) {
-        $actions[] = html_writer::link(new moodle_url($url, [
-            'action' => 'correct',
-            'id' => $snapshot->id,
-        ]), get_string('correctsnapshot', 'local_outcomemap'));
-    }
-    $table->data[] = [
-        s($snapshot->snapshotuuid),
-        (int) $snapshot->version,
-        s($snapshot->programcode) . ' — ' . format_string($snapshot->programname),
-        s($snapshot->periodcode),
-        get_string('snapshotstatus_' . $snapshot->status, 'local_outcomemap'),
-        (int) $snapshot->populationcount,
-        (int) $snapshot->itemcount,
-        userdate($snapshot->timecreated),
-        implode(' | ', $actions),
-    ];
-}
-echo html_writer::div(html_writer::table($table), 'table-responsive');
+$page = new snapshots_page();
+echo $OUTPUT->render_from_template('local_outcomemap/snapshots_page', $page->export_for_template($OUTPUT));
 echo $OUTPUT->footer();

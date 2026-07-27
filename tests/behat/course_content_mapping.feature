@@ -42,19 +42,19 @@ Feature: Course staff map content to governed outcome versions
   Scenario: An activity mapping is drafted and independently approved
     Given I log in as "admin"
     And I navigate to "Plugins > Learning outcome mapping > Catalog courses" in site administration
-    And I click on "Add catalog course" "button"
+    And I click on "Add catalog course" "link"
     And I set the following fields to these values:
       | Code | MBA614               |
       | Name | Strategic Leadership |
     And I press "Save changes"
     And I navigate to "Plugins > Learning outcome mapping > Course instances" in site administration
-    And I click on "Add course instance" "button"
+    And I click on "Add course instance" "link"
     And I set the following fields to these values:
       | Catalog course       | MBA614               |
       | Moodle course        | Strategic Leadership |
       | Reporting period code | 2026-T1              |
     And I press "Save changes"
-    And I click on "Submit for review" "link" in the "MBA614" "table_row"
+    And I click on "Submit for review" "link" in the ".lom-instance-row" "css_element"
     And I log out
     And I log in as "reviewer"
     And I navigate to "Plugins > Learning outcome mapping > Approval queue" in site administration

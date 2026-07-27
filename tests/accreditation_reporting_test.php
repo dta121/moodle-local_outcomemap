@@ -26,6 +26,8 @@ use local_outcomemap\local\service\suppression_service;
 use local_outcomemap\local\uuid;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
+use local_outcomemap\output\snapshot_report;
+use local_outcomemap\output\snapshots_page;
 
 /**
  * Tests deterministic Milestone 6 accreditation reporting and exports.
@@ -432,6 +434,76 @@ final class accreditation_reporting_test extends \advanced_testcase {
     }
 
     /**
+     * Test a snapshot version is withdrawable only from the end of its lineage.
+     */
+    public function test_snapshot_deletion_removes_captured_rows_from_the_newest_version_only(): void {
+        global $DB, $PAGE;
+
+        $this->resetAfterTest(true);
+        set_config('requireapproval', 0, 'local_outcomemap');
+        $this->setAdminUser();
+        $fixture = $this->create_snapshot_fixture();
+
+        $v1id = snapshot_service::create_draft([
+            'programid' => $fixture['programid'],
+            'periodcode' => '2026-T1',
+            'cohortid' => $fixture['cohortid'],
+            'notes' => 'Withdrawal fixture',
+        ]);
+        snapshot_service::freeze($v1id);
+        $v2id = snapshot_service::create_draft([
+            'programid' => $fixture['programid'],
+            'periodcode' => '2026-T1',
+            'cohortid' => $fixture['cohortid'],
+            'previousid' => $v1id,
+            'correctionreason' => 'Recapture for the withdrawal fixture.',
+        ]);
+        $v1uuid = snapshot_service::get($v1id)->snapshotuuid;
+        $v2rows = $DB->count_records('local_outcomemap_snapitem', ['snapshotid' => $v2id]);
+        $this->assertGreaterThan(0, $v2rows);
+
+        // The list offers withdrawal at the end of the lineage only, so the
+        // version a correction was built on stays out of reach.
+        $context = (new snapshots_page())->export_for_template($PAGE->get_renderer('core'));
+        $rows = $context['groups'][0]['rows'];
+        $this->assertSame([2, 1], array_column($rows, 'version'));
+        $this->assertSame([true, false], array_column($rows, 'candelete'));
+        $this->assertFalse(
+            (new snapshot_report($v1id))->export_for_template($PAGE->get_renderer('core'))['candelete'],
+            'The report of a corrected version must not offer withdrawal either.'
+        );
+
+        try {
+            snapshot_service::delete($v1id);
+            $this->fail('A superseded snapshot version must not be deleted.');
+        } catch (validation_exception $exception) {
+            $this->assertSame('snapshotdeletesuperseded', $exception->errorcode);
+        }
+        $this->assertTrue($DB->record_exists('local_outcomemap_snapshot', ['id' => $v1id]));
+
+        snapshot_service::delete($v2id, 'Captured against the wrong reporting period.');
+        $this->assertFalse($DB->record_exists('local_outcomemap_snapshot', ['id' => $v2id]));
+        $this->assertSame(0, $DB->count_records('local_outcomemap_snapitem', ['snapshotid' => $v2id]));
+        $audit = $DB->get_record('local_outcomemap_audit', [
+            'action' => 'delete_snapshot',
+            'objecttype' => 'snapshot',
+            'objectid' => $v2id,
+        ], '*', MUST_EXIST);
+        $this->assertSame($v1uuid, $audit->objectuuid);
+        $this->assertSame('Captured against the wrong reporting period.', $audit->reason);
+        $this->assertNull($audit->afterjson);
+
+        // With the correction gone the original is the newest version again, so
+        // the version that could not be withdrawn a moment ago now can be.
+        $this->assertTrue(
+            (new snapshot_report($v1id))->export_for_template($PAGE->get_renderer('core'))['candelete']
+        );
+        snapshot_service::delete($v1id);
+        $this->assertSame(0, $DB->count_records('local_outcomemap_snapshot'));
+        $this->assertSame(0, $DB->count_records('local_outcomemap_snapitem'));
+    }
+
+    /**
      * Test independent freeze, immutable corrections, redaction, hashes, and export reconstruction.
      */
     public function test_snapshot_versions_are_immutable_and_exports_are_reconstructable(): void {
@@ -654,5 +726,126 @@ final class accreditation_reporting_test extends \advanced_testcase {
         } catch (validation_exception $exception) {
             $this->assertSame('snapshotintegrityfailure', $exception->errorcode);
         }
+    }
+
+    /**
+     * Freeze a snapshot over the standard fixture and export its report context.
+     *
+     * @param int $threshold Minimum cohort size for the accreditation policy.
+     * @return array{0:array,1:int} Report context and snapshot ID.
+     */
+    private function frozen_report(int $threshold = 2): array {
+        global $PAGE;
+
+        set_config('requireapproval', 0, 'local_outcomemap');
+        $this->setAdminUser();
+        $this->reviewer = $this->create_reviewer();
+        $fixture = $this->create_snapshot_fixture($threshold);
+        $snapshotid = snapshot_service::create_draft([
+            'programid' => $fixture['programid'],
+            'periodcode' => '2026-T1',
+            'cohortid' => $fixture['cohortid'],
+            'notes' => 'Report model fixture',
+        ]);
+        snapshot_service::freeze($snapshotid);
+        $report = new snapshot_report($snapshotid);
+        return [$report->export_for_template($PAGE->get_renderer('core')), $snapshotid];
+    }
+
+    /**
+     * The report reads its figures out of the frozen rows, grouped by framework.
+     *
+     * The captured payload is an envelope of type, identity, indexed columns, and
+     * the canonical payload, so a statement and a framework code appearing here is
+     * also the assertion that the envelope was unwrapped rather than read flat.
+     */
+    public function test_snapshot_report_reads_figures_from_the_frozen_capture(): void {
+        $this->resetAfterTest(true);
+        [$context] = $this->frozen_report();
+
+        $this->assertSame('M6-PROGRAM', $context['programcode']);
+        $this->assertSame('M6 reporting program', $context['programname']);
+        $this->assertTrue($context['isfrozen']);
+
+        $this->assertTrue($context['hasoutcomes']);
+        $this->assertCount(1, $context['outcomes'],
+            'The fixture captures outcomes from exactly one framework.');
+        $group = $context['outcomes'][0];
+        $this->assertSame('M6-PLO', $group['framework']);
+        $this->assertCount(1, $group['rows']);
+        $row = $group['rows'][0];
+        $this->assertSame('PLO1', $row['code']);
+        $this->assertSame('Demonstrate the accredited program outcome.', $row['statement']);
+        $this->assertFalse($row['suppressed']);
+        $this->assertSame('2', $row['learners']);
+        $this->assertSame('2', $row['results']);
+        $this->assertSame('85.0%', $row['percent']);
+        $this->assertSame(['M6-COURSE'], $row['evidence'],
+            'The evidence chips name the catalog courses whose aggregates fed the outcome.');
+
+        // Learner counts cannot be summed across outcomes, so the aggregate line
+        // reports the snapshot's own population and the weighted percentage.
+        $this->assertSame('2', $context['totals']['learners']);
+        $this->assertSame('2', $context['totals']['results']);
+        $this->assertSame('85.0%', $context['totals']['percent']);
+
+        $this->assertCount(1, $context['courses']);
+        $this->assertSame('M6-COURSE', $context['courses'][0]['code']);
+        $this->assertSame('M6 reporting course', $context['courses'][0]['name']);
+
+        $types = array_column($context['rowtypes'], 'count', 'type');
+        $this->assertSame('1', $types[snapshot_service::ITEM_PROGRAM_AGGREGATE]);
+        $this->assertSame('2', $types[snapshot_service::ITEM_RESULT]);
+    }
+
+    /**
+     * A suppressed aggregate withholds its figures rather than printing them.
+     */
+    public function test_snapshot_report_withholds_suppressed_figures(): void {
+        $this->resetAfterTest(true);
+        // Three is above the two learners the fixture enrols, so every aggregate
+        // derived from that population must be suppressed.
+        [$context] = $this->frozen_report(3);
+
+        $row = $context['outcomes'][0]['rows'][0];
+        $this->assertTrue($row['suppressed']);
+        $this->assertFalse($row['hasbar'],
+            'A suppressed row must not draw an attainment bar.');
+        $suppressionline = implode(' ', array_column($context['methods'], 'value'));
+        $this->assertStringContainsString('suppressed', $suppressionline);
+    }
+
+    /**
+     * Exports stay closed until the snapshot is frozen, and freezing is offered.
+     */
+    public function test_snapshot_report_gates_exports_until_frozen(): void {
+        global $PAGE;
+
+        $this->resetAfterTest(true);
+        set_config('requireapproval', 0, 'local_outcomemap');
+        $this->setAdminUser();
+        $this->reviewer = $this->create_reviewer();
+        $fixture = $this->create_snapshot_fixture();
+        $snapshotid = snapshot_service::create_draft([
+            'programid' => $fixture['programid'],
+            'periodcode' => '2026-T1',
+            'cohortid' => $fixture['cohortid'],
+        ]);
+
+        $report = new snapshot_report($snapshotid);
+        $context = $report->export_for_template($PAGE->get_renderer('core'));
+
+        $this->assertFalse($context['isfrozen']);
+        $this->assertFalse($context['exports']['canexport'],
+            'An unfrozen capture must not offer an accreditation export.');
+        $this->assertTrue($context['exports']['notfrozen']);
+        $this->assertTrue($context['canfreeze']);
+        $this->assertFalse($context['cancorrect']);
+
+        snapshot_service::freeze($snapshotid);
+        $frozen = (new snapshot_report($snapshotid))->export_for_template($PAGE->get_renderer('core'));
+        $this->assertTrue($frozen['exports']['canexport']);
+        $this->assertFalse($frozen['canfreeze']);
+        $this->assertTrue($frozen['cancorrect']);
     }
 }

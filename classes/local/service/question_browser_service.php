@@ -54,26 +54,53 @@ final class question_browser_service extends base_service {
         $context = \context_course::instance($courseid, MUST_EXIST);
         require_capability('local/outcomemap:viewdefinitions', $context);
 
-        $quizzes = [];
-        $versionids = [];
+        // Resolve every quiz's slots first, collecting the categories the random
+        // slots draw from, so the pools of the whole page cost one query rather
+        // than one per slot. A randomly drawn final exam can carry fifty slots.
+        $pending = [];
+        $allcategories = [];
+        $descendants = [];
         foreach (self::quiz_modules($courseid) as $cm) {
             $structure = self::slot_structure($cm);
-            $slotversions = [];
+            $fixed = [];
+            $categories = [];
             $randomslots = 0;
             foreach ($structure as $slot) {
                 if (self::is_random_slot($slot)) {
                     $randomslots++;
+                    foreach (self::pool_categories($slot, $descendants) as $categoryid) {
+                        $categories[$categoryid] = $categoryid;
+                        $allcategories[$categoryid] = $categoryid;
+                    }
                     continue;
                 }
                 if (!empty($slot->versionid)) {
-                    $slotversions[(int) $slot->versionid] = (int) $slot->versionid;
+                    $fixed[(int) $slot->versionid] = (int) $slot->versionid;
+                }
+            }
+            $pending[] = [$cm, count($structure), $randomslots, $fixed, $categories];
+        }
+        if (!$pending) {
+            return [];
+        }
+
+        $bycategory = self::pool_versions_by_category($allcategories);
+        $quizzes = [];
+        $versionids = [];
+        foreach ($pending as [$cm, $slotcount, $randomslots, $slotversions, $categories]) {
+            // A random slot's questions are the pool it could draw from. Omitting
+            // them reports a fully mapped random exam as having nothing mapped,
+            // because such an exam has few fixed slots or none at all.
+            foreach ($categories as $categoryid) {
+                foreach ($bycategory[$categoryid] ?? [] as $versionid) {
+                    $slotversions[$versionid] = $versionid;
                 }
             }
             $quizzes[] = (object) [
                 'cmid' => (int) $cm->id,
                 'name' => $cm->get_formatted_name(),
                 'sectionname' => get_section_name($courseid, $cm->sectionnum),
-                'slotcount' => count($structure),
+                'slotcount' => $slotcount,
                 'randomslots' => $randomslots,
                 'versionids' => $slotversions,
                 'questioncount' => count($slotversions),
@@ -81,9 +108,6 @@ final class question_browser_service extends base_service {
                 'assessedcount' => 0,
             ];
             $versionids += $slotversions;
-        }
-        if (!$quizzes) {
-            return [];
         }
 
         // One mapping load for the whole page rather than one per quiz.
@@ -269,6 +293,68 @@ final class question_browser_service extends base_service {
     }
 
     /**
+     * Resolve the categories one random slot draws from.
+     *
+     * @param \stdClass $slot Slot row carrying an unpacked filter condition.
+     * @param array $descendants Per-request cache of resolved descendant trees.
+     * @return int[] Category IDs, empty when the slot names no category.
+     */
+    private static function pool_categories(\stdClass $slot, array &$descendants = []): array {
+        $categoryid = (int) ($slot->category ?? 0);
+        if (!$categoryid) {
+            return [];
+        }
+        if (empty($slot->filtercondition['filter']['category']['filteroptions']['includesubcategories'])) {
+            return [$categoryid];
+        }
+        if (!isset($descendants[$categoryid])) {
+            $descendants[$categoryid] = self::descendant_categories($categoryid);
+        }
+        return array_merge([$categoryid], $descendants[$categoryid]);
+    }
+
+    /**
+     * Group the latest ready question version of each entry by its category.
+     *
+     * The quiz list needs version IDs but none of the presentation columns
+     * {@see random_pool()} loads, so this stays a narrow projection and resolves
+     * every pool on the page in one statement.
+     *
+     * @param int[] $categoryids Category IDs keyed by ID.
+     * @return array<int,int[]> Question-version IDs grouped by category ID.
+     */
+    private static function pool_versions_by_category(array $categoryids): array {
+        global $DB;
+
+        $categoryids = array_values($categoryids);
+        if (!$categoryids) {
+            return [];
+        }
+        $grouped = [];
+        foreach (array_chunk($categoryids, self::MAX_VERSIONS) as $batch) {
+            [$insql, $params] = $DB->get_in_or_equal($batch, SQL_PARAMS_NAMED, 'qc');
+            $params['ready'] = question_version_status::QUESTION_STATUS_READY;
+            $records = $DB->get_records_sql(
+                "SELECT qv.id, qbe.questioncategoryid
+                   FROM {question_bank_entries} qbe
+                   JOIN {question_versions} qv ON qv.questionbankentryid = qbe.id
+                        AND qv.version = (
+                            SELECT MAX(lv.version)
+                              FROM {question_versions} lv
+                             WHERE lv.questionbankentryid = qbe.id
+                               AND lv.status = :ready
+                        )
+                  WHERE qbe.questioncategoryid $insql",
+                $params
+            );
+            foreach ($records as $record) {
+                $grouped[(int) $record->questioncategoryid][] = (int) $record->id;
+            }
+        }
+        return $grouped;
+    }
+
+    /**
      * Expand a random slot into the pool a draw could select from.
      *
      * @param \stdClass $slot Slot row carrying an unpacked filter condition.
@@ -285,11 +371,7 @@ final class question_browser_service extends base_service {
         if (!$category) {
             return [[], null, false];
         }
-        $recursive = !empty($slot->filtercondition['filter']['category']['filteroptions']['includesubcategories']);
-        $categoryids = [$categoryid];
-        if ($recursive) {
-            $categoryids = array_merge($categoryids, self::descendant_categories($categoryid));
-        }
+        $categoryids = self::pool_categories($slot);
 
         [$insql, $params] = $DB->get_in_or_equal($categoryids, SQL_PARAMS_NAMED, 'qc');
         $params['ready'] = question_version_status::QUESTION_STATUS_READY;

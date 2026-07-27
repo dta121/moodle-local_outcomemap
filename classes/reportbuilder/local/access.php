@@ -53,7 +53,11 @@ final class access {
     public static function allowed_context_ids(array $records, array $required, array $anyof = []): array {
         $allowed = [];
         foreach ($records as $record) {
-            context_helper::preload_from_record($record);
+            // Priming the context cache strips the ctx* columns from the record
+            // it is given, so preload from a copy and leave the caller's records
+            // intact for the scope IDs they still have to read.
+            $preloadable = clone $record;
+            context_helper::preload_from_record($preloadable);
             $context = context::instance_by_id((int) $record->ctxid, MUST_EXIST);
             if (self::can_view($context, $required, $anyof)) {
                 $allowed[$context->id] = $context->id;

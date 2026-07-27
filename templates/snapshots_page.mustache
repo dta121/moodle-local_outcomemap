@@ -1,0 +1,116 @@
+{{!
+    Accreditation snapshots grouped by correction lineage.
+    @template local_outcomemap/snapshots_page
+
+    Context variables required for this template:
+    * addurl string URL of the create-snapshot-draft form.
+    * groups array Snapshot lineages, each with program, period, reference, rows.
+    * hassnapshots boolean Whether any snapshot exists.
+    * statsline string Aggregate summary line.
+    * introline string Governance explanation.
+
+    Example context (json):
+    {
+        "addurl": "#",
+        "groups": [{
+            "programcode": "MBA",
+            "programname": "Master of Business Administration",
+            "periodcode": "MBA601",
+            "reference": "c1b5a6f9",
+            "countline": "2 versions",
+            "searchtext": "mba",
+            "rows": [{
+                "version": 2, "versionlabel": "v2", "iscorrection": true,
+                "statuslabel": "Frozen", "statusclass": "approved", "isfrozen": true,
+                "population": "133 learners", "itemcount": "29,220 rows",
+                "created": "27 July 2026", "viewurl": "#", "freezeurl": "#", "correcturl": "#",
+                "candelete": true, "deleteurl": "#"
+            }]
+        }],
+        "hassnapshots": true,
+        "statsline": "2 snapshot versions · 1 lineage · 1 frozen · 1 draft",
+        "introline": "Capture a governed reporting population and immutable calculation lineage."
+    }
+}}
+<div id="lom-snapshots" class="lom-page lom-snapshots">
+    <h2 class="lom-page-title">{{#str}} snapshots_heading, local_outcomemap {{/str}}</h2>
+    <div class="lom-page-subtitle">{{#str}} snapshots_subtitle, local_outcomemap {{/str}}</div>
+
+    <div class="lom-page-toolbar">
+        <div class="lom-page-search">
+            <span aria-hidden="true">&#128269;</span>
+            <input id="lom-snapshot-search" type="search" autocomplete="off"
+                   placeholder="{{#str}} snapshots_searchplaceholder, local_outcomemap {{/str}}"
+                   aria-label="{{#str}} snapshots_searchplaceholder, local_outcomemap {{/str}}">
+        </div>
+        <a class="lom-page-btn lom-page-btn-primary lom-page-toolbar-end" href="{{addurl}}">{{#str}} createsnapshot, local_outcomemap {{/str}}</a>
+    </div>
+    <div class="lom-page-stats">{{statsline}}</div>
+    <div id="lom-snapshot-noresults" class="lom-page-noresults lom-hidden" role="status" aria-live="polite">{{#str}} snapshots_noresults, local_outcomemap {{/str}}</div>
+
+    {{#groups}}
+    <section class="lom-section lom-snapshot-group lom-filter-row" data-search="{{searchtext}}">
+        <div class="lom-section-head">
+            <span class="lom-code-badge lom-code-catalog">{{programcode}}</span>
+            <h3 class="lom-section-title">{{programname}}</h3>
+            <span class="lom-section-subtitle">{{#str}} snapshots_periodlabel, local_outcomemap {{/str}} {{periodcode}} &middot; {{reference}}</span>
+            <span class="lom-section-count">{{countline}}</span>
+        </div>
+        <div class="lom-section-body">
+            {{#rows}}
+            <article class="lom-snapshot-row">
+                <span class="lom-snapshot-version">
+                    <span class="lom-snapshot-versionlabel">{{versionlabel}}</span>
+                    {{#iscorrection}}<span class="lom-snapshot-correction">{{#str}} snapshots_correction, local_outcomemap {{/str}}</span>{{/iscorrection}}
+                </span>
+                <span class="lom-snapshot-main">
+                    <span class="lom-snapshot-facts">{{population}} &middot; {{itemcount}}</span>
+                    <span class="lom-snapshot-created">{{created}}</span>
+                </span>
+                <span class="lom-workflow lom-workflow-{{statusclass}}">{{statuslabel}}</span>
+                <span class="lom-row-actions">
+                    <a href="{{viewurl}}">{{#str}} snapshots_openreport, local_outcomemap {{/str}}</a>
+                    {{^isfrozen}}<a href="{{freezeurl}}">{{#str}} freezesnapshot, local_outcomemap {{/str}}</a>{{/isfrozen}}
+                    {{#isfrozen}}<a href="{{correcturl}}">{{#str}} correctsnapshot, local_outcomemap {{/str}}</a>{{/isfrozen}}
+                    {{#candelete}}<a class="lom-row-action-danger" href="{{deleteurl}}">{{#str}} deletesnapshot, local_outcomemap {{/str}}</a>{{/candelete}}
+                </span>
+            </article>
+            {{/rows}}
+        </div>
+    </section>
+    {{/groups}}
+
+    {{#hassnapshots}}
+    <div class="lom-page-help">{{introline}}</div>
+    {{/hassnapshots}}
+
+    {{^hassnapshots}}
+    <div class="lom-page-empty">{{#str}} snapshots_empty, local_outcomemap {{/str}}</div>
+    {{/hassnapshots}}
+</div>
+{{#js}}
+(function() {
+    var root = document.getElementById('lom-snapshots');
+    if (!root) {
+        return;
+    }
+    var input = document.getElementById('lom-snapshot-search');
+    var noresults = document.getElementById('lom-snapshot-noresults');
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        var visible = 0;
+        Array.prototype.forEach.call(root.querySelectorAll('.lom-filter-row'), function(group) {
+            var show = !query || (group.getAttribute('data-search') || '').indexOf(query) !== -1;
+            group.classList.toggle('lom-hidden', !show);
+            if (show) {
+                visible++;
+            }
+        });
+        noresults.classList.toggle('lom-hidden', visible !== 0 || !query);
+    }
+
+    input.addEventListener('input', render);
+    render();
+})();
+{{/js}}

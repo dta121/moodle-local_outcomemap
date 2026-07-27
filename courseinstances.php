@@ -4,6 +4,7 @@
 use local_outcomemap\form\course_instance_form;
 use local_outcomemap\local\service\course_instance_service;
 use local_outcomemap\local\workflow;
+use local_outcomemap\output\course_instances_page;
 
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
@@ -21,11 +22,35 @@ admin_externalpage_setup('local_outcomemap_courseinstances');
 $url = new moodle_url('/local/outcomemap/courseinstances.php');
 $action = optional_param('action', '', PARAM_ALPHA);
 $id = optional_param('id', 0, PARAM_INT);
+// The catalog courses page links here for one course, so the list opens filtered
+// to it rather than making the reader retype a code they just clicked.
+$catalogcode = trim(optional_param('catalog', '', PARAM_TEXT));
 
 if ($action === 'submit' && $id) {
     require_sesskey();
     course_instance_service::submit_for_review($id);
     redirect($url, workflow::submission_success_message());
+}
+if ($action === 'delete' && $id) {
+    require_sesskey();
+    $record = course_instance_service::get($id);
+    if (optional_param('confirm', 0, PARAM_BOOL)) {
+        course_instance_service::delete($id);
+        redirect($url, get_string('courseinstanceremoved', 'local_outcomemap'));
+    }
+    // Deleting is destructive, so it keeps its own confirmation step. This is
+    // not the governance step that adding no longer needs.
+    echo $OUTPUT->header();
+    echo $OUTPUT->confirm(
+        get_string('courseinstancedeleteconfirm', 'local_outcomemap', (object) [
+            'catalog' => s($record->catalogcode ?? ''),
+            'period' => s($record->periodcode),
+        ]),
+        new moodle_url($url, ['action' => 'delete', 'id' => $id, 'confirm' => 1, 'sesskey' => sesskey()]),
+        $url
+    );
+    echo $OUTPUT->footer();
+    exit;
 }
 if ($action === 'add') {
     $formurl = new moodle_url($url, ['action' => 'add']);
@@ -34,44 +59,24 @@ if ($action === 'add') {
         redirect($url);
     }
     if ($data = $form->get_data()) {
-        course_instance_service::create((array) $data);
-        redirect($url, get_string('saved', 'local_outcomemap'));
+        course_instance_service::create_confirmed((array) $data);
+        redirect($url, get_string(
+            workflow::requires_independent_approval() ? 'saved' : 'courseinstanceready',
+            'local_outcomemap'
+        ));
     }
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string('addcourseinstance', 'local_outcomemap'));
-    echo html_writer::tag('p', get_string(
+    echo html_writer::div(get_string(
         workflow::requires_independent_approval() ? 'courseinstances_intro' : 'courseinstances_intro_finalization',
         'local_outcomemap'
-    ));
+    ), 'lom-page-subtitle');
     $form->display();
     echo $OUTPUT->footer();
     exit;
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('courseinstances_heading', 'local_outcomemap'));
-echo html_writer::tag('p', get_string(
-        workflow::requires_independent_approval() ? 'courseinstances_intro' : 'courseinstances_intro_finalization',
-        'local_outcomemap'
-    ));
-echo html_writer::tag('p', get_string('courseinstances_coursevisibility', 'local_outcomemap'), [
-    'class' => 'text-muted',
-]);
-echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']), get_string('addcourseinstance', 'local_outcomemap'));
-$table = new html_table();
-$table->caption = get_string('courseinstances_heading', 'local_outcomemap');
-$table->head = [get_string('catalogcourse', 'local_outcomemap'), get_string('moodlecourse', 'local_outcomemap'),
-    get_string('periodcode', 'local_outcomemap'), get_string('status', 'local_outcomemap'),
-    get_string('confirmed', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
-foreach (course_instance_service::list_all() as $record) {
-    $actions = [];
-    if ($record->status === workflow::DRAFT) {
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'submit', 'id' => $record->id,
-            'sesskey' => sesskey()]), workflow::submit_action_label());
-    }
-    $table->data[] = [s($record->catalogcode), format_string($record->moodlename), s($record->periodcode),
-        workflow::status_label($record->status), $record->confirmed ? get_string('yes') : get_string('no'),
-        implode(' | ', $actions)];
-}
-echo html_writer::div(html_writer::table($table), 'table-responsive');
+$page = new course_instances_page($catalogcode);
+echo $OUTPUT->render_from_template('local_outcomemap/course_instances_page', $page->export_for_template($OUTPUT));
 echo $OUTPUT->footer();

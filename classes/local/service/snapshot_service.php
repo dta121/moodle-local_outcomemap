@@ -237,6 +237,51 @@ final class snapshot_service extends base_service {
     }
 
     /**
+     * Withdraw one snapshot version and every row it captured.
+     *
+     * Freezing makes a version unchangeable, not undeletable. A capture taken
+     * against the wrong period or population, or taken only to demonstrate the
+     * workflow, has to be withdrawable, and correcting such a capture would
+     * assert that it once reported something the institution stands behind.
+     * Withdrawal therefore removes the whole version instead of editing it, and
+     * only from the end of a lineage, so every correction chain that remains
+     * still verifies from its own rows. The audit event keeps the withdrawn
+     * version's identity and hashes.
+     *
+     * @param int $snapshotid Snapshot ID.
+     * @param string|null $reason Optional audit reason.
+     * @return void
+     */
+    public static function delete(int $snapshotid, ?string $reason = null): void {
+        global $DB;
+
+        $actorid = self::require_system('local/outcomemap:managesnapshots');
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $before = self::get_required('local_outcomemap_snapshot', $snapshotid, 'snapshot');
+            if ($DB->record_exists('local_outcomemap_snapshot', ['previousid' => $snapshotid])) {
+                throw new validation_exception('snapshotdeletesuperseded', 'id', $snapshotid);
+            }
+            $DB->delete_records('local_outcomemap_snapitem', ['snapshotid' => $snapshotid]);
+            $DB->delete_records('local_outcomemap_snapshot', ['id' => $snapshotid]);
+            audit_writer::write(
+                'delete_snapshot',
+                'snapshot',
+                $snapshotid,
+                $before->snapshotuuid,
+                $before,
+                null,
+                $reason,
+                \context_system::instance(),
+                $actorid
+            );
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+    }
+
+    /**
      * Load one snapshot for its management page.
      *
      * @param int $snapshotid Snapshot ID.
@@ -248,21 +293,53 @@ final class snapshot_service extends base_service {
     }
 
     /**
+     * Load one snapshot with the program metadata and row count a listing shows.
+     *
+     * @param int $snapshotid Snapshot ID.
+     * @return \stdClass
+     */
+    public static function summary(int $snapshotid): \stdClass {
+        self::require_system('local/outcomemap:managesnapshots');
+        $records = self::list_records($snapshotid);
+        if (!$records) {
+            throw new validation_exception('recordnotfound', 'snapshot', $snapshotid);
+        }
+        return reset($records);
+    }
+
+    /**
      * List all snapshot versions with program metadata and item counts.
      *
      * @return \stdClass[]
      */
     public static function list_all(): array {
-        global $DB;
         self::require_system('local/outcomemap:managesnapshots');
+        return array_values(self::list_records(null));
+    }
+
+    /**
+     * Query snapshot versions with the metadata a listing or confirmation needs.
+     *
+     * @param int|null $snapshotid One snapshot ID, or null for every version.
+     * @return \stdClass[] Records keyed by snapshot ID.
+     */
+    private static function list_records(?int $snapshotid): array {
+        global $DB;
+        $params = [];
+        $where = '';
+        if ($snapshotid !== null) {
+            $where = ' WHERE s.id = :snapshotid';
+            $params['snapshotid'] = $snapshotid;
+        }
         $sql = "SELECT s.*, p.code AS programcode, p.name AS programname,
                        (SELECT COUNT(si.id)
                           FROM {local_outcomemap_snapitem} si
                          WHERE si.snapshotid = s.id) AS itemcount
                   FROM {local_outcomemap_snapshot} s
                   JOIN {local_outcomemap_program} p ON p.id = s.programid
+               {$where}
               ORDER BY s.timecreated DESC, s.snapshotuuid, s.version DESC";
-        return array_values($DB->get_records_sql($sql));
+        return $DB->get_records_sql($sql, $params);
     }
 
     /**

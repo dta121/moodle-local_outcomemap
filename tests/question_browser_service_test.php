@@ -217,6 +217,48 @@ final class question_browser_service_test extends \advanced_testcase {
     }
 
     /**
+     * The quiz list counts random-slot pools, not just fixed slots.
+     *
+     * A randomly drawn final exam has few fixed slots or none, so counting only
+     * fixed slots reported a fully mapped exam as having nothing mapped.
+     */
+    public function test_quizzes_counts_random_slot_pool(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        [$course, $quiz, $category, ] = $this->create_quiz_with_questions(1);
+        $questiongenerator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $pooled = $questiongenerator->create_question('shortanswer', null, ['category' => $category->id]);
+        $this->add_random_slot($quiz, $category);
+        $itemverid = $this->create_outcome('CLO1');
+
+        $rows = question_browser_service::quizzes((int) $course->id);
+        $row = reset($rows);
+        $this->assertSame(2, $row->slotcount);
+        $this->assertSame(1, $row->randomslots);
+        // The fixed slot's question and the pooled one, counted once each even
+        // though the fixed question is also a member of the drawn category.
+        $this->assertSame(2, $row->questioncount, 'The pool must be counted and deduplicated.');
+        $this->assertSame(0, $row->mappedcount);
+
+        question_mapping_service::create([
+            'questionversionid' => $pooled->versionid,
+            'itemverid' => $itemverid,
+            'role' => 'assesses',
+            'weight' => '1',
+            'effectivefrom' => self::EFFECTIVEFROM,
+        ]);
+
+        $rows = question_browser_service::quizzes((int) $course->id);
+        $row = reset($rows);
+        $this->assertSame(
+            1,
+            $row->mappedcount,
+            'A mapping on a pool-only question must count even with no fixed slot for it.'
+        );
+        $this->assertSame(1, $row->assessedcount);
+    }
+
+    /**
      * A teacher without the mapping capability sees questions but cannot edit them.
      */
     public function test_quiz_detail_reports_read_only_for_unprivileged_user(): void {

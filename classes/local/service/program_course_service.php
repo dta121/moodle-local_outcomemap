@@ -90,10 +90,19 @@ final class program_course_service extends base_service {
         }
     }
 
+    /**
+     * Return every membership with its program and catalog course descriptors.
+     *
+     * The program name and type travel with the row so a page can group
+     * memberships under their catalog course without a query per row.
+     *
+     * @return \stdClass[] Memberships keyed by id.
+     */
     public static function list_all(): array {
         global $DB;
         self::require_system('local/outcomemap:viewdefinitions');
-        $sql = "SELECT pc.*, p.code AS programcode, c.code AS coursecode
+        $sql = "SELECT pc.*, p.code AS programcode, p.name AS programname,
+                       p.programtype AS programtype, c.code AS coursecode, c.name AS coursename
                   FROM {local_outcomemap_progcourse} pc
                   JOIN {local_outcomemap_program} p ON p.id = pc.programid
                   JOIN {local_outcomemap_course} c ON c.id = pc.courseid
