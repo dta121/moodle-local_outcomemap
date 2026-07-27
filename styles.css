@@ -792,6 +792,30 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
 .lom-map-apply-note { color: #8a93a0; font-size: var(--lom-fs-2xs); margin-top: 7px; text-align: center; }
 
 /* ---------------------------------------------------------------------------
+   Course outcome attainment: one row per outcome with a band distribution bar.
+   Reuses the coverage report's row and group chrome.
+   --------------------------------------------------------------------------- */
+.lom-att-c-code { flex-shrink: 0; width: 8rem; }
+.lom-att-c-statement { color: #333; flex: 1; font-size: var(--lom-fs-xs); line-height: 1.5; min-width: 0; }
+.lom-att-c-n { flex-shrink: 0; font-size: var(--lom-fs-xs); text-align: right; width: 6rem; }
+.lom-att-c-avg { flex-shrink: 0; text-align: right; width: 5.5rem; }
+.lom-att-c-bands { flex-shrink: 0; width: 15rem; }
+.lom-att-avg { color: #1f2a44; font-size: var(--lom-fs-sm); font-weight: 700; }
+.lom-att-bar {
+    background: #eceff2;
+    border-radius: 3px;
+    display: flex;
+    height: 8px;
+    margin-bottom: 4px;
+    overflow: hidden;
+    width: 100%;
+}
+.lom-att-seg { height: 8px; }
+.lom-att-seg-low { background: #991b1b; }
+.lom-att-seg-mid { background: #b45309; }
+.lom-att-seg-high { background: #166534; }
+
+/* ---------------------------------------------------------------------------
    Course question mappings: quiz picker, then slots beside the apply panel.
    The slot list reuses the .lom-map-* tree so both mapping pages read alike.
    --------------------------------------------------------------------------- */

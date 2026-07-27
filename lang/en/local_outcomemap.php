@@ -371,6 +371,24 @@ $string['filteroutcomes'] = 'Filter outcomes…';
 $string['nooutcomematches'] = 'No outcomes match this filter.';
 $string['periodandweight'] = 'Reporting period and weight';
 
+// Course outcome attainment.
+$string['attainment_heading'] = 'Outcome attainment';
+$string['attainment_subtitle'] = 'Cohort attainment stored by the calculation engine. {$a->learners} learner(s) with results; reporting period(s): {$a->periods}.';
+$string['attainment_noresults'] = 'No outcome results have been calculated for this course yet. Results appear once approved assessed mappings exist and learners have completed the assessments they are mapped to.';
+$string['attainment_learners'] = 'Learners';
+$string['attainment_assessed'] = 'Assessed';
+$string['attainment_average'] = 'Average';
+$string['attainment_banddistribution'] = 'Band distribution';
+$string['attainment_nonecalculated'] = 'No calculated result';
+$string['attainment_groupsub'] = '{$a} outcome(s)';
+$string['attainment_searchlabel'] = 'Search outcomes';
+$string['attainmentfilter_all'] = 'All';
+$string['attainmentfilter_attention'] = 'Needs attention';
+$string['attainmentfilter_strong'] = 'Mostly attained';
+$string['attainmentfilter_unassessed'] = 'No result';
+$string['attainment_note'] = 'Figures are the stored results the calculation engine produced under the approved calculation policy; nothing is recomputed for this page. Bands come from the policy version in force when each result was calculated. No small-cohort suppression is applied here, unlike accreditation exports.';
+$string['nav_attainment'] = 'Outcome attainment';
+
 // Course question mappings.
 $string['questionmapping_heading'] = 'Question outcome mappings';
 $string['questionmapping_subtitle'] = 'Choose a quiz to see the exact question versions it uses and the outcomes mapped to them.';
@@ -455,6 +473,9 @@ $string['nav_settings'] = 'Settings';
 $string['autocopyquestionmappings'] = 'Automatically copy question mappings to new versions (legacy opt-in)';
 $string['autocopyquestionmappings_desc'] = 'Optional compatibility behavior. When enabled, creation of a new question version immediately copies eligible approved mappings as drafts. Leave disabled to use the recommended explicit preview and copy action in the question bank. Copied drafts still require review and approval.';
 $string['autocopyquestionmappings_desc_finalization'] = 'Optional compatibility behavior. When enabled, creation of a new question version immediately copies eligible finalized mappings as drafts. Leave disabled to use the recommended explicit preview and copy action in the question bank. Copied drafts must still be explicitly finalized.';
+$string['autosubmitquestionmappings'] = 'Submit new question mappings automatically';
+$string['autosubmitquestionmappings_desc'] = 'When enabled, a new question mapping is submitted for review as soon as it is created, so no one has to submit it by hand. An assessed mapping can only be submitted once that question version\'s assessed weights total exactly 1.0000000000, so a question mapped to several outcomes stays a draft until its last mapping is added, then the whole set is submitted together. Mappings copied onto a new question version are never submitted automatically. Approval by a different user is still required.';
+$string['autosubmitquestionmappings_desc_finalization'] = 'When enabled, a new question mapping is finalized as soon as it is created, so no one has to submit or approve it by hand. An assessed mapping can only be finalized once that question version\'s assessed weights total exactly 1.0000000000, so a question mapped to several outcomes stays a draft until its last mapping is added, then the whole set is finalized together. Mappings copied onto a new question version are never finalized automatically. Because independent approval is disabled, mappings created this way become approved immediately and are then immutable.';
 $string['questionmapping'] = 'Question mapping';
 $string['questionversionmismatch'] = 'The question and question-version identifiers do not match the Moodle question bank.';
 $string['assessedweightrequired'] = 'An assesses mapping requires an explicit positive weight. Weights are never inferred.';

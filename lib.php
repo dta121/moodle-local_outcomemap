@@ -141,9 +141,10 @@ function local_outcomemap_extend_navigation_course(
 ): void {
     $canviewdefinitions = has_capability('local/outcomemap:viewdefinitions', $context);
     $canviewresults = has_capability('local/outcomemap:viewownresults', $context);
+    $canviewallresults = has_capability('local/outcomemap:viewallresults', $context);
     $canreleaseresults = has_capability('local/outcomemap:managepolicies', $context)
         && has_capability('moodle/course:update', $context);
-    if (!$canviewdefinitions && !$canviewresults && !$canreleaseresults) {
+    if (!$canviewdefinitions && !$canviewresults && !$canreleaseresults && !$canviewallresults) {
         return;
     }
     if ($canviewresults) {
@@ -155,7 +156,7 @@ function local_outcomemap_extend_navigation_course(
             'local_outcomemap_results'
         );
     }
-    if (!$canviewdefinitions && !$canreleaseresults) {
+    if (!$canviewdefinitions && !$canreleaseresults && !$canviewallresults) {
         return;
     }
     $node = $navigation->add(
@@ -165,6 +166,15 @@ function local_outcomemap_extend_navigation_course(
         null,
         'local_outcomemap'
     );
+    // Cohort attainment is other people's results, so it follows the all-results
+    // capability rather than the definitions one the mapping pages use.
+    if ($canviewallresults) {
+        $node->add(
+            get_string('nav_attainment', 'local_outcomemap'),
+            new moodle_url('/local/outcomemap/attainment.php', ['courseid' => $course->id]),
+            navigation_node::TYPE_SETTING
+        );
+    }
     if ($canviewdefinitions) {
         $node->add(
             get_string('nav_coverage', 'local_outcomemap'),
