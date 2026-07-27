@@ -17,6 +17,7 @@
 namespace local_outcomemap\local\service;
 
 use local_outcomemap\local\decimal;
+use local_outcomemap\local\feature;
 use local_outcomemap\local\workflow;
 
 /**
@@ -461,7 +462,7 @@ final class student_result_service {
                 ];
             }
         }
-        if ($remediationrequests) {
+        if ($remediationrequests && feature::remediation_enabled()) {
             $recommendations = self::select_accessible_remediation(
                 $courseid,
                 $remediationrequests,

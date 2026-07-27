@@ -23,6 +23,7 @@
  */
 
 use local_outcomemap\form\remediation_form;
+use local_outcomemap\local\feature;
 use local_outcomemap\local\service\content_mapping_service;
 use local_outcomemap\local\service\remediation_service;
 use local_outcomemap\local\workflow;
@@ -43,6 +44,9 @@ $course = get_course($courseid);
 require_login($course);
 $context = context_course::instance($courseid);
 require_capability('local/outcomemap:viewdefinitions', $context);
+// The navigation entry is withdrawn when remediation is off, so reaching this
+// page means a direct URL.
+feature::require_enabled(feature::remediation_enabled(), 'remediationdisabled');
 $PAGE->set_context($context);
 $PAGE->set_course($course);
 $url = new moodle_url('/local/outcomemap/remediation.php', ['courseid' => $courseid]);

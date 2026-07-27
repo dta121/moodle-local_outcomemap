@@ -193,11 +193,13 @@ function local_outcomemap_extend_navigation_course(
                 navigation_node::TYPE_SETTING
             );
         }
-        $node->add(
-            get_string('nav_remediation', 'local_outcomemap'),
-            new moodle_url('/local/outcomemap/remediation.php', ['courseid' => $course->id]),
-            navigation_node::TYPE_SETTING
-        );
+        if (\local_outcomemap\local\feature::remediation_enabled()) {
+            $node->add(
+                get_string('nav_remediation', 'local_outcomemap'),
+                new moodle_url('/local/outcomemap/remediation.php', ['courseid' => $course->id]),
+                navigation_node::TYPE_SETTING
+            );
+        }
     }
     if ($canreleaseresults) {
         $node->add(

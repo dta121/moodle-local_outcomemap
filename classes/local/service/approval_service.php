@@ -208,7 +208,9 @@ final class approval_service extends base_service {
                 'timemodified' => $record->timemodified,
             ];
         }
-        $remediations = $DB->get_records_sql(
+        // With remediation off, its pending drafts drop out of the queue. The
+        // records are untouched and reappear if the feature is turned back on.
+        $remediations = !\local_outcomemap\local\feature::remediation_enabled() ? [] : $DB->get_records_sql(
             "SELECT r.id, r.createdby, r.timemodified, r.title, i.code AS outcomecode,
                     f.code AS frameworkcode, c.fullname AS coursename
                FROM {local_outcomemap_remed} r

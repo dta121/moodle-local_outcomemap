@@ -70,6 +70,12 @@ if ($hassiteconfig) {
         0
     ));
     $settings->add(new admin_setting_configcheckbox(
+        'local_outcomemap/enableremediation',
+        get_string('enableremediation', 'local_outcomemap'),
+        get_string('enableremediation_desc', 'local_outcomemap'),
+        1
+    ));
+    $settings->add(new admin_setting_configcheckbox(
         'local_outcomemap/autosubmitquestionmappings',
         get_string('autosubmitquestionmappings', 'local_outcomemap'),
         get_string(

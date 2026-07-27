@@ -32,9 +32,11 @@ $sources = [
     'student_attainment',
     'course_aggregates',
     'program_aggregates',
-    'remediation_engagement',
     'audit_history',
 ];
+if (\local_outcomemap\local\feature::remediation_enabled()) {
+    array_splice($sources, array_search('audit_history', $sources, true), 0, ['remediation_engagement']);
+}
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('reports_heading', 'local_outcomemap'));

@@ -86,9 +86,23 @@ final class remediation_engagement extends secured_datasource {
         return array_values($allowedcourseids);
     }
 
+    /**
+     * Withdraw the source from report creation when remediation is switched off.
+     *
+     * The gate belongs here rather than only in can_view_scoped(), because
+     * can_view() ORs in system-context access and an administrator would
+     * otherwise keep seeing the source after the feature was turned off.
+     *
+     * @return bool
+     */
+    public static function is_available(): bool {
+        return \local_outcomemap\local\feature::remediation_enabled() && parent::is_available();
+    }
+
     /** @return bool */
     protected static function can_view_scoped(): bool {
-        return self::allowed_course_ids() !== [];
+        return \local_outcomemap\local\feature::remediation_enabled()
+            && self::allowed_course_ids() !== [];
     }
 
     /** Build the source. */
