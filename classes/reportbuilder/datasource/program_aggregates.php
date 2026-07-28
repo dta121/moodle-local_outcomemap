@@ -115,6 +115,12 @@ final class program_aggregates extends secured_datasource {
         $numerator = "CASE WHEN {$item}.suppressed = 1 THEN NULL ELSE {$item}.numerator END";
         $denominator = "CASE WHEN {$item}.suppressed = 1 THEN NULL ELSE {$item}.denominator END";
         $percentage = "CASE WHEN {$item}.suppressed = 1 THEN NULL ELSE {$item}.percentage END";
+        // The criterion and benchmark are governed policy, so they survive
+        // suppression; the learner counts and the rate drawn from them do not.
+        $assessedcount = "CASE WHEN {$item}.suppressed = 1 THEN NULL ELSE {$item}.assessedcount END";
+        $metcount = "CASE WHEN {$item}.suppressed = 1 THEN NULL ELSE {$item}.metcount END";
+        $attainment = "CASE WHEN {$item}.suppressed = 1 THEN NULL ELSE {$item}.attainmentpercent END";
+        $benchmarkmet = "CASE WHEN {$item}.suppressed = 1 THEN NULL ELSE {$item}.benchmarkmet END";
 
         $entity
             ->define_column('recordid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
@@ -180,6 +186,19 @@ final class program_aggregates extends secured_datasource {
                 column::TYPE_TEXT, ['denominator' => $denominator], true, null, [], true)
             ->define_column('percentage', new lang_string('reportcolumn_percentage', 'local_outcomemap'),
                 column::TYPE_TEXT, ['percentage' => $percentage], true, null, [], true)
+            ->define_column('criterionpercent', new lang_string('achievementminpercent', 'local_outcomemap'),
+                column::TYPE_TEXT, ['criterionpercent' => "{$item}.criterionpercent"], true, null, [], true)
+            ->define_column('benchmarkpercent', new lang_string('benchmarkpercent', 'local_outcomemap'),
+                column::TYPE_TEXT, ['benchmarkpercent' => "{$item}.benchmarkpercent"], true, null, [], true)
+            ->define_column('assessedcount', new lang_string('reportcolumn_assessedcount', 'local_outcomemap'),
+                column::TYPE_INTEGER, ['assessedcount' => $assessedcount])
+            ->define_column('metcount', new lang_string('reportcolumn_metcount', 'local_outcomemap'),
+                column::TYPE_INTEGER, ['metcount' => $metcount])
+            ->define_column('attainmentpercent', new lang_string('attainmentrate', 'local_outcomemap'),
+                column::TYPE_TEXT, ['attainmentpercent' => $attainment], true, null, [], true)
+            ->define_column('benchmarkmet', new lang_string('benchmarkmet', 'local_outcomemap'),
+                column::TYPE_BOOLEAN, ['benchmarkmet' => $benchmarkmet], true,
+                [report_format::class, 'boolean_as_text'])
             ->define_column('populationcount', new lang_string('populationcount', 'local_outcomemap'),
                 column::TYPE_INTEGER, ["{$snapshot}.populationcount"])
             ->define_column('suppressionthreshold',
@@ -218,7 +237,9 @@ final class program_aggregates extends secured_datasource {
             ->define_filter('state', new lang_string('reportcolumn_state', 'local_outcomemap'),
                 select::class, "{$item}.state", filter_options::aggregate_states())
             ->define_filter('percentage', new lang_string('reportcolumn_percentage', 'local_outcomemap'),
-                number::class, $percentage);
+                number::class, $percentage)
+            ->define_filter('attainmentpercent', new lang_string('attainmentrate', 'local_outcomemap'),
+                number::class, $attainment);
 
         $this->register_entity($entity, 'local_outcomemap_snapitem');
     }
@@ -233,6 +254,9 @@ final class program_aggregates extends secured_datasource {
             'outcomemap:subjectcount',
             'outcomemap:suppressed',
             'outcomemap:percentage',
+            'outcomemap:attainmentpercent',
+            'outcomemap:benchmarkpercent',
+            'outcomemap:benchmarkmet',
             'outcomemap:state',
             'outcomemap:snapshotversion',
         ];

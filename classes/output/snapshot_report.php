@@ -275,7 +275,7 @@ final class snapshot_report implements renderable, templatable {
                     ? 0
                     : round(min(100, max(0, (float) $item->percentage)), 2),
                 'hasbar' => !$suppressed && $item->percentage !== null,
-            ];
+            ] + self::attainment_cells($item->payload);
         }
         uksort($groups, static fn($a, $b) => strnatcasecmp($a, $b));
         $result = [];
@@ -296,6 +296,43 @@ final class snapshot_report implements renderable, templatable {
     }
 
     /**
+     * Build the attainment-rate cells of one program outcome row.
+     *
+     * The rate is the share of assessed learners who met the policy's
+     * achievement criterion, which is the figure accreditation reporting is
+     * compared against. It is deliberately separate from the pooled score in
+     * the neighbouring column.
+     *
+     * @param array $payload Program aggregate payload.
+     * @return array Template values.
+     */
+    private static function attainment_cells(array $payload): array {
+        $rate = $payload['attainmentpercent'] ?? null;
+        $benchmark = $payload['benchmarkpercent'] ?? null;
+        $met = $payload['benchmarkmet'] ?? null;
+        return [
+            'hasrate' => $rate !== null,
+            'rate' => $rate === null
+                ? get_string('calculationnotavailable', 'local_outcomemap')
+                : number_format((float) $rate, 1) . '%',
+            'ratedetail' => get_string('attainmentrate_value', 'local_outcomemap', (object) [
+                'met' => number_format((int) ($payload['metcount'] ?? 0)),
+                'assessed' => number_format((int) ($payload['assessedcount'] ?? 0)),
+                'rate' => $rate === null ? '—' : number_format((float) $rate, 1),
+            ]),
+            'benchmark' => $benchmark === null ? '' : get_string('snapreport_vsbenchmark',
+                'local_outcomemap', number_format((float) $benchmark, 1)),
+            'hasbenchmark' => $benchmark !== null,
+            'benchmarkmet' => $met === true,
+            'benchmarkmissed' => $met === false,
+            'benchmarklabel' => get_string(
+                $met === null ? 'benchmarkmet_unknown' : ($met ? 'benchmarkmet_yes' : 'benchmarkmet_no'),
+                'local_outcomemap'
+            ),
+        ];
+    }
+
+    /**
      * Sum the program outcome rows into one governed aggregate line.
      *
      * Learner counts cannot be added across outcomes because the same learner
@@ -309,10 +346,20 @@ final class snapshot_report implements renderable, templatable {
         $numerator = decimal::ZERO;
         $denominator = decimal::ZERO;
         $results = 0;
+        $judged = 0;
+        $benchmarksmet = 0;
         foreach ($this->grouped[snapshot_service::ITEM_PROGRAM_AGGREGATE] ?? [] as $item) {
             $numerator = decimal::add($numerator, decimal::canonical($item->numerator, 'numerator'));
             $denominator = decimal::add($denominator, decimal::canonical($item->denominator, 'denominator'));
             $results += (int) ($item->payload['calculatedcount'] ?? 0);
+            // Attainment rates are shares of different learner sets, so they
+            // cannot be pooled. The defensible program summary is how many
+            // outcomes cleared their own benchmark.
+            $met = $item->payload['benchmarkmet'] ?? null;
+            if ($met !== null) {
+                $judged++;
+                $benchmarksmet += $met ? 1 : 0;
+            }
         }
         $percent = decimal::is_zero($denominator)
             ? null
@@ -324,6 +371,11 @@ final class snapshot_report implements renderable, templatable {
                 ? get_string('calculationnotavailable', 'local_outcomemap')
                 : number_format((float) $percent, 1) . '%',
             'frameworkcount' => count($outcomes),
+            'hasbenchmarks' => $judged > 0,
+            'benchmarksummary' => get_string('snapreport_benchmarksmet', 'local_outcomemap', (object) [
+                'met' => number_format($benchmarksmet),
+                'judged' => number_format($judged),
+            ]),
         ];
     }
 

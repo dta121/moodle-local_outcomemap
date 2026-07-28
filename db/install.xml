@@ -627,6 +627,12 @@
         <FIELD NAME="denominator" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="percentage" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="subjectcount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="assessedcount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="metcount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="attainmentpercent" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="criterionpercent" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="benchmarkpercent" TYPE="number" LENGTH="20" DECIMALS="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="benchmarkmet" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="suppressed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="payloadjson" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="payloadhash" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>

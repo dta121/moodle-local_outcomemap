@@ -85,6 +85,7 @@
             <span class="lom-snap-num">{{#str}} snapreport_col_learners, local_outcomemap {{/str}}</span>
             <span class="lom-snap-num">{{#str}} snapreport_col_results, local_outcomemap {{/str}}</span>
             <span>{{#str}} snapreport_col_attainment, local_outcomemap {{/str}}</span>
+            <span>{{#str}} snapreport_col_rate, local_outcomemap {{/str}}</span>
         </div>
         {{#outcomes}}
         <div class="lom-snap-fwrow">
@@ -110,11 +111,20 @@
                 {{#hasbar}}<span class="lom-snap-bar"><span class="lom-snap-bar-fill" style="width: {{barwidth}}%"></span></span>{{/hasbar}}
                 <span class="lom-snap-pct">{{percent}}</span>
             </span>
+            <span class="lom-snap-rate" title="{{ratedetail}}">
+                <span class="lom-snap-pct">{{rate}}</span>
+                {{#hasbenchmark}}
+                <span class="lom-snap-benchmark">{{benchmark}}</span>
+                {{/hasbenchmark}}
+                {{#benchmarkmet}}<span class="lom-workflow lom-workflow-approved">{{benchmarklabel}}</span>{{/benchmarkmet}}
+                {{#benchmarkmissed}}<span class="lom-workflow lom-workflow-draft">{{benchmarklabel}}</span>{{/benchmarkmissed}}
+            </span>
             {{/suppressed}}
             {{#suppressed}}
             <span class="lom-snap-num lom-snap-withheld">&mdash;</span>
             <span class="lom-snap-num lom-snap-withheld">&mdash;</span>
             <span class="lom-workflow lom-workflow-review">{{#str}} exportsuppressed, local_outcomemap {{/str}}</span>
+            <span class="lom-snap-num lom-snap-withheld">&mdash;</span>
             {{/suppressed}}
         </div>
         {{/rows}}
@@ -125,6 +135,9 @@
             <span class="lom-snap-num">{{totals.learners}}</span>
             <span class="lom-snap-num">{{totals.results}}</span>
             <span class="lom-snap-attain"><span class="lom-snap-pct">{{totals.percent}}</span></span>
+            <span class="lom-snap-rate">
+                {{#totals.hasbenchmarks}}<span class="lom-snap-benchmark">{{totals.benchmarksummary}}</span>{{/totals.hasbenchmarks}}
+            </span>
         </div>
     </div>
     {{/hasoutcomes}}

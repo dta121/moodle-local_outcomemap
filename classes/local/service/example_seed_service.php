@@ -38,6 +38,12 @@ final class example_seed_service extends base_service {
      */
     public const EXAMPLE_MIN_COHORT_SIZE = 5;
 
+    /** Achievement criterion of a seeded example accreditation policy. */
+    public const EXAMPLE_ACHIEVEMENT_MIN_PERCENT = '70';
+
+    /** Aggregate benchmark of a seeded example accreditation policy. */
+    public const EXAMPLE_BENCHMARK_PERCENT = '70';
+
     /**
      * Create one example custom report per available governed data source.
      *
@@ -229,9 +235,10 @@ final class example_seed_service extends base_service {
      * Resolve the program's accreditation policy, seeding one when absent.
      *
      * An institution's own approved policy is always preferred. The seeded
-     * fallback carries an explicit demonstration threshold: the plugin supplies
-     * no suppression, population, or retention default of its own, so an
-     * example capture has to state one to be possible at all.
+     * fallback carries explicit demonstration figures: the plugin supplies no
+     * suppression, population, retention, achievement-criterion, or benchmark
+     * default of its own, so an example capture has to state them to be
+     * possible at all.
      *
      * @param int $programid Program ID.
      * @param int|null $mincohortsize Explicit suppression threshold for a seeded policy.
@@ -251,6 +258,8 @@ final class example_seed_service extends base_service {
                 'mincohortsize' => $mincohortsize ?? self::EXAMPLE_MIN_COHORT_SIZE,
                 'populationsource' => suppression_service::POPULATION_ACTIVE_ENROLMENTS,
                 'retentionbasis' => suppression_service::RETENTION_ANONYMISED,
+                'achievementminpercent' => self::EXAMPLE_ACHIEVEMENT_MIN_PERCENT,
+                'benchmarkpercent' => self::EXAMPLE_BENCHMARK_PERCENT,
             ],
             'effectivefrom' => time(),
             'reason' => get_string('exampleseed_policyreason', 'local_outcomemap'),

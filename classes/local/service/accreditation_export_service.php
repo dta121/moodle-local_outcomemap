@@ -101,6 +101,12 @@ final class accreditation_export_service {
             'numerator',
             'denominator',
             'percentage',
+            'criterion_percent',
+            'benchmark_percent',
+            'assessed_count',
+            'met_count',
+            'attainment_percent',
+            'benchmark_met',
             'payload_hash',
             'manifest_hash',
         ]);
@@ -128,6 +134,18 @@ final class accreditation_export_service {
                 $suppressed ? '' : decimal::canonical($item->denominator, 'denominator'),
                 $suppressed || $item->percentage === null
                     ? '' : decimal::canonical($item->percentage, 'percentage'),
+                // The criterion and benchmark are governed policy rather than
+                // learner data, so they stay readable on suppressed rows; the
+                // met counts and rate derived from a small cohort do not.
+                $item->criterionpercent === null
+                    ? '' : decimal::canonical($item->criterionpercent, 'criterionpercent'),
+                $item->benchmarkpercent === null
+                    ? '' : decimal::canonical($item->benchmarkpercent, 'benchmarkpercent'),
+                $suppressed ? '' : (int) $item->assessedcount,
+                $suppressed ? '' : (int) $item->metcount,
+                $suppressed || $item->attainmentpercent === null
+                    ? '' : decimal::canonical($item->attainmentpercent, 'attainmentpercent'),
+                $suppressed || $item->benchmarkmet === null ? '' : (int) $item->benchmarkmet,
                 (string) $item->payloadhash,
                 (string) $snapshot->manifesthash,
             ]);

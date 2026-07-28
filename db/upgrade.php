@@ -629,5 +629,37 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026072703, 'local', 'outcomemap');
     }
 
+    if ($oldversion < 2026072801) {
+        // Accreditation reporting states the share of learners who met the
+        // policy's achievement criterion, not only the pooled score. These
+        // columns index that statistic so report builder and the CSV export can
+        // read it without decoding payloadjson. Snapshots frozen before this
+        // upgrade keep zeroed counts and null rates: they were captured under a
+        // policy that stated no criterion, so no rate can be reconstructed for
+        // them, and a frozen snapshot is never recalculated.
+        $table = new xmldb_table('local_outcomemap_snapitem');
+        $fields = [
+            new xmldb_field('assessedcount', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0',
+                'subjectcount'),
+            new xmldb_field('metcount', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0',
+                'assessedcount'),
+            new xmldb_field('attainmentpercent', XMLDB_TYPE_NUMBER, '20, 10', null, null, null, null,
+                'metcount'),
+            new xmldb_field('criterionpercent', XMLDB_TYPE_NUMBER, '20, 10', null, null, null, null,
+                'attainmentpercent'),
+            new xmldb_field('benchmarkpercent', XMLDB_TYPE_NUMBER, '20, 10', null, null, null, null,
+                'criterionpercent'),
+            new xmldb_field('benchmarkmet', XMLDB_TYPE_INTEGER, '1', null, null, null, null,
+                'benchmarkpercent'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026072801, 'local', 'outcomemap');
+    }
+
     return true;
 }

@@ -44,8 +44,11 @@ class reconcile_evidence extends \core\task\scheduled_task {
         global $DB;
         $tuples = [];
 
-        // Stale results queued by mapping or policy changes.
-        $stale = $DB->get_records_sql(
+        // Stale results queued by mapping or policy changes. Collected through a
+        // recordset because get_records_sql() keys rows by their first column:
+        // courseid repeats across learners, so all but one learner per course
+        // would be silently dropped from the batch.
+        $stale = $DB->get_recordset_sql(
             "SELECT DISTINCT ci.moodlecourseid AS courseid, e.assessmentcmid AS cmid, r.userid
                FROM {local_outcomemap_result} r
                JOIN {local_outcomemap_cinst} ci ON ci.id = r.cinstid
@@ -53,15 +56,15 @@ class reconcile_evidence extends \core\task\scheduled_task {
                      ON e.userid = r.userid AND e.cinstid = r.cinstid AND e.itemverid = r.itemverid
               WHERE r.stale = 1 AND r.supersededby IS NULL",
             [],
+            '',
+            '*',
             0,
             self::BATCH
         );
-        foreach ($stale as $row) {
-            $tuples[$row->courseid . ':' . $row->cmid . ':' . $row->userid] = $row;
-        }
+        $this->collect($stale, $tuples);
 
         // Finished attempts on mapped quizzes without any current evidence.
-        $missing = $DB->get_records_sql(
+        $missing = $DB->get_recordset_sql(
             "SELECT DISTINCT cm.course AS courseid, cm.id AS cmid, qa.userid
                FROM {quiz_attempts} qa
                JOIN {quiz} q ON q.id = qa.quiz
@@ -81,12 +84,12 @@ class reconcile_evidence extends \core\task\scheduled_task {
                     SELECT 1 FROM {local_outcomemap_evidence} e
                      WHERE e.quizattemptid = qa.id AND e.supersededby IS NULL)",
             ['approved' => workflow::APPROVED, 'mapapproved' => workflow::APPROVED],
+            '',
+            '*',
             0,
             self::BATCH
         );
-        foreach ($missing as $row) {
-            $tuples[$row->courseid . ':' . $row->cmid . ':' . $row->userid] = $row;
-        }
+        $this->collect($missing, $tuples);
 
         $processed = 0;
         $errors = 0;
@@ -105,5 +108,19 @@ class reconcile_evidence extends \core\task\scheduled_task {
         set_config('reconcile_lastprocessed', $processed, 'local_outcomemap');
         set_config('reconcile_lasterrors', $errors, 'local_outcomemap');
         mtrace("local_outcomemap reconciliation: {$processed} recalculated, {$errors} errors.");
+    }
+
+    /**
+     * Add every course, assessment, and learner tuple of a recordset to the batch.
+     *
+     * @param \moodle_recordset $recordset Recordset of courseid, cmid, and userid rows.
+     * @param array $tuples Batch keyed by tuple, added to in place.
+     * @return void
+     */
+    private function collect(\moodle_recordset $recordset, array &$tuples): void {
+        foreach ($recordset as $row) {
+            $tuples[$row->courseid . ':' . $row->cmid . ':' . $row->userid] = $row;
+        }
+        $recordset->close();
     }
 }

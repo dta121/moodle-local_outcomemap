@@ -115,13 +115,19 @@ final class aggregate_service {
      * Build deterministic course and program aggregate rows.
      *
      * Percentages are never averaged. Canonical numerators and denominators
-     * are summed and divided once per aggregate row.
+     * are summed and divided once per aggregate row, yielding the pooled score
+     * of the row. The attainment rate is a separate statistic: each learner's
+     * own numerators and denominators are pooled first, that learner is judged
+     * once against the policy's achievement criterion, and the rate is the
+     * share of assessed learners who met it. A learner contributing results in
+     * several course instances therefore counts once in a program row.
      *
      * @param \stdClass[] $results Current result records.
      * @param \stdClass $policy Approved accreditation policy.
      * @return array{course:array,program:array}
      */
     public static function aggregate(array $results, \stdClass $policy): array {
+        $config = suppression_service::config_of($policy);
         $course = [];
         $program = [];
         foreach ($results as $result) {
@@ -137,11 +143,11 @@ final class aggregate_service {
             self::add_result($program[$programkey], $result);
         }
         foreach ($course as &$bucket) {
-            self::finish_bucket($bucket, $policy);
+            self::finish_bucket($bucket, $config);
         }
         unset($bucket);
         foreach ($program as &$bucket) {
-            self::finish_bucket($bucket, $policy);
+            self::finish_bucket($bucket, $config);
         }
         unset($bucket);
         ksort($course, SORT_STRING);
@@ -176,6 +182,13 @@ final class aggregate_service {
             'percentage' => null,
             'subjectcount' => 0,
             'calculatedcount' => 0,
+            'assessedcount' => 0,
+            'metcount' => 0,
+            'notmetcount' => 0,
+            'attainmentpercent' => null,
+            'achievementminpercent' => null,
+            'benchmarkpercent' => null,
+            'benchmarkmet' => null,
             'statecounts' => [],
             'subjects' => [],
             'resultuuids' => [],
@@ -191,32 +204,57 @@ final class aggregate_service {
      */
     private static function add_result(array &$bucket, \stdClass $result): void {
         $userid = (int) $result->userid;
-        $bucket['subjects'][$userid] = true;
+        if (!isset($bucket['subjects'][$userid])) {
+            $bucket['subjects'][$userid] = [
+                'numerator' => decimal::ZERO,
+                'denominator' => decimal::ZERO,
+                'calculatedcount' => 0,
+            ];
+        }
         $bucket['resultuuids'][] = (string) $result->uuid;
         $state = (string) $result->state;
         $bucket['statecounts'][$state] = ($bucket['statecounts'][$state] ?? 0) + 1;
         if ($state !== calculation_service::STATE_CALCULATED || $result->percentage === null) {
             return;
         }
-        $bucket['numerator'] = decimal::add(
-            $bucket['numerator'],
-            decimal::canonical($result->numerator, 'numerator')
-        );
-        $bucket['denominator'] = decimal::add(
-            $bucket['denominator'],
-            decimal::canonical($result->denominator, 'denominator')
-        );
+        $numerator = decimal::canonical($result->numerator, 'numerator');
+        $denominator = decimal::canonical($result->denominator, 'denominator');
+        $bucket['numerator'] = decimal::add($bucket['numerator'], $numerator);
+        $bucket['denominator'] = decimal::add($bucket['denominator'], $denominator);
         $bucket['calculatedcount']++;
+        $subject = &$bucket['subjects'][$userid];
+        $subject['numerator'] = decimal::add($subject['numerator'], $numerator);
+        $subject['denominator'] = decimal::add($subject['denominator'], $denominator);
+        $subject['calculatedcount']++;
+        unset($subject);
     }
 
     /**
-     * Finalize one aggregate row and apply suppression.
+     * Finalize one aggregate row, judge each learner, and apply suppression.
      *
      * @param array $bucket Aggregate accumulator.
-     * @param \stdClass $policy Accreditation policy.
+     * @param array $config Canonical accreditation configuration.
      */
-    private static function finish_bucket(array &$bucket, \stdClass $policy): void {
+    private static function finish_bucket(array &$bucket, array $config): void {
         $bucket['subjectcount'] = count($bucket['subjects']);
+        // Learners are judged in ascending ID order so the met counts, and the
+        // payload hash derived from them, do not depend on result ordering.
+        ksort($bucket['subjects'], SORT_NUMERIC);
+        $assessed = 0;
+        $met = 0;
+        foreach ($bucket['subjects'] as $subject) {
+            if ($subject['calculatedcount'] === 0 || decimal::is_zero($subject['denominator'])) {
+                continue;
+            }
+            $assessed++;
+            $subjectpercentage = decimal::div(
+                decimal::mul($subject['numerator'], '100'),
+                $subject['denominator']
+            );
+            if (suppression_service::meets_criterion($subjectpercentage, $config)) {
+                $met++;
+            }
+        }
         unset($bucket['subjects']);
         sort($bucket['resultuuids'], SORT_STRING);
         ksort($bucket['statecounts'], SORT_STRING);
@@ -226,6 +264,18 @@ final class aggregate_service {
                 $bucket['denominator']
             );
         }
-        $bucket['suppressed'] = suppression_service::is_suppressed($bucket['subjectcount'], $policy);
+        $bucket['assessedcount'] = $assessed;
+        $bucket['metcount'] = $met;
+        $bucket['notmetcount'] = $assessed - $met;
+        $bucket['attainmentpercent'] = $assessed === 0 ? null : decimal::div(
+            decimal::mul(decimal::canonical((string) $met, 'metcount'), '100'),
+            decimal::canonical((string) $assessed, 'assessedcount')
+        );
+        // The criterion and benchmark travel with the row so a frozen snapshot
+        // records the standard it was judged against, not just the outcome.
+        $bucket['achievementminpercent'] = $config['achievementminpercent'];
+        $bucket['benchmarkpercent'] = $config['benchmarkpercent'];
+        $bucket['benchmarkmet'] = suppression_service::meets_benchmark($bucket['attainmentpercent'], $config);
+        $bucket['suppressed'] = $bucket['subjectcount'] < $config['mincohortsize'];
     }
 }

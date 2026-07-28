@@ -8,6 +8,7 @@
 
 namespace local_outcomemap\local\service;
 
+use local_outcomemap\local\decimal;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
@@ -45,7 +46,12 @@ final class suppression_service {
     /**
      * Normalize and validate an accreditation policy configuration.
      *
-     * No threshold or population default is supplied.
+     * No threshold, population, achievement criterion, or benchmark default is
+     * supplied. Accreditation reporting states two separate faculty decisions:
+     * the achievement criterion each learner is judged against, and the
+     * aggregate benchmark the resulting attainment rate is compared to. Both
+     * are required so no snapshot can report a rate with nothing to report it
+     * against.
      *
      * @param array $config Submitted policy configuration.
      * @return array Canonical configuration.
@@ -56,6 +62,8 @@ final class suppression_service {
             throw new validation_exception('invalidpolicyconfig', 'mincohortsize',
                 $config['mincohortsize'] ?? '');
         }
+        $achievement = self::require_percent($config['achievementminpercent'] ?? null, 'achievementminpercent');
+        $benchmark = self::require_percent($config['benchmarkpercent'] ?? null, 'benchmarkpercent');
         $population = trim((string) ($config['populationsource'] ?? ''));
         if (!in_array($population, self::POPULATION_SOURCES, true)) {
             throw new validation_exception('invalidpolicyconfig', 'populationsource', $population);
@@ -78,9 +86,30 @@ final class suppression_service {
             'mincohortsize' => (int) $threshold,
             'populationsource' => $population,
             'retentionbasis' => $retention,
+            'achievementminpercent' => $achievement,
+            'benchmarkpercent' => $benchmark,
             'aggregationmethod' => self::AGGREGATION_METHOD,
             'correctionmethod' => self::CORRECTION_METHOD,
         ];
+    }
+
+    /**
+     * Require a canonical percentage between zero and one hundred inclusive.
+     *
+     * @param mixed $value Submitted percentage.
+     * @param string $field Configuration field name.
+     * @return string Canonical percentage.
+     */
+    private static function require_percent($value, string $field): string {
+        if ($value === null || trim((string) $value) === '') {
+            throw new validation_exception('invalidpolicyconfig', $field, '');
+        }
+        $canonical = decimal::require_canonical($value, $field);
+        if (decimal::cmp($canonical, decimal::ZERO) < 0
+                || decimal::cmp($canonical, decimal::canonical('100', $field)) > 0) {
+            throw new validation_exception('invalidpolicyconfig', $field, (string) $value);
+        }
+        return $canonical;
     }
 
     /**
@@ -134,9 +163,43 @@ final class suppression_service {
      * @return bool
      */
     public static function is_suppressed(int $subjectcount, \stdClass $policy): bool {
-        $config = isset($policy->config)
+        return $subjectcount < self::config_of($policy)['mincohortsize'];
+    }
+
+    /**
+     * Return the canonical configuration of an accreditation policy.
+     *
+     * @param \stdClass $policy Approved accreditation policy.
+     * @return array Canonical configuration.
+     */
+    public static function config_of(\stdClass $policy): array {
+        return isset($policy->config)
             ? self::normalize_config((array) $policy->config)
             : self::normalize_config(json_decode($policy->configjson, true) ?? []);
-        return $subjectcount < $config['mincohortsize'];
+    }
+
+    /**
+     * Whether one learner's outcome percentage meets the achievement criterion.
+     *
+     * @param string $percentage Canonical learner percentage.
+     * @param array $config Canonical accreditation configuration.
+     * @return bool
+     */
+    public static function meets_criterion(string $percentage, array $config): bool {
+        return decimal::cmp($percentage, $config['achievementminpercent']) >= 0;
+    }
+
+    /**
+     * Whether an attainment rate meets the aggregate benchmark.
+     *
+     * @param string|null $attainmentpercent Canonical attainment rate, or null.
+     * @param array $config Canonical accreditation configuration.
+     * @return bool|null Null when no rate was calculable.
+     */
+    public static function meets_benchmark(?string $attainmentpercent, array $config): ?bool {
+        if ($attainmentpercent === null) {
+            return null;
+        }
+        return decimal::cmp($attainmentpercent, $config['benchmarkpercent']) >= 0;
     }
 }

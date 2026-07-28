@@ -491,6 +491,8 @@ class behat_local_outcomemap extends behat_base {
             'mincohortsize' => 2,
             'populationsource' => \local_outcomemap\local\service\suppression_service::POPULATION_MOODLE_COHORT,
             'retentionbasis' => \local_outcomemap\local\service\suppression_service::RETENTION_ANONYMISED,
+            'achievementminpercent' => '70',
+            'benchmarkpercent' => '70',
             'aggregationmethod' => \local_outcomemap\local\service\suppression_service::AGGREGATION_METHOD,
             'correctionmethod' => \local_outcomemap\local\service\suppression_service::CORRECTION_METHOD,
         ]);

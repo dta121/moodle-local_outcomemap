@@ -125,6 +125,15 @@ final class policy_form extends \moodleform {
                 get_string('retention_privacy_deletion', 'local_outcomemap'),
         ]);
         $mform->hideIf('retentionbasis', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
+        $mform->addElement('text', 'achievementminpercent',
+            get_string('achievementminpercent', 'local_outcomemap'));
+        $mform->setType('achievementminpercent', PARAM_RAW_TRIMMED);
+        $mform->addHelpButton('achievementminpercent', 'achievementminpercent', 'local_outcomemap');
+        $mform->hideIf('achievementminpercent', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
+        $mform->addElement('text', 'benchmarkpercent', get_string('benchmarkpercent', 'local_outcomemap'));
+        $mform->setType('benchmarkpercent', PARAM_RAW_TRIMMED);
+        $mform->addHelpButton('benchmarkpercent', 'benchmarkpercent', 'local_outcomemap');
+        $mform->hideIf('benchmarkpercent', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
         $mform->addElement('static', 'aggregationmethod', get_string('aggregationmethod', 'local_outcomemap'),
             get_string('aggregation_sum_numerators_denominators', 'local_outcomemap'));
         $mform->hideIf('aggregationmethod', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
@@ -244,6 +253,11 @@ final class policy_form extends \moodleform {
             if (!in_array($data['retentionbasis'] ?? '', suppression_service::RETENTION_BASES, true)) {
                 $errors['retentionbasis'] = get_string('required');
             }
+            foreach (['achievementminpercent', 'benchmarkpercent'] as $field) {
+                if (!self::is_valid_percent($data[$field] ?? null)) {
+                    $errors[$field] = get_string('invalid' . $field, 'local_outcomemap');
+                }
+            }
             return $errors;
         }
         if ($scopetype === policy_service::SCOPE_PROGRAM) {
@@ -334,5 +348,24 @@ final class policy_form extends \moodleform {
             $previousmaxinclusive = !empty($data['bandmaxinclusive'][$index]);
         }
         return $errors;
+    }
+
+    /**
+     * Whether a submitted value is a canonical percentage from 0 to 100.
+     *
+     * @param mixed $value Submitted value.
+     * @return bool
+     */
+    private static function is_valid_percent($value): bool {
+        if ($value === null || trim((string) $value) === '') {
+            return false;
+        }
+        try {
+            $canonical = decimal::require_canonical($value, 'percent');
+        } catch (validation_exception $e) {
+            return false;
+        }
+        return decimal::cmp($canonical, decimal::ZERO) >= 0
+            && decimal::cmp($canonical, decimal::canonical('100', 'percent')) <= 0;
     }
 }

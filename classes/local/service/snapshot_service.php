@@ -1004,6 +1004,12 @@ final class snapshot_service extends base_service {
                 'denominator' => $aggregate['denominator'],
                 'percentage' => $aggregate['percentage'],
                 'subjectcount' => (int) $aggregate['subjectcount'],
+                'assessedcount' => (int) ($aggregate['assessedcount'] ?? 0),
+                'metcount' => (int) ($aggregate['metcount'] ?? 0),
+                'attainmentpercent' => $aggregate['attainmentpercent'] ?? null,
+                'criterionpercent' => $aggregate['achievementminpercent'] ?? null,
+                'benchmarkpercent' => $aggregate['benchmarkpercent'] ?? null,
+                'benchmarkmet' => $aggregate['benchmarkmet'] ?? null,
                 'suppressed' => !empty($aggregate['suppressed']),
             ]
         );
@@ -1019,7 +1025,38 @@ final class snapshot_service extends base_service {
      * @return \stdClass
      */
     private static function make_item(string $type, array $identity, array $payload, array $columns = []): \stdClass {
-        $index = [
+        $index = self::build_index($columns);
+        $payloadjson = canonical_json::encode([
+            'type' => $type,
+            'identity' => $identity,
+            'index' => $index,
+            'payload' => $payload,
+        ]);
+        return (object) array_merge([
+            'snapshotid' => 0,
+            'itemtype' => $type,
+            'stablekey' => hash('sha256', canonical_json::encode(['type' => $type, 'identity' => $identity])),
+        ], $index, [
+            'payloadjson' => $payloadjson,
+            'payloadhash' => hash('sha256', $payloadjson),
+            'sortorder' => 0,
+        ]);
+    }
+
+    /**
+     * Normalize the indexed reporting columns of a snapshot item.
+     *
+     * The index is hashed into payloadjson and also stored as columns, so
+     * integrity verification has to rebuild it from a stored row and reach the
+     * same canonical form. Both paths go through here: when the two were
+     * written out separately, adding a column silently invalidated every
+     * existing snapshot's index hash.
+     *
+     * @param array $columns Indexed reporting columns, or a stored item row cast to an array.
+     * @return array Canonical index.
+     */
+    public static function build_index(array $columns): array {
+        return [
             'subjectref' => $columns['subjectref'] ?? null,
             'sourceuuid' => $columns['sourceuuid'] ?? null,
             'sourceid' => isset($columns['sourceid']) ? (int) $columns['sourceid'] : null,
@@ -1032,33 +1069,21 @@ final class snapshot_service extends base_service {
             'percentage' => !array_key_exists('percentage', $columns) || $columns['percentage'] === null
                 ? null : decimal::canonical($columns['percentage'], 'percentage'),
             'subjectcount' => (int) ($columns['subjectcount'] ?? 0),
+            'assessedcount' => (int) ($columns['assessedcount'] ?? 0),
+            'metcount' => (int) ($columns['metcount'] ?? 0),
+            'attainmentpercent' => !array_key_exists('attainmentpercent', $columns)
+                || $columns['attainmentpercent'] === null
+                ? null : decimal::canonical($columns['attainmentpercent'], 'attainmentpercent'),
+            'criterionpercent' => !array_key_exists('criterionpercent', $columns)
+                || $columns['criterionpercent'] === null
+                ? null : decimal::canonical($columns['criterionpercent'], 'criterionpercent'),
+            'benchmarkpercent' => !array_key_exists('benchmarkpercent', $columns)
+                || $columns['benchmarkpercent'] === null
+                ? null : decimal::canonical($columns['benchmarkpercent'], 'benchmarkpercent'),
+            'benchmarkmet' => !array_key_exists('benchmarkmet', $columns)
+                || $columns['benchmarkmet'] === null
+                ? null : (empty($columns['benchmarkmet']) ? 0 : 1),
             'suppressed' => empty($columns['suppressed']) ? 0 : 1,
-        ];
-        $payloadjson = canonical_json::encode([
-            'type' => $type,
-            'identity' => $identity,
-            'index' => $index,
-            'payload' => $payload,
-        ]);
-        return (object) [
-            'snapshotid' => 0,
-            'itemtype' => $type,
-            'stablekey' => hash('sha256', canonical_json::encode(['type' => $type, 'identity' => $identity])),
-            'subjectref' => $index['subjectref'],
-            'sourceuuid' => $index['sourceuuid'],
-            'sourceid' => $index['sourceid'],
-            'cinstid' => $index['cinstid'],
-            'itemverid' => $index['itemverid'],
-            'state' => $index['state'],
-            'bandcode' => $index['bandcode'],
-            'numerator' => $index['numerator'],
-            'denominator' => $index['denominator'],
-            'percentage' => $index['percentage'],
-            'subjectcount' => $index['subjectcount'],
-            'suppressed' => $index['suppressed'],
-            'payloadjson' => $payloadjson,
-            'payloadhash' => hash('sha256', $payloadjson),
-            'sortorder' => 0,
         ];
     }
 

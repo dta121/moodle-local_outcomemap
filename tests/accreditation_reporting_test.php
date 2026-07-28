@@ -17,6 +17,7 @@ use local_outcomemap\local\canonical_json;
 use local_outcomemap\local\decimal;
 use local_outcomemap\local\service\accreditation_export_service;
 use local_outcomemap\local\service\aggregate_service;
+use local_outcomemap\local\service\audit_lineage_service;
 use local_outcomemap\local\service\calculation_service;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\policy_service;
@@ -245,6 +246,8 @@ final class accreditation_reporting_test extends \advanced_testcase {
                 'mincohortsize' => $threshold,
                 'populationsource' => suppression_service::POPULATION_MOODLE_COHORT,
                 'retentionbasis' => suppression_service::RETENTION_ANONYMISED,
+                'achievementminpercent' => '70',
+                'benchmarkpercent' => '70',
                 'aggregationmethod' => suppression_service::AGGREGATION_METHOD,
                 'correctionmethod' => suppression_service::CORRECTION_METHOD,
             ],
@@ -384,6 +387,8 @@ final class accreditation_reporting_test extends \advanced_testcase {
             'mincohortsize' => 2,
             'populationsource' => suppression_service::POPULATION_MOODLE_COHORT,
             'retentionbasis' => suppression_service::RETENTION_ANONYMISED,
+            'achievementminpercent' => '70',
+            'benchmarkpercent' => '70',
         ]];
 
         $aggregates = aggregate_service::aggregate($results, $policy);
@@ -395,12 +400,279 @@ final class accreditation_reporting_test extends \advanced_testcase {
             $this->assertSame('85.0000000000', $aggregate['percentage']);
             $this->assertSame(2, $aggregate['subjectcount']);
             $this->assertFalse($aggregate['suppressed']);
+            // Both learners scored 85%, so the attainment rate is 100% and the
+            // 70% benchmark is met. The pooled score and the rate are distinct
+            // statistics that happen to agree here only because both learners
+            // sit on the same side of the criterion.
+            $this->assertSame(2, $aggregate['assessedcount']);
+            $this->assertSame(2, $aggregate['metcount']);
+            $this->assertSame(0, $aggregate['notmetcount']);
+            $this->assertSame('100.0000000000', $aggregate['attainmentpercent']);
+            $this->assertSame('70.0000000000', $aggregate['achievementminpercent']);
+            $this->assertSame('70.0000000000', $aggregate['benchmarkpercent']);
+            $this->assertTrue($aggregate['benchmarkmet']);
         }
 
         $policy->config['mincohortsize'] = 3;
         $suppressed = aggregate_service::aggregate($results, $policy);
         $this->assertTrue($suppressed['course'][0]['suppressed']);
         $this->assertTrue($suppressed['program'][0]['suppressed']);
+    }
+
+    /**
+     * Test the attainment rate is a separate statistic from the pooled score.
+     */
+    public function test_attainment_rate_counts_learners_not_marks(): void {
+        $this->resetAfterTest(true);
+        $base = $this->aggregate_result_base();
+        $results = [];
+        // Two learners well above the criterion and two well below it. The
+        // pooled score clears the benchmark while only half the learners do.
+        foreach ([201 => '95', 202 => '95', 203 => '40', 204 => '40'] as $userid => $score) {
+            $results[] = (object) array_merge($base, [
+                'userid' => $userid,
+                'uuid' => uuid::generate(),
+                'numerator' => $score . '.0000000000',
+                'denominator' => '100.0000000000',
+                'percentage' => $score . '.0000000000',
+            ]);
+        }
+        $policy = $this->aggregate_policy('70', '70');
+
+        $aggregates = aggregate_service::aggregate($results, $policy);
+        $aggregate = $aggregates['program'][0];
+        $this->assertSame('67.5000000000', $aggregate['percentage'],
+            'The pooled score divides summed marks, not learners.');
+        $this->assertSame(4, $aggregate['assessedcount']);
+        $this->assertSame(2, $aggregate['metcount']);
+        $this->assertSame(2, $aggregate['notmetcount']);
+        $this->assertSame('50.0000000000', $aggregate['attainmentpercent']);
+        $this->assertFalse($aggregate['benchmarkmet'],
+            'Half the learners met the criterion, short of the 70% benchmark.');
+    }
+
+    /**
+     * Test a program row pools each learner's own evidence before judging them.
+     */
+    public function test_program_attainment_judges_each_learner_once(): void {
+        $this->resetAfterTest(true);
+        $base = $this->aggregate_result_base();
+        // One learner assessed on the same outcome in two course instances:
+        // 60% in one and 80% in the other, pooling to exactly the criterion.
+        $results = [
+            (object) array_merge($base, [
+                'userid' => 301,
+                'uuid' => uuid::generate(),
+                'cinstid' => 7,
+                'numerator' => '6.0000000000',
+                'denominator' => '10.0000000000',
+                'percentage' => '60.0000000000',
+            ]),
+            (object) array_merge($base, [
+                'userid' => 301,
+                'uuid' => uuid::generate(),
+                'cinstid' => 8,
+                'numerator' => '8.0000000000',
+                'denominator' => '10.0000000000',
+                'percentage' => '80.0000000000',
+            ]),
+        ];
+        $policy = $this->aggregate_policy('70', '70');
+
+        $aggregates = aggregate_service::aggregate($results, $policy);
+        $this->assertCount(2, $aggregates['course'],
+            'Each course instance keeps its own row.');
+        $this->assertCount(1, $aggregates['program']);
+        $program = $aggregates['program'][0];
+        $this->assertSame(1, $program['subjectcount']);
+        $this->assertSame(1, $program['assessedcount'],
+            'One learner contributing two results counts once.');
+        $this->assertSame(1, $program['metcount'],
+            'Pooled 14/20 is exactly 70%, and the criterion is inclusive.');
+        $this->assertSame('100.0000000000', $program['attainmentpercent']);
+        $this->assertTrue($program['benchmarkmet']);
+
+        $bycinst = [];
+        foreach ($aggregates['course'] as $row) {
+            $bycinst[(int) $row['cinstid']] = $row;
+        }
+        $this->assertSame(0, $bycinst[7]['metcount'],
+            'Judged on that course instance alone the learner falls short.');
+        $this->assertSame(1, $bycinst[8]['metcount']);
+    }
+
+    /**
+     * Test a rate is not calculable when no learner has a calculated result.
+     */
+    public function test_attainment_rate_absent_without_calculated_results(): void {
+        $this->resetAfterTest(true);
+        $base = $this->aggregate_result_base();
+        $results = [
+            (object) array_merge($base, [
+                'userid' => 401,
+                'uuid' => uuid::generate(),
+                'state' => calculation_service::STATE_INSUFFICIENT,
+                'percentage' => null,
+            ]),
+        ];
+
+        $aggregate = aggregate_service::aggregate($results, $this->aggregate_policy('70', '70'))['program'][0];
+        $this->assertSame(0, $aggregate['assessedcount']);
+        $this->assertSame(0, $aggregate['metcount']);
+        $this->assertNull($aggregate['attainmentpercent']);
+        $this->assertNull($aggregate['benchmarkmet'],
+            'An uncalculable rate must not read as a failed benchmark.');
+    }
+
+    /**
+     * Test an accreditation policy without a stated criterion is rejected.
+     */
+    public function test_accreditation_policy_requires_criterion_and_benchmark(): void {
+        $this->resetAfterTest(true);
+        $config = [
+            'mincohortsize' => 2,
+            'populationsource' => suppression_service::POPULATION_MOODLE_COHORT,
+            'retentionbasis' => suppression_service::RETENTION_ANONYMISED,
+            'achievementminpercent' => '70',
+            'benchmarkpercent' => '70',
+        ];
+        foreach (['achievementminpercent', 'benchmarkpercent'] as $field) {
+            $missing = $config;
+            unset($missing[$field]);
+            try {
+                suppression_service::normalize_config($missing);
+                $this->fail('A missing ' . $field . ' must be rejected.');
+            } catch (validation_exception $e) {
+                $this->assertStringContainsString($field, $e->getMessage());
+            }
+        }
+        foreach (['-1', '100.5', 'abc', ''] as $invalid) {
+            try {
+                suppression_service::normalize_config(
+                    ['benchmarkpercent' => $invalid] + $config
+                );
+                $this->fail('Benchmark "' . $invalid . '" must be rejected.');
+            } catch (validation_exception $e) {
+                $this->assertInstanceOf(validation_exception::class, $e);
+            }
+        }
+        $normalized = suppression_service::normalize_config($config);
+        $this->assertSame('70.0000000000', $normalized['achievementminpercent']);
+        $this->assertSame('70.0000000000', $normalized['benchmarkpercent']);
+    }
+
+    /**
+     * Test a snapshot frozen before the attainment columns still verifies.
+     */
+    public function test_verification_accepts_index_without_attainment_columns(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        // One actor is enough here: the subject is payload verification, not the
+        // approval separation exercised elsewhere.
+        set_config('requireapproval', 0, 'local_outcomemap');
+        $this->setAdminUser();
+        $this->reviewer = $this->create_reviewer();
+        $fixture = $this->create_snapshot_fixture();
+        $snapshotid = snapshot_service::create_draft([
+            'programid' => $fixture['programid'],
+            'periodcode' => '2026-T1',
+            'cohortid' => $fixture['cohortid'],
+        ]);
+        snapshot_service::freeze($snapshotid);
+
+        // Rewrite every item's stored index to the pre-upgrade key set, exactly
+        // as a snapshot frozen under an earlier release holds it. The columns
+        // keep their values: only the hashed payload loses the newer keys.
+        $legacykeys = ['assessedcount', 'metcount', 'attainmentpercent', 'criterionpercent',
+            'benchmarkpercent', 'benchmarkmet'];
+        $hashes = [];
+        foreach (snapshot_service::items($snapshotid) as $item) {
+            $decoded = json_decode($item->payloadjson, true);
+            foreach ($legacykeys as $key) {
+                unset($decoded['index'][$key]);
+            }
+            $payloadjson = canonical_json::encode($decoded);
+            $DB->update_record('local_outcomemap_snapitem', (object) [
+                'id' => $item->id,
+                'payloadjson' => $payloadjson,
+                'payloadhash' => hash('sha256', $payloadjson),
+            ]);
+            $hashes[] = ['key' => (string) $item->stablekey, 'hash' => hash('sha256', $payloadjson)];
+        }
+        $DB->set_field('local_outcomemap_snapshot', 'payloadhash',
+            hash('sha256', canonical_json::encode($hashes)), ['id' => $snapshotid]);
+
+        $snapshot = snapshot_service::get($snapshotid);
+        $items = snapshot_service::items($snapshotid);
+        $this->assertSame(
+            $snapshot->payloadhash,
+            audit_lineage_service::verify_snapshot_payload($snapshot, $items),
+            'A snapshot frozen before the attainment columns existed must stay verifiable.'
+        );
+
+        // An index key the normalizer never produces is still rejected, so the
+        // relaxation cannot be used to smuggle content past verification.
+        $first = reset($items);
+        $decoded = json_decode($first->payloadjson, true);
+        $decoded['index']['injected'] = 'x';
+        $payloadjson = canonical_json::encode($decoded);
+        $DB->update_record('local_outcomemap_snapitem', (object) [
+            'id' => $first->id,
+            'payloadjson' => $payloadjson,
+            'payloadhash' => hash('sha256', $payloadjson),
+        ]);
+        try {
+            audit_lineage_service::verify_snapshot_payload(
+                snapshot_service::get($snapshotid),
+                snapshot_service::items($snapshotid)
+            );
+            $this->fail('An unknown index key must fail verification.');
+        } catch (validation_exception $e) {
+            $this->assertSame('snapshotintegrityfailure', $e->errorcode);
+        }
+    }
+
+    /**
+     * Build the shared aggregate result fixture.
+     *
+     * @return array Result fields without learner-specific values.
+     */
+    private function aggregate_result_base(): array {
+        return [
+            'cinstid' => 7,
+            'cinstuuid' => uuid::generate(),
+            'courseuuid' => uuid::generate(),
+            'coursecode' => 'M6-COURSE',
+            'cinstperiod' => '2026-T1',
+            'itemverid' => 11,
+            'outcomeuuid' => uuid::generate(),
+            'outcomeversionuuid' => uuid::generate(),
+            'outcomeversion' => 1,
+            'outcomecode' => 'PLO1',
+            'frameworkuuid' => uuid::generate(),
+            'frameworkcode' => 'M6-PLO',
+            'state' => calculation_service::STATE_CALCULATED,
+            'percentage' => '85.0000000000',
+            'numerator' => '12.7500000000',
+            'denominator' => '15.0000000000',
+        ];
+    }
+
+    /**
+     * Build an in-memory accreditation policy for aggregation tests.
+     *
+     * @param string $criterion Achievement criterion percentage.
+     * @param string $benchmark Aggregate benchmark percentage.
+     * @return \stdClass
+     */
+    private function aggregate_policy(string $criterion, string $benchmark): \stdClass {
+        return (object) ['config' => [
+            'mincohortsize' => 1,
+            'populationsource' => suppression_service::POPULATION_MOODLE_COHORT,
+            'retentionbasis' => suppression_service::RETENTION_ANONYMISED,
+            'achievementminpercent' => $criterion,
+            'benchmarkpercent' => $benchmark,
+        ]];
     }
 
     /**
@@ -621,6 +893,8 @@ final class accreditation_reporting_test extends \advanced_testcase {
                 'mincohortsize' => 3,
                 'populationsource' => suppression_service::POPULATION_MOODLE_COHORT,
                 'retentionbasis' => suppression_service::RETENTION_ANONYMISED,
+                'achievementminpercent' => '70',
+                'benchmarkpercent' => '70',
                 'aggregationmethod' => suppression_service::AGGREGATION_METHOD,
                 'correctionmethod' => suppression_service::CORRECTION_METHOD,
             ],

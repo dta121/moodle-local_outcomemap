@@ -109,7 +109,9 @@ final class reportbuilder_datasource_test extends core_reportbuilder_testcase {
                     'outcomemap:moodlecoursename', 'outcomemap:periodcode',
                     'outcomemap:cohortname', 'outcomemap:outcomecode',
                     'outcomemap:subjectcount', 'outcomemap:suppressed',
-                    'outcomemap:percentage', 'outcomemap:state',
+                    'outcomemap:percentage', 'outcomemap:attainmentpercent',
+                    'outcomemap:benchmarkpercent', 'outcomemap:benchmarkmet',
+                    'outcomemap:state',
                 ],
                 [
                     'outcomemap:programid', 'outcomemap:courseinstanceid',
@@ -123,7 +125,9 @@ final class reportbuilder_datasource_test extends core_reportbuilder_testcase {
                     'outcomemap:programcode', 'outcomemap:periodcode',
                     'outcomemap:cohortname', 'outcomemap:outcomecode',
                     'outcomemap:subjectcount', 'outcomemap:suppressed',
-                    'outcomemap:percentage', 'outcomemap:state', 'outcomemap:snapshotversion',
+                    'outcomemap:percentage', 'outcomemap:attainmentpercent',
+                    'outcomemap:benchmarkpercent', 'outcomemap:benchmarkmet',
+                    'outcomemap:state', 'outcomemap:snapshotversion',
                 ],
                 [
                     'outcomemap:programid', 'outcomemap:periodcode', 'outcomemap:cohortid',

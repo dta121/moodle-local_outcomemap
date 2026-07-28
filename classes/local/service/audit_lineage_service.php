@@ -47,22 +47,24 @@ final class audit_lineage_service {
             if (!hash_equals((string) $item->stablekey, $stablekey)) {
                 throw new validation_exception('snapshotintegrityfailure', 'stablekey', $item->id);
             }
-            $index = [
-                'subjectref' => $item->subjectref === null ? null : (string) $item->subjectref,
-                'sourceuuid' => $item->sourceuuid === null ? null : (string) $item->sourceuuid,
-                'sourceid' => $item->sourceid === null ? null : (int) $item->sourceid,
-                'cinstid' => $item->cinstid === null ? null : (int) $item->cinstid,
-                'itemverid' => $item->itemverid === null ? null : (int) $item->itemverid,
-                'state' => $item->state === null ? null : (string) $item->state,
-                'bandcode' => $item->bandcode === null ? null : (string) $item->bandcode,
-                'numerator' => \local_outcomemap\local\decimal::canonical($item->numerator, 'numerator'),
-                'denominator' => \local_outcomemap\local\decimal::canonical($item->denominator, 'denominator'),
-                'percentage' => $item->percentage === null ? null
-                    : \local_outcomemap\local\decimal::canonical($item->percentage, 'percentage'),
-                'subjectcount' => (int) $item->subjectcount,
-                'suppressed' => (int) $item->suppressed,
-            ];
-            if (canonical_json::encode($index) !== canonical_json::encode($decoded['index'])) {
+            // Rebuilt through the same normalizer that produced it, so a new
+            // indexed column cannot make the stored index and the recomputed
+            // one disagree.
+            $expected = snapshot_service::build_index((array) $item);
+            $stored = $decoded['index'];
+            // A snapshot frozen before an indexed column existed carries an
+            // index without that key, and a frozen snapshot is never rewritten.
+            // Comparing on the keys it actually holds keeps those verifiable.
+            // This cannot hide a tampered column: payloadjson is hash-checked
+            // above, so its key set is itself protected, and any stored key the
+            // normalizer does not produce is rejected below.
+            $comparable = array_intersect_key($expected, $stored);
+            $storedkeys = array_keys($stored);
+            $comparablekeys = array_keys($comparable);
+            sort($storedkeys);
+            sort($comparablekeys);
+            if ($storedkeys !== $comparablekeys
+                    || canonical_json::encode($comparable) !== canonical_json::encode($stored)) {
                 throw new validation_exception('snapshotintegrityfailure', 'index', $item->id);
             }
             $hashes[] = [
