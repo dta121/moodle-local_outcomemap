@@ -22,6 +22,7 @@ use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\outcome_service;
 use local_outcomemap\local\service\program_course_service;
 use local_outcomemap\local\service\program_service;
+use local_outcomemap\local\workflow;
 use local_outcomemap\output\curriculum_page;
 
 /**
@@ -224,6 +225,32 @@ final class curriculum_page_test extends \advanced_testcase {
         $attachable = array_column($speccontext['attachable'], null, 'code');
         $this->assertArrayHasKey('MBA601', $attachable);
         $this->assertStringContainsString('MBA', $attachable['MBA601']['inline']);
+    }
+
+    /**
+     * A retired membership no longer claims the course for its program.
+     */
+    public function test_export_ignores_retired_memberships(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+
+        $programid = program_service::create([
+            'code' => 'BSBA',
+            'name' => 'Bachelor of Science in Business Administration',
+            'programtype' => program_service::TYPE_UNDERGRADUATE,
+        ]);
+        $courseid = $this->attach($programid, 'BUS101', 'Introduction to Business');
+        $DB->set_field('local_outcomemap_progcourse', 'status', workflow::RETIRED,
+            ['programid' => $programid, 'courseid' => $courseid]);
+
+        $context = $this->export($programid);
+        $this->assertSame([], $context['courses'],
+            'A retired membership must not keep the course in the program.');
+        $this->assertSame(0, $context['sidebar'][0]['rows'][0]['coursecount']);
+        // The course is not lost: it is offered back for attachment.
+        $this->assertSame(['BUS101'], array_column($context['attachable'], 'code'));
     }
 
     /**

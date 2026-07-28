@@ -24,7 +24,14 @@ use renderable;
 use renderer_base;
 use templatable;
 
-/** Build grouped and matrix views of governed outcome relations. */
+/**
+ * Build the alignment grid of governed outcome relations, and its CSV export.
+ *
+ * Alignments are read in the matrix view of the Outcomes and alignment page
+ * rather than on a page of their own, so this supplies that view's data and the
+ * export behind its Alignments CSV button. It no longer renders a template of
+ * its own.
+ */
 final class relations_page implements renderable, templatable {
     /** @var \stdClass[] All relation versions with endpoint details. */
     private array $relations;
@@ -102,24 +109,6 @@ final class relations_page implements renderable, templatable {
         return [];
     }
 
-    /** Return one relation target chip. */
-    private function target_chip(\stdClass $relation, bool $canmanage, moodle_url $baseurl): array {
-        $actions = $this->actions($relation, $canmanage, $baseurl);
-        $target = $this->outcomes[(int) $relation->targetitemid] ?? null;
-        return [
-            'label' => $relation->targetframework . '.' . $relation->targetcode,
-            'statement' => $target->statement ?? $relation->targetstatement,
-            'statuslabel' => workflow::status_label($relation->status),
-            'statusclass' => $this->status_class($relation->status),
-            'versionlabel' => get_string('relations_version_short', 'local_outcomemap', (int) $relation->version),
-            'hasweight' => $relation->weight !== null,
-            'weightlabel' => $relation->weight === null ? ''
-                : get_string('relations_weight_short', 'local_outcomemap', $relation->weight),
-            'hasactions' => $actions !== [],
-            'actions' => $actions,
-        ];
-    }
-
     /** Build one matrix cell for a source/target pair. */
     private function matrix_cell(?\stdClass $relation, \stdClass $source, \stdClass $target,
             string $type, bool $canmanage, moodle_url $baseurl): array {
@@ -193,43 +182,17 @@ final class relations_page implements renderable, templatable {
 
         $groups = [];
         foreach ($rawgroups as $rawgroup) {
-            $rowsbyitem = [];
+            // Only the newest version of each source-target pair occupies a cell,
+            // so the grid is drawn from the latest rather than every version.
             $latestbypair = [];
             foreach ($rawgroup['relations'] as $relation) {
-                $sourceitemid = (int) $relation->sourceitemid;
-                $source = $this->outcomes[$sourceitemid] ?? null;
-                $sourcestatement = $source->statement ?? $relation->sourcestatement;
-                $target = $this->outcomes[(int) $relation->targetitemid] ?? null;
-                $targetstatement = $target->statement ?? $relation->targetstatement;
-                if (!isset($rowsbyitem[$sourceitemid])) {
-                    $rowsbyitem[$sourceitemid] = [
-                        'badge' => $relation->sourceframework . '.' . $relation->sourcecode,
-                        'statement' => $sourcestatement,
-                        'targets' => [],
-                        'searchparts' => [
-                            $relation->sourceframework,
-                            $relation->sourcecode,
-                            $sourcestatement,
-                        ],
-                    ];
-                }
-                $rowsbyitem[$sourceitemid]['targets'][] = $this->target_chip($relation, $canmanage, $baseurl);
-                $rowsbyitem[$sourceitemid]['searchparts'][] = $relation->targetframework;
-                $rowsbyitem[$sourceitemid]['searchparts'][] = $relation->targetcode;
-                $rowsbyitem[$sourceitemid]['searchparts'][] = $targetstatement;
-                $pairkey = $sourceitemid . ':' . (int) $relation->targetitemid;
+                $pairkey = (int) $relation->sourceitemid . ':' . (int) $relation->targetitemid;
                 if (!isset($latestbypair[$pairkey])
                         || (int) $relation->version > (int) $latestbypair[$pairkey]->version
                         || ((int) $relation->version === (int) $latestbypair[$pairkey]->version
                             && (int) $relation->timemodified > (int) $latestbypair[$pairkey]->timemodified)) {
                     $latestbypair[$pairkey] = $relation;
                 }
-            }
-            $rows = [];
-            foreach ($rowsbyitem as $row) {
-                $row['searchtext'] = \core_text::strtolower(implode(' ', $row['searchparts']));
-                unset($row['searchparts']);
-                $rows[] = $row;
             }
 
             $columns = [];
@@ -283,7 +246,6 @@ final class relations_page implements renderable, templatable {
                     count($rawgroup['relations'])
                 ),
                 'searchtext' => \core_text::strtolower($groupsearch),
-                'rows' => $rows,
                 'columns' => $columns,
                 'matrixrows' => $matrixrows,
                 'hasmatrix' => $columns !== [] && $matrixrows !== [],
