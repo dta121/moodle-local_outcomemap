@@ -26,9 +26,7 @@ $ADMIN->add('root', new admin_category('local_outcomemap',
 
 $pages = [
     'local_outcomemap_dashboard' => ['dashboard', 'viewdefinitions'],
-    'local_outcomemap_programs' => ['programs', 'manageprograms'],
-    'local_outcomemap_courses' => ['catalogcourses', 'managecatalogcourses'],
-    'local_outcomemap_courseinstances' => ['courseinstances', 'managecatalogcourses'],
+    'local_outcomemap_curriculum' => ['curriculum', 'manageprograms'],
     'local_outcomemap_frameworks' => ['frameworks', 'manageframeworks'],
     'local_outcomemap_relations' => ['relations', 'manageframeworks'],
     'local_outcomemap_policies' => ['policies', 'managepolicies'],
@@ -40,12 +38,24 @@ if (\local_outcomemap\local\workflow::requires_independent_approval()) {
     $pages['local_outcomemap_approvals'] = ['approvalqueue', 'approve'];
 }
 
-foreach ($pages as $pageid => [$script, $capability]) {
+// Programs, catalog courses, and course instances are read on the Curriculum
+// page, but their scripts still own the governed add, edit, and submit forms
+// that Curriculum links to. They stay registered so admin_externalpage_setup()
+// keeps working, and hidden so the navigation shows one curriculum entry
+// instead of three overlapping lists.
+$hidden = [
+    'local_outcomemap_programs' => ['programs', 'manageprograms'],
+    'local_outcomemap_courses' => ['catalogcourses', 'managecatalogcourses'],
+    'local_outcomemap_courseinstances' => ['courseinstances', 'managecatalogcourses'],
+];
+
+foreach ($pages + $hidden as $pageid => [$script, $capability]) {
     $ADMIN->add('local_outcomemap', new admin_externalpage(
         $pageid,
         get_string('nav_' . $script, 'local_outcomemap'),
         new moodle_url('/local/outcomemap/' . $script . '.php'),
         'local/outcomemap:' . $capability,
+        isset($hidden[$pageid]),
     ));
 }
 

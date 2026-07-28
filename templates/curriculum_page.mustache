@@ -1,0 +1,261 @@
+{{!
+    Programs, their catalog courses, and each course's delivery in one page.
+    @template local_outcomemap/curriculum_page
+
+    Context variables required for this template:
+    * sidebar array Program type groups, each with rows of code, name, coursecount, selected, url.
+    * hasprograms boolean Whether any program exists.
+    * hasselection boolean Whether a program is open in the right-hand column.
+    * canmanageprograms, canmanagecourses boolean Capability flags.
+    * addprogramurl string URL of the add-program form.
+    * statsline string Aggregate summary line.
+    * code, name, typeline, typeclass, statuslabel, statusclass Selected program identity.
+    * facts array Fact tiles with label, value, warn.
+    * outcomesurl, canedit, editurl Program actions.
+    * courses array Course cards with their delivery rows.
+    * hascourses boolean, coursehint string
+    * attachable array Catalog courses not yet in this program.
+    * hasattachable boolean, addcourseurl, addmembershipurl string
+
+    Example context (json):
+    {
+        "sidebar": [{
+            "typeclass": "graduate",
+            "label": "Graduate degree programs",
+            "rows": [{"code": "MBA", "name": "Master of Business Administration",
+                      "coursecount": 3, "selected": true, "url": "#"}]
+        }],
+        "hasprograms": true,
+        "hasselection": true,
+        "canmanageprograms": true,
+        "canmanagecourses": true,
+        "addprogramurl": "#",
+        "statsline": "1 program · 3 catalog courses · 3 attached · 0 in no program",
+        "code": "MBA",
+        "name": "Master of Business Administration",
+        "typeline": "Graduate degree program",
+        "typeclass": "graduate",
+        "statuslabel": "Finalized",
+        "statusclass": "approved",
+        "facts": [{"label": "Credential", "value": "Degree", "warn": false}],
+        "outcomesurl": "#",
+        "canedit": false,
+        "editurl": "#",
+        "courses": [{
+            "id": 1, "code": "MBA601", "name": "Financial Management",
+            "meta": "8 course outcomes · 26 unit outcomes", "hasoutcomes": true,
+            "deliveryline": "1 instance · 1 active", "statelabel": "In delivery",
+            "stateclass": "active", "shared": false, "sharedlabel": "",
+            "hasinstances": true,
+            "instances": [{"periodcode": "MBA601", "window": "From 15 February 2024",
+                           "moodlename": "MBA601: Financial Management", "moodleurl": "#",
+                           "enrolled": "133 learners enrolled", "statelabel": "Finalized · active",
+                           "stateclass": "active", "cansubmit": false, "coverageurl": "#",
+                           "mappingurl": "#"}],
+            "membershipstatus": "Finalized", "membershipstatusclass": "approved",
+            "membershipeffective": "From 31 December 2025", "cansubmitmembership": false,
+            "outcomesurl": "#", "addinstanceurl": "#", "instancesurl": "#",
+            "canedit": false, "editurl": "#"
+        }],
+        "hascourses": true,
+        "coursehint": "Expand a course to see the Moodle shells delivering it",
+        "attachable": [{"code": "MBA699", "name": "Orphan course", "inline": "In no program", "url": "#"}],
+        "hasattachable": true,
+        "addcourseurl": "#",
+        "addmembershipurl": "#"
+    }
+}}
+<div id="lom-curriculum" class="lom-page lom-curriculum">
+    <h2 class="lom-page-title">{{#str}} curriculum_heading, local_outcomemap {{/str}}</h2>
+    <div class="lom-page-subtitle">{{#str}} curriculum_subtitle, local_outcomemap {{/str}}</div>
+
+    <div class="lom-page-toolbar">
+        <div class="lom-page-stats lom-cur-stats">{{statsline}}</div>
+        <div class="lom-page-toolbar-end">
+            {{#canmanageprograms}}
+            <a class="lom-page-btn lom-page-btn-primary" href="{{addprogramurl}}">{{#str}} addprogram, local_outcomemap {{/str}}</a>
+            {{/canmanageprograms}}
+            {{#canmanagecourses}}
+            <a class="lom-page-btn" href="{{addcourseurl}}">{{#str}} addcatalogcourse, local_outcomemap {{/str}}</a>
+            <a class="lom-page-btn" href="{{addinstanceurl}}">{{#str}} addcourseinstance, local_outcomemap {{/str}}</a>
+            {{/canmanagecourses}}
+        </div>
+    </div>
+
+    {{^hasprograms}}
+    <div class="lom-page-empty">{{#str}} curriculum_empty, local_outcomemap {{/str}}</div>
+    {{/hasprograms}}
+
+    {{#hasprograms}}
+    <div class="lom-cur-layout">
+        <nav class="lom-cur-nav" aria-label="{{#str}} curriculum_navlabel, local_outcomemap {{/str}}">
+            <div class="lom-cur-nav-head">{{#str}} curriculum_programs, local_outcomemap {{/str}}</div>
+            {{#sidebar}}
+            <div class="lom-cur-nav-group lom-section-type-{{typeclass}}">
+                <span class="lom-section-swatch" aria-hidden="true"></span>{{label}}
+            </div>
+            {{#rows}}
+            <a class="lom-cur-nav-row {{#selected}}lom-active{{/selected}}" href="{{url}}"
+               {{#selected}}aria-current="page"{{/selected}}>
+                <span class="lom-cur-nav-code">{{code}}</span>
+                <span class="lom-cur-nav-name">{{name}}</span>
+                <span class="lom-cur-nav-count">{{coursecount}}</span>
+            </a>
+            {{/rows}}
+            {{/sidebar}}
+        </nav>
+
+        {{#hasselection}}
+        <div class="lom-cur-main">
+            <section class="lom-cur-program">
+                <div class="lom-cur-program-head">
+                    <span class="lom-code-badge lom-code-type-{{typeclass}}">{{code}}</span>
+                    <h3 class="lom-cur-program-name">{{name}}</h3>
+                    <span class="lom-cur-program-type">{{typeline}}</span>
+                    <span class="lom-workflow lom-workflow-{{statusclass}}">{{statuslabel}}</span>
+                    <span class="lom-cur-program-actions">
+                        <a class="lom-page-btn lom-page-btn-sm" href="{{outcomesurl}}">{{#str}} curriculum_programoutcomes, local_outcomemap {{/str}}</a>
+                        {{#canedit}}<a class="lom-page-btn lom-page-btn-sm" href="{{editurl}}">{{#str}} curriculum_editprogram, local_outcomemap {{/str}}</a>{{/canedit}}
+                    </span>
+                </div>
+                <div class="lom-cur-facts">
+                    {{#facts}}
+                    <div class="lom-cur-fact">
+                        <div class="lom-cur-fact-label">{{label}}</div>
+                        <div class="lom-cur-fact-value {{#warn}}lom-cur-fact-warn{{/warn}}">{{value}}</div>
+                    </div>
+                    {{/facts}}
+                </div>
+            </section>
+
+            <div class="lom-cur-section-head">
+                <h3 class="lom-cur-section-title">{{#str}} curriculum_courses_heading, local_outcomemap {{/str}}</h3>
+                <span class="lom-cur-section-hint">{{coursehint}}</span>
+            </div>
+
+            {{^hascourses}}
+            <div class="lom-page-empty">{{#str}} curriculum_nocourses, local_outcomemap {{/str}}</div>
+            {{/hascourses}}
+
+            {{#courses}}
+            <article class="lom-cur-course">
+                <div class="lom-cur-course-head lom-row-toggle">
+                    <button type="button" class="lom-chev" data-lom-toggle aria-expanded="true"
+                            aria-controls="lom-cur-course-{{id}}"
+                            data-expand-label="{{#str}} expand, core {{/str}}"
+                            data-collapse-label="{{#str}} collapse, core {{/str}}"
+                            aria-label="{{#str}} collapse, core {{/str}}">&#9662;</button>
+                    <span class="lom-code-badge lom-code-catalog">{{code}}</span>
+                    <span class="lom-cur-course-summary">
+                        <span class="lom-cur-course-name">{{name}}</span>
+                        <span class="lom-cur-course-meta">{{meta}}</span>
+                    </span>
+                    <span class="lom-cur-course-state">
+                        <span class="lom-cur-course-delivery">{{deliveryline}}</span>
+                        <span class="lom-workflow lom-workflow-{{stateclass}}">{{statelabel}}</span>
+                        {{#shared}}<span class="lom-cur-course-shared">{{sharedlabel}}</span>{{/shared}}
+                    </span>
+                </div>
+                <div class="lom-cur-course-body" id="lom-cur-course-{{id}}">
+                    <div class="lom-cur-sub-label">{{#str}} curriculum_delivery, local_outcomemap {{/str}}</div>
+                    {{^hasinstances}}
+                    <div class="lom-cur-nodelivery">{{#str}} curriculum_nodelivery_help, local_outcomemap {{/str}}</div>
+                    {{/hasinstances}}
+                    {{#instances}}
+                    <div class="lom-cur-instance">
+                        <span class="lom-cur-instance-period">{{periodcode}}</span>
+                        <span class="lom-cur-instance-main">
+                            <a href="{{moodleurl}}">{{moodlename}}</a>
+                            <span class="lom-cur-instance-sub">{{window}} &middot; {{enrolled}}</span>
+                        </span>
+                        <span class="lom-workflow lom-workflow-{{stateclass}}">{{statelabel}}</span>
+                        <span class="lom-row-actions">
+                            {{#cansubmit}}<a class="lom-page-btn lom-page-btn-primary lom-page-btn-sm" href="{{submiturl}}">{{submitlabel}}</a>{{/cansubmit}}
+                            {{#coverageurl}}<a href="{{coverageurl}}">{{#str}} instances_coverage, local_outcomemap {{/str}}</a>{{/coverageurl}}
+                            {{#mappingurl}}<a href="{{mappingurl}}">{{#str}} instances_mappings, local_outcomemap {{/str}}</a>{{/mappingurl}}
+                        </span>
+                    </div>
+                    {{/instances}}
+                    <div class="lom-cur-course-foot">
+                        {{#canmanagecourses}}<a href="{{addinstanceurl}}">{{#str}} curriculum_addinstance, local_outcomemap {{/str}}</a>{{/canmanagecourses}}
+                        <a href="{{outcomesurl}}">{{#str}} curriculum_courseoutcomes, local_outcomemap {{/str}}</a>
+                        <a href="{{instancesurl}}">{{#str}} curriculum_allinstances, local_outcomemap {{/str}}</a>
+                        {{#canedit}}<a href="{{editurl}}">{{#str}} catalogcourses_action_edit, local_outcomemap {{/str}}</a>{{/canedit}}
+                        <span class="lom-cur-membership">
+                            {{#str}} catalogcourses_memberships, local_outcomemap {{/str}}:
+                            <span class="lom-workflow lom-workflow-{{membershipstatusclass}}">{{membershipstatus}}</span>
+                            {{membershipeffective}}
+                            {{#cansubmitmembership}}<a href="{{membershipsubmiturl}}">{{membershipsubmitlabel}}</a>{{/cansubmitmembership}}
+                        </span>
+                    </div>
+                </div>
+            </article>
+            {{/courses}}
+
+            {{#canmanagecourses}}
+            <div class="lom-cur-add">
+                <div class="lom-cur-add-title">{{#str}} curriculum_addcourse, local_outcomemap {{/str}} {{code}}</div>
+                {{#hasattachable}}
+                <div class="lom-cur-sub-label">{{#str}} curriculum_fromcatalog, local_outcomemap {{/str}}</div>
+                {{#attachable}}
+                <div class="lom-cur-attach">
+                    <span class="lom-code-badge lom-code-catalog">{{code}}</span>
+                    <span class="lom-cur-attach-name">{{name}}</span>
+                    <span class="lom-cur-attach-in">{{inline}}</span>
+                    <a class="lom-page-btn lom-page-btn-sm" href="{{url}}">{{#str}} curriculum_attach, local_outcomemap {{/str}}</a>
+                </div>
+                {{/attachable}}
+                {{/hasattachable}}
+                {{^hasattachable}}
+                <div class="lom-cur-attach-none">{{#str}} curriculum_allattached, local_outcomemap {{/str}}</div>
+                {{/hasattachable}}
+                <div class="lom-cur-add-foot">
+                    <a class="lom-page-btn" href="{{addmembershipurl}}">{{#str}} catalogcourses_addmembership, local_outcomemap {{/str}}</a>
+                </div>
+            </div>
+            {{/canmanagecourses}}
+        </div>
+        {{/hasselection}}
+    </div>
+    {{/hasprograms}}
+</div>
+{{#js}}
+(function() {
+    var root = document.getElementById('lom-curriculum');
+    if (!root) {
+        return;
+    }
+
+    function setOpen(card, open) {
+        var chev = card.querySelector('.lom-chev');
+        card.classList.toggle('lom-open', open);
+        if (!chev) {
+            return;
+        }
+        chev.innerHTML = open ? '&#9662;' : '&#9656;';
+        chev.setAttribute('aria-expanded', open ? 'true' : 'false');
+        var label = open ? chev.getAttribute('data-collapse-label') : chev.getAttribute('data-expand-label');
+        if (label) {
+            chev.setAttribute('aria-label', label);
+        }
+    }
+
+    root.addEventListener('click', function(event) {
+        var head = event.target.closest('.lom-cur-course-head');
+        if (!head || (event.target.closest('a') && !event.target.closest('[data-lom-toggle]'))) {
+            return;
+        }
+        var card = head.closest('.lom-cur-course');
+        setOpen(card, !card.classList.contains('lom-open'));
+    });
+
+    // The cards ship expanded so every delivery row stays reachable without
+    // JavaScript; this script collapses them and takes over the disclosure. The
+    // first course stays open so the page does not read as empty.
+    root.classList.add('lom-curriculum-js');
+    var cards = root.querySelectorAll('.lom-cur-course');
+    Array.prototype.forEach.call(cards, function(card, index) {
+        setOpen(card, index === 0);
+    });
+})();
+{{/js}}

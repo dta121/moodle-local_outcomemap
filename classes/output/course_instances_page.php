@@ -32,21 +32,6 @@ use templatable;
  * right now. The page shows both in one badge so neither has to be inferred.
  */
 final class course_instances_page implements renderable, templatable {
-    /** Association is finalized and inside its delivery window. */
-    private const PHASE_ACTIVE = 'active';
-
-    /** Association is finalized but its Moodle course has ended. */
-    private const PHASE_ENDED = 'ended';
-
-    /** Association is finalized and its Moodle course has not started. */
-    private const PHASE_UPCOMING = 'upcoming';
-
-    /** Association has not been confirmed and cannot govern anything yet. */
-    private const PHASE_DRAFT = 'draft';
-
-    /** Association is retired. */
-    private const PHASE_RETIRED = 'retired';
-
     /** @var \stdClass[] Associations with their catalog and Moodle course facts. */
     private array $instances;
 
@@ -73,11 +58,11 @@ final class course_instances_page implements renderable, templatable {
         $context = \context_system::instance();
         $canmanage = has_capability('local/outcomemap:managecatalogcourses', $context);
         $baseurl = new moodle_url('/local/outcomemap/courseinstances.php');
-        $counts = [self::PHASE_ACTIVE => 0, self::PHASE_DRAFT => 0];
+        $counts = [instance_state::PHASE_ACTIVE => 0, instance_state::PHASE_DRAFT => 0];
         $groups = [];
 
         foreach ($this->instances as $instance) {
-            $phase = $this->phase($instance);
+            $phase = instance_state::phase($instance, $this->now);
             if (isset($counts[$phase])) {
                 $counts[$phase]++;
             }
@@ -91,7 +76,7 @@ final class course_instances_page implements renderable, templatable {
                 ];
             }
             $groups[$catalogid]['rows'][] = $this->row($instance, $phase, $baseurl, $canmanage);
-            if ($phase === self::PHASE_ACTIVE) {
+            if ($phase === instance_state::PHASE_ACTIVE) {
                 $groups[$catalogid]['activecount']++;
             }
         }
@@ -108,14 +93,14 @@ final class course_instances_page implements renderable, templatable {
         $phases = [
             ['id' => 'all', 'label' => get_string('all', 'local_outcomemap'), 'count' => count($this->instances)],
             [
-                'id' => self::PHASE_ACTIVE,
+                'id' => instance_state::PHASE_ACTIVE,
                 'label' => get_string('instances_filter_active', 'local_outcomemap'),
-                'count' => $counts[self::PHASE_ACTIVE],
+                'count' => $counts[instance_state::PHASE_ACTIVE],
             ],
             [
-                'id' => self::PHASE_DRAFT,
+                'id' => instance_state::PHASE_DRAFT,
                 'label' => get_string('instances_filter_draft', 'local_outcomemap'),
-                'count' => $counts[self::PHASE_DRAFT],
+                'count' => $counts[instance_state::PHASE_DRAFT],
             ],
         ];
         $filters = [];
@@ -130,18 +115,18 @@ final class course_instances_page implements renderable, templatable {
             'filters' => $filters,
             'groups' => array_values($groups),
             'hasinstances' => $this->instances !== [],
-            'draftcount' => $counts[self::PHASE_DRAFT],
-            'hasdrafts' => $counts[self::PHASE_DRAFT] > 0,
+            'draftcount' => $counts[instance_state::PHASE_DRAFT],
+            'hasdrafts' => $counts[instance_state::PHASE_DRAFT] > 0,
             'draftnotice' => get_string(
-                $counts[self::PHASE_DRAFT] === 1 ? 'instances_draftnotice_one' : 'instances_draftnotice',
+                $counts[instance_state::PHASE_DRAFT] === 1 ? 'instances_draftnotice_one' : 'instances_draftnotice',
                 'local_outcomemap',
-                $counts[self::PHASE_DRAFT]
+                $counts[instance_state::PHASE_DRAFT]
             ),
             'statsline' => get_string('instances_statsline', 'local_outcomemap', (object) [
                 'total' => count($this->instances),
                 'courses' => count($groups),
-                'active' => $counts[self::PHASE_ACTIVE],
-                'draft' => $counts[self::PHASE_DRAFT],
+                'active' => $counts[instance_state::PHASE_ACTIVE],
+                'draft' => $counts[instance_state::PHASE_DRAFT],
             ]),
             'introline' => get_string(
                 workflow::requires_independent_approval()
@@ -151,30 +136,6 @@ final class course_instances_page implements renderable, templatable {
             ),
             'visibilityline' => get_string('courseinstances_coursevisibility', 'local_outcomemap'),
         ];
-    }
-
-    /**
-     * Classify an association by governance state and delivery window.
-     *
-     * @param \stdClass $instance Association with its Moodle course window.
-     * @return string One of the PHASE_* constants.
-     */
-    private function phase(\stdClass $instance): string {
-        if ($instance->status === workflow::RETIRED) {
-            return self::PHASE_RETIRED;
-        }
-        if ($instance->status !== workflow::APPROVED || (int) $instance->confirmed !== 1) {
-            return self::PHASE_DRAFT;
-        }
-        $end = (int) $instance->moodleenddate;
-        $start = (int) $instance->moodlestartdate;
-        if ($end > 0 && $end < $this->now) {
-            return self::PHASE_ENDED;
-        }
-        if ($start > $this->now) {
-            return self::PHASE_UPCOMING;
-        }
-        return self::PHASE_ACTIVE;
     }
 
     /**
@@ -190,24 +151,16 @@ final class course_instances_page implements renderable, templatable {
         $id = (int) $instance->id;
         $moodlecourseid = (int) $instance->moodlecourseid;
         $moodlename = format_string($instance->moodlename);
-        $statuslabel = workflow::status_label($instance->status);
-        $unconfirmed = $phase === self::PHASE_DRAFT;
+        $unconfirmed = $phase === instance_state::PHASE_DRAFT;
         $row = [
             'periodcode' => $instance->periodcode,
-            'window' => $this->window($instance),
+            'window' => instance_state::window($instance),
             'moodlename' => $moodlename,
             'moodleurl' => (new moodle_url('/course/view.php', ['id' => $moodlecourseid]))->out(false),
             'hidden' => (int) $instance->moodlevisible === 0,
-            'enrolledline' => $this->enrolled($instance),
-            'statelabel' => $phase === self::PHASE_RETIRED
-                ? $statuslabel
-                : get_string('instances_state', 'local_outcomemap', (object) [
-                    'status' => $statuslabel,
-                    'phase' => get_string('instances_phase_' . $this->phaselabel($instance, $phase), 'local_outcomemap'),
-                ]),
-            'stateclass' => $unconfirmed
-                ? ($instance->status === workflow::NEEDS_REVIEW ? 'review' : 'draft')
-                : ($phase === self::PHASE_ACTIVE ? 'active' : ($phase === self::PHASE_RETIRED ? 'retired' : 'ended')),
+            'enrolledline' => instance_state::enrolled($instance),
+            'statelabel' => instance_state::label($instance, $phase),
+            'stateclass' => instance_state::cssclass($instance, $phase),
             'externalid' => $instance->externalid,
             'cansubmit' => false,
             'candelete' => false,
@@ -222,7 +175,7 @@ final class course_instances_page implements renderable, templatable {
             $instance->externalid ?? '',
             $row['statelabel'],
         ]));
-        $row['phase'] = $unconfirmed ? self::PHASE_DRAFT : $phase;
+        $row['phase'] = $unconfirmed ? instance_state::PHASE_DRAFT : $phase;
         if (!$unconfirmed) {
             $row['coverageurl'] = (new moodle_url('/local/outcomemap/coverage.php', [
                 'courseid' => $moodlecourseid,
@@ -258,58 +211,5 @@ final class course_instances_page implements renderable, templatable {
             $row['blockers'] = get_string('courseinstancenotremovable', 'local_outcomemap', implode(' ', $blockers));
         }
         return $row;
-    }
-
-    /**
-     * Return the phase suffix shown beside the governance status.
-     *
-     * @param \stdClass $instance Association record.
-     * @param string $phase Resolved lifecycle phase.
-     * @return string Language string suffix.
-     */
-    private function phaselabel(\stdClass $instance, string $phase): string {
-        if ($phase !== self::PHASE_DRAFT) {
-            return $phase;
-        }
-        return $instance->status === workflow::NEEDS_REVIEW ? 'awaiting' : 'unconfirmed';
-    }
-
-    /**
-     * Describe the delivery window of the Moodle course shell.
-     *
-     * @param \stdClass $instance Association with its Moodle course window.
-     * @return string Human-readable window.
-     */
-    private function window(\stdClass $instance): string {
-        $start = (int) $instance->moodlestartdate;
-        $end = (int) $instance->moodleenddate;
-        $format = get_string('strftimedate', 'core_langconfig');
-        if ($start > 0 && $end > 0) {
-            return get_string('instances_window', 'local_outcomemap', (object) [
-                'from' => userdate($start, $format),
-                'to' => userdate($end, $format),
-            ]);
-        }
-        if ($start > 0) {
-            return get_string('instances_window_open', 'local_outcomemap', userdate($start, $format));
-        }
-        if ($end > 0) {
-            return get_string('instances_window_until', 'local_outcomemap', userdate($end, $format));
-        }
-        return get_string('instances_window_none', 'local_outcomemap');
-    }
-
-    /**
-     * Describe how many learners hold an active enrolment in the Moodle shell.
-     *
-     * @param \stdClass $instance Association with its enrolment count.
-     * @return string Human-readable enrolment line.
-     */
-    private function enrolled(\stdClass $instance): string {
-        $count = (int) $instance->enrolledcount;
-        if ($count === 0) {
-            return get_string('instances_enrolled_none', 'local_outcomemap');
-        }
-        return get_string($count === 1 ? 'instances_enrolled_one' : 'instances_enrolled', 'local_outcomemap', $count);
     }
 }

@@ -41,13 +41,12 @@ Feature: Course staff map content to governed outcome versions
 
   Scenario: An activity mapping is drafted and independently approved
     Given I log in as "admin"
-    And I navigate to "Plugins > Learning outcome mapping > Catalog courses" in site administration
+    And I navigate to "Plugins > Learning outcome mapping > Curriculum" in site administration
     And I click on "Add catalog course" "link"
     And I set the following fields to these values:
       | Code | MBA614               |
       | Name | Strategic Leadership |
     And I press "Save changes"
-    And I navigate to "Plugins > Learning outcome mapping > Course instances" in site administration
     And I click on "Add course instance" "link"
     And I set the following fields to these values:
       | Catalog course       | MBA614               |

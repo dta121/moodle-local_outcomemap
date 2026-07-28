@@ -44,6 +44,7 @@ $string['outcomemap:exportaccreditation'] = 'Export accreditation data';
 $string['outcomemap:overridecalculations'] = 'Override outcome calculations';
 
 $string['nav_dashboard'] = 'Dashboard';
+$string['nav_curriculum'] = 'Curriculum';
 $string['nav_programs'] = 'Programs';
 $string['nav_catalogcourses'] = 'Catalog courses';
 $string['nav_courseinstances'] = 'Course instances';
@@ -880,6 +881,48 @@ $string['snapshotcohort'] = 'Population cohort';
 $string['snapshotcohort_help'] = 'Select a cohort only when the effective approved accreditation policy uses the Moodle-cohort population source. Leave it empty for active enrolments.';
 $string['snapshotitems_caption'] = 'Immutable snapshot rows grouped by type';
 $string['snapshotlist_caption'] = 'Accreditation snapshot versions';
+
+// Combined Curriculum page.
+$string['curriculum_heading'] = 'Curriculum';
+$string['curriculum_subtitle'] = 'Each program with the catalog courses it contains and the Moodle courses delivering them.';
+$string['curriculum_statsline'] = '{$a->programs} programs · {$a->courses} catalog courses · {$a->attached} in a program · {$a->orphans} in none';
+$string['curriculum_statsline_one'] = '1 program · {$a->courses} catalog courses · {$a->attached} in a program · {$a->orphans} in none';
+$string['curriculum_navlabel'] = 'Choose a program';
+$string['curriculum_programs'] = 'Programs';
+$string['curriculum_newprogram'] = '+ New program';
+$string['curriculum_empty'] = 'No programs have been created yet. A program is the top of the curriculum: create one, then attach catalog courses to it.';
+$string['curriculum_typeline_graduate'] = 'Graduate degree program';
+$string['curriculum_typeline_undergraduate'] = 'Undergraduate degree program';
+$string['curriculum_typeline_specialization'] = 'Certificate-awarding course series';
+$string['curriculum_programoutcomes'] = 'Program outcomes';
+$string['curriculum_editprogram'] = 'Edit program';
+$string['curriculum_fact_credential'] = 'Credential';
+$string['curriculum_fact_courses'] = 'Courses';
+$string['curriculum_fact_outcomes'] = 'Program outcomes';
+$string['curriculum_fact_nooutcomes'] = 'None yet';
+$string['curriculum_fact_attention'] = 'Needs attention';
+$string['curriculum_attention_none'] = 'Nothing';
+$string['curriculum_attention_draft'] = '{$a} unconfirmed instances';
+$string['curriculum_attention_draft_one'] = '1 unconfirmed instance';
+$string['curriculum_attention_noout'] = '{$a} courses without outcomes';
+$string['curriculum_attention_noout_one'] = '1 course without outcomes';
+$string['curriculum_courses_heading'] = 'Courses in this program';
+$string['curriculum_coursehint'] = 'Expand a course to see the Moodle courses delivering it';
+$string['curriculum_nocourses'] = 'No catalog courses are attached to this program, so nothing it teaches rolls up to its outcomes. Attach one below.';
+$string['curriculum_delivery'] = 'Delivered in';
+$string['curriculum_nodelivery'] = 'Not delivered yet';
+$string['curriculum_nodelivery_help'] = 'No Moodle course is associated with this catalog course, so it captures no evidence yet.';
+$string['curriculum_indelivery'] = 'In delivery';
+$string['curriculum_notdelivered'] = 'Not in delivery';
+$string['curriculum_alsoin'] = 'also in {$a}';
+$string['curriculum_alreadyin'] = 'In {$a}';
+$string['curriculum_addinstance'] = '+ Associate a Moodle course';
+$string['curriculum_courseoutcomes'] = 'Course outcomes';
+$string['curriculum_allinstances'] = 'All instances';
+$string['curriculum_addcourse'] = 'Add a course to';
+$string['curriculum_fromcatalog'] = 'From the catalog';
+$string['curriculum_attach'] = 'Attach';
+$string['curriculum_allattached'] = 'Every catalog course is already in this program.';
 
 // Redesigned Accreditation snapshots list.
 $string['snapshots_subtitle'] = 'Frozen, verifiable records of outcome attainment, grouped by the snapshot they correct.';

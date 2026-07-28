@@ -100,7 +100,7 @@ final class dashboard_page implements renderable, templatable {
                     ? get_string('dash_tile_unframed_clear', 'local_outcomemap')
                     : implode(', ', $codes),
                 'tone' => $unframed === [] ? 'clear' : 'warn',
-                'url' => (new moodle_url('/local/outcomemap/catalogcourses.php'))->out(false),
+                'url' => (new moodle_url('/local/outcomemap/curriculum.php'))->out(false),
             ],
             [
                 'label' => get_string('dash_tile_pending', 'local_outcomemap'),
@@ -154,7 +154,7 @@ final class dashboard_page implements renderable, templatable {
                 'severity' => get_string('dash_severity_blocks', 'local_outcomemap'),
                 'tone' => 'danger',
                 'action' => get_string('dash_task_unframed_action', 'local_outcomemap'),
-                'url' => (new moodle_url('/local/outcomemap/catalogcourses.php'))->out(false),
+                'url' => (new moodle_url('/local/outcomemap/curriculum.php'))->out(false),
             ];
         }
 
@@ -316,9 +316,9 @@ final class dashboard_page implements renderable, templatable {
      */
     private function inventory(): array {
         $targets = [
-            'programs' => '/local/outcomemap/programs.php',
-            'catalogcourses' => '/local/outcomemap/catalogcourses.php',
-            'courseinstances' => '/local/outcomemap/courseinstances.php',
+            'programs' => '/local/outcomemap/curriculum.php',
+            'catalogcourses' => '/local/outcomemap/curriculum.php',
+            'courseinstances' => '/local/outcomemap/curriculum.php',
             'frameworks' => '/local/outcomemap/frameworks.php',
             'outcomes' => '/local/outcomemap/frameworks.php',
             'relations' => '/local/outcomemap/relations.php',
@@ -345,7 +345,7 @@ final class dashboard_page implements renderable, templatable {
     private function coverage_url(): string {
         $worst = $this->summary['worstdelivery'];
         if ($worst === null) {
-            return (new moodle_url('/local/outcomemap/courseinstances.php'))->out(false);
+            return (new moodle_url('/local/outcomemap/curriculum.php'))->out(false);
         }
         return (new moodle_url('/local/outcomemap/coverage.php', [
             'courseid' => $worst['moodlecourseid'],

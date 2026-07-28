@@ -6,7 +6,6 @@ use local_outcomemap\form\program_course_form;
 use local_outcomemap\local\service\catalog_course_service;
 use local_outcomemap\local\service\program_course_service;
 use local_outcomemap\local\workflow;
-use local_outcomemap\output\catalog_courses_page;
 
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
@@ -37,12 +36,17 @@ if ($action === 'submit' && $id) {
 }
 
 if ($action === 'addmembership') {
-    // A membership is added from one catalog course's card, so that course is
-    // preselected rather than searched for again in the form.
+    // A membership is added from one program's course list or one course's card,
+    // so whichever side the reader came from is preselected rather than searched
+    // for again in the form.
     $courseid = optional_param('courseid', 0, PARAM_INT);
+    $programid = optional_param('programid', 0, PARAM_INT);
     $formurl = new moodle_url($url, ['action' => 'addmembership']);
     if ($courseid) {
         $formurl->param('courseid', $courseid);
+    }
+    if ($programid) {
+        $formurl->param('programid', $programid);
     }
     $form = new program_course_form($formurl);
     if ($form->is_cancelled()) {
@@ -52,8 +56,15 @@ if ($action === 'addmembership') {
         program_course_service::create((array) $data);
         redirect($url, get_string('saved', 'local_outcomemap'));
     }
+    $prefill = [];
     if ($courseid && $DB->record_exists('local_outcomemap_course', ['id' => $courseid])) {
-        $form->set_data(['courseid' => $courseid]);
+        $prefill['courseid'] = $courseid;
+    }
+    if ($programid && $DB->record_exists('local_outcomemap_program', ['id' => $programid])) {
+        $prefill['programid'] = $programid;
+    }
+    if ($prefill) {
+        $form->set_data($prefill);
     }
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string('addprogramcourse', 'local_outcomemap'));
@@ -89,7 +100,7 @@ if ($action === 'edit' || $action === 'add') {
     exit;
 }
 
-echo $OUTPUT->header();
-$page = new catalog_courses_page();
-echo $OUTPUT->render_from_template('local_outcomemap/catalog_courses_page', $page->export_for_template($OUTPUT));
-echo $OUTPUT->footer();
+// Catalog courses are read on the Curriculum page, under the programs that
+// contain them; a course in no program is offered there for attachment. This
+// script keeps the governed add, edit, membership, and submit forms.
+redirect(new moodle_url('/local/outcomemap/curriculum.php'));

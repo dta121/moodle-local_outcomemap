@@ -253,6 +253,80 @@
 .lom-cat-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .lom-cat-actions .lom-page-btn { font-size: var(--lom-fs-2xs); padding: 6px 13px; }
 
+/* Combined curriculum: program navigator beside the selected program. */
+.lom-cur-layout { align-items: flex-start; display: flex; gap: 18px; }
+.lom-cur-nav { align-self: flex-start; border: 1px solid #e3e7ec; border-radius: 8px; flex-shrink: 0;
+    overflow: hidden; position: sticky; top: 14px; width: 15.5rem; }
+.lom-cur-nav-head { background: #f4f6f9; border-bottom: 1px solid #e3e7ec; color: #6a737b;
+    font-size: var(--lom-fs-3xs); font-weight: 700; letter-spacing: 0.07em; padding: 9px 12px;
+    text-transform: uppercase; }
+.lom-cur-nav-group { align-items: center; color: #9aa3ad; display: flex; font-size: var(--lom-fs-3xs);
+    font-weight: 700; gap: 6px; letter-spacing: 0.06em; padding: 8px 12px 4px; text-transform: uppercase; }
+.lom-cur-nav-group .lom-section-swatch { height: 8px; width: 8px; }
+.lom-cur-nav-row { align-items: baseline; border-left: 3px solid transparent; color: inherit; display: flex;
+    gap: 8px; padding: 7px 12px; text-decoration: none; }
+.lom-cur-nav-row:hover { background: #f7fafc; color: inherit; text-decoration: none; }
+.lom-cur-nav-row.lom-active { background: #eef4fb; border-left-color: #1077d1; }
+.lom-cur-nav-code { color: #1f2a44; font-size: var(--lom-fs-3xs); font-weight: 700; white-space: nowrap; }
+.lom-cur-nav-name { color: #667180; flex: 1; font-size: var(--lom-fs-3xs); min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lom-cur-nav-count { color: #9aa3ad; font-size: var(--lom-fs-3xs); }
+.lom-cur-nav-foot { border-top: 1px solid #eceff2; font-size: var(--lom-fs-2xs); padding: 9px 12px; }
+.lom-cur-main { flex: 1; min-width: 0; }
+.lom-cur-program { border: 1px solid #e3e7ec; border-radius: 8px; margin-bottom: 14px; overflow: hidden; }
+.lom-cur-program-head { align-items: center; background: #f4f6f9; border-bottom: 1px solid #e3e7ec;
+    display: flex; flex-wrap: wrap; gap: 12px; padding: 14px 18px; }
+.lom-cur-program-name { color: #1f2a44; font-size: var(--lom-fs-lg); font-weight: 700; margin: 0; }
+.lom-cur-program-type { color: #6a737b; font-size: var(--lom-fs-2xs); }
+.lom-cur-program-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.lom-cur-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); }
+.lom-cur-fact { border-right: 1px solid #eceff2; min-width: 0; padding: 11px 18px; }
+.lom-cur-fact:last-child { border-right: 0; }
+.lom-cur-fact-label { color: #6a737b; font-size: var(--lom-fs-3xs); font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; }
+.lom-cur-fact-value { color: #1f2a44; font-size: var(--lom-fs-xs); font-weight: 600;
+    line-height: 1.4; margin-top: 3px; }
+.lom-cur-fact-warn { color: #92400e; }
+.lom-cur-section-head { align-items: baseline; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.lom-cur-section-title { color: #1f2a44; font-size: var(--lom-fs-md); font-weight: 700; margin: 0; }
+.lom-cur-section-hint { color: #6a737b; font-size: var(--lom-fs-2xs); }
+.lom-cur-course { border: 1px solid #e3e7ec; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+.lom-cur-course-head { align-items: center; cursor: pointer; display: flex; flex-wrap: wrap; gap: 10px;
+    padding: 12px 16px; }
+.lom-cur-course-head:hover { background: #f7fafc; }
+.lom-cur-course-summary { flex: 1 1 12rem; min-width: 11rem; }
+.lom-cur-course-name { color: #1f2a44; display: block; font-size: var(--lom-fs-sm); font-weight: 600; }
+.lom-cur-course-meta { color: #6a737b; display: block; font-size: var(--lom-fs-3xs); margin-top: 2px; }
+.lom-cur-course-state { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; margin-left: auto; }
+.lom-cur-course-delivery { color: #667180; font-size: var(--lom-fs-2xs); white-space: nowrap; }
+.lom-cur-course-shared { color: #6a737b; font-size: var(--lom-fs-3xs); white-space: nowrap; }
+.lom-curriculum-js .lom-cur-course:not(.lom-open) .lom-cur-course-body { display: none; }
+.lom-cur-course-body { background: #fbfcfd; border-top: 1px solid #eceff2; padding: 12px 16px 14px 24px; }
+.lom-cur-sub-label { color: #6a737b; font-size: var(--lom-fs-3xs); font-weight: 700;
+    letter-spacing: 0.07em; margin-bottom: 6px; text-transform: uppercase; }
+.lom-cur-nodelivery { background: #fffbeb; border: 1px solid #f2d9a4; border-radius: 6px; color: #a16207;
+    font-size: var(--lom-fs-2xs); max-width: 42rem; padding: 8px 12px; }
+.lom-cur-instance { align-items: center; border-top: 1px solid #f2f4f6; display: flex; flex-wrap: wrap;
+    gap: 10px; padding: 8px 0; }
+.lom-cur-instance-period { color: #1f2a44; flex-shrink: 0; font-size: var(--lom-fs-2xs);
+    font-weight: 600; min-width: 6rem; }
+.lom-cur-instance-main { flex: 1 1 12rem; min-width: 10rem; }
+.lom-cur-instance-main a { font-size: var(--lom-fs-2xs); }
+.lom-cur-instance-sub { color: #6a737b; display: block; font-size: var(--lom-fs-3xs); margin-top: 1px; }
+.lom-cur-course-foot { align-items: center; display: flex; flex-wrap: wrap; font-size: var(--lom-fs-2xs);
+    gap: 12px; margin-top: 12px; }
+.lom-cur-membership { color: #6a737b; display: flex; flex-wrap: wrap; gap: 6px;
+    font-size: var(--lom-fs-3xs); margin-left: auto; }
+.lom-cur-add { background: #fbfcfd; border: 1px dashed #cfd6de; border-radius: 8px; padding: 14px 16px; }
+.lom-cur-add-title { color: #1f2a44; font-size: var(--lom-fs-2xs); font-weight: 700; margin-bottom: 9px; }
+.lom-cur-attach { align-items: center; border-top: 1px solid #f2f4f6; display: flex; flex-wrap: wrap;
+    gap: 12px; padding: 7px 0; }
+.lom-cur-attach-name { color: #444; flex: 1; font-size: var(--lom-fs-2xs); min-width: 8rem; }
+.lom-cur-attach-in { color: #6a737b; font-size: var(--lom-fs-3xs); white-space: nowrap; }
+.lom-cur-attach-none { color: #6a737b; font-size: var(--lom-fs-2xs); }
+.lom-cur-add-foot { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.lom-cur-add-foot .lom-page-btn { font-size: var(--lom-fs-2xs); padding: 6px 13px; }
+
 /* Accreditation snapshot lineages. */
 .lom-snapshot-row { align-items: center; border-top: 1px solid #f2f4f6; display: flex; gap: 14px; padding: 11px 16px; }
 .lom-snapshot-row:first-child { border-top: 0; }
@@ -475,6 +549,15 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
 }
 
 @media (max-width: 900px) {
+    /* The program navigator stops being a sidebar and becomes a band above the
+       program it selects, so the course list keeps the full width. */
+    .lom-cur-layout { flex-direction: column; }
+    .lom-cur-nav { position: static; width: 100%; }
+    .lom-cur-main { width: 100%; }
+    .lom-cur-program-actions { margin-left: 0; }
+    .lom-cur-course-state { margin-left: 0; width: 100%; }
+    .lom-cur-membership { margin-left: 0; }
+    .lom-cur-course-body { padding-left: 16px; }
     .lom-snap-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .lom-snap-fact:nth-child(2n) { border-right: 0; }
     .lom-snap-methods { grid-template-columns: 1fr; }

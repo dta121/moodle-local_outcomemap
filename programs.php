@@ -4,7 +4,6 @@
 use local_outcomemap\form\program_form;
 use local_outcomemap\local\service\program_service;
 use local_outcomemap\local\workflow;
-use local_outcomemap\output\programs_page;
 
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
@@ -59,7 +58,7 @@ if ($action === 'edit' || $action === 'add') {
     exit;
 }
 
-echo $OUTPUT->header();
-$page = new programs_page();
-echo $OUTPUT->render_from_template('local_outcomemap/programs_page', $page->export_for_template($OUTPUT));
-echo $OUTPUT->footer();
+// Programs are read on the Curriculum page, which shows each program together
+// with the courses it contains. This script keeps the governed add, edit, and
+// submit forms that Curriculum links to; anything else belongs there.
+redirect(new moodle_url('/local/outcomemap/curriculum.php'));
