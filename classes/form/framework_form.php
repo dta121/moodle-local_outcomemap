@@ -32,6 +32,13 @@ final class framework_form extends \moodleform {
         $mform->addElement('text', 'ownerid', get_string('owner', 'local_outcomemap'));
         $mform->setType('ownerid', PARAM_INT);
         $mform->disabledIf('ownerid', 'ownertype', 'eq', framework_service::OWNER_INSTITUTION);
+        if (!empty($this->_customdata['identitylocked'])) {
+            // The framework is approved, so its code and owner are settled; the
+            // service ignores them for an approved framework in any case.
+            $mform->addElement('static', 'identitynote', '',
+                get_string('hier_frameworkidentitylocked', 'local_outcomemap'));
+            $mform->hardFreeze(['code', 'ownertype', 'ownerid']);
+        }
         $this->add_action_buttons();
     }
 }

@@ -1,0 +1,166 @@
+{{!
+    Outcome policies grouped by the decision they settle, or by their scope.
+    @template local_outcomemap/policies_page
+
+    Context variables required for this template:
+    * groups array Decision or scope groups, each with rows.
+    * haspolicies boolean Whether any policy version exists.
+    * isscope boolean Whether the scope grouping is being rendered.
+    * viewtabs array Grouping tabs with label, active, url.
+    * addurl string URL of the add-policy form.
+    * hasgaps boolean, gapcount int, gapline string Institution defaults missing.
+    * statsline, helpline, introline string Page-level copy.
+
+    Example context (json):
+    {
+        "groups": [{
+            "title": "Attempt selection",
+            "question": "When a learner has several attempts, which one counts?",
+            "badge": "Institution default set",
+            "badgewarn": false,
+            "hasrows": true,
+            "rows": [{
+                "kind": "Institution", "name": "", "kindclass": "institution",
+                "settings": [{"k": "Attempt used", "v": "Most recent graded"}],
+                "meta": "v2 · from 1 January 2025",
+                "statuslabel": "Finalized", "statusclass": "active",
+                "viewurl": "#", "candraft": false, "canversion": true, "versionurl": "#",
+                "searchtext": "institution"
+            }],
+            "emptyline": "No policy has been created for this decision.",
+            "chainline": "Resolved as: Assessment → Course instance → Catalog course → Institution",
+            "hasuncovered": false, "uncoveredline": "",
+            "searchtext": "attempt selection"
+        }],
+        "haspolicies": true,
+        "isscope": false,
+        "viewtabs": [{"label": "By decision", "active": true, "url": "#"}],
+        "addurl": "#",
+        "hasgaps": false, "gapcount": 0, "gapline": "",
+        "statsline": "6 policy versions · 5 in force · 1 draft · across 4 decisions",
+        "helpline": "A course uses the most specific policy that applies to it.",
+        "introline": "Policies are versioned and governed."
+    }
+}}
+<div id="lom-policies" class="lom-page lom-policies">
+    <h2 class="lom-page-title">{{#str}} policies_heading, local_outcomemap {{/str}}</h2>
+    <div class="lom-page-subtitle">{{#str}} policies_subtitle, local_outcomemap {{/str}}</div>
+
+    {{#hasgaps}}
+    <div class="lom-page-callout" role="status">
+        <span class="lom-page-callout-count">{{gapcount}}</span>
+        <span class="lom-page-callout-text">{{gapline}}</span>
+    </div>
+    {{/hasgaps}}
+
+    <div class="lom-page-toolbar">
+        <div class="lom-viewtoggle" role="group" aria-label="{{#str}} policies_view, local_outcomemap {{/str}}">
+            {{#viewtabs}}
+            <a class="lom-viewbtn {{#active}}lom-active{{/active}}" href="{{url}}"
+               {{#active}}aria-current="page"{{/active}}>{{label}}</a>
+            {{/viewtabs}}
+        </div>
+        <div class="lom-page-search">
+            <span aria-hidden="true">&#128269;</span>
+            <input id="lom-policy-search" type="search" autocomplete="off"
+                   placeholder="{{#str}} policies_searchplaceholder, local_outcomemap {{/str}}"
+                   aria-label="{{#str}} policies_searchplaceholder, local_outcomemap {{/str}}">
+        </div>
+        <a class="lom-page-btn lom-page-btn-primary lom-page-toolbar-end" href="{{addurl}}">{{#str}} addpolicy, local_outcomemap {{/str}}</a>
+    </div>
+    <div class="lom-page-stats">{{statsline}}</div>
+    <div id="lom-policy-noresults" class="lom-page-noresults lom-hidden" role="status" aria-live="polite">{{#str}} policies_noresults, local_outcomemap {{/str}}</div>
+
+    {{#groups}}
+    <section class="lom-pol-group lom-filter-group" data-search="{{searchtext}}">
+        <div class="lom-pol-head">
+            <span class="lom-pol-head-main">
+                <span class="lom-pol-title">{{title}}</span>
+                <span class="lom-pol-question">{{question}}</span>
+            </span>
+            <span class="lom-workflow {{#badgewarn}}lom-workflow-review{{/badgewarn}}{{^badgewarn}}lom-workflow-active{{/badgewarn}}">{{badge}}</span>
+        </div>
+        {{#hasrows}}
+        {{#rows}}
+        <div class="lom-pol-row lom-filter-row" data-search="{{searchtext}}">
+            <span class="lom-pol-scope">
+                <span class="lom-code-badge lom-scope-{{kindclass}}">{{kind}}</span>
+                {{#name}}<span class="lom-pol-scopename">{{name}}</span>{{/name}}
+            </span>
+            <span class="lom-pol-settings">
+                {{#settings}}
+                <span class="lom-pol-setting"><span class="lom-pol-setting-k">{{k}}</span> <b>{{v}}</b></span>
+                {{/settings}}
+            </span>
+            <span class="lom-pol-meta">{{meta}}</span>
+            <span class="lom-workflow lom-workflow-{{statusclass}}">{{statuslabel}}</span>
+            <span class="lom-row-actions">
+                <a href="{{viewurl}}">{{#str}} view, core {{/str}}</a>
+                {{#candraft}}
+                <a href="{{editurl}}">{{#str}} edit, core {{/str}}</a>
+                <a href="{{submiturl}}">{{submitlabel}}</a>
+                <a class="lom-row-action-danger" href="{{deleteurl}}">{{#str}} delete, core {{/str}}</a>
+                {{/candraft}}
+                {{#canversion}}<a href="{{versionurl}}">{{#str}} newpolicyversion, local_outcomemap {{/str}}</a>{{/canversion}}
+                {{#canrelease}}<a href="{{releaseurl}}">{{#str}} manualrelease, local_outcomemap {{/str}}</a>{{/canrelease}}
+            </span>
+        </div>
+        {{/rows}}
+        {{/hasrows}}
+        {{^hasrows}}
+        <div class="lom-pol-empty">{{emptyline}}</div>
+        {{/hasrows}}
+        {{#chainline}}<div class="lom-pol-chain">{{chainline}}</div>{{/chainline}}
+        {{#hasuncovered}}
+        <div class="lom-pol-uncovered">{{uncoveredline}}</div>
+        {{/hasuncovered}}
+    </section>
+    {{/groups}}
+
+    {{#haspolicies}}
+    <div class="lom-page-help">{{helpline}}</div>
+    <div class="lom-page-help">{{introline}}</div>
+    {{/haspolicies}}
+
+    {{^haspolicies}}
+    <div class="lom-page-empty">{{#str}} policies_empty, local_outcomemap {{/str}}</div>
+    {{/haspolicies}}
+</div>
+{{#js}}
+(function() {
+    var root = document.getElementById('lom-policies');
+    if (!root) {
+        return;
+    }
+    var input = document.getElementById('lom-policy-search');
+    var noresults = document.getElementById('lom-policy-noresults');
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        var visible = 0;
+        Array.prototype.forEach.call(root.querySelectorAll('.lom-filter-group'), function(group) {
+            var groupmatch = (group.getAttribute('data-search') || '').indexOf(query) !== -1;
+            var shown = 0;
+            Array.prototype.forEach.call(group.querySelectorAll('.lom-filter-row'), function(row) {
+                // A group matching on its own heading keeps all of its rows, so
+                // searching for a decision shows every policy settling it.
+                var show = !query || groupmatch
+                    || (row.getAttribute('data-search') || '').indexOf(query) !== -1;
+                row.classList.toggle('lom-hidden', !show);
+                if (show) {
+                    shown++;
+                }
+            });
+            var keep = !query || groupmatch || shown > 0;
+            group.classList.toggle('lom-hidden', !keep);
+            if (keep) {
+                visible++;
+            }
+        });
+        noresults.classList.toggle('lom-hidden', visible !== 0 || !query);
+    }
+
+    input.addEventListener('input', render);
+    render();
+})();
+{{/js}}

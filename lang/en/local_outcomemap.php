@@ -905,6 +905,56 @@ $string['snapshotcohort_help'] = 'Select a cohort only when the effective approv
 $string['snapshotitems_caption'] = 'Immutable snapshot rows grouped by type';
 $string['snapshotlist_caption'] = 'Accreditation snapshot versions';
 
+$string['hier_frameworklocked'] = 'Code and owner are fixed once finalized';
+$string['hier_frameworkrename'] = 'Edit name';
+$string['hier_frameworkidentitylocked'] = 'This framework is finalized. Its name and description can still be changed; its code and owner cannot, because the code prefixes every outcome label and is frozen inside any accreditation snapshot that has already captured it.';
+
+// Redesigned Outcome policies page.
+$string['policies_subtitle'] = 'The rules that decide how outcome results are calculated, released, and reported.';
+$string['policies_view'] = 'Group policies by decision or by scope';
+$string['policies_bydecision'] = 'By decision';
+$string['policies_byscope'] = 'By scope';
+$string['policies_searchplaceholder'] = 'Search policies, scopes, and settings…';
+$string['policies_statsline'] = '{$a->versions} policy versions · {$a->inforce} in force · {$a->draft} draft · across {$a->decisions} decisions';
+$string['policies_gap'] = 'policy decisions have no institution-wide default, so any scope without its own policy has no rule in force: {$a}.';
+$string['policies_gap_one'] = 'policy decision has no institution-wide default, so any scope without its own policy has no rule in force: {$a}.';
+$string['policies_hasdefault'] = 'Institution default set';
+$string['policies_nodefault'] = 'No institution default';
+$string['policies_coversall'] = 'Settles all {$a} decisions';
+$string['policies_coverssome'] = 'Settles {$a->settled} of {$a->total} decisions';
+$string['policies_scopemissing'] = 'Nothing set at this scope for: {$a}. Whatever the resolution chain finds next applies instead.';
+$string['policies_nopolicies'] = 'No policy has been created for this decision.';
+$string['policies_chain'] = 'Resolved through: {$a}';
+$string['policies_uncovered'] = 'No rule is in force for these catalog courses: {$a}.';
+$string['policies_uncovered_one'] = 'No rule is in force for this catalog course: {$a}.';
+$string['policies_meta'] = 'v{$a->version} · from {$a->from}';
+$string['policies_noresults'] = 'No policies match this search.';
+$string['policies_empty'] = 'No outcome policy has been created. Until one is, no rule is in force and results cannot be calculated.';
+$string['policies_precedence_help'] = 'A scope uses the most specific policy that applies to it. Attempt selection, calculation, and release resolve through assessment, then course instance, then catalog course, then the institution default — a program-scoped version of those is never consulted. Accreditation resolves through program, then the institution default. Finalized versions cannot be edited; create a new version, which takes effect from its start date.';
+$string['policies_question_attempt_selection'] = 'When a learner has several attempts at an activity, which one counts towards the outcome?';
+$string['policies_question_calculation'] = 'How is a learner\'s outcome result computed, and what counts as meeting it?';
+$string['policies_question_release'] = 'When do learners see their outcome results?';
+$string['policies_question_accreditation'] = 'How are snapshots populated, aggregated, suppressed, and corrected?';
+$string['policyscopedesc_institution'] = 'Defaults inherited wherever nothing more specific applies';
+$string['policyscopedesc_program'] = 'Applies to accreditation reporting for this program';
+$string['policyscopedesc_catalog_course'] = 'Applies to every delivery of this catalog course';
+$string['policyscopedesc_course_instance'] = 'Applies to one Moodle course and reporting period';
+$string['policyscopedesc_assessment'] = 'Applies to one assessment only';
+$string['policies_setting_attempt'] = 'Attempt used';
+$string['policies_setting_release'] = 'Release';
+$string['policies_setting_releaseat'] = 'Scheduled for';
+$string['policies_setting_released'] = 'Released';
+$string['policies_setting_suppression'] = 'Suppression threshold';
+$string['policies_setting_population'] = 'Population';
+$string['policies_setting_retention'] = 'Retention';
+$string['policies_setting_criterion'] = 'Achievement criterion';
+$string['policies_setting_benchmark'] = 'Aggregate benchmark';
+$string['policies_setting_minitems'] = 'Minimum items';
+$string['policies_setting_minpossible'] = 'Minimum weighted possible';
+$string['policies_setting_decimals'] = 'Decimals';
+$string['policies_setting_manual'] = 'Needs manual grading';
+$string['policies_setting_bands'] = 'Bands';
+
 // Combined Outcomes and alignment page.
 $string['outcomes_heading'] = 'Outcomes & alignment';
 $string['outcomes_view'] = 'Group outcomes by program or course, or show the alignment matrix';

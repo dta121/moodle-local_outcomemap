@@ -16,10 +16,12 @@
 
 namespace local_outcomemap;
 
+use local_outcomemap\local\service\catalog_course_service;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\outcome_service;
 use local_outcomemap\local\service\program_service;
 use local_outcomemap\local\service\relation_service;
+use local_outcomemap\local\workflow;
 use local_outcomemap\output\outcomes_hierarchy;
 
 /**
@@ -193,6 +195,122 @@ final class outcomes_alignment_test extends \advanced_testcase {
         $this->assertStringContainsString('action=exportcsv', $context['exporturl']);
         $this->assertStringContainsString('relations.php', $context['alignmentexporturl']);
         $this->assertStringContainsString('action=exportcsv', $context['alignmentexporturl']);
+    }
+
+    /**
+     * A framework with no outcomes yet is still listed in one of the views.
+     *
+     * A newly added framework holds nothing, so it contributes no outcome rows.
+     * If its view also omitted the framework itself, adding one would look like it
+     * had failed. Which view lists it depends on what owns it: a catalog-course
+     * framework belongs to its course, not to the program lens.
+     */
+    public function test_framework_with_no_outcomes_is_listed_under_its_owner(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+
+        $programid = program_service::create([
+            'code' => 'MBA',
+            'name' => 'Master of Business Administration',
+            'programtype' => program_service::TYPE_GRADUATE,
+        ]);
+        $courseid = catalog_course_service::create([
+            'code' => 'MBA601',
+            'name' => 'Financial Management',
+        ]);
+        // Left as drafts holding nothing, exactly as the add form leaves them.
+        framework_service::create([
+            'code' => 'INST-FW',
+            'name' => 'Institution framework',
+            'ownertype' => framework_service::OWNER_INSTITUTION,
+        ]);
+        framework_service::create([
+            'code' => 'MBA-PLO',
+            'name' => 'Program framework',
+            'ownertype' => framework_service::OWNER_PROGRAM,
+            'ownerid' => $programid,
+        ]);
+        framework_service::create([
+            'code' => 'MBA601-CLO',
+            'name' => 'Course framework',
+            'ownertype' => framework_service::OWNER_COURSE,
+            'ownerid' => $courseid,
+        ]);
+
+        $program = json_encode($this->export('program')['programcards']);
+        $this->assertStringContainsString('INST-FW', $program);
+        $this->assertStringContainsString('MBA-PLO', $program);
+        $this->assertStringNotContainsString('MBA601-CLO', $program,
+            'A catalog-course framework is read under its course, not the program lens.');
+
+        $course = json_encode($this->export('course')['coursecards']);
+        $this->assertStringContainsString('MBA601-CLO', $course,
+            'A course framework holding no outcomes must still appear under its course.');
+    }
+
+    /**
+     * An approved framework can be reworded but keeps its identity.
+     *
+     * The code prefixes every outcome label and is captured verbatim inside frozen
+     * accreditation snapshots, so it must survive an edit even if one is posted.
+     */
+    public function test_approved_framework_can_be_reworded_but_not_recoded(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+
+        $frameworkid = framework_service::create([
+            'code' => 'MBA-PLO',
+            'name' => 'Original name',
+            'description' => 'Original description',
+            'ownertype' => framework_service::OWNER_INSTITUTION,
+        ]);
+        framework_service::submit_for_review($frameworkid);
+        $this->assertSame(workflow::APPROVED,
+            $DB->get_field('local_outcomemap_fw', 'status', ['id' => $frameworkid]));
+
+        framework_service::update($frameworkid, [
+            'name' => 'Reworded name',
+            'description' => 'Reworded description',
+            // Posted but must be ignored: identity is settled once approved.
+            'code' => 'HIJACKED',
+            'ownertype' => framework_service::OWNER_PROGRAM,
+            'ownerid' => 12345,
+        ]);
+
+        $after = $DB->get_record('local_outcomemap_fw', ['id' => $frameworkid], '*', MUST_EXIST);
+        $this->assertSame('Reworded name', $after->name);
+        $this->assertSame('Reworded description', $after->description);
+        $this->assertSame('MBA-PLO', $after->code, 'The code is identity and must not change.');
+        $this->assertSame(framework_service::OWNER_INSTITUTION, $after->ownertype);
+        $this->assertNull($after->ownerid);
+    }
+
+    /**
+     * A draft framework is still fully editable, code and owner included.
+     */
+    public function test_draft_framework_remains_fully_editable(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+
+        $frameworkid = framework_service::create([
+            'code' => 'DRAFT-FW',
+            'name' => 'Draft framework',
+            'ownertype' => framework_service::OWNER_INSTITUTION,
+        ]);
+        framework_service::update($frameworkid, [
+            'code' => 'RENAMED-FW',
+            'name' => 'Renamed draft',
+            'ownertype' => framework_service::OWNER_INSTITUTION,
+        ]);
+
+        $after = $DB->get_record('local_outcomemap_fw', ['id' => $frameworkid], '*', MUST_EXIST);
+        $this->assertSame('RENAMED-FW', $after->code);
+        $this->assertSame('Renamed draft', $after->name);
     }
 
     /**

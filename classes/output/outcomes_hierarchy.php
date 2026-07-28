@@ -330,6 +330,7 @@ class outcomes_hierarchy implements renderable, templatable {
                     'local_outcomemap', count($fwitems)),
                 'searchtext' => \core_text::strtolower($ownername . ' ' . $framework->code),
                 'rows' => $rows,
+                'frameworks' => [$this->framework_actions($framework, $canmanage)],
             ];
         }
 
@@ -348,6 +349,8 @@ class outcomes_hierarchy implements renderable, templatable {
                 'course' => $course->code,
                 'subtitle' => get_string('hier_courseframeworks', 'local_outcomemap',
                     implode(', ', array_map(fn($fw) => $fw->code, $ownedfws))),
+                'frameworks' => array_map(fn($fw) => $this->framework_actions($fw, $canmanage),
+                    array_values($ownedfws)),
                 'countline' => get_string('hier_coursecountline', 'local_outcomemap', (object) [
                     'clos' => count($courseclos), 'ulos' => count($courseulos),
                 ]),
@@ -475,6 +478,46 @@ class outcomes_hierarchy implements renderable, templatable {
             ];
         }
         return $tabs;
+    }
+
+    /**
+     * Describe one framework and what may be done to it.
+     *
+     * A framework is not versioned the way outcomes, relations, and policies are,
+     * so an approved one keeps its identity for good: its code prefixes every
+     * outcome label and is frozen inside accreditation snapshots. Its wording is
+     * still editable, and the card says which of the two it is offering.
+     *
+     * @param \stdClass $framework Framework record.
+     * @param bool $canmanage Whether the reader may act on frameworks.
+     * @return array Template context for one framework.
+     */
+    private function framework_actions(\stdClass $framework, bool $canmanage): array {
+        $id = (int) $framework->id;
+        $isdraft = $framework->status === workflow::DRAFT;
+        $isapproved = $framework->status === workflow::APPROVED;
+        return [
+            'code' => $framework->code,
+            'name' => format_string($framework->name),
+            'statuslabel' => workflow::status_label($framework->status),
+            'canedit' => $canmanage && ($isdraft || $isapproved),
+            'editlabel' => get_string($isapproved ? 'hier_frameworkrename' : 'editframework',
+                'local_outcomemap'),
+            'editurl' => (new moodle_url($this->baseurl, [
+                'action' => 'editframework',
+                'id' => $id,
+            ]))->out(false),
+            'cansubmit' => $canmanage && $isdraft,
+            'submitlabel' => workflow::submit_action_label(),
+            'submiturl' => (new moodle_url($this->baseurl, [
+                'action' => 'submit',
+                'type' => 'framework',
+                'id' => $id,
+                'sesskey' => sesskey(),
+            ]))->out(false),
+            'locked' => $canmanage && $isapproved,
+            'lockedreason' => get_string('hier_frameworklocked', 'local_outcomemap'),
+        ];
     }
 
     /** Rows for the CSV export: type, framework, code, statement, maps to, version, status. */

@@ -18,6 +18,7 @@ use local_outcomemap\form\policy_form;
 use local_outcomemap\local\service\policy_service;
 use local_outcomemap\local\service\suppression_service;
 use local_outcomemap\local\workflow;
+use local_outcomemap\output\policies_page;
 
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
@@ -110,6 +111,8 @@ function local_outcomemap_policy_payload(stdClass $data): array {
             'mincohortsize' => (int) $data->mincohortsize,
             'populationsource' => $data->populationsource,
             'retentionbasis' => $data->retentionbasis,
+            'achievementminpercent' => $data->achievementminpercent,
+            'benchmarkpercent' => $data->benchmarkpercent,
             'aggregationmethod' => suppression_service::AGGREGATION_METHOD,
             'correctionmethod' => suppression_service::CORRECTION_METHOD,
         ];
@@ -182,6 +185,8 @@ function local_outcomemap_policy_form_data(stdClass $record): stdClass {
         $record->mincohortsize = $record->config['mincohortsize'] ?? '';
         $record->populationsource = $record->config['populationsource'] ?? '';
         $record->retentionbasis = $record->config['retentionbasis'] ?? '';
+        $record->achievementminpercent = $record->config['achievementminpercent'] ?? '';
+        $record->benchmarkpercent = $record->config['benchmarkpercent'] ?? '';
     } else {
         $record->minitems = $record->config['minitems'] ?? 1;
         $record->minweightedpossible = $record->config['minweightedpossible'] ?? '';
@@ -246,6 +251,10 @@ function local_outcomemap_policy_config_summary(stdClass $record): string {
     }
     if ($record->policytype === policy_service::TYPE_ACCREDITATION) {
         return implode('; ', [
+            get_string('achievementminpercent_value', 'local_outcomemap',
+                $record->config['achievementminpercent'] ?? ''),
+            get_string('benchmarkpercent_value', 'local_outcomemap',
+                $record->config['benchmarkpercent'] ?? ''),
             get_string('minimumcohortsize_value', 'local_outcomemap', $record->config['mincohortsize'] ?? ''),
             get_string('population_' . ($record->config['populationsource'] ?? ''), 'local_outcomemap'),
             get_string('retention_' . ($record->config['retentionbasis'] ?? ''), 'local_outcomemap'),
@@ -271,6 +280,7 @@ admin_externalpage_setup('local_outcomemap_policies');
 $url = new moodle_url('/local/outcomemap/policies.php');
 $action = optional_param('action', '', PARAM_ALPHA);
 $id = optional_param('id', 0, PARAM_INT);
+$view = optional_param('view', policies_page::VIEW_DECISION, PARAM_ALPHA);
 $confirmed = optional_param('confirm', 0, PARAM_BOOL);
 $options = local_outcomemap_policy_editor_options();
 
@@ -403,62 +413,6 @@ if ($action === 'view' && $id) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('policies_heading', 'local_outcomemap'));
-echo html_writer::div(get_string(
-    workflow::requires_independent_approval() ? 'policies_intro' : 'policies_intro_finalization',
-    'local_outcomemap'
-), 'mb-3');
-echo $OUTPUT->single_button(new moodle_url($url, ['action' => 'add']), get_string('addpolicy', 'local_outcomemap'));
-$table = new html_table();
-$table->caption = get_string('policies_heading', 'local_outcomemap');
-$table->head = [
-    get_string('name', 'local_outcomemap'),
-    get_string('policytype', 'local_outcomemap'),
-    get_string('policyscope', 'local_outcomemap'),
-    get_string('policyconfiguration', 'local_outcomemap'),
-    get_string('version', 'local_outcomemap'),
-    get_string('status', 'local_outcomemap'),
-    get_string('effectiverange', 'local_outcomemap'),
-    get_string('actions', 'local_outcomemap'),
-];
-foreach (policy_service::list_all() as $record) {
-    $actions = [
-        html_writer::link(new moodle_url($url, ['action' => 'view', 'id' => $record->id]), get_string('view')),
-    ];
-    if ($record->status === workflow::DRAFT) {
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'edit', 'id' => $record->id]),
-            get_string('edit'));
-        $actions[] = html_writer::link(new moodle_url($url, [
-            'action' => 'submit',
-            'id' => $record->id,
-            'sesskey' => sesskey(),
-        ]), workflow::submit_action_label());
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'delete', 'id' => $record->id]),
-            get_string('delete'));
-    } else if ($record->status === workflow::APPROVED) {
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'newversion', 'id' => $record->id]),
-            get_string('newpolicyversion', 'local_outcomemap'));
-        if ($record->policytype === policy_service::TYPE_RELEASE
-                && ($record->config['mode'] ?? null) === policy_service::RELEASE_MANUAL
-                && $record->manualreleasedat === null) {
-            $actions[] = html_writer::link(new moodle_url($url, [
-                'action' => 'release',
-                'id' => $record->id,
-            ]), get_string('manualrelease', 'local_outcomemap'));
-        }
-    }
-    $effectiverange = userdate($record->effectivefrom) . ' — '
-        . ($record->effectiveto ? userdate($record->effectiveto) : get_string('noenddate', 'local_outcomemap'));
-    $table->data[] = [
-        format_string($record->name),
-        get_string('policytype_' . $record->policytype, 'local_outcomemap'),
-        local_outcomemap_policy_scope_label($record, $options),
-        s(local_outcomemap_policy_config_summary($record)),
-        (int) $record->version,
-        workflow::status_label($record->status),
-        $effectiverange,
-        implode(' | ', $actions),
-    ];
-}
-echo html_writer::div(html_writer::table($table), 'table-responsive');
+$page = new policies_page($view);
+echo $OUTPUT->render_from_template('local_outcomemap/policies_page', $page->export_for_template($OUTPUT));
 echo $OUTPUT->footer();

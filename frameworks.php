@@ -163,7 +163,10 @@ if (in_array($action, ['addoutcome', 'editoutcome', 'newversion'], true)) {
 }
 
 if ($action === 'addframework' || $action === 'editframework') {
-    $form = new framework_form($url);
+    $existing = $id ? $DB->get_record('local_outcomemap_fw', ['id' => $id], '*', MUST_EXIST) : null;
+    $form = new framework_form($url, [
+        'identitylocked' => $existing !== null && $existing->status === workflow::APPROVED,
+    ]);
     if ($form->is_cancelled()) {
         redirect($url);
     }
@@ -173,10 +176,15 @@ if ($action === 'addframework' || $action === 'editframework') {
         } else {
             framework_service::create((array) $data);
         }
-        redirect($url, get_string('saved', 'local_outcomemap'));
+        // The two hierarchy views are different lenses: a catalog-course framework
+        // is only ever listed under its course. Redirecting to the default view
+        // would show the reader a page their new framework is not on.
+        redirect(new moodle_url($url, [
+            'view' => $data->ownertype === framework_service::OWNER_COURSE ? 'course' : 'program',
+        ]), get_string('saved', 'local_outcomemap'));
     }
-    if ($id) {
-        $form->set_data($DB->get_record('local_outcomemap_fw', ['id' => $id], '*', MUST_EXIST));
+    if ($existing !== null) {
+        $form->set_data($existing);
     }
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string($id ? 'editframework' : 'addframework', 'local_outcomemap'));
@@ -190,31 +198,4 @@ $hierarchy = new outcomes_hierarchy($view);
 echo $OUTPUT->render_from_template('local_outcomemap/outcomes_hierarchy',
     $hierarchy->export_for_template($OUTPUT));
 
-if ($view === outcomes_hierarchy::VIEW_MATRIX) {
-    // The alignment grid stands on its own; framework administration belongs
-    // with the outcome hierarchy the frameworks hold.
-    echo $OUTPUT->footer();
-    exit;
-}
-
-// Framework governance fallback: draft frameworks are edited and submitted here.
-$fwtable = new html_table();
-$fwtable->caption = get_string('hier_frameworkadmin', 'local_outcomemap');
-$fwtable->head = [get_string('code', 'local_outcomemap'), get_string('name', 'local_outcomemap'),
-    get_string('ownertype', 'local_outcomemap'), get_string('status', 'local_outcomemap'), get_string('actions', 'local_outcomemap')];
-foreach (framework_service::list_all() as $record) {
-    $actions = [];
-    if ($record->status === workflow::DRAFT) {
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'editframework', 'id' => $record->id]), get_string('edit'));
-        $actions[] = html_writer::link(new moodle_url($url, ['action' => 'submit', 'type' => 'framework',
-            'id' => $record->id, 'sesskey' => sesskey()]), workflow::submit_action_label());
-    }
-    $fwtable->data[] = [s($record->code), format_string($record->name),
-        get_string('owner_' . $record->ownertype, 'local_outcomemap'),
-        workflow::status_label($record->status), implode(' | ', $actions)];
-}
-echo html_writer::tag('details',
-    html_writer::tag('summary', get_string('hier_frameworkadmin', 'local_outcomemap'))
-    . html_writer::div(html_writer::table($fwtable), 'table-responsive'),
-    ['class' => 'lom-fwadmin']);
 echo $OUTPUT->footer();

@@ -60,8 +60,15 @@ final class framework_service extends base_service {
         global $DB;
         $actorid = self::require_system('local/outcomemap:manageframeworks');
         $before = self::get_required(self::TABLE, $id, 'framework');
-        if ($before->status !== workflow::DRAFT) {
+        if (!in_array($before->status, [workflow::DRAFT, workflow::APPROVED], true)) {
             throw new validation_exception('approvedimmutable', 'framework', $id);
+        }
+        if ($before->status === workflow::APPROVED) {
+            // An approved framework keeps its identity: the code prefixes every
+            // outcome label and is captured verbatim inside frozen accreditation
+            // snapshots, and the owner decides which outcomes it may hold. Only
+            // the descriptive fields, which nothing references, may still change.
+            $data = array_intersect_key($data, ['name' => true, 'description' => true, 'reason' => true]);
         }
         [$ownertype, $ownerid] = self::validate_owner($data['ownertype'] ?? $before->ownertype,
             array_key_exists('ownerid', $data) ? $data['ownerid'] : $before->ownerid);

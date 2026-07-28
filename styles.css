@@ -266,6 +266,46 @@ a.lom-viewbtn.lom-active:hover { background: #1f2a44; color: #fff; }
 .lom-matrix-empty-section { color: #6a737b; font-size: var(--lom-fs-xs); padding: 14px; }
 .lom-hier .lom-section { margin-bottom: 16px; }
 
+/* Framework identity and actions, on the card holding its outcomes. */
+.lom-hier .lom-fwbar { align-items: center; background: #fbfcfd; border-bottom: 1px solid #eceff2;
+    display: flex; flex-wrap: wrap; gap: 10px; padding: 7px 14px; }
+.lom-hier .lom-fwbar-code { color: #1f2a44; font-size: var(--lom-fs-3xs); font-weight: 700; }
+.lom-hier .lom-fwbar-name { color: #667180; flex: 1; font-size: var(--lom-fs-3xs); min-width: 8rem; }
+.lom-hier .lom-fwbar-status { color: #6a737b; font-size: var(--lom-fs-3xs); white-space: nowrap; }
+.lom-hier .lom-fwbar-actions { display: flex; flex-wrap: wrap; font-size: var(--lom-fs-3xs); gap: 10px; }
+.lom-hier .lom-fwbar-locked { color: #6a737b; }
+
+/* Outcome policies, grouped by the decision each one settles. */
+.lom-pol-group { border: 1px solid #e3e7ec; border-radius: 8px; margin-bottom: 14px; overflow: hidden; }
+.lom-pol-head { align-items: flex-start; background: #f4f6f9; border-bottom: 1px solid #e3e7ec;
+    display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 16px; }
+.lom-pol-head-main { flex: 1 1 16rem; min-width: 14rem; }
+.lom-pol-title { color: #1f2a44; display: block; font-size: var(--lom-fs-sm); font-weight: 700; }
+.lom-pol-question { color: #667180; display: block; font-size: var(--lom-fs-2xs); margin-top: 2px; }
+.lom-pol-row { align-items: flex-start; border-top: 1px solid #f2f4f6; display: flex; flex-wrap: wrap;
+    gap: 12px; padding: 12px 16px; }
+.lom-pol-row:hover { background: #fbfcfd; }
+.lom-pol-scope { flex: 0 0 auto; max-width: 11rem; min-width: 7.5rem; }
+.lom-pol-scopename { color: #1f2a44; display: block; font-size: var(--lom-fs-2xs);
+    font-weight: 600; margin-top: 4px; }
+.lom-pol-settings { display: flex; flex: 1 1 16rem; flex-wrap: wrap; gap: 5px; min-width: 14rem; }
+.lom-pol-setting { background: #f6f7f9; border: 1px solid #eceff2; border-radius: 4px; color: #444;
+    font-size: var(--lom-fs-3xs); padding: 3px 9px; }
+.lom-pol-setting-k { color: #6a737b; }
+.lom-pol-setting b { color: #1f2a44; font-weight: 600; }
+.lom-pol-meta { color: #6a737b; font-size: var(--lom-fs-3xs); white-space: nowrap; }
+.lom-pol-empty { color: #6a737b; font-size: var(--lom-fs-2xs); padding: 12px 16px; }
+.lom-pol-chain { background: #fbfcfd; border-top: 1px solid #f2f4f6; color: #6a737b;
+    font-size: var(--lom-fs-3xs); padding: 8px 16px; }
+.lom-pol-uncovered { background: #fffbeb; border-top: 1px solid #f2d9a4; color: #a16207;
+    font-size: var(--lom-fs-3xs); padding: 8px 16px; }
+.lom-scope-institution { background: #eef4fb; color: #155a9c; }
+.lom-scope-program { background: #1f2a44; color: #fff; }
+.lom-scope-catalog-course { background: #fef3c7; color: #92400e; }
+.lom-scope-course-instance { background: #e8edf4; color: #1f2a44; }
+.lom-scope-assessment { background: #f3f4f6; color: #6b7280; }
+.lom-scope-decision { background: #e8edf4; color: #1f2a44; }
+
 /* Combined curriculum: program navigator beside the selected program. */
 .lom-cur-layout { align-items: flex-start; display: flex; gap: 18px; }
 .lom-cur-nav { align-self: flex-start; border: 1px solid #e3e7ec; border-radius: 8px; flex-shrink: 0;
@@ -543,6 +583,7 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
     .lom-instance-row,
     .lom-cat-head { align-items: flex-start; flex-wrap: wrap; }
     .lom-instance-period { width: auto; }
+    .lom-pol-meta { white-space: normal; }
     .lom-instance-course { flex-basis: 100%; }
     .lom-cat-summary { flex-basis: calc(100% - 100px); }
     .lom-cat-programs { justify-content: flex-start; max-width: none; }

@@ -131,6 +131,18 @@
                 <span class="lom-card-sub">{{subtitle}}</span>
                 <span class="lom-card-count">{{countline}}</span>
             </div>
+            {{#frameworks}}
+            <div class="lom-fwbar">
+                <span class="lom-fwbar-code">{{code}}</span>
+                <span class="lom-fwbar-name">{{name}}</span>
+                <span class="lom-fwbar-status">{{statuslabel}}</span>
+                <span class="lom-fwbar-actions">
+                    {{#canedit}}<a href="{{editurl}}">{{editlabel}}</a>{{/canedit}}
+                    {{#cansubmit}}<a href="{{submiturl}}">{{submitlabel}}</a>{{/cansubmit}}
+                    {{#locked}}<span class="lom-fwbar-locked">{{lockedreason}}</span>{{/locked}}
+                </span>
+            </div>
+            {{/frameworks}}
             <div class="lom-children">
                 {{#rows}}
                 <div class="lom-node lom-plo" data-search="{{searchtext}}">
@@ -181,6 +193,18 @@
                 <span class="lom-card-sub">{{subtitle}}</span>
                 <span class="lom-card-count">{{countline}}</span>
             </div>
+            {{#frameworks}}
+            <div class="lom-fwbar">
+                <span class="lom-fwbar-code">{{code}}</span>
+                <span class="lom-fwbar-name">{{name}}</span>
+                <span class="lom-fwbar-status">{{statuslabel}}</span>
+                <span class="lom-fwbar-actions">
+                    {{#canedit}}<a href="{{editurl}}">{{editlabel}}</a>{{/canedit}}
+                    {{#cansubmit}}<a href="{{submiturl}}">{{submitlabel}}</a>{{/cansubmit}}
+                    {{#locked}}<span class="lom-fwbar-locked">{{lockedreason}}</span>{{/locked}}
+                </span>
+            </div>
+            {{/frameworks}}
             <div class="lom-children">
                 {{#clos}}{{> local_outcomemap/outcomes_hierarchy_clo }}{{/clos}}
                 {{#hasunmappedulos}}
