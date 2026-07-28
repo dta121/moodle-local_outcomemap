@@ -32,6 +32,7 @@ use local_outcomemap\local\import_preview;
 use local_outcomemap\local\input;
 use local_outcomemap\local\uuid;
 use local_outcomemap\local\validation_exception;
+use local_outcomemap\local\workflow;
 
 /**
  * Provides preview-and-commit CSV imports for foundation entities.
@@ -99,7 +100,18 @@ final class foundation_import_service extends base_service {
         self::FRAMEWORKS,
         self::OUTCOMES,
         self::RELATIONS,
+        self::HIERARCHY,
     ];
+
+    /**
+     * Outcome hierarchy import entity, in the shape the hierarchy CSV exports.
+     *
+     * @var string
+     */
+    public const HIERARCHY = 'hierarchy';
+
+    /** @var string Relationship the Maps to column expresses. */
+    private const HIERARCHY_RELATION = relation_service::ALIGNS_TO;
 
     /**
      * Exact CSV headers for each import entity.
@@ -121,6 +133,9 @@ final class foundation_import_service extends base_service {
         self::RELATIONS => [
             'relationuuid', 'sourceuuid', 'targetuuid', 'type', 'weight', 'effectivefrom', 'effectiveto', 'notes',
         ],
+        // Exactly the columns the outcome hierarchy exports, so a file taken out
+        // of the plugin can be read back into it.
+        self::HIERARCHY => ['Type', 'Framework', 'Code', 'Statement', 'Maps to', 'Version', 'Status'],
     ];
 
     /** @var string[] Previous Programs header retained for backward-compatible imports. */
@@ -170,6 +185,9 @@ final class foundation_import_service extends base_service {
      */
     public static function preview(int $importid, string $entity): import_preview {
         self::require_system('local/outcomemap:manageframeworks');
+        if ($entity === self::HIERARCHY) {
+            return self::preview_hierarchy($importid);
+        }
         $rows = self::read_rows($importid, $entity);
         $seen = [];
         $previewrows = [];
@@ -212,6 +230,9 @@ final class foundation_import_service extends base_service {
     public static function commit(int $importid, string $entity, string $expectedhash): int {
         global $DB;
         $actorid = self::require_system('local/outcomemap:manageframeworks');
+        if ($entity === self::HIERARCHY) {
+            return self::commit_hierarchy($importid, $expectedhash, $actorid);
+        }
         $preview = self::preview($importid, $entity);
         if (!hash_equals($preview->hash, strtolower($expectedhash))) {
             throw new validation_exception('importchanged', 'previewhash');
@@ -243,6 +264,239 @@ final class foundation_import_service extends base_service {
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
         }
+    }
+
+    /**
+     * Validate an outcome hierarchy file across all of its rows at once.
+     *
+     * The hierarchy is the one import whose rows are not independent: the Maps to
+     * column may name an outcome defined further down the same file, so a target
+     * is resolved against the outcomes the file declares as well as the ones the
+     * site already holds. That cannot be judged one row at a time, which is why
+     * this entity does not go through prepare_row().
+     *
+     * @param int $importid Import identifier.
+     * @return import_preview
+     */
+    private static function preview_hierarchy(int $importid): import_preview {
+        $rows = self::read_rows($importid, self::HIERARCHY);
+        $frameworks = self::frameworks_by_code();
+        $declared = [];
+        $rowerrors = [];
+
+        // First pass: the outcomes this file defines, and anything wrong with them.
+        foreach ($rows as $index => $row) {
+            $errors = [];
+            $frameworkcode = trim($row['Framework']);
+            $code = trim($row['Code']);
+            if ($frameworkcode === '' || !isset($frameworks[$frameworkcode])) {
+                $errors[] = get_string('importhierarchy_noframework', 'local_outcomemap', s($frameworkcode));
+            }
+            if ($code === '') {
+                $errors[] = get_string('importhierarchy_nocode', 'local_outcomemap');
+            }
+            if (trim($row['Statement']) === '') {
+                $errors[] = get_string('importhierarchy_nostatement', 'local_outcomemap');
+            }
+            $label = $frameworkcode . '.' . $code;
+            if ($errors === []) {
+                if (isset($declared[$label])) {
+                    $errors[] = get_string('importhierarchy_duplicate', 'local_outcomemap', s($label));
+                } else {
+                    $declared[$label] = true;
+                }
+            }
+            $rowerrors[$index] = $errors;
+        }
+
+        // Second pass: every alignment target must resolve, in the file or the site.
+        $existing = self::outcomes_by_label();
+        $previewrows = [];
+        $valid = true;
+        foreach ($rows as $index => $row) {
+            $errors = $rowerrors[$index];
+            $source = trim($row['Framework']) . '.' . trim($row['Code']);
+            foreach (self::hierarchy_targets($row['Maps to']) as $target) {
+                if (!isset($declared[$target]) && !isset($existing[$target])) {
+                    $errors[] = get_string('importhierarchy_notarget', 'local_outcomemap', s($target));
+                } else if ($target === $source) {
+                    $errors[] = get_string('selfrelation', 'local_outcomemap');
+                }
+            }
+            if ($errors !== []) {
+                $valid = false;
+            }
+            $previewrows[] = (object) [
+                'number' => $index + 2,
+                'data' => $row,
+                'errors' => $errors,
+                'validationexception' => null,
+            ];
+        }
+
+        $hash = hash('sha256', canonical_json::encode([
+            'entity' => self::HIERARCHY,
+            'headers' => self::HEADERS[self::HIERARCHY],
+            'rows' => $rows,
+        ]));
+        return new import_preview($previewrows, $hash, $valid);
+    }
+
+    /**
+     * Create the outcomes an approved hierarchy file declares, then align them.
+     *
+     * Outcomes are created before any alignment is attempted because a relation
+     * may only join approved outcomes. An outcome or alignment that already
+     * exists is left alone, so re-importing the same file changes nothing.
+     *
+     * @param int $importid Import identifier.
+     * @param string $expectedhash Expected preview hash.
+     * @param int $actorid Acting user.
+     * @return int Number of committed data rows.
+     */
+    private static function commit_hierarchy(int $importid, string $expectedhash, int $actorid): int {
+        global $DB;
+        $preview = self::preview_hierarchy($importid);
+        if (!hash_equals($preview->hash, strtolower($expectedhash))) {
+            throw new validation_exception('importchanged', 'previewhash');
+        }
+        if (!$preview->valid) {
+            throw new validation_exception('importerrors', 'csvfile');
+        }
+        $rows = array_map(static fn($row) => $row->data, $preview->rows);
+        $frameworks = self::frameworks_by_code();
+        $now = time();
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $items = self::outcomes_by_label();
+            foreach ($rows as $row) {
+                $frameworkcode = trim($row['Framework']);
+                $code = trim($row['Code']);
+                $label = $frameworkcode . '.' . $code;
+                if (isset($items[$label])) {
+                    continue;
+                }
+                $itemid = outcome_service::create([
+                    'frameworkid' => (int) $frameworks[$frameworkcode]->id,
+                    'code' => $code,
+                    'statement' => trim($row['Statement']),
+                    'effectivefrom' => $now,
+                ]);
+                $versionid = (int) $DB->get_field('local_outcomemap_itemver', 'id',
+                    ['itemid' => $itemid], MUST_EXIST);
+                // An alignment may only join approved outcomes, so each new
+                // outcome is carried through the submission boundary. Where the
+                // site requires independent approval it stops there, and the
+                // alignments below are reported as deferred rather than forced.
+                outcome_service::submit_for_review($versionid);
+                $items[$label] = $DB->get_record('local_outcomemap_item', ['id' => $itemid], '*', MUST_EXIST);
+            }
+
+            $aligned = 0;
+            foreach ($rows as $row) {
+                $source = $items[trim($row['Framework']) . '.' . trim($row['Code'])] ?? null;
+                if ($source === null || $source->status !== workflow::APPROVED) {
+                    continue;
+                }
+                foreach (self::hierarchy_targets($row['Maps to']) as $targetlabel) {
+                    $target = $items[$targetlabel] ?? null;
+                    if ($target === null || $target->status !== workflow::APPROVED
+                            || (int) $target->id === (int) $source->id) {
+                        continue;
+                    }
+                    if (self::alignment_exists((int) $source->id, (int) $target->id)) {
+                        continue;
+                    }
+                    $relationid = relation_service::create([
+                        'sourceitemid' => (int) $source->id,
+                        'targetitemid' => (int) $target->id,
+                        'type' => self::HIERARCHY_RELATION,
+                        'effectivefrom' => $now,
+                    ]);
+                    relation_service::submit_for_review($relationid);
+                    $aligned++;
+                }
+            }
+
+            audit_writer::write('import', 'foundation_import', null, null, null, [
+                'entity' => self::HIERARCHY,
+                'rowcount' => count($rows),
+                'alignments' => $aligned,
+                'previewhash' => $preview->hash,
+            ], null, \context_system::instance(), $actorid);
+            $transaction->allow_commit();
+            return count($rows);
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+    }
+
+    /**
+     * Split a Maps to cell into outcome labels.
+     *
+     * @param string $value Raw cell value.
+     * @return string[] Trimmed labels.
+     */
+    private static function hierarchy_targets(string $value): array {
+        $targets = [];
+        foreach (preg_split('/[;,]/', $value) as $target) {
+            $target = trim($target);
+            if ($target !== '') {
+                $targets[] = $target;
+            }
+        }
+        return array_values(array_unique($targets));
+    }
+
+    /**
+     * Return non-retired frameworks keyed by code.
+     *
+     * @return \stdClass[]
+     */
+    private static function frameworks_by_code(): array {
+        global $DB;
+        $frameworks = [];
+        foreach ($DB->get_records('local_outcomemap_fw') as $framework) {
+            if ($framework->status !== workflow::RETIRED) {
+                $frameworks[$framework->code] = $framework;
+            }
+        }
+        return $frameworks;
+    }
+
+    /**
+     * Return outcome items keyed by their "FRAMEWORK.CODE" label.
+     *
+     * @return \stdClass[]
+     */
+    private static function outcomes_by_label(): array {
+        global $DB;
+        $sql = "SELECT i.id, i.code, i.status, i.frameworkid, fw.code AS frameworkcode
+                  FROM {local_outcomemap_item} i
+                  JOIN {local_outcomemap_fw} fw ON fw.id = i.frameworkid";
+        $items = [];
+        foreach ($DB->get_records_sql($sql) as $item) {
+            $items[$item->frameworkcode . '.' . $item->code] = $item;
+        }
+        return $items;
+    }
+
+    /**
+     * Whether a live alignment already joins two outcomes.
+     *
+     * @param int $sourceid Source outcome item id.
+     * @param int $targetid Target outcome item id.
+     * @return bool
+     */
+    private static function alignment_exists(int $sourceid, int $targetid): bool {
+        global $DB;
+        return $DB->record_exists_select('local_outcomemap_rel',
+            'sourceitemid = :source AND targetitemid = :target AND type = :type AND status <> :retired', [
+                'source' => $sourceid,
+                'target' => $targetid,
+                'type' => self::HIERARCHY_RELATION,
+                'retired' => workflow::RETIRED,
+            ]);
     }
 
     /**
