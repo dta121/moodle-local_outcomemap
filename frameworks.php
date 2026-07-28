@@ -27,6 +27,7 @@ $url = new moodle_url('/local/outcomemap/frameworks.php');
 $action = optional_param('action', '', PARAM_ALPHA);
 $type = optional_param('type', 'framework', PARAM_ALPHA);
 $id = optional_param('id', 0, PARAM_INT);
+$view = optional_param('view', 'program', PARAM_ALPHA);
 
 if ($action === 'submit' && $id) {
     require_sesskey();
@@ -185,9 +186,16 @@ if ($action === 'addframework' || $action === 'editframework') {
 }
 
 echo $OUTPUT->header();
-$hierarchy = new outcomes_hierarchy();
+$hierarchy = new outcomes_hierarchy($view);
 echo $OUTPUT->render_from_template('local_outcomemap/outcomes_hierarchy',
     $hierarchy->export_for_template($OUTPUT));
+
+if ($view === outcomes_hierarchy::VIEW_MATRIX) {
+    // The alignment grid stands on its own; framework administration belongs
+    // with the outcome hierarchy the frameworks hold.
+    echo $OUTPUT->footer();
+    exit;
+}
 
 // Framework governance fallback: draft frameworks are edited and submitted here.
 $fwtable = new html_table();

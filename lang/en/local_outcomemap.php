@@ -48,7 +48,7 @@ $string['nav_curriculum'] = 'Curriculum';
 $string['nav_programs'] = 'Programs';
 $string['nav_catalogcourses'] = 'Catalog courses';
 $string['nav_courseinstances'] = 'Course instances';
-$string['nav_frameworks'] = 'Frameworks and outcomes';
+$string['nav_frameworks'] = 'Outcomes & alignment';
 $string['nav_outcomes'] = 'Outcomes';
 $string['nav_relations'] = 'Outcome relations';
 $string['nav_policies'] = 'Outcome policies';
@@ -881,6 +881,15 @@ $string['snapshotcohort'] = 'Population cohort';
 $string['snapshotcohort_help'] = 'Select a cohort only when the effective approved accreditation policy uses the Moodle-cohort population source. Leave it empty for active enrolments.';
 $string['snapshotitems_caption'] = 'Immutable snapshot rows grouped by type';
 $string['snapshotlist_caption'] = 'Accreditation snapshot versions';
+
+// Combined Outcomes and alignment page.
+$string['outcomes_heading'] = 'Outcomes & alignment';
+$string['outcomes_view'] = 'Group outcomes by program or course, or show the alignment matrix';
+$string['outcomes_matrixview'] = 'Matrix';
+$string['outcomes_hierarchyline'] = '{$a->alignments} alignments, {$a->unaligned} unaligned';
+$string['outcomes_exportoutcomes'] = 'Outcomes CSV';
+$string['outcomes_exportalignments'] = 'Alignments CSV';
+$string['outcomes_matrix_nogrid'] = 'This relationship has no outcomes on one of its two sides yet, so there is no grid to show.';
 
 // Combined Curriculum page.
 $string['curriculum_heading'] = 'Curriculum';

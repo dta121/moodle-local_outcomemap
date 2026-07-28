@@ -253,6 +253,19 @@
 .lom-cat-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .lom-cat-actions .lom-page-btn { font-size: var(--lom-fs-2xs); padding: 6px 13px; }
 
+/* Outcomes & alignment: the matrix view is reached by link, so the view toggle
+   mixes buttons and anchors and they have to read as one control. */
+.lom-hier a.lom-viewbtn,
+a.lom-viewbtn { display: inline-block; text-decoration: none; }
+.lom-hier a.lom-viewbtn:hover,
+a.lom-viewbtn:hover { background: #f4f6f9; color: #555; text-decoration: none; }
+.lom-hier a.lom-viewbtn.lom-active,
+a.lom-viewbtn.lom-active { background: #1f2a44; color: #fff; }
+.lom-hier a.lom-viewbtn.lom-active:hover,
+a.lom-viewbtn.lom-active:hover { background: #1f2a44; color: #fff; }
+.lom-matrix-empty-section { color: #6a737b; font-size: var(--lom-fs-xs); padding: 14px; }
+.lom-hier .lom-section { margin-bottom: 16px; }
+
 /* Combined curriculum: program navigator beside the selected program. */
 .lom-cur-layout { align-items: flex-start; display: flex; gap: 18px; }
 .lom-cur-nav { align-self: flex-start; border: 1px solid #e3e7ec; border-radius: 8px; flex-shrink: 0;

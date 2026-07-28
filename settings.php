@@ -28,7 +28,6 @@ $pages = [
     'local_outcomemap_dashboard' => ['dashboard', 'viewdefinitions'],
     'local_outcomemap_curriculum' => ['curriculum', 'manageprograms'],
     'local_outcomemap_frameworks' => ['frameworks', 'manageframeworks'],
-    'local_outcomemap_relations' => ['relations', 'manageframeworks'],
     'local_outcomemap_policies' => ['policies', 'managepolicies'],
     'local_outcomemap_snapshots' => ['snapshots', 'managesnapshots'],
     'local_outcomemap_reports' => ['reports', 'viewdefinitions'],
@@ -38,15 +37,16 @@ if (\local_outcomemap\local\workflow::requires_independent_approval()) {
     $pages['local_outcomemap_approvals'] = ['approvalqueue', 'approve'];
 }
 
-// Programs, catalog courses, and course instances are read on the Curriculum
-// page, but their scripts still own the governed add, edit, and submit forms
-// that Curriculum links to. They stay registered so admin_externalpage_setup()
-// keeps working, and hidden so the navigation shows one curriculum entry
-// instead of three overlapping lists.
+// These scripts are no longer read on their own: programs, catalog courses, and
+// course instances are read on Curriculum, and outcome relations are the matrix
+// view of Outcomes and alignment. Each still owns the governed add, edit, and
+// submit forms those pages link to, so they stay registered for
+// admin_externalpage_setup() and hidden from the navigation.
 $hidden = [
     'local_outcomemap_programs' => ['programs', 'manageprograms'],
     'local_outcomemap_courses' => ['catalogcourses', 'managecatalogcourses'],
     'local_outcomemap_courseinstances' => ['courseinstances', 'managecatalogcourses'],
+    'local_outcomemap_relations' => ['relations', 'manageframeworks'],
 ];
 
 foreach ($pages + $hidden as $pageid => [$script, $capability]) {

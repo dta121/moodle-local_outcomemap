@@ -35,8 +35,14 @@ use templatable;
  * Builds the program/course outcome hierarchy for templates and CSV export.
  */
 class outcomes_hierarchy implements renderable, templatable {
+    /** The alignment matrix view. */
+    public const VIEW_MATRIX = 'matrix';
+
     /** @var moodle_url Page base URL. */
     private moodle_url $baseurl;
+
+    /** @var string The view being rendered. */
+    private string $view;
 
     /** @var \stdClass[] Programs keyed by id. */
     private array $programs;
@@ -57,8 +63,9 @@ class outcomes_hierarchy implements renderable, templatable {
     private array $mapsbytarget = [];
 
     /** Load all governed records once. */
-    public function __construct() {
+    public function __construct(string $view = 'program') {
         global $DB;
+        $this->view = in_array($view, ['program', 'course', self::VIEW_MATRIX], true) ? $view : 'program';
         $this->baseurl = new moodle_url('/local/outcomemap/frameworks.php');
         $this->programs = $DB->get_records('local_outcomemap_program', null, 'code ASC');
         $this->courses = $DB->get_records('local_outcomemap_course', null, 'code ASC');
@@ -403,6 +410,17 @@ class outcomes_hierarchy implements renderable, templatable {
             ];
         }
 
+        $ismatrix = $this->view === self::VIEW_MATRIX;
+        $relationsurl = new moodle_url('/local/outcomemap/relations.php');
+        // The alignment grid is an outcome-by-outcome table, so it is large enough
+        // that building it for the two hierarchy views would be paid for on every
+        // page load and thrown away. It is built only when it is the view shown.
+        $alignment = $ismatrix ? (new relations_page())->export_for_template($output) : null;
+        $alignmentcount = 0;
+        foreach ($this->mapsbysource as $targets) {
+            $alignmentcount += count($targets);
+        }
+
         return [
             'baseurl' => $this->baseurl->out(false),
             'sesskey' => sesskey(),
@@ -415,11 +433,48 @@ class outcomes_hierarchy implements renderable, templatable {
             'addframeworkurl' => (new moodle_url($this->baseurl, ['action' => 'addframework']))->out(false),
             'addoutcomeurl' => (new moodle_url($this->baseurl, ['action' => 'addoutcome']))->out(false),
             'exporturl' => (new moodle_url($this->baseurl, ['action' => 'exportcsv']))->out(false),
-            'programcards' => $programcards,
-            'coursecards' => $coursecards,
-            'unmappedgroups' => $unmappedgroups,
-            'pickers' => $pickers,
+            'alignmentexporturl' => (new moodle_url($relationsurl, ['action' => 'exportcsv']))->out(false),
+            'addalignmenturl' => (new moodle_url($relationsurl, ['action' => 'add']))->out(false),
+            'viewtabs' => $this->viewtabs($ismatrix),
+            'ismatrix' => $ismatrix,
+            'initialview' => $this->view,
+            'alignment' => $alignment,
+            'hierarchyline' => get_string('outcomes_hierarchyline', 'local_outcomemap', (object) [
+                'alignments' => $alignmentcount,
+                'unaligned' => $unmappedcount,
+            ]),
+            'programcards' => $ismatrix ? [] : $programcards,
+            'coursecards' => $ismatrix ? [] : $coursecards,
+            'unmappedgroups' => $ismatrix ? [] : $unmappedgroups,
+            'pickers' => $ismatrix ? [] : $pickers,
         ];
+    }
+
+    /**
+     * Build the three view tabs.
+     *
+     * The two hierarchy views are both in the page at once and switch instantly in
+     * the browser, so they stay buttons. The matrix is a separate render, so it is
+     * a link — and once it is showing, the hierarchy views become links back.
+     *
+     * @param bool $ismatrix Whether the matrix view is the one being rendered.
+     * @return array[] Tab descriptors.
+     */
+    private function viewtabs(bool $ismatrix): array {
+        $tabs = [];
+        foreach (['program' => 'hier_byprogram', 'course' => 'hier_bycourse',
+                self::VIEW_MATRIX => 'outcomes_matrixview'] as $id => $stringid) {
+            $islink = $ismatrix || $id === self::VIEW_MATRIX;
+            $tabs[] = [
+                'id' => $id,
+                'label' => get_string($stringid, 'local_outcomemap'),
+                'active' => $id === $this->view,
+                'islink' => $islink,
+                'isbutton' => !$islink,
+                'url' => (new moodle_url($this->baseurl, ['view' => $id]))->out(false),
+            ];
+        }
+        return $tabs;
     }
 
     /** Rows for the CSV export: type, framework, code, statement, maps to, version, status. */

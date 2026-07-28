@@ -4,6 +4,7 @@
 use local_outcomemap\form\relation_form;
 use local_outcomemap\local\service\relation_service;
 use local_outcomemap\local\workflow;
+use local_outcomemap\output\outcomes_hierarchy;
 use local_outcomemap\output\relations_page;
 
 $configpath = __DIR__ . '/../../config.php';
@@ -89,7 +90,9 @@ if (in_array($action, ['add', 'edit', 'newversion'], true)) {
     exit;
 }
 
-echo $OUTPUT->header();
-$page = new relations_page();
-echo $OUTPUT->render_from_template('local_outcomemap/relations_page', $page->export_for_template($OUTPUT));
-echo $OUTPUT->footer();
+// Alignments are read on the Outcomes and alignment page, whose matrix view is
+// this list. This script keeps the governed add, edit, new-version, submit, and
+// CSV actions that the matrix links to.
+redirect(new moodle_url('/local/outcomemap/frameworks.php', [
+    'view' => outcomes_hierarchy::VIEW_MATRIX,
+]));

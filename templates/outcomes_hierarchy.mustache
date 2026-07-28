@@ -3,13 +3,15 @@
     @template local_outcomemap/outcomes_hierarchy
 }}
 <div id="lom-hier" class="lom-hier" data-lockedmsg="{{#str}} hier_alreadymapped, local_outcomemap {{/str}}">
-    <h2 class="lom-title">{{#str}} frameworks_heading, local_outcomemap {{/str}}</h2>
+    <h2 class="lom-title">{{#str}} outcomes_heading, local_outcomemap {{/str}}</h2>
     <div class="lom-subtitle">{{frameworksline}}</div>
 
     <div class="lom-toolbar">
-        <div class="lom-viewtoggle" role="group" aria-label="{{#str}} hier_view, local_outcomemap {{/str}}">
-            <button type="button" class="lom-viewbtn lom-active" data-lom-view="program" aria-pressed="true">{{#str}} hier_byprogram, local_outcomemap {{/str}}</button>
-            <button type="button" class="lom-viewbtn" data-lom-view="course" aria-pressed="false">{{#str}} hier_bycourse, local_outcomemap {{/str}}</button>
+        <div class="lom-viewtoggle" role="group" aria-label="{{#str}} outcomes_view, local_outcomemap {{/str}}">
+            {{#viewtabs}}
+            {{#isbutton}}<button type="button" class="lom-viewbtn {{#active}}lom-active{{/active}}" data-lom-view="{{id}}" aria-pressed="{{#active}}true{{/active}}{{^active}}false{{/active}}">{{label}}</button>{{/isbutton}}
+            {{#islink}}<a class="lom-viewbtn {{#active}}lom-active{{/active}}" href="{{url}}" {{#active}}aria-current="page"{{/active}}>{{label}}</a>{{/islink}}
+            {{/viewtabs}}
         </div>
         <div class="lom-search">
             <span class="lom-search-icon" aria-hidden="true">&#128269;</span>
@@ -22,14 +24,16 @@
         <button type="button" id="lom-chip" class="lom-chipbtn" aria-pressed="false">{{#str}} hier_unmappedchip, local_outcomemap, {{unmappedcount}} {{/str}}</button>
         {{/hasunmapped}}
         <div class="lom-toolbar-right">
-            <a class="lom-btn" href="{{exporturl}}">{{#str}} hier_exportcsv, local_outcomemap {{/str}}</a>
+            <a class="lom-btn" href="{{exporturl}}">{{#str}} outcomes_exportoutcomes, local_outcomemap {{/str}}</a>
+            <a class="lom-btn" href="{{alignmentexporturl}}">{{#str}} outcomes_exportalignments, local_outcomemap {{/str}}</a>
             {{#canmanage}}
+            {{#ismatrix}}<a class="lom-btn" href="{{addalignmenturl}}">{{#str}} addrelation, local_outcomemap {{/str}}</a>{{/ismatrix}}
             <a class="lom-btn" href="{{addframeworkurl}}">{{#str}} addframework, local_outcomemap {{/str}}</a>
             <a class="lom-btn lom-btn-primary" href="{{addoutcomeurl}}">{{#str}} addoutcome, local_outcomemap {{/str}}</a>
             {{/canmanage}}
         </div>
     </div>
-    <div class="lom-stats">{{statsline}}</div>
+    <div class="lom-stats">{{statsline}} &mdash; {{hierarchyline}}</div>
 
     {{#hasunmapped}}
     <div id="lom-callout" class="lom-callout">
@@ -41,6 +45,67 @@
 
     <div id="lom-noresults" class="lom-noresults lom-hidden" role="status" aria-live="polite">{{#str}} hier_noresults, local_outcomemap {{/str}}</div>
 
+    {{#ismatrix}}
+    <div id="lom-view-matrix">
+        {{#alignment}}
+        {{#groups}}
+        <section class="lom-section lom-filter-row" data-search="{{searchtext}}">
+            <div class="lom-section-head">
+                <h3 class="lom-section-title">{{title}}</h3>
+                <span class="lom-section-subtitle">{{subtitle}}</span>
+                <span class="lom-section-count">{{countline}}</span>
+            </div>
+            {{#hasmatrix}}
+            <div class="lom-matrix-wrap">
+                <table class="lom-matrix">
+                    <caption class="sr-only">{{title}} &mdash; {{subtitle}}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="lom-matrix-source">{{#str}} sourceoutcome, local_outcomemap {{/str}}</th>
+                            {{#columns}}
+                            <th scope="col">
+                                <span class="lom-matrix-column-code">{{code}}</span>
+                                <span class="lom-matrix-column-statement">{{statement}}</span>
+                            </th>
+                            {{/columns}}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#matrixrows}}
+                        <tr class="lom-filter-row" data-search="{{searchtext}}">
+                            <th scope="row" class="lom-matrix-source" title="{{code}} &mdash; {{statement}}"><strong>{{code}}</strong><span>{{statement}}</span></th>
+                            {{#cells}}
+                            <td title="{{title}}">
+                                {{#hasrelation}}
+                                    {{#hasaction}}<a class="lom-matrix-cell" href="{{actionurl}}"><span class="lom-matrix-dot lom-dot-{{statusclass}}"></span><span class="sr-only">{{title}}</span></a>{{/hasaction}}
+                                    {{^hasaction}}<span class="lom-matrix-cell"><span class="lom-matrix-dot lom-dot-{{statusclass}}"></span><span class="sr-only">{{title}}</span></span>{{/hasaction}}
+                                {{/hasrelation}}
+                                {{^hasrelation}}
+                                    {{#canadd}}<a class="lom-matrix-cell lom-matrix-empty" href="{{addurl}}"><span aria-hidden="true">+</span><span class="sr-only">{{title}}</span></a>{{/canadd}}
+                                    {{^canadd}}<span class="lom-matrix-cell lom-matrix-empty"><span class="sr-only">{{title}}</span></span>{{/canadd}}
+                                {{/hasrelation}}
+                            </td>
+                            {{/cells}}
+                        </tr>
+                        {{/matrixrows}}
+                    </tbody>
+                </table>
+            </div>
+            <div class="lom-matrix-help">{{#str}} relations_matrix_help, local_outcomemap {{/str}}</div>
+            {{/hasmatrix}}
+            {{^hasmatrix}}
+            <div class="lom-matrix-empty-section">{{#str}} outcomes_matrix_nogrid, local_outcomemap {{/str}}</div>
+            {{/hasmatrix}}
+        </section>
+        {{/groups}}
+        {{^hasrelations}}
+        <div class="lom-page-empty">{{#str}} relations_empty, local_outcomemap {{/str}}</div>
+        {{/hasrelations}}
+        {{/alignment}}
+    </div>
+    {{/ismatrix}}
+
+    {{^ismatrix}}
     <div id="lom-view-unmapped" class="lom-hidden">
         <div class="lom-card lom-card-warn">
             <div class="lom-warnhead">
@@ -140,6 +205,8 @@
         {{/coursecards}}
     </div>
 
+    {{/ismatrix}}
+
     {{#pickers}}
     <template id="lom-picker-{{key}}">
         <form method="post" action="{{baseurl}}" class="lom-panel">
@@ -186,7 +253,7 @@
     if (!root) {
         return;
     }
-    var state = {view: 'program', unmappedOnly: false, q: ''};
+    var state = {view: '{{initialview}}', unmappedOnly: false, q: ''};
     var views = {
         program: document.getElementById('lom-view-program'),
         course: document.getElementById('lom-view-course'),
@@ -198,6 +265,35 @@
     var callout = document.getElementById('lom-callout');
     var noresults = document.getElementById('lom-noresults');
     var activePanelTrigger = null;
+
+    // The alignment matrix is its own render and carries none of the hierarchy
+    // views, so the search box is the only control that applies to it.
+    var matrix = document.getElementById('lom-view-matrix');
+    if (matrix) {
+        var filterMatrix = function() {
+            var q = searchInput.value.trim().toLowerCase();
+            var any = false;
+            Array.prototype.forEach.call(matrix.querySelectorAll('.lom-filter-row'), function(row) {
+                var show = !q || (row.getAttribute('data-search') || '').indexOf(q) !== -1;
+                row.classList.toggle('lom-hidden', !show);
+                if (show && row.tagName === 'SECTION') {
+                    any = true;
+                }
+            });
+            // A section whose rows all fell away still matches on its own heading,
+            // so emptiness is judged on the sections rather than the rows.
+            noresults.classList.toggle('lom-hidden', !q || any);
+            clearBtn.classList.toggle('lom-hidden', !q);
+        };
+        searchInput.addEventListener('input', filterMatrix);
+        clearBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            filterMatrix();
+            searchInput.focus();
+        });
+        filterMatrix();
+        return;
+    }
 
     function closePanels(restoreFocus) {
         var trigger = activePanelTrigger;

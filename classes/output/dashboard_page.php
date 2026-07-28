@@ -79,7 +79,7 @@ final class dashboard_page implements renderable, templatable {
                 'unit' => get_string('dash_tile_unaligned_unit', 'local_outcomemap'),
                 'note' => get_string('dash_tile_unaligned_note', 'local_outcomemap'),
                 'tone' => $this->summary['unaligned'] > 0 ? 'danger' : 'clear',
-                'url' => (new moodle_url('/local/outcomemap/relations.php'))->out(false),
+                'url' => (new moodle_url('/local/outcomemap/frameworks.php', ['view' => 'matrix']))->out(false),
             ],
             [
                 'label' => get_string('dash_tile_coverage', 'local_outcomemap'),
@@ -134,7 +134,7 @@ final class dashboard_page implements renderable, templatable {
                 'severity' => get_string('dash_severity_blocks', 'local_outcomemap'),
                 'tone' => 'danger',
                 'action' => get_string('dash_task_unaligned_action', 'local_outcomemap'),
-                'url' => (new moodle_url('/local/outcomemap/relations.php'))->out(false),
+                'url' => (new moodle_url('/local/outcomemap/frameworks.php', ['view' => 'matrix']))->out(false),
             ];
         }
 
@@ -321,7 +321,7 @@ final class dashboard_page implements renderable, templatable {
             'courseinstances' => '/local/outcomemap/curriculum.php',
             'frameworks' => '/local/outcomemap/frameworks.php',
             'outcomes' => '/local/outcomemap/frameworks.php',
-            'relations' => '/local/outcomemap/relations.php',
+            'relations' => '/local/outcomemap/frameworks.php?view=matrix',
         ];
         $rows = [];
         foreach ($this->summary['inventory'] as $type => $count) {
