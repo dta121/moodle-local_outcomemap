@@ -255,6 +255,76 @@ final class outcome_service extends base_service {
     }
 
     /** Return outcomes and all versions for administration. */
+    /**
+     * Move approved outcome versions onto an earlier start date.
+     *
+     * Attainment propagation reads the target outcome version in force at the
+     * moment an attempt finished (calculation_service::propagation_targets), so
+     * an outcome whose version starts after the work it governs can never
+     * receive inherited evidence, and the level above it reports nothing. No new
+     * version can express the fix either: versions of one outcome may not
+     * overlap, so a second version starting earlier is invalid by construction.
+     *
+     * Approved versions are otherwise immutable, so this is a correction rather
+     * than an edit. It is audited per row with a required reason, and it asserts
+     * that the outcome governed from the date now recorded. An outcome carrying
+     * more than one version is refused: moving one start inside a lineage would
+     * silently overlap its neighbour.
+     *
+     * @param int[] $versionids Approved outcome-version IDs to move together.
+     * @param int $effectivefrom New start timestamp.
+     * @param string $reason Required audit reason.
+     * @return int Number of versions moved.
+     */
+    public static function correct_effectivefrom(array $versionids, int $effectivefrom, string $reason): int {
+        global $DB;
+        $actorid = self::require_system('local/outcomemap:manageframeworks');
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new validation_exception('requiredfield', 'reason');
+        }
+        $versionids = array_values(array_unique(array_filter(array_map('intval', $versionids))));
+        if (!$versionids) {
+            return 0;
+        }
+        $records = [];
+        foreach ($versionids as $id) {
+            $version = self::get_required(self::VERSION_TABLE, $id, 'outcome_version');
+            if ($version->status !== workflow::APPROVED) {
+                throw new validation_exception('invalidtransition', 'status',
+                    $version->status . ':correct_effectivefrom');
+            }
+            effective_dates::validate($effectivefrom,
+                $version->effectiveto === null ? null : (int) $version->effectiveto);
+            // A lineage with more than one version cannot have one start moved in
+            // isolation without overlapping the version beside it.
+            if ($DB->count_records(self::VERSION_TABLE, ['itemid' => $version->itemid]) > 1) {
+                throw new validation_exception('effectiverangeoverlap', 'effectivefrom', $id);
+            }
+            $records[$id] = $version;
+        }
+        $corrected = 0;
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            foreach ($records as $id => $before) {
+                if ((int) $before->effectivefrom === $effectivefrom) {
+                    continue;
+                }
+                $after = clone $before;
+                $after->effectivefrom = $effectivefrom;
+                $after->timemodified = time();
+                $DB->update_record(self::VERSION_TABLE, $after);
+                audit_writer::write('correct_effectivefrom', 'outcome_version', $id, $after->uuid,
+                    $before, $after, $reason, \context_system::instance(), $actorid);
+                $corrected++;
+            }
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+        return $corrected;
+    }
+
     public static function list_all(): array {
         global $DB;
         self::require_system('local/outcomemap:viewdefinitions');
