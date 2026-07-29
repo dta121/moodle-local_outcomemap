@@ -177,6 +177,7 @@ final class course_attainment_service extends base_service {
             'learners' => 0,
             'periodcodes' => [],
             'hasinstance' => false,
+            'hasalignmentpaths' => false,
         ];
 
         $instances = $DB->get_records('local_outcomemap_cinst', [
@@ -254,6 +255,8 @@ final class course_attainment_service extends base_service {
             $row->bands[$band]->count++;
         }
 
+        $alignmentpaths = self::alignment_paths(array_keys($rows), $at);
+        $hasalignmentpaths = false;
         foreach ($rows as $row) {
             $row->average = $row->percentages
                 ? array_sum($row->percentages) / count($row->percentages)
@@ -262,6 +265,8 @@ final class course_attainment_service extends base_service {
             usort($row->bands, static fn($a, $b) => $a->sortorder <=> $b->sortorder);
             // The lowest band is the one to act on, so surface its share directly.
             $row->lowestband = $row->bands ? reset($row->bands) : null;
+            $row->alignmentpaths = $alignmentpaths[$row->itemid] ?? [];
+            $hasalignmentpaths = $hasalignmentpaths || (bool) $row->alignmentpaths;
             unset($row->percentages);
         }
 
@@ -271,6 +276,142 @@ final class course_attainment_service extends base_service {
             'periodcodes' => array_values(array_unique(array_map(
                 static fn($i) => $i->periodcode, $instances))),
             'hasinstance' => true,
+            'hasalignmentpaths' => $hasalignmentpaths,
         ];
+    }
+
+    /**
+     * Resolve terminal higher-level alignment paths for outcome rows in bulk.
+     *
+     * Alignment paths provide curriculum context only. The propagates flag is
+     * true solely when every edge is contributes_to, matching the calculation
+     * engine's evidence-propagation rule; an aligns_to edge never becomes an
+     * attainment claim just because it leads to a higher-level outcome.
+     *
+     * @param int[] $sourceitemids Stable outcome item IDs shown in the report.
+     * @param int $at Effective timestamp.
+     * @return array<int, array> Terminal paths keyed by source item ID.
+     */
+    private static function alignment_paths(array $sourceitemids, int $at): array {
+        global $DB;
+        $sourceitemids = array_values(array_unique(array_map('intval', $sourceitemids)));
+        if (!$sourceitemids) {
+            return [];
+        }
+
+        [$typesql, $params] = $DB->get_in_or_equal([
+            relation_service::ALIGNS_TO,
+            relation_service::CONTRIBUTES_TO,
+        ], SQL_PARAMS_NAMED, 'relationtype');
+        $params += [
+            'status' => workflow::APPROVED,
+            'at1' => $at,
+            'at2' => $at,
+        ];
+        $relations = $DB->get_records_select(
+            'local_outcomemap_rel',
+            "type $typesql AND status = :status AND effectivefrom <= :at1
+                AND (effectiveto IS NULL OR effectiveto > :at2)",
+            $params,
+            'sourceitemid, id'
+        );
+        if (!$relations) {
+            return [];
+        }
+
+        $targetids = array_values(array_unique(array_map(
+            static fn($relation): int => (int) $relation->targetitemid,
+            $relations
+        )));
+        [$targetsql, $targetparams] = $DB->get_in_or_equal($targetids, SQL_PARAMS_NAMED, 'target');
+        $targets = $DB->get_records_sql(
+            "SELECT i.id, i.code, f.code AS frameworkcode, f.name AS frameworkname, f.ownertype
+               FROM {local_outcomemap_item} i
+               JOIN {local_outcomemap_fw} f ON f.id = i.frameworkid
+              WHERE i.id $targetsql",
+            $targetparams
+        );
+
+        $versionparams = $targetparams + [
+            'versionstatus' => workflow::APPROVED,
+            'versionat1' => $at,
+            'versionat2' => $at,
+        ];
+        $versions = $DB->get_records_select(
+            'local_outcomemap_itemver',
+            "itemid $targetsql AND status = :versionstatus AND effectivefrom <= :versionat1
+                AND (effectiveto IS NULL OR effectiveto > :versionat2)",
+            $versionparams,
+            'itemid, version DESC',
+            'id, itemid, statement, shortstatement, version'
+        );
+        $currentversions = [];
+        foreach ($versions as $version) {
+            $itemid = (int) $version->itemid;
+            $currentversions[$itemid] ??= $version;
+        }
+
+        $edges = [];
+        foreach ($relations as $relation) {
+            $targetid = (int) $relation->targetitemid;
+            if (!isset($targets[$targetid], $currentversions[$targetid])) {
+                continue;
+            }
+            $target = $targets[$targetid];
+            $version = $currentversions[$targetid];
+            $edges[(int) $relation->sourceitemid][] = (object) [
+                'relationid' => (int) $relation->id,
+                'relationtype' => (string) $relation->type,
+                'itemid' => $targetid,
+                'frameworkcode' => (string) $target->frameworkcode,
+                'frameworkname' => (string) $target->frameworkname,
+                'ownertype' => (string) $target->ownertype,
+                'code' => (string) $target->code,
+                'version' => (int) $version->version,
+                'statement' => (string) $version->statement,
+                'shortstatement' => $version->shortstatement,
+            ];
+        }
+
+        $walk = static function (int $current, array $path, array $seen, bool $propagates, int $depth)
+                use (&$walk, $edges): array {
+            if ($depth >= 20) {
+                return $path ? [(object) ['targets' => $path, 'propagates' => $propagates]] : [];
+            }
+            $next = [];
+            foreach ($edges[$current] ?? [] as $edge) {
+                if (!isset($seen[$edge->itemid])) {
+                    $next[] = $edge;
+                }
+            }
+            if (!$next) {
+                return $path ? [(object) ['targets' => $path, 'propagates' => $propagates]] : [];
+            }
+            $paths = [];
+            foreach ($next as $edge) {
+                $newseen = $seen;
+                $newseen[$edge->itemid] = true;
+                $paths = array_merge($paths, $walk(
+                    $edge->itemid,
+                    array_merge($path, [$edge]),
+                    $newseen,
+                    $propagates && $edge->relationtype === relation_service::CONTRIBUTES_TO,
+                    $depth + 1
+                ));
+            }
+            return $paths;
+        };
+
+        $result = [];
+        foreach ($sourceitemids as $sourceitemid) {
+            $paths = $walk($sourceitemid, [], [$sourceitemid => true], true, 0);
+            $unique = [];
+            foreach ($paths as $path) {
+                $key = implode('>', array_map(static fn($target): int => $target->itemid, $path->targets));
+                $unique[$key] = $path;
+            }
+            $result[$sourceitemid] = array_values($unique);
+        }
+        return $result;
     }
 }

@@ -1146,6 +1146,21 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
 .lom-att-seg-low { background: #991b1b; }
 .lom-att-seg-mid { background: #b45309; }
 .lom-att-seg-high { background: #166534; }
+.lom-att-alignment-note {
+    background: #f4f9fe;
+    border-left: 4px solid #155a9c;
+    color: #334155;
+    font-size: var(--lom-fs-xs);
+    line-height: 1.5;
+    margin-bottom: 14px;
+    padding: 10px 13px;
+}
+.lom-att-alignments { margin-top: 5px; }
+.lom-att-alignment-path { color: #667180; font-size: var(--lom-fs-2xs); line-height: 1.45; }
+.lom-att-align-type { font-weight: 700; margin-right: 5px; }
+.lom-att-align-code { color: #155a9c; font-weight: 600; }
+.lom-att-align-statement { color: #667180; }
+.lom-att-align-arrow { color: #9aa3ad; }
 
 /* ---------------------------------------------------------------------------
    Course question mappings: quiz picker, then slots beside the apply panel.

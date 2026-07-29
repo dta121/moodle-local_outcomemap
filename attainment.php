@@ -51,13 +51,34 @@ if (!in_array($filter, ['all', 'attention', 'strong', 'unassessed'], true)) {
 }
 
 $summary = course_attainment_service::summary($courseid);
+$alignmentpathtext = static function (stdClass $row): array {
+    $labels = [];
+    foreach ($row->alignmentpaths ?? [] as $path) {
+        $targets = array_map(
+            static fn($target): string => $target->frameworkcode . '.' . $target->code
+                . ' — ' . $target->statement,
+            $path->targets
+        );
+        $labels[] = get_string(
+            $path->propagates ? 'attainment_evidencerollup' : 'attainment_alignmentonly',
+            'local_outcomemap'
+        ) . ': ' . implode(' -> ', $targets);
+    }
+    return $labels;
+};
 
 $needle = core_text::strtolower($search);
 $visible = [];
 foreach ($summary->rows as $row) {
     $label = $row->frameworkcode . '.' . $row->code;
     if ($needle !== '') {
-        $haystack = core_text::strtolower($label . ' ' . $row->statement);
+        $alignmentsearch = [];
+        foreach ($row->alignmentpaths ?? [] as $path) {
+            foreach ($path->targets as $target) {
+                $alignmentsearch[] = $target->frameworkcode . '.' . $target->code . ' ' . $target->statement;
+            }
+        }
+        $haystack = core_text::strtolower($label . ' ' . $row->statement . ' ' . implode(' ', $alignmentsearch));
         if (core_text::strpos($haystack, $needle) === false) {
             continue;
         }
@@ -103,6 +124,7 @@ if ($action === 'export' && $visible) {
         get_string('framework', 'local_outcomemap'),
         get_string('outcomeversion', 'local_outcomemap'),
         get_string('statement', 'local_outcomemap'),
+        get_string('attainment_higheralignment', 'local_outcomemap'),
         get_string('attainment_learners', 'local_outcomemap'),
         get_string('attainment_assessed', 'local_outcomemap'),
         get_string('attainment_average', 'local_outcomemap'),
@@ -117,6 +139,7 @@ if ($action === 'export' && $visible) {
             $row->frameworkcode,
             $row->code . ' v' . $row->version,
             $row->statement,
+            implode('; ', $alignmentpathtext($row)),
             $row->learners,
             $row->calculated,
             $row->average === null ? '' : number_format($row->average, 2, '.', ''),
@@ -198,6 +221,13 @@ if (!$summary->rows) {
     exit;
 }
 
+if ($summary->hasalignmentpaths) {
+    echo html_writer::div(
+        get_string('attainment_alignmentnote', 'local_outcomemap'),
+        'lom-att-alignment-note'
+    );
+}
+
 // Filter chips and search, as one GET form so both survive a page load.
 $chips = '';
 foreach (['all', 'attention', 'strong', 'unassessed'] as $key) {
@@ -265,6 +295,33 @@ foreach ($groups as $frameworkcode => $grouprows) {
     $body = '';
     foreach ($grouprows as $row) {
         $bandhtml = '';
+        $alignmenthtml = '';
+        foreach ($row->alignmentpaths ?? [] as $path) {
+            $targethtml = [];
+            foreach ($path->targets as $target) {
+                $targethtml[] = html_writer::span(
+                    html_writer::span(
+                        s($target->frameworkcode . '.' . $target->code),
+                        'lom-att-align-code'
+                    ) . html_writer::span(
+                        ' — ' . s($target->shortstatement ?: shorten_text($target->statement, 72)),
+                        'lom-att-align-statement'
+                    ),
+                    'lom-att-align-target',
+                    ['title' => $target->statement]
+                );
+            }
+            $alignmenthtml .= html_writer::div(
+                html_writer::span(
+                    get_string(
+                        $path->propagates ? 'attainment_evidencerollup' : 'attainment_alignmentonly',
+                        'local_outcomemap'
+                    ) . ':',
+                    'lom-att-align-type'
+                ) . implode(html_writer::span(' → ', 'lom-att-align-arrow'), $targethtml),
+                'lom-att-alignment-path'
+            );
+        }
         if (!$row->calculated) {
             $bandhtml = html_writer::span(
                 get_string('attainment_nonecalculated', 'local_outcomemap'),
@@ -298,7 +355,10 @@ foreach ($groups as $frameworkcode => $grouprows) {
                 'lom-att-c-code'
             )
             . html_writer::span(
-                s($row->shortstatement ?: shorten_text($row->statement, 110)),
+                html_writer::span(
+                    s($row->shortstatement ?: shorten_text($row->statement, 110)),
+                    'lom-att-statement-text'
+                ) . ($alignmenthtml === '' ? '' : html_writer::div($alignmenthtml, 'lom-att-alignments')),
                 'lom-att-c-statement'
             )
             . html_writer::span(

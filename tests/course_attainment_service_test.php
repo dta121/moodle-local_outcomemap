@@ -137,6 +137,38 @@ final class course_attainment_service_test extends \advanced_testcase {
     }
 
     /**
+     * Store one approved effective outcome relationship.
+     *
+     * @param int $sourceverid Source outcome-version ID.
+     * @param int $targetverid Target outcome-version ID.
+     * @param string $type Relationship type.
+     * @return void
+     */
+    private function store_relation(int $sourceverid, int $targetverid, string $type): void {
+        global $DB;
+        $now = time();
+        $DB->insert_record('local_outcomemap_rel', (object) [
+            'relationuuid' => uuid::generate(),
+            'version' => 1,
+            'sourceitemid' => $DB->get_field('local_outcomemap_itemver', 'itemid',
+                ['id' => $sourceverid], MUST_EXIST),
+            'targetitemid' => $DB->get_field('local_outcomemap_itemver', 'itemid',
+                ['id' => $targetverid], MUST_EXIST),
+            'type' => $type,
+            'weight' => null,
+            'status' => workflow::APPROVED,
+            'effectivefrom' => $now - 3600,
+            'effectiveto' => null,
+            'notes' => null,
+            'createdby' => null,
+            'approvedby' => null,
+            'timecreated' => $now,
+            'timemodified' => $now,
+            'approvedat' => $now,
+        ]);
+    }
+
+    /**
      * Attainment counts learners per band and averages only calculated results.
      */
     public function test_summary_counts_bands_and_averages(): void {
@@ -193,6 +225,33 @@ final class course_attainment_service_test extends \advanced_testcase {
         $summary = course_attainment_service::summary((int) $course->id);
         $this->assertSame([], $summary->rows);
         $this->assertSame(0, $summary->learners);
+    }
+
+    /**
+     * The report exposes terminal ULO-to-CLO-to-PLO paths without claiming an
+     * aligns_to path propagated attainment.
+     */
+    public function test_summary_includes_higher_level_alignment_paths(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        [$course, $cinstid, $policyid, $lowband] = $this->create_fixture();
+        $uloverid = $this->create_outcome('TEST-ULO', '1a');
+        $cloverid = $this->create_outcome('TEST-CLO', '0a');
+        $ploverid = $this->create_outcome('TEST-PLO', 'PLO1');
+        $this->store_relation($uloverid, $cloverid, 'aligns_to');
+        $this->store_relation($cloverid, $ploverid, 'aligns_to');
+        $user = $this->getDataGenerator()->create_user();
+        $this->store_result($cinstid, $user->id, $uloverid, $policyid, '75.0000000000', $lowband);
+
+        $summary = course_attainment_service::summary((int) $course->id);
+
+        $this->assertTrue($summary->hasalignmentpaths);
+        $this->assertCount(1, $summary->rows);
+        $this->assertCount(1, $summary->rows[0]->alignmentpaths);
+        $path = $summary->rows[0]->alignmentpaths[0];
+        $this->assertFalse($path->propagates);
+        $this->assertSame(['0a', 'PLO1'], array_column($path->targets, 'code'));
+        $this->assertSame(['TEST-CLO', 'TEST-PLO'], array_column($path->targets, 'frameworkcode'));
     }
 
     /**
