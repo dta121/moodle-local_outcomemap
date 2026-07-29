@@ -964,6 +964,13 @@ $string['reportcolumn_suppressed'] = 'Suppressed';
 $string['reportcolumn_timecreated'] = 'Created';
 $string['snapshotcohort'] = 'Population cohort';
 $string['snapshotcohort_help'] = 'Select a cohort only when the effective approved accreditation policy uses the Moodle-cohort population source. Leave it empty for active enrolments.';
+$string['snapshotperiod'] = 'Reporting period code';
+$string['snapshotperiod_help'] = 'Reporting periods come from the course instances themselves, so only periods that resolve to approved, confirmed instances of the selected program are listed. A capture covers every course instance carrying the chosen period code — if each course carries its own code, a capture covers that one course.';
+$string['snapshotperiodcourse'] = '({$a} course)';
+$string['snapshotperiodcourses'] = '({$a} courses)';
+$string['snapshotperiodnonevalid'] = 'none — this program has no approved, confirmed course instances';
+$string['snapshotperiodunresolved'] = 'No approved, confirmed course instances of {$a->program} carry the reporting period "{$a->period}", so the capture would be empty. Periods available for this program: {$a->valid}.';
+$string['snapshotperiodcaptured'] = 'Reporting period "{$a->period}" is already captured by snapshot {$a->id} (version {$a->version}, {$a->status}). Creating another here would start a second, independent record of the same period, with nothing to say which one is authoritative. To revise the existing capture, use its Correct action instead.';
 $string['snapshotitems_caption'] = 'Immutable snapshot rows grouped by type';
 $string['snapshotlist_caption'] = 'Accreditation snapshot versions';
 
