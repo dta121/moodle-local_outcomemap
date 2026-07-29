@@ -442,6 +442,7 @@ $string['coverage_taughtin'] = 'Taught in';
 $string['coverage_assessedby'] = 'Assessed by';
 $string['coverage_nottaught'] = '— not in any section or activity';
 $string['coverage_notassessed'] = '— no assessment mapped';
+$string['coverage_questionmapping'] = '{$a->quiz} ({$a->count} mapped question(s))';
 $string['coverage_mapcontent'] = 'Map content…';
 $string['coverage_searchlabel'] = 'Search outcomes';
 $string['coverage_searchplaceholder'] = 'Search outcomes…';

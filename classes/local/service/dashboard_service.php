@@ -148,8 +148,9 @@ final class dashboard_service extends base_service {
      * {@see coverage_service::row_status()}, so a gap counted here is the same
      * gap the course's own coverage page shows. The unit is one outcome in one
      * delivery: the same outcome may be complete in one period and uncovered in
-     * another. Section and activity mappings are counted in one statement each
-     * rather than per row, so the page cost does not grow with the catalogue.
+     * another. Section and activity mappings are counted in one statement each;
+     * question mappings are resolved through the quiz module so fixed questions
+     * and random pools mean the same thing here as on the question mapping page.
      *
      * @param int $at Effective timestamp.
      * @return \stdClass[] Rows with programid, itemverid, and a coverage status.
@@ -219,8 +220,27 @@ final class dashboard_service extends base_service {
                 AND (v.effectiveto IS NULL OR v.effectiveto > :at2)",
             $params
         );
-        $rows = [];
+        $rawrecords = [];
+        $courseids = [];
         foreach ($records as $record) {
+            $rawrecords[] = $record;
+            $courseids[(int) $record->moodlecourseid] = (int) $record->moodlecourseid;
+        }
+        $records->close();
+
+        $questionassessed = [];
+        foreach ($courseids as $courseid) {
+            foreach (question_browser_service::assessment_coverage($courseid, $at) as $itemverid => $mappings) {
+                if ($mappings) {
+                    $questionassessed[$courseid][(int) $itemverid] = true;
+                }
+            }
+        }
+
+        $rows = [];
+        foreach ($rawrecords as $record) {
+            $assessedcount = (int) $record->assessed
+                + (int) isset($questionassessed[(int) $record->moodlecourseid][(int) $record->itemverid]);
             $rows[] = (object) [
                 'cinstid' => (int) $record->cinstid,
                 'itemverid' => (int) $record->itemverid,
@@ -228,10 +248,9 @@ final class dashboard_service extends base_service {
                 'moodlecourseid' => (int) $record->moodlecourseid,
                 'periodcode' => (string) $record->periodcode,
                 'coursecode' => (string) $record->coursecode,
-                'status' => self::classify((int) $record->taught, (int) $record->assessed),
+                'status' => self::classify((int) $record->taught, $assessedcount),
             ];
         }
-        $records->close();
         return $rows;
     }
 

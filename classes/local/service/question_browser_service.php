@@ -26,6 +26,7 @@ namespace local_outcomemap\local\service;
 
 use core_question\local\bank\question_version_status;
 use local_outcomemap\local\validation_exception;
+use local_outcomemap\local\workflow;
 
 /**
  * Projects a course's quizzes onto the exact question versions they use.
@@ -129,6 +130,106 @@ final class question_browser_service extends base_service {
             unset($quiz->versionids);
         }
         return $quizzes;
+    }
+
+    /**
+     * Group approved assessed question mappings by outcome and quiz.
+     *
+     * Coverage and readiness reports need to treat a mapped quiz question as
+     * assessment content. Question mappings are global to an exact question
+     * version, so this method resolves the versions actually used by this
+     * course's fixed and random quiz slots before attributing them to the
+     * course. Rows are collapsed per quiz and outcome to keep a 100-question
+     * final exam from flooding the coverage page.
+     *
+     * @param int $courseid Moodle course ID.
+     * @param int|null $at Effective timestamp, defaulting to now.
+     * @return array<int, \stdClass[]> Mapping summaries keyed by outcome-version ID.
+     */
+    public static function assessment_coverage(int $courseid, ?int $at = null): array {
+        $context = \context_course::instance($courseid, MUST_EXIST);
+        require_capability('local/outcomemap:viewdefinitions', $context);
+        $at = $at ?? time();
+
+        $pending = [];
+        $allcategories = [];
+        $descendants = [];
+        foreach (self::quiz_modules($courseid, false) as $cm) {
+            $versions = [];
+            $categories = [];
+            foreach (self::slot_structure($cm) as $slot) {
+                if (self::is_random_slot($slot)) {
+                    foreach (self::pool_categories($slot, $descendants) as $categoryid) {
+                        $categories[$categoryid] = $categoryid;
+                        $allcategories[$categoryid] = $categoryid;
+                    }
+                } else if (!empty($slot->versionid)) {
+                    $versions[(int) $slot->versionid] = (int) $slot->versionid;
+                }
+            }
+            $pending[] = [$cm, $versions, $categories];
+        }
+        if (!$pending) {
+            return [];
+        }
+
+        $bycategory = self::pool_versions_by_category($allcategories);
+        $allversions = [];
+        foreach ($pending as [$cm, $versions, $categories]) {
+            foreach ($categories as $categoryid) {
+                foreach ($bycategory[$categoryid] ?? [] as $versionid) {
+                    $versions[$versionid] = $versionid;
+                }
+            }
+            $allversions += $versions;
+        }
+        $mappings = self::load_assessed_coverage_mappings($allversions, $at);
+
+        $coverage = [];
+        foreach ($pending as [$cm, $versions, $categories]) {
+            foreach ($categories as $categoryid) {
+                foreach ($bycategory[$categoryid] ?? [] as $versionid) {
+                    $versions[$versionid] = $versionid;
+                }
+            }
+            foreach ($versions as $versionid) {
+                foreach ($mappings[$versionid] ?? [] as $mapping) {
+                    if ($mapping->role !== content_mapping_service::ROLE_ASSESSES
+                            || $mapping->status !== workflow::APPROVED
+                            || (int) $mapping->effectivefrom > $at
+                            || ($mapping->effectiveto !== null && (int) $mapping->effectiveto <= $at)) {
+                        continue;
+                    }
+                    $itemverid = (int) $mapping->itemverid;
+                    $cmid = (int) $cm->id;
+                    if (!isset($coverage[$itemverid][$cmid])) {
+                        $coverage[$itemverid][$cmid] = (object) [
+                            'itemverid' => $itemverid,
+                            'frameworkcode' => (string) $mapping->frameworkcode,
+                            'outcomecode' => (string) $mapping->outcomecode,
+                            'outcomeversion' => (int) $mapping->outcomeversion,
+                            'outcomestatement' => (string) $mapping->outcomestatement,
+                            'cmid' => $cmid,
+                            'label' => $cm->get_formatted_name(),
+                            'role' => content_mapping_service::ROLE_ASSESSES,
+                            'status' => workflow::APPROVED,
+                            'questioncount' => 0,
+                            'questionversions' => [],
+                        ];
+                    }
+                    $coverage[$itemverid][$cmid]->questionversions[$versionid] = true;
+                }
+            }
+        }
+
+        foreach ($coverage as $itemverid => $quizzes) {
+            foreach ($quizzes as $mapping) {
+                $mapping->questioncount = count($mapping->questionversions);
+                unset($mapping->questionversions);
+            }
+            $coverage[$itemverid] = array_values($quizzes);
+        }
+        return $coverage;
     }
 
     /**
@@ -242,13 +343,14 @@ final class question_browser_service extends base_service {
      * Return the visible, non-deleted quiz modules of a course.
      *
      * @param int $courseid Moodle course ID.
+     * @param bool $visibleonly Whether to omit modules hidden from the current reader.
      * @return \cm_info[]
      */
-    private static function quiz_modules(int $courseid): array {
+    private static function quiz_modules(int $courseid, bool $visibleonly = true): array {
         $modinfo = get_fast_modinfo($courseid);
         $quizzes = [];
         foreach ($modinfo->get_instances_of('quiz') as $cm) {
-            if ($cm->deletioninprogress || !$cm->uservisible) {
+            if ($cm->deletioninprogress || ($visibleonly && !$cm->uservisible)) {
                 continue;
             }
             $quizzes[(int) $cm->id] = $cm;
@@ -458,6 +560,54 @@ final class question_browser_service extends base_service {
             $mappings += question_mapping_service::get_for_question_versions($batch);
         }
         return $mappings;
+    }
+
+    /**
+     * Load approved assessed mappings for course-level coverage reporting.
+     *
+     * The caller has already proved the question versions belong to quizzes in
+     * a course where it holds viewdefinitions. Returning only outcome mapping
+     * metadata here keeps the dashboard figure stable for definition readers
+     * who need not also hold permission to inspect the question text itself.
+     *
+     * @param int[] $versionids Question-version IDs keyed by ID.
+     * @param int $at Effective timestamp.
+     * @return array<int, \stdClass[]> Mappings grouped by question-version ID.
+     */
+    private static function load_assessed_coverage_mappings(array $versionids, int $at): array {
+        global $DB;
+        $versionids = array_values($versionids);
+        if (!$versionids) {
+            return [];
+        }
+        $grouped = [];
+        foreach (array_chunk($versionids, self::MAX_VERSIONS) as $batch) {
+            [$insql, $params] = $DB->get_in_or_equal($batch, SQL_PARAMS_NAMED, 'coverageqv');
+            $params += [
+                'role' => content_mapping_service::ROLE_ASSESSES,
+                'status' => workflow::APPROVED,
+                'at1' => $at,
+                'at2' => $at,
+            ];
+            $records = $DB->get_records_sql(
+                "SELECT m.*, i.code AS outcomecode, v.version AS outcomeversion,
+                        v.statement AS outcomestatement, f.code AS frameworkcode
+                   FROM {local_outcomemap_qmap} m
+                   JOIN {local_outcomemap_itemver} v ON v.id = m.itemverid
+                   JOIN {local_outcomemap_item} i ON i.id = v.itemid
+                   JOIN {local_outcomemap_fw} f ON f.id = i.frameworkid
+                  WHERE m.questionversionid $insql
+                    AND m.role = :role AND m.status = :status
+                    AND m.effectivefrom <= :at1
+                    AND (m.effectiveto IS NULL OR m.effectiveto > :at2)
+               ORDER BY m.questionversionid, f.code, i.code, m.id",
+                $params
+            );
+            foreach ($records as $record) {
+                $grouped[(int) $record->questionversionid][] = $record;
+            }
+        }
+        return $grouped;
     }
 
     /**

@@ -11,11 +11,13 @@ namespace local_outcomemap;
 use local_outcomemap\local\service\catalog_course_service;
 use local_outcomemap\local\service\content_mapping_service;
 use local_outcomemap\local\service\course_instance_service;
+use local_outcomemap\local\service\coverage_service;
 use local_outcomemap\local\service\dashboard_service;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\outcome_service;
 use local_outcomemap\local\service\program_course_service;
 use local_outcomemap\local\service\program_service;
+use local_outcomemap\local\service\question_mapping_service;
 use local_outcomemap\local\service\relation_service;
 use local_outcomemap\output\dashboard_page;
 
@@ -27,6 +29,8 @@ use local_outcomemap\output\dashboard_page;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class dashboard_page_test extends \advanced_testcase {
+    use \local_outcomemap\tests\moodle_compat_trait;
+
     /** @var int Effective start shared by every governed record in a fixture. */
     private const EFFECTIVE_FROM = 1704067200;
 
@@ -166,6 +170,7 @@ final class dashboard_page_test extends \advanced_testcase {
             'catalogid' => $catalogid,
             'cinstid' => $cinstid,
             'courseid' => (int) $course->id,
+            'assessingquizid' => (int) $assessing->id,
             'versionids' => $versionids,
         ];
     }
@@ -209,6 +214,49 @@ final class dashboard_page_test extends \advanced_testcase {
         $this->assertSame(3, $program['complete']);
         $this->assertSame(60, $program['percent']);
         $this->assertSame('gaps', $program['state']);
+    }
+
+    /**
+     * An approved assessed question mapping counts as assessment coverage.
+     */
+    public function test_question_mapping_counts_towards_readiness(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $fixture = $this->create_uneven_coverage_fixture();
+        $this->add_program_outcome($fixture['programid'], 'MBA-PLO');
+
+        // Replace one activity-level assessment mapping with the more precise
+        // question-level mapping used by proctored finals.
+        $DB->delete_records('local_outcomemap_cmmap', [
+            'cinstid' => $fixture['cinstid'],
+            'itemverid' => $fixture['versionids'][0],
+            'role' => content_mapping_service::ROLE_ASSESSES,
+        ]);
+        $quiz = $DB->get_record('quiz', ['id' => $fixture['assessingquizid']], '*', MUST_EXIST);
+        $questiongenerator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $questiongenerator->create_question_category([
+            'contextid' => $this->question_bank_contextid(get_course($fixture['courseid'])),
+        ]);
+        $question = $questiongenerator->create_question('shortanswer', null, ['category' => $category->id]);
+        quiz_add_quiz_question($question->id, $quiz, 0, 1);
+        $questionmappingid = question_mapping_service::create([
+            'questionversionid' => $question->versionid,
+            'itemverid' => $fixture['versionids'][0],
+            'role' => content_mapping_service::ROLE_ASSESSES,
+            'weight' => '1',
+            'effectivefrom' => self::EFFECTIVE_FROM,
+        ]);
+        question_mapping_service::submit_for_review($questionmappingid);
+
+        $matrix = coverage_service::matrix($fixture['courseid']);
+        $this->assertSame(coverage_service::STATUS_FULL,
+            coverage_service::row_status($matrix[$fixture['versionids'][0]]));
+        $this->assertCount(1, $matrix[$fixture['versionids'][0]]->questions);
+
+        $program = dashboard_service::summary()['programs'][0];
+        $this->assertSame(3, $program['complete'],
+            'Replacing an activity assessment with a question assessment must not reduce readiness.');
+        $this->assertSame(60, $program['percent']);
     }
 
     /**

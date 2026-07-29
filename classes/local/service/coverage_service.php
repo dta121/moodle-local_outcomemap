@@ -55,7 +55,7 @@ final class coverage_service extends base_service {
     public static function row_status(\stdClass $row): string {
         $taught = false;
         $assessed = false;
-        foreach (array_merge($row->sections, $row->modules) as $mapping) {
+        foreach (array_merge($row->sections, $row->modules, $row->questions ?? []) as $mapping) {
             if ($mapping->role === content_mapping_service::ROLE_ASSESSES) {
                 $assessed = true;
             } else {
@@ -99,12 +99,34 @@ final class coverage_service extends base_service {
                         'statement' => $mapping->outcomestatement,
                         'sections' => [],
                         'modules' => [],
+                        'questions' => [],
                         'covered' => false,
                     ];
                 }
                 $rows[$itemverid]->{$collection}[] = $mapping;
                 $rows[$itemverid]->covered = true;
             }
+        }
+        foreach (question_browser_service::assessment_coverage($courseid) as $itemverid => $questionmappings) {
+            if (!isset($rows[$itemverid])) {
+                $mapping = reset($questionmappings);
+                $rows[$itemverid] = (object) [
+                    'itemverid' => (int) $itemverid,
+                    'frameworkcode' => $mapping->frameworkcode,
+                    'outcomecode' => $mapping->outcomecode,
+                    'outcomeversion' => (int) $mapping->outcomeversion,
+                    'statement' => $mapping->outcomestatement,
+                    'sections' => [],
+                    'modules' => [],
+                    'questions' => [],
+                    'covered' => false,
+                ];
+            }
+            $rows[$itemverid]->questions = array_merge(
+                $rows[$itemverid]->questions ?? [],
+                $questionmappings
+            );
+            $rows[$itemverid]->covered = true;
         }
         uasort($rows, static function (\stdClass $a, \stdClass $b): int {
             return [$a->frameworkcode, $a->outcomecode, $a->outcomeversion]
@@ -165,6 +187,7 @@ final class coverage_service extends base_service {
                 'statement' => $record->outcomestatement,
                 'sections' => [],
                 'modules' => [],
+                'questions' => [],
                 'covered' => false,
             ];
         }

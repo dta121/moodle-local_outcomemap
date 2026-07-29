@@ -149,6 +149,44 @@ final class question_browser_service_test extends \advanced_testcase {
     }
 
     /**
+     * Assessment coverage groups approved question mappings by quiz and outcome.
+     */
+    public function test_assessment_coverage_groups_mapped_questions(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+        [$course, $quiz, , $questions] = $this->create_quiz_with_questions(3);
+        $itemverid = $this->create_outcome('CLO-COVERAGE');
+
+        foreach ([0, 1] as $index) {
+            $mappingid = question_mapping_service::create([
+                'questionversionid' => $questions[$index]->versionid,
+                'itemverid' => $itemverid,
+                'role' => 'assesses',
+                'weight' => '1',
+                'effectivefrom' => self::EFFECTIVEFROM,
+            ]);
+            question_mapping_service::submit_for_review($mappingid);
+        }
+        question_mapping_service::create([
+            'questionversionid' => $questions[2]->versionid,
+            'itemverid' => $itemverid,
+            'role' => 'teaches',
+            'effectivefrom' => self::EFFECTIVEFROM,
+        ]);
+
+        $coverage = question_browser_service::assessment_coverage((int) $course->id);
+
+        $this->assertArrayHasKey($itemverid, $coverage);
+        $this->assertCount(1, $coverage[$itemverid]);
+        $mapping = $coverage[$itemverid][0];
+        $this->assertSame((int) $quiz->cmid, $mapping->cmid);
+        $this->assertSame(2, $mapping->questioncount);
+        $this->assertSame('assesses', $mapping->role);
+        $this->assertSame('CLO-COVERAGE', $mapping->outcomecode);
+    }
+
+    /**
      * The quiz detail resolves each slot to its exact question version and mappings.
      */
     public function test_quiz_detail_resolves_versions_and_mappings(): void {

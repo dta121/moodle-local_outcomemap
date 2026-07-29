@@ -63,7 +63,12 @@ $modinfo = get_fast_modinfo($courseid);
  * @return string Plain-text label.
  */
 function local_outcomemap_mapping_label(\stdClass $mapping, int $courseid, course_modinfo $modinfo): string {
-    if (isset($mapping->cmid)) {
+    if (isset($mapping->questioncount)) {
+        return get_string('coverage_questionmapping', 'local_outcomemap', (object) [
+            'quiz' => $mapping->label,
+            'count' => $mapping->questioncount,
+        ]);
+    } else if (isset($mapping->cmid)) {
         $cm = $modinfo->get_cm((int) $mapping->cmid);
         $name = $cm->get_formatted_name();
     } else {
@@ -78,7 +83,7 @@ $rows = [];
 foreach ($matrix as $itemverid => $row) {
     $taught = [];
     $assessed = [];
-    foreach (array_merge($row->sections, $row->modules) as $mapping) {
+    foreach (array_merge($row->sections, $row->modules, $row->questions ?? []) as $mapping) {
         $entry = (object) [
             'label' => local_outcomemap_mapping_label($mapping, $courseid, $modinfo),
             'role' => $mapping->role,
