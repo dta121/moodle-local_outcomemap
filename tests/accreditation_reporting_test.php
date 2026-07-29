@@ -22,6 +22,7 @@ use local_outcomemap\local\service\calculation_service;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\policy_service;
 use local_outcomemap\local\service\program_service;
+use local_outcomemap\local\service\relation_service;
 use local_outcomemap\local\service\snapshot_service;
 use local_outcomemap\local\service\suppression_service;
 use local_outcomemap\local\uuid;
@@ -1070,6 +1071,174 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $types = array_column($context['rowtypes'], 'count', 'type');
         $this->assertSame('1', $types[snapshot_service::ITEM_PROGRAM_AGGREGATE]);
         $this->assertSame('2', $types[snapshot_service::ITEM_RESULT]);
+    }
+
+    /**
+     * The report judges each subject once per course against the frozen criterion.
+     */
+    public function test_snapshot_report_reports_course_progress(): void {
+        $this->resetAfterTest(true);
+        [$context] = $this->frozen_report();
+
+        // Both fixture learners score 85% against a 70% criterion.
+        $this->assertTrue($context['progress']['known']);
+        $this->assertSame(['passed' => 2, 'failed' => 0, 'unjudged' => 0],
+            $context['progress']['counts']);
+        $values = array_column($context['progress']['tiles'], 'value', 'label');
+        $this->assertSame('2', $values[get_string('snapreport_progress_passedall', 'local_outcomemap')]);
+        $this->assertSame('0', $values[get_string('snapreport_progress_failedany', 'local_outcomemap')]);
+        $this->assertStringContainsString('70.0', $context['progress']['criterion']);
+
+        $course = $context['courses'][0];
+        $this->assertTrue($course['haspass']);
+        $this->assertSame('100.0%', $course['passrate']);
+        $this->assertSame('2', $course['passed']);
+        $this->assertSame('0', $course['failed']);
+    }
+
+    /**
+     * Filtering to the subjects who failed a course recomputes the table over
+     * that set and refuses to restate the snapshot's benchmark verdict for it.
+     */
+    public function test_snapshot_report_filters_the_table_by_course_progress(): void {
+        global $PAGE;
+
+        $this->resetAfterTest(true);
+        [, $snapshotid] = $this->frozen_report();
+
+        $failing = (new snapshot_report($snapshotid, snapshot_report::GROUP_FRAMEWORK,
+            snapshot_report::SUBJECTS_FAILEDANY))->export_for_template($PAGE->get_renderer('core'));
+        $this->assertTrue($failing['controls']['filtered']);
+        $row = $failing['outcomes'][0]['rows'][0];
+        $this->assertSame('0', $row['learners'],
+            'No fixture subject failed a course, so the filtered table reports none.');
+        $this->assertFalse($row['benchmarkmet']);
+        $this->assertFalse($row['benchmarkmissed'],
+            'A recomputed rate was never judged against the benchmark, so no verdict is claimed.');
+
+        // The unfiltered view is untouched and still carries the governed figures.
+        $all = (new snapshot_report($snapshotid, snapshot_report::GROUP_FRAMEWORK,
+            snapshot_report::SUBJECTS_PASSEDALL))->export_for_template($PAGE->get_renderer('core'));
+        $this->assertSame('2', $all['outcomes'][0]['rows'][0]['learners']);
+        $this->assertSame('85.0%', $all['outcomes'][0]['rows'][0]['percent']);
+    }
+
+    /**
+     * The attainment table groups by the outcome each row rolls up into, using
+     * the alignment edges the snapshot itself captured.
+     */
+    public function test_snapshot_report_groups_by_higher_level_outcome(): void {
+        global $PAGE;
+
+        $this->resetAfterTest(true);
+        set_config('requireapproval', 0, 'local_outcomemap');
+        $this->setAdminUser();
+        $this->reviewer = $this->create_reviewer();
+        $fixture = $this->create_snapshot_fixture();
+        $this->align_fixture_outcome($fixture['outcomeversionid'], $fixture['courseinstanceid']);
+        $snapshotid = snapshot_service::create_draft([
+            'programid' => $fixture['programid'],
+            'periodcode' => '2026-T1',
+            'cohortid' => $fixture['cohortid'],
+        ]);
+        snapshot_service::freeze($snapshotid);
+
+        $render = fn(string $group): array => (new snapshot_report($snapshotid, $group))
+            ->export_for_template($PAGE->get_renderer('core'));
+
+        $framework = $render(snapshot_report::GROUP_FRAMEWORK);
+        $this->assertSame(['M6-PLO'], array_column($framework['outcomes'], 'framework'));
+
+        foreach ([snapshot_report::GROUP_COURSE, snapshot_report::GROUP_PROGRAM] as $group) {
+            $context = $render($group);
+            $this->assertSame(['M6-TOP.TOP1'], array_column($context['outcomes'], 'framework'),
+                'The row must be reported under the outcome it is approved to support.');
+            $this->assertSame('PLO1', $context['outcomes'][0]['rows'][0]['code']);
+            // Regrouping only moves rows, so the aggregate line must not change.
+            $this->assertSame($framework['totals']['percent'], $context['totals']['percent']);
+        }
+    }
+
+    /**
+     * A capture holding no alignment groups from the live curriculum instead, and
+     * tells the reader the grouping did not come out of the frozen rows.
+     */
+    public function test_snapshot_report_falls_back_to_live_alignment(): void {
+        global $PAGE;
+
+        $this->resetAfterTest(true);
+        set_config('requireapproval', 0, 'local_outcomemap');
+        $this->setAdminUser();
+        $this->reviewer = $this->create_reviewer();
+        $fixture = $this->create_snapshot_fixture();
+        $snapshotid = snapshot_service::create_draft([
+            'programid' => $fixture['programid'],
+            'periodcode' => '2026-T1',
+            'cohortid' => $fixture['cohortid'],
+        ]);
+        snapshot_service::freeze($snapshotid);
+
+        // Nothing is aligned yet, so the rollup views have nowhere to put the row.
+        $before = (new snapshot_report($snapshotid, snapshot_report::GROUP_PROGRAM))
+            ->export_for_template($PAGE->get_renderer('core'));
+        $this->assertSame(
+            [get_string('snapreport_groupunaligned', 'local_outcomemap')],
+            array_column($before['outcomes'], 'framework')
+        );
+        $this->assertFalse($before['controls']['liverollup']);
+
+        // The alignment is authored after the freeze, so it is not in the capture.
+        $this->align_fixture_outcome($fixture['outcomeversionid'], $fixture['courseinstanceid']);
+        $after = (new snapshot_report($snapshotid, snapshot_report::GROUP_PROGRAM))
+            ->export_for_template($PAGE->get_renderer('core'));
+        $this->assertSame(['M6-TOP.TOP1'], array_column($after['outcomes'], 'framework'));
+        $this->assertTrue($after['controls']['liverollup'],
+            'A grouping read from outside the capture must be declared as such.');
+        $this->assertSame($before['totals']['percent'], $after['totals']['percent'],
+            'Only the grouping comes from outside the frozen rows; the figures do not.');
+
+        // The framework view never leaves the capture, so it makes no such claim.
+        $framework = (new snapshot_report($snapshotid, snapshot_report::GROUP_FRAMEWORK))
+            ->export_for_template($PAGE->get_renderer('core'));
+        $this->assertFalse($framework['controls']['liverollup']);
+        $this->assertSame(['M6-PLO'], array_column($framework['outcomes'], 'framework'));
+    }
+
+    /**
+     * Align the fixture outcome to a higher-level outcome and record the edge on
+     * the evidence, which is what makes the capture include the relation.
+     *
+     * @param int $outcomeversionid Fixture outcome-version ID.
+     * @param int $courseinstanceid Fixture course-instance ID.
+     * @return void
+     */
+    private function align_fixture_outcome(int $outcomeversionid, int $courseinstanceid): void {
+        global $DB;
+        $now = time();
+        $sourceitemid = (int) $DB->get_field('local_outcomemap_itemver', 'itemid',
+            ['id' => $outcomeversionid], MUST_EXIST);
+        $frameworkid = (int) $DB->insert_record('local_outcomemap_fw', (object) [
+            'uuid' => uuid::generate(), 'code' => 'M6-TOP', 'name' => 'M6 top level',
+            'description' => null, 'ownertype' => framework_service::OWNER_INSTITUTION,
+            'ownerid' => null, 'status' => workflow::APPROVED, 'createdby' => null,
+            'modifiedby' => null, 'timecreated' => $now, 'timemodified' => $now,
+        ]);
+        $targetitemid = (int) $DB->insert_record('local_outcomemap_item', (object) [
+            'uuid' => uuid::generate(), 'frameworkid' => $frameworkid, 'code' => 'TOP1',
+            'status' => workflow::APPROVED, 'createdby' => null, 'timecreated' => $now,
+            'timemodified' => $now,
+        ]);
+        $relationid = (int) $DB->insert_record('local_outcomemap_rel', (object) [
+            'relationuuid' => uuid::generate(), 'version' => 1,
+            'sourceitemid' => $sourceitemid, 'targetitemid' => $targetitemid,
+            'type' => relation_service::CONTRIBUTES_TO, 'weight' => null,
+            'status' => workflow::APPROVED, 'effectivefrom' => $now - DAYSECS,
+            'effectiveto' => null, 'notes' => null, 'createdby' => null,
+            'approvedby' => $this->reviewer->id, 'timecreated' => $now,
+            'timemodified' => $now, 'approvedat' => $now,
+        ]);
+        $DB->set_field('local_outcomemap_evidence', 'relationpathjson',
+            canonical_json::encode([$relationid]), ['cinstid' => $courseinstanceid]);
     }
 
     /**

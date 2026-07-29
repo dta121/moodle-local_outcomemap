@@ -154,8 +154,14 @@ if (in_array($action, ['add', 'correct'], true)) {
 
 if ($action === 'view' && $id) {
     // The report model loads and verifies the capture, so a snapshot whose hashes
-    // no longer match cannot render as though it were sound.
-    $report = new snapshot_report($id);
+    // no longer match cannot render as though it were sound. Grouping and the
+    // subject filter only change how the frozen rows are presented, so they are
+    // plain GET state rather than anything the record stores.
+    $report = new snapshot_report(
+        $id,
+        optional_param('group', snapshot_report::GROUP_FRAMEWORK, PARAM_ALPHA),
+        optional_param('subjects', snapshot_report::SUBJECTS_ALL, PARAM_ALPHA)
+    );
     echo $OUTPUT->header();
     echo $OUTPUT->render_from_template('local_outcomemap/snapshot_report',
         $report->export_for_template($OUTPUT));

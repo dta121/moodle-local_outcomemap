@@ -22,6 +22,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use local_outcomemap\local\highlight;
 use local_outcomemap\local\service\course_attainment_service;
 
 $configpath = __DIR__ . '/../../config.php';
@@ -37,6 +38,8 @@ unset($configpath);
 $courseid = required_param('courseid', PARAM_INT);
 $search = trim(optional_param('q', '', PARAM_TEXT));
 $filter = optional_param('filter', 'all', PARAM_ALPHA);
+$groupmode = optional_param('group', 'framework', PARAM_ALPHA);
+$showpaths = optional_param('paths', 0, PARAM_BOOL);
 $action = optional_param('action', '', PARAM_ALPHA);
 
 $course = get_course($courseid);
@@ -46,11 +49,27 @@ $context = context_course::instance($courseid);
 // capability rather than the definitions one the mapping pages use.
 require_capability('local/outcomemap:viewallresults', $context);
 
-if (!in_array($filter, ['all', 'attention', 'strong', 'unassessed'], true)) {
+$states = [
+    course_attainment_service::STATE_ATTENTION,
+    course_attainment_service::STATE_ATTAINED,
+    course_attainment_service::STATE_PENDING,
+    course_attainment_service::STATE_UNASSESSED,
+];
+if (!in_array($filter, array_merge(['all'], $states), true)) {
     $filter = 'all';
+}
+// Framework groups the outcomes as authored; the other two follow the approved
+// alignment edges up one level and to the top, which is how a reader asking
+// "how is the programme doing" arrives at unit evidence.
+$groupmodes = ['framework', 'aligned', 'terminal'];
+if (!in_array($groupmode, $groupmodes, true)) {
+    $groupmode = 'framework';
 }
 
 $summary = course_attainment_service::summary($courseid);
+$canmap = has_capability('local/outcomemap:mapcourse', $context)
+    || has_capability('local/outcomemap:mapactivities', $context);
+
 $alignmentpathtext = static function (stdClass $row): array {
     $labels = [];
     foreach ($row->alignmentpaths ?? [] as $path) {
@@ -70,7 +89,6 @@ $alignmentpathtext = static function (stdClass $row): array {
 $needle = core_text::strtolower($search);
 $visible = [];
 foreach ($summary->rows as $row) {
-    $label = $row->frameworkcode . '.' . $row->code;
     if ($needle !== '') {
         $alignmentsearch = [];
         foreach ($row->alignmentpaths ?? [] as $path) {
@@ -78,43 +96,22 @@ foreach ($summary->rows as $row) {
                 $alignmentsearch[] = $target->frameworkcode . '.' . $target->code . ' ' . $target->statement;
             }
         }
-        $haystack = core_text::strtolower($label . ' ' . $row->statement . ' ' . implode(' ', $alignmentsearch));
+        $haystack = core_text::strtolower(
+            $row->frameworkcode . '.' . $row->code . ' ' . $row->statement
+                . ' ' . implode(' ', $alignmentsearch)
+        );
         if (core_text::strpos($haystack, $needle) === false) {
             continue;
         }
     }
-    // "Attention" is the share of assessed learners sitting in the lowest band;
-    // half is an arbitrary display threshold, not a governed one.
-    $lowshare = $row->calculated && $row->lowestband
-        ? $row->lowestband->count / $row->calculated
-        : 0.0;
-    $row->lowshare = $lowshare;
-    if ($filter === 'attention' && !($row->calculated && $lowshare >= 0.5)) {
-        continue;
-    }
-    if ($filter === 'strong' && !($row->calculated && $lowshare < 0.5)) {
-        continue;
-    }
-    if ($filter === 'unassessed' && $row->calculated) {
+    if ($filter !== 'all' && $row->state !== $filter) {
         continue;
     }
     $visible[] = $row;
 }
 
-$counts = ['all' => 0, 'attention' => 0, 'strong' => 0, 'unassessed' => 0];
-foreach ($summary->rows as $row) {
-    $counts['all']++;
-    $share = $row->calculated && $row->lowestband ? $row->lowestband->count / $row->calculated : 0.0;
-    if (!$row->calculated) {
-        $counts['unassessed']++;
-    } else if ($share >= 0.5) {
-        $counts['attention']++;
-    } else {
-        $counts['strong']++;
-    }
-}
-
 $url = new moodle_url('/local/outcomemap/attainment.php', ['courseid' => $courseid]);
+$viewparams = ['filter' => $filter, 'q' => $search, 'group' => $groupmode, 'paths' => $showpaths ? 1 : 0];
 
 if ($action === 'export' && $visible) {
     require_once($CFG->libdir . '/csvlib.class.php');
@@ -125,8 +122,10 @@ if ($action === 'export' && $visible) {
         get_string('outcomeversion', 'local_outcomemap'),
         get_string('statement', 'local_outcomemap'),
         get_string('attainment_higheralignment', 'local_outcomemap'),
+        get_string('attainment_state', 'local_outcomemap'),
         get_string('attainment_learners', 'local_outcomemap'),
         get_string('attainment_assessed', 'local_outcomemap'),
+        get_string('attainment_cohort', 'local_outcomemap'),
         get_string('attainment_average', 'local_outcomemap'),
         get_string('attainment_banddistribution', 'local_outcomemap'),
     ]);
@@ -140,8 +139,10 @@ if ($action === 'export' && $visible) {
             $row->code . ' v' . $row->version,
             $row->statement,
             implode('; ', $alignmentpathtext($row)),
+            get_string('attainmentstate_' . $row->state, 'local_outcomemap'),
             $row->learners,
             $row->calculated,
+            $summary->learners,
             $row->average === null ? '' : number_format($row->average, 2, '.', ''),
             implode('; ', $bands),
         ]);
@@ -166,7 +167,7 @@ $actions = html_writer::link(
 );
 if ($visible) {
     $actions .= html_writer::link(
-        new moodle_url($url, ['action' => 'export', 'filter' => $filter, 'q' => $search]),
+        new moodle_url($url, $viewparams + ['action' => 'export']),
         get_string('coverage_exportcsv', 'local_outcomemap'),
         ['class' => 'btn btn-outline-secondary btn-sm']
     );
@@ -194,47 +195,143 @@ if (!$summary->hasinstance) {
     echo $OUTPUT->footer();
     exit;
 }
-if (!$summary->rows) {
-    // An empty page names its own cause: the two conditions readers assume
-    // (mappings approved, assessments completed) are often both satisfied while
-    // a third one, the mapping's effective window, is what actually fails.
+
+// An empty report names its own cause: the two conditions readers assume
+// (mappings approved, assessments completed) are often both satisfied while a
+// third one, the mapping's effective window, is what actually fails.
+$diagnosis = static function (int $courseid): string {
     $why = course_attainment_service::diagnose($courseid);
+    return html_writer::tag('h3', get_string('attainment_whyheading', 'local_outcomemap'),
+            ['class' => 'lom-att-whytitle'])
+        . html_writer::div(
+            get_string('attainment_why_' . $why->cause, 'local_outcomemap', (object) [
+                'mappings' => $why->mappings,
+                'attempts' => $why->attempts,
+                'inforce' => $why->inforceattempts,
+                'from' => $why->firstmappingfrom === null ? '-' : userdate($why->firstmappingfrom),
+                'finish' => $why->lastattemptfinish === null ? '-' : userdate($why->lastattemptfinish),
+                'policies' => implode(', ', array_map(
+                    fn(string $type): string => get_string('policytype_' . $type, 'local_outcomemap'),
+                    $why->missingpolicies
+                )),
+            ]),
+            'lom-att-why'
+        );
+};
+
+if (!$summary->rows) {
     echo $OUTPUT->notification(get_string('attainment_noresults', 'local_outcomemap'),
         \core\output\notification::NOTIFY_INFO);
-    echo html_writer::tag('h3', get_string('attainment_whyheading', 'local_outcomemap'),
-        ['class' => 'lom-cov-title']);
-    echo html_writer::div(
-        get_string('attainment_why_' . $why->cause, 'local_outcomemap', (object) [
-            'mappings' => $why->mappings,
-            'attempts' => $why->attempts,
-            'inforce' => $why->inforceattempts,
-            'from' => $why->firstmappingfrom === null ? '-' : userdate($why->firstmappingfrom),
-            'finish' => $why->lastattemptfinish === null ? '-' : userdate($why->lastattemptfinish),
-            'policies' => implode(', ', array_map(
-                fn(string $type): string => get_string('policytype_' . $type, 'local_outcomemap'),
-                $why->missingpolicies
-            )),
-        ]),
-        'lom-cov-subtitle'
-    );
+    echo $diagnosis($courseid);
     echo $OUTPUT->footer();
     exit;
 }
 
-if ($summary->hasalignmentpaths) {
-    echo html_writer::div(
-        get_string('attainment_alignmentnote', 'local_outcomemap'),
-        'lom-att-alignment-note'
+// Summary cards: what is measured, how it stands, and what is blocking the rest.
+$average = $summary->average === null ? '—' : number_format($summary->average, 1) . '%';
+$cards = [
+    [
+        'label' => get_string('attainmentcard_measured', 'local_outcomemap'),
+        'value' => $summary->measured,
+        'of' => get_string('attainmentcardof_measured', 'local_outcomemap', $summary->outcomes),
+        'note' => get_string('attainmentcardnote_measured', 'local_outcomemap'),
+        'class' => $summary->measured === $summary->outcomes ? 'lom-cov-card-full' : '',
+    ],
+    [
+        'label' => get_string('attainmentcard_average', 'local_outcomemap'),
+        'value' => $average,
+        'of' => $summary->measured
+            ? get_string('attainmentcardof_average', 'local_outcomemap', $summary->measured)
+            : '',
+        'note' => get_string('attainmentcardnote_average', 'local_outcomemap'),
+        // Nothing measured means nothing to colour: a green dash would read as
+        // a clean result rather than an absent one.
+        'class' => $summary->measured === 0 ? ''
+            : ($summary->counts[course_attainment_service::STATE_ATTENTION]
+                ? 'lom-cov-card-partial' : 'lom-cov-card-full'),
+    ],
+    [
+        'label' => get_string('attainmentcard_pending', 'local_outcomemap'),
+        'value' => $summary->counts[course_attainment_service::STATE_PENDING],
+        'of' => get_string('attainmentcardof_pending', 'local_outcomemap'),
+        'note' => get_string('attainmentcardnote_pending', 'local_outcomemap'),
+        'class' => $summary->counts[course_attainment_service::STATE_PENDING]
+            ? 'lom-cov-card-partial' : 'lom-cov-card-full',
+    ],
+    [
+        'label' => get_string('attainmentcard_unassessed', 'local_outcomemap'),
+        'value' => $summary->coverageknown
+            ? $summary->counts[course_attainment_service::STATE_UNASSESSED]
+            : '?',
+        'of' => get_string('attainmentcardof_unassessed', 'local_outcomemap'),
+        'note' => get_string(
+            $summary->coverageknown
+                ? 'attainmentcardnote_unassessed'
+                : 'attainmentcardnote_unknowncoverage',
+            'local_outcomemap'
+        ),
+        'class' => $summary->counts[course_attainment_service::STATE_UNASSESSED]
+            ? 'lom-cov-card-none' : 'lom-cov-card-full',
+    ],
+];
+$cardhtml = '';
+foreach ($cards as $card) {
+    $cardhtml .= html_writer::div(
+        html_writer::div($card['label'], 'lom-cov-card-label')
+        . html_writer::div(
+            html_writer::span($card['value'], 'lom-cov-card-value')
+                . html_writer::span($card['of'], 'lom-cov-card-of'),
+            'lom-cov-card-figure'
+        )
+        . html_writer::div($card['note'], 'lom-cov-card-note'),
+        trim('lom-cov-card ' . $card['class'])
     );
 }
+echo html_writer::div($cardhtml, 'lom-cov-cards lom-att-cards');
 
-// Filter chips and search, as one GET form so both survive a page load.
+if ($summary->measured === 0) {
+    echo $OUTPUT->notification(get_string('attainment_noresults', 'local_outcomemap'),
+        \core\output\notification::NOTIFY_INFO);
+    echo $diagnosis($courseid);
+}
+
+// Group-by control, then the filter chips, search, and alignment-path toggle.
+// Two of the three groupings read the alignment edges, so a course with none is
+// offered the framework view alone rather than two empty tabs.
+if ($summary->hasalignmentpaths) {
+    $groupbuttons = '';
+    foreach ($groupmodes as $mode) {
+        $groupbuttons .= html_writer::link(
+            new moodle_url($url, ['group' => $mode, 'filter' => $filter, 'q' => $search,
+                'paths' => $showpaths ? 1 : 0]),
+            get_string('attainmentgroup_' . $mode, 'local_outcomemap'),
+            [
+                'class' => 'lom-att-modebtn' . ($groupmode === $mode ? ' lom-att-modebtn-active' : ''),
+                'aria-current' => $groupmode === $mode ? 'true' : null,
+            ]
+        );
+    }
+    echo html_writer::div(
+        html_writer::span(get_string('attainment_groupby', 'local_outcomemap'), 'lom-cov-toolbar-label')
+            . html_writer::div($groupbuttons, 'lom-att-modes')
+            . html_writer::span(
+                get_string('attainmentgroupsub_' . $groupmode, 'local_outcomemap'),
+                'lom-att-modesub'
+            ),
+        'lom-att-modebar'
+    );
+} else {
+    $groupmode = 'framework';
+}
+
 $chips = '';
-foreach (['all', 'attention', 'strong', 'unassessed'] as $key) {
+foreach (array_merge(['all'], $states) as $key) {
+    $count = $key === 'all' ? $summary->outcomes : $summary->counts[$key];
     $chips .= html_writer::link(
-        new moodle_url($url, ['filter' => $key, 'q' => $search]),
+        new moodle_url($url, ['filter' => $key, 'q' => $search, 'group' => $groupmode,
+            'paths' => $showpaths ? 1 : 0]),
         get_string('attainmentfilter_' . $key, 'local_outcomemap')
-            . html_writer::span($counts[$key], 'lom-cov-chip-count'),
+            . html_writer::span($count, 'lom-cov-chip-count'),
         [
             'class' => 'lom-cov-filter' . ($filter === $key ? ' lom-cov-filter-active' : ''),
             'aria-current' => $filter === $key ? 'true' : null,
@@ -248,6 +345,8 @@ $searchform = html_writer::start_tag('form', [
     ])
     . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'courseid', 'value' => $courseid])
     . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'filter', 'value' => $filter])
+    . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'group', 'value' => $groupmode])
+    . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'paths', 'value' => $showpaths ? 1 : 0])
     . html_writer::label(get_string('attainment_searchlabel', 'local_outcomemap'), 'lom-att-q',
         false, ['class' => 'sr-only visually-hidden'])
     . html_writer::empty_tag('input', [
@@ -259,10 +358,31 @@ $searchform = html_writer::start_tag('form', [
         'class' => 'form-control form-control-sm',
     ])
     . html_writer::tag('button', get_string('search'), ['type' => 'submit', 'class' => 'btn btn-sm btn-secondary'])
-    . ($search !== '' ? html_writer::link(new moodle_url($url, ['filter' => $filter]),
+    . ($search !== '' ? html_writer::link(
+        new moodle_url($url, ['filter' => $filter, 'group' => $groupmode, 'paths' => $showpaths ? 1 : 0]),
         get_string('coverage_clearsearch', 'local_outcomemap'), ['class' => 'btn btn-sm btn-link']) : '')
     . html_writer::end_tag('form');
-echo html_writer::div(html_writer::div($chips, 'lom-cov-filters') . $searchform, 'lom-cov-controls');
+$pathstoggle = $summary->hasalignmentpaths ? html_writer::link(
+    new moodle_url($url, ['filter' => $filter, 'q' => $search, 'group' => $groupmode,
+        'paths' => $showpaths ? 0 : 1]),
+    html_writer::span($showpaths ? '☑' : '☐', 'lom-att-toggle-box')
+        . get_string('attainment_showpaths', 'local_outcomemap'),
+    [
+        'class' => 'lom-att-toggle' . ($showpaths ? ' lom-att-toggle-on' : ''),
+        'aria-pressed' => $showpaths ? 'true' : 'false',
+    ]
+) : '';
+echo html_writer::div(
+    html_writer::div($chips, 'lom-cov-filters') . $searchform . $pathstoggle,
+    'lom-cov-controls'
+);
+
+if ($showpaths && $summary->hasalignmentpaths) {
+    echo html_writer::div(
+        get_string('attainment_alignmentnote', 'local_outcomemap'),
+        'lom-att-alignment-note'
+    );
+}
 
 if (!$visible) {
     echo html_writer::div(get_string('coverage_nomatches', 'local_outcomemap'), 'lom-cov-empty');
@@ -270,64 +390,131 @@ if (!$visible) {
     exit;
 }
 
-// Group by framework so unit, course, and programme outcomes read as levels.
+// One group per framework, or per higher-level outcome the rows align to. An
+// outcome supporting two higher-level outcomes is reported under both, because
+// each of those outcomes is answered by this evidence.
 $groups = [];
+$addrow = static function (string $key, string $title, string $sub, string $sort, stdClass $row) use (&$groups) {
+    $groups[$key] ??= (object) ['title' => $title, 'sub' => $sub, 'sort' => $sort, 'rows' => []];
+    $groups[$key]->rows[] = $row;
+};
 foreach ($visible as $row) {
-    $groups[$row->frameworkcode][] = $row;
+    if ($groupmode === 'framework') {
+        $addrow(
+            'fw:' . $row->frameworkcode,
+            $row->frameworkcode,
+            (string) $row->frameworkname,
+            $row->frameworkcode,
+            $row
+        );
+        continue;
+    }
+    $targets = [];
+    foreach ($row->alignmentpaths as $path) {
+        if (!$path->targets) {
+            continue;
+        }
+        // One level up for the aligned view; the end of the chain for the top view.
+        $target = $groupmode === 'aligned'
+            ? $path->targets[0]
+            : $path->targets[count($path->targets) - 1];
+        $targets[$target->itemid] = $target;
+    }
+    if (!$targets) {
+        // Sorted last: an outcome that answers no higher-level outcome is a
+        // curriculum gap, not the lead finding of an attainment report.
+        $addrow('none', get_string('attainment_groupunaligned', 'local_outcomemap'), '', "\xff", $row);
+        continue;
+    }
+    foreach ($targets as $target) {
+        $label = $target->frameworkcode . '.' . $target->code;
+        $addrow(
+            't:' . $target->itemid,
+            $label . ' — ' . ($target->shortstatement ?: shorten_text($target->statement, 90)),
+            (string) $target->frameworkname,
+            $label,
+            $row
+        );
+    }
 }
+uasort($groups, static fn(stdClass $a, stdClass $b): int => strnatcasecmp($a->sort, $b->sort));
 
-foreach ($groups as $frameworkcode => $grouprows) {
-    $summaryhtml = html_writer::span(s($frameworkcode), 'lom-cov-group-title')
+foreach ($groups as $group) {
+    $measured = array_values(array_filter($group->rows, static fn($r): bool => (bool) $r->calculated));
+    $attention = array_filter(
+        $group->rows,
+        static fn($r): bool => $r->state === course_attainment_service::STATE_ATTENTION
+    );
+    $groupaverage = $measured
+        ? array_sum(array_map(static fn($r): float => (float) $r->average, $measured)) / count($measured)
+        : null;
+
+    $subparts = array_filter([
+        $group->sub,
+        get_string('attainment_groupsub', 'local_outcomemap', count($group->rows)),
+    ], static fn(string $part): bool => $part !== '');
+    $summaryhtml = html_writer::span(s($group->title), 'lom-cov-group-title')
+        . html_writer::span(s(implode(' · ', $subparts)), 'lom-cov-group-sub')
         . html_writer::span(
-            get_string('attainment_groupsub', 'local_outcomemap', count($grouprows)),
-            'lom-cov-group-sub'
+            ($groupaverage === null ? '' : html_writer::span(
+                get_string('attainment_groupaverage', 'local_outcomemap',
+                    number_format($groupaverage, 1)),
+                'lom-att-group-avg ' . ($attention ? 'lom-att-warn' : 'lom-att-ok')
+            ))
+            . html_writer::span(
+                $measured
+                    ? get_string('attainment_groupmeasured', 'local_outcomemap', (object) [
+                        'measured' => count($measured),
+                        'total' => count($group->rows),
+                    ])
+                    : get_string('attainment_groupnoresults', 'local_outcomemap'),
+                'lom-cov-group-count'
+            ),
+            'lom-cov-group-meta'
         );
 
     $head = html_writer::div(
         html_writer::span(get_string('outcomeversion', 'local_outcomemap'), 'lom-att-c-code')
         . html_writer::span(get_string('statement', 'local_outcomemap'), 'lom-att-c-statement')
         . html_writer::span(get_string('attainment_assessed', 'local_outcomemap'), 'lom-att-c-n')
-        . html_writer::span(get_string('attainment_average', 'local_outcomemap'), 'lom-att-c-avg')
-        . html_writer::span(get_string('attainment_banddistribution', 'local_outcomemap'), 'lom-att-c-bands'),
+        . html_writer::span(get_string('attainment_result', 'local_outcomemap'), 'lom-att-c-result'),
         'lom-cov-row lom-cov-head'
     );
 
     $body = '';
-    foreach ($grouprows as $row) {
-        $bandhtml = '';
-        $alignmenthtml = '';
-        foreach ($row->alignmentpaths ?? [] as $path) {
-            $targethtml = [];
-            foreach ($path->targets as $target) {
-                $targethtml[] = html_writer::span(
-                    html_writer::span(
+    foreach ($group->rows as $row) {
+        // Framework groups already name the framework; the alignment views do not.
+        $codelabel = $groupmode === 'framework'
+            ? $row->code
+            : $row->frameworkcode . '.' . $row->code;
+
+        $supportshtml = '';
+        if ($showpaths) {
+            foreach ($row->alignmentpaths as $path) {
+                $pathchips = [];
+                foreach ($path->targets as $target) {
+                    $pathchips[] = html_writer::span(
                         s($target->frameworkcode . '.' . $target->code),
-                        'lom-att-align-code'
-                    ) . html_writer::span(
-                        ' — ' . s($target->shortstatement ?: shorten_text($target->statement, 72)),
-                        'lom-att-align-statement'
-                    ),
-                    'lom-att-align-target',
-                    ['title' => $target->statement]
+                        'lom-att-chip ' . ($path->propagates
+                            ? 'lom-att-chip-rollup' : 'lom-att-chip-alignment'),
+                        ['title' => $target->statement]
+                    );
+                }
+                $supportshtml .= html_writer::span(
+                    html_writer::span(
+                        get_string(
+                            $path->propagates
+                                ? 'attainment_evidencerollup' : 'attainment_alignmentonly',
+                            'local_outcomemap'
+                        ),
+                        'lom-att-supports-label'
+                    ) . implode(html_writer::span('→', 'lom-att-chip-arrow'), $pathchips),
+                    'lom-att-supports'
                 );
             }
-            $alignmenthtml .= html_writer::div(
-                html_writer::span(
-                    get_string(
-                        $path->propagates ? 'attainment_evidencerollup' : 'attainment_alignmentonly',
-                        'local_outcomemap'
-                    ) . ':',
-                    'lom-att-align-type'
-                ) . implode(html_writer::span(' → ', 'lom-att-align-arrow'), $targethtml),
-                'lom-att-alignment-path'
-            );
         }
-        if (!$row->calculated) {
-            $bandhtml = html_writer::span(
-                get_string('attainment_nonecalculated', 'local_outcomemap'),
-                'lom-cov-missing'
-            );
-        } else {
+
+        if ($row->calculated) {
             $bar = '';
             foreach ($row->bands as $index => $band) {
                 $pct = $band->count / $row->calculated * 100;
@@ -335,43 +522,76 @@ foreach ($groups as $frameworkcode => $grouprows) {
                 // the one needing attention and the last as the strongest.
                 $class = $index === 0 ? 'lom-att-seg-low' : ($index === count($row->bands) - 1
                     ? 'lom-att-seg-high' : 'lom-att-seg-mid');
-                $bar .= html_writer::div('', 'lom-att-seg ' . $class, [
+                $bar .= html_writer::span('', 'lom-att-seg ' . $class, [
                     'style' => 'width:' . round($pct, 2) . '%',
                     'title' => s($band->name) . ': ' . $band->count,
                 ]);
             }
-            $legend = [];
-            foreach ($row->bands as $band) {
-                $legend[] = s($band->name) . ' ' . $band->count;
+            $legend = '';
+            foreach ($row->bands as $index => $band) {
+                $class = $index === 0 ? 'lom-att-seg-low' : ($index === count($row->bands) - 1
+                    ? 'lom-att-seg-high' : 'lom-att-seg-mid');
+                $legend .= html_writer::span(
+                    html_writer::span('', 'lom-att-swatch ' . $class)
+                        . s($band->name) . ' ' . $band->count,
+                    'lom-att-legend-item'
+                );
             }
-            $bandhtml = html_writer::div($bar, 'lom-att-bar')
-                . html_writer::span(implode(' · ', $legend), 'lom-cov-meta');
+            $resulthtml = html_writer::span(
+                    html_writer::span(
+                        number_format($row->average, 1) . '%',
+                        'lom-att-avg ' . ($row->state === course_attainment_service::STATE_ATTENTION
+                            ? 'lom-att-warn' : 'lom-att-ok')
+                    ) . html_writer::span(get_string('attainment_average', 'local_outcomemap'),
+                        'lom-att-avg-label'),
+                    'lom-att-avg-line'
+                )
+                . html_writer::span($bar, 'lom-att-bar')
+                . html_writer::span($legend, 'lom-att-legend');
+        } else {
+            $known = $summary->coverageknown;
+            $reasonkey = !$known
+                ? 'attainment_nonecalculated'
+                : 'attainmentreason_' . $row->state;
+            $reasonclass = !$known
+                ? 'lom-att-reason-neutral'
+                : ($row->state === course_attainment_service::STATE_UNASSESSED
+                    ? 'lom-att-reason-none' : 'lom-att-reason-pending');
+            $resulthtml = html_writer::span(
+                get_string($reasonkey, 'local_outcomemap'),
+                'lom-att-reason ' . $reasonclass
+            );
+            if ($canmap && $row->state === course_attainment_service::STATE_UNASSESSED && $known) {
+                $resulthtml .= html_writer::link(
+                    new moodle_url('/local/outcomemap/contentmapping.php', ['courseid' => $courseid]),
+                    get_string('attainment_mapactivity', 'local_outcomemap'),
+                    ['class' => 'lom-att-fix']
+                );
+            }
         }
 
         $body .= html_writer::div(
             html_writer::span(
-                html_writer::span(s($row->code), 'lom-cov-code')
+                html_writer::span(s($codelabel), 'lom-cov-code')
                     . html_writer::span('v' . $row->version, 'lom-cov-ver'),
                 'lom-att-c-code'
             )
             . html_writer::span(
                 html_writer::span(
-                    s($row->shortstatement ?: shorten_text($row->statement, 110)),
+                    highlight::mark($row->shortstatement ?: $row->statement, $needle),
                     'lom-att-statement-text'
-                ) . ($alignmenthtml === '' ? '' : html_writer::div($alignmenthtml, 'lom-att-alignments')),
+                ) . $supportshtml,
                 'lom-att-c-statement'
             )
             . html_writer::span(
-                $row->calculated . ' / ' . $row->learners,
+                html_writer::span(
+                    $row->calculated . ' / ' . $summary->learners,
+                    'lom-att-n-value' . ($row->calculated ? '' : ' lom-att-n-zero')
+                ) . html_writer::span(get_string('attainment_assessed', 'local_outcomemap'),
+                    'lom-att-n-label'),
                 'lom-att-c-n'
             )
-            . html_writer::span(
-                $row->average === null
-                    ? html_writer::span('—', 'lom-cov-missing')
-                    : html_writer::span(number_format($row->average, 1) . '%', 'lom-att-avg'),
-                'lom-att-c-avg'
-            )
-            . html_writer::span($bandhtml, 'lom-att-c-bands'),
+            . html_writer::span($resulthtml, 'lom-att-c-result'),
             'lom-cov-row'
         );
     }

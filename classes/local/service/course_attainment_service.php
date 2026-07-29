@@ -35,6 +35,27 @@ use local_outcomemap\local\workflow;
  * report and a learner's own page can never disagree.
  */
 final class course_attainment_service extends base_service {
+    /** Measured, and most assessed learners sit above the lowest band. */
+    public const STATE_ATTAINED = 'attained';
+
+    /** Measured, and at least half of the assessed learners sit in the lowest band. */
+    public const STATE_ATTENTION = 'attention';
+
+    /** Assessing content is mapped, but no result has been stored yet. */
+    public const STATE_PENDING = 'pending';
+
+    /** No assessing content is mapped, so no result can ever be stored. */
+    public const STATE_UNASSESSED = 'unassessed';
+
+    /**
+     * Share of assessed learners in the lowest band that flags an outcome.
+     *
+     * A display threshold for sorting readers towards the outcomes worth reading
+     * first, not a governed one: the pass decision itself lives in the bands the
+     * calculation policy defined.
+     */
+    public const ATTENTION_SHARE = 0.5;
+
     /**
      * Explain why a course holds no outcome results.
      *
@@ -178,6 +199,16 @@ final class course_attainment_service extends base_service {
             'periodcodes' => [],
             'hasinstance' => false,
             'hasalignmentpaths' => false,
+            'outcomes' => 0,
+            'measured' => 0,
+            'average' => null,
+            'counts' => [
+                self::STATE_ATTENTION => 0,
+                self::STATE_ATTAINED => 0,
+                self::STATE_PENDING => 0,
+                self::STATE_UNASSESSED => 0,
+            ],
+            'coverageknown' => false,
         ];
 
         $instances = $DB->get_records('local_outcomemap_cinst', [
@@ -195,7 +226,7 @@ final class course_attainment_service extends base_service {
         // governing calculation policy assigned when the result was stored.
         $records = $DB->get_records_sql(
             "SELECT r.id, r.userid, r.itemverid, r.percentage, r.state, r.distinctitems,
-                    r.timecalculated, r.periodcode,
+                    r.timecalculated, r.periodcode, r.policyid,
                     v.itemid, v.statement, v.shortstatement, v.version AS outcomeversion,
                     i.code AS outcomecode, f.code AS frameworkcode, f.name AS frameworkname,
                     f.ownertype, b.code AS bandcode, b.name AS bandname, b.sortorder AS bandorder
@@ -229,11 +260,13 @@ final class course_attainment_service extends base_service {
                     'calculated' => 0,
                     'bands' => [],
                     'percentages' => [],
+                    'policyids' => [],
                     'items' => 0,
                     'lastcalculated' => 0,
                 ];
             }
             $row = $rows[$key];
+            $row->policyids[(int) $record->policyid] = true;
             $row->learners++;
             $learners[(int) $record->userid] = true;
             $row->lastcalculated = max($row->lastcalculated, (int) $record->timecalculated);
@@ -255,19 +288,67 @@ final class course_attainment_service extends base_service {
             $row->bands[$band]->count++;
         }
 
+        // An outcome the course is responsible for but holds no result for is the
+        // finding this report exists to surface, so it gets a row of its own
+        // rather than being silently absent.
+        foreach (self::course_outcomes($courseid, $at) as $itemid => $outcome) {
+            $rows[$itemid] ??= $outcome;
+        }
+        uasort($rows, static fn(\stdClass $a, \stdClass $b): int
+            => [$a->frameworkcode, $a->code] <=> [$b->frameworkcode, $b->code]);
+
+        // Splitting "no result yet" from "no result ever" needs the mapping side
+        // of the pipeline, which is a different capability. Without it the two
+        // collapse into the pending state rather than misreporting either.
+        $assessed = $rows && has_capability('local/outcomemap:viewdefinitions', $context)
+            ? self::assessed_outcomes($courseid)
+            : null;
+
+        $lowestbands = self::lowest_band_order($rows);
         $alignmentpaths = self::alignment_paths(array_keys($rows), $at);
         $hasalignmentpaths = false;
+        $counts = [
+            self::STATE_ATTENTION => 0,
+            self::STATE_ATTAINED => 0,
+            self::STATE_PENDING => 0,
+            self::STATE_UNASSESSED => 0,
+        ];
+        $measured = [];
         foreach ($rows as $row) {
             $row->average = $row->percentages
                 ? array_sum($row->percentages) / count($row->percentages)
                 : null;
             $row->unassessed = $row->learners - $row->calculated;
             usort($row->bands, static fn($a, $b) => $a->sortorder <=> $b->sortorder);
-            // The lowest band is the one to act on, so surface its share directly.
-            $row->lowestband = $row->bands ? reset($row->bands) : null;
+            // The band to act on is the lowest one the governing policy defines,
+            // not merely the lowest one anybody landed in: when every assessed
+            // learner clears the bottom band, nobody is in it and the share is 0.
+            $row->lowestband = null;
+            $lowestorder = $lowestbands[$row->itemid] ?? null;
+            foreach ($row->bands as $band) {
+                if ($lowestorder !== null && $band->sortorder === $lowestorder) {
+                    $row->lowestband = $band;
+                    break;
+                }
+            }
+            $row->lowshare = $row->calculated && $row->lowestband
+                ? $row->lowestband->count / $row->calculated
+                : 0.0;
+            $row->assessedcontent = $assessed === null ? null : isset($assessed[$row->itemid]);
+            if ($row->calculated) {
+                $row->state = $row->lowshare >= self::ATTENTION_SHARE
+                    ? self::STATE_ATTENTION
+                    : self::STATE_ATTAINED;
+                $measured[] = $row->average;
+            } else {
+                $row->state = $row->assessedcontent === false
+                    ? self::STATE_UNASSESSED
+                    : self::STATE_PENDING;
+            }
+            $counts[$row->state]++;
             $row->alignmentpaths = $alignmentpaths[$row->itemid] ?? [];
             $hasalignmentpaths = $hasalignmentpaths || (bool) $row->alignmentpaths;
-            unset($row->percentages);
+            unset($row->percentages, $row->policyids);
         }
 
         return (object) [
@@ -277,7 +358,161 @@ final class course_attainment_service extends base_service {
                 static fn($i) => $i->periodcode, $instances))),
             'hasinstance' => true,
             'hasalignmentpaths' => $hasalignmentpaths,
+            'outcomes' => count($rows),
+            'measured' => count($measured),
+            'average' => $measured ? array_sum($measured) / count($measured) : null,
+            'counts' => $counts,
+            'coverageknown' => $assessed !== null,
         ];
+    }
+
+    /**
+     * Resolve the sort order of the lowest band each row's policies define.
+     *
+     * Read from the band definitions rather than from the bands learners landed
+     * in, because the two differ in exactly the case that matters: an outcome
+     * every assessed learner passed has no result in its bottom band at all.
+     *
+     * @param array<int,\stdClass> $rows Report rows carrying their policy IDs.
+     * @return array<int,int> Lowest defined sort order keyed by outcome item ID.
+     */
+    private static function lowest_band_order(array $rows): array {
+        global $DB;
+        $policyids = [];
+        foreach ($rows as $row) {
+            foreach (array_keys($row->policyids ?? []) as $policyid) {
+                $policyids[(int) $policyid] = true;
+            }
+        }
+        if (!$policyids) {
+            return [];
+        }
+        [$insql, $params] = $DB->get_in_or_equal(array_keys($policyids), SQL_PARAMS_NAMED, 'pol');
+        $orders = [];
+        $records = $DB->get_records_sql(
+            "SELECT policyid, MIN(sortorder) AS lowestorder
+               FROM {local_outcomemap_band}
+              WHERE policyid $insql
+           GROUP BY policyid",
+            $params
+        );
+        foreach ($records as $record) {
+            $orders[(int) $record->policyid] = (int) $record->lowestorder;
+        }
+        $result = [];
+        foreach ($rows as $row) {
+            // Several policy versions can govern one row's results, so the bottom
+            // band is the lowest any of them defines.
+            foreach (array_keys($row->policyids ?? []) as $policyid) {
+                if (!isset($orders[(int) $policyid])) {
+                    continue;
+                }
+                $order = $orders[(int) $policyid];
+                $result[$row->itemid] = isset($result[$row->itemid])
+                    ? min($result[$row->itemid], $order)
+                    : $order;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Return the outcomes this course is responsible for, as empty report rows.
+     *
+     * Scope is the currently effective approved outcomes of the frameworks owned
+     * by the catalog courses this Moodle course is linked to through an approved,
+     * confirmed instance — the same association that makes a mapping valid.
+     *
+     * @param int $courseid Moodle course ID.
+     * @param int $at Effective timestamp.
+     * @return array<int,\stdClass> Zeroed rows keyed by stable outcome item ID.
+     */
+    private static function course_outcomes(int $courseid, int $at): array {
+        global $DB;
+        $records = $DB->get_records_sql(
+            "SELECT v.id AS itemverid, i.id AS itemid, i.code AS outcomecode,
+                    v.version AS outcomeversion, v.statement, v.shortstatement,
+                    f.code AS frameworkcode, f.name AS frameworkname, f.ownertype
+               FROM {local_outcomemap_cinst} ci
+               JOIN {local_outcomemap_fw} f
+                 ON f.ownertype = :ownertype AND f.ownerid = ci.courseid
+               JOIN {local_outcomemap_item} i ON i.frameworkid = f.id
+               JOIN {local_outcomemap_itemver} v ON v.itemid = i.id
+              WHERE ci.moodlecourseid = :courseid
+                AND ci.status = :cinststatus
+                AND ci.confirmed = 1
+                AND f.status = :fstatus
+                AND i.status = :istatus
+                AND v.status = :vstatus
+                AND v.effectivefrom <= :at1
+                AND (v.effectiveto IS NULL OR v.effectiveto > :at2)
+           ORDER BY f.code, i.code, v.version DESC",
+            [
+                'ownertype' => framework_service::OWNER_COURSE,
+                'courseid' => $courseid,
+                'cinststatus' => workflow::APPROVED,
+                'fstatus' => workflow::APPROVED,
+                'istatus' => workflow::APPROVED,
+                'vstatus' => workflow::APPROVED,
+                'at1' => $at,
+                'at2' => $at,
+            ]
+        );
+        $rows = [];
+        foreach ($records as $record) {
+            $itemid = (int) $record->itemid;
+            // Ordered version-descending, so the first row wins if an item somehow
+            // has two effective versions at once.
+            $rows[$itemid] ??= (object) [
+                'itemid' => $itemid,
+                'code' => $record->outcomecode,
+                'frameworkcode' => $record->frameworkcode,
+                'frameworkname' => $record->frameworkname,
+                'ownertype' => $record->ownertype,
+                'version' => (int) $record->outcomeversion,
+                'statement' => (string) $record->statement,
+                'shortstatement' => $record->shortstatement,
+                'learners' => 0,
+                'calculated' => 0,
+                'bands' => [],
+                'percentages' => [],
+                'policyids' => [],
+                'items' => 0,
+                'lastcalculated' => 0,
+            ];
+        }
+        return $rows;
+    }
+
+    /**
+     * Return the outcomes some approved assessing mapping covers in this course.
+     *
+     * Delegates to the coverage projection rather than re-deriving it: a report
+     * that disagreed with the coverage page about what is assessed would send
+     * readers to fix a gap that page says does not exist.
+     *
+     * @param int $courseid Moodle course ID.
+     * @return array<int,bool> Stable outcome item IDs, keyed for lookup.
+     */
+    private static function assessed_outcomes(int $courseid): array {
+        global $DB;
+        $itemverids = [];
+        foreach (coverage_service::matrix($courseid) as $itemverid => $row) {
+            $status = coverage_service::row_status($row);
+            if ($status === coverage_service::STATUS_FULL
+                    || $status === coverage_service::STATUS_ASSESSED_ONLY) {
+                $itemverids[] = (int) $itemverid;
+            }
+        }
+        if (!$itemverids) {
+            return [];
+        }
+        [$insql, $params] = $DB->get_in_or_equal($itemverids, SQL_PARAMS_NAMED, 'iv');
+        $items = $DB->get_fieldset_sql(
+            "SELECT DISTINCT itemid FROM {local_outcomemap_itemver} WHERE id $insql",
+            $params
+        );
+        return array_fill_keys(array_map('intval', $items), true);
     }
 
     /**

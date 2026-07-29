@@ -22,6 +22,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use local_outcomemap\local\highlight;
 use local_outcomemap\local\service\content_mapping_service;
 use local_outcomemap\local\service\coverage_service;
 use local_outcomemap\local\workflow;
@@ -179,31 +180,6 @@ $PAGE->set_url($url);
 $PAGE->set_pagelayout('incourse');
 $PAGE->set_title(get_string('coverage_heading', 'local_outcomemap'));
 $PAGE->set_heading($course->fullname);
-
-/**
- * Escape a statement and mark the searched term within it.
- *
- * @param string $text Raw statement.
- * @param string $needle Lower-cased search term.
- * @return string Safe HTML.
- */
-function local_outcomemap_highlight(string $text, string $needle): string {
-    if ($needle === '') {
-        return s($text);
-    }
-    $out = '';
-    $remaining = $text;
-    while (($pos = core_text::strpos(core_text::strtolower($remaining), $needle)) !== false) {
-        $out .= s(core_text::substr($remaining, 0, $pos));
-        $out .= html_writer::tag(
-            'mark',
-            s(core_text::substr($remaining, $pos, core_text::strlen($needle))),
-            ['class' => 'lom-cov-hit']
-        );
-        $remaining = core_text::substr($remaining, $pos + core_text::strlen($needle));
-    }
-    return $out . s($remaining);
-}
 
 $statusmeta = [
     coverage_service::STATUS_FULL => 'lom-cov-badge-full',
@@ -420,7 +396,7 @@ foreach ($groups as $frameworkcode => $grouprows) {
                 'lom-cov-c-code'
             )
             . html_writer::span(
-                local_outcomemap_highlight($row->statement, $needle),
+                highlight::mark($row->statement, $needle),
                 'lom-cov-c-statement'
             )
             . html_writer::span(

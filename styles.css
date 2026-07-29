@@ -414,6 +414,41 @@ a.lom-viewbtn.lom-active:hover { background: #1f2a44; color: #fff; }
 .lom-snap-fact-note { color: #6a737b; font-size: var(--lom-fs-3xs); margin-top: 2px; }
 .lom-snap-section-title { color: #1f2a44; font-size: var(--lom-fs-lg); font-weight: 700; margin: 0 0 3px; }
 .lom-snap-section-sub { color: #6a737b; font-size: var(--lom-fs-xs); margin-bottom: 12px; }
+
+/* Cohort course-progress tiles, read out of the frozen learner rows. */
+.lom-snap-progressline { color: #6a737b; font-size: var(--lom-fs-2xs); margin-bottom: 10px; }
+.lom-snap-progress { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: 26px; }
+.lom-snap-progresstile { border: 1px solid #e3e7ec; border-radius: 8px; padding: 13px 16px; }
+.lom-snap-progress-label { color: #6a737b; font-size: var(--lom-fs-3xs); font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; }
+.lom-snap-progress-value { color: #1f2a44; font-size: var(--lom-fs-2xl); font-weight: 700; margin-top: 5px; }
+.lom-snap-progress-note { color: #6a737b; font-size: var(--lom-fs-3xs); line-height: 1.45; margin-top: 5px; }
+.lom-snap-progress-good .lom-snap-progress-value { color: #166534; }
+.lom-snap-progress-warn .lom-snap-progress-value { color: #b45309; }
+.lom-snap-progress-bad .lom-snap-progress-value { color: #991b1b; }
+
+/* Grouping and subject-filter controls above the attainment table. */
+.lom-snap-controls { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.lom-snap-controls-label { color: #6a737b; font-size: var(--lom-fs-2xs); }
+.lom-snap-controls-sub { color: #9aa3ad; font-size: var(--lom-fs-3xs); }
+.lom-snap-modes { border: 1px solid #cfd6de; border-radius: 6px; display: flex; overflow: hidden; }
+.lom-snap-modebtn { background: #fff; color: #555; font-size: var(--lom-fs-2xs); padding: 6px 13px;
+    text-decoration: none; }
+.lom-snap-modebtn + .lom-snap-modebtn { border-left: 1px solid #cfd6de; }
+.lom-snap-modebtn:hover { background: #f4f6f9; color: #333; text-decoration: none; }
+.lom-snap-modebtn-active,
+.lom-snap-modebtn-active:hover { background: #1f2a44; color: #fff; font-weight: 600; }
+.lom-snap-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.lom-snap-chip { background: #fff; border: 1px solid #cfd6de; border-radius: 16px; color: #555;
+    font-size: var(--lom-fs-3xs); padding: 5px 12px; text-decoration: none; }
+.lom-snap-chip:hover { background: #f4f6f9; color: #333; text-decoration: none; }
+.lom-snap-chip-active,
+.lom-snap-chip-active:hover { background: #1f2a44; border-color: #1f2a44; color: #fff; font-weight: 600; }
+.lom-snap-chip-count { color: #9aa3ad; font-weight: 600; margin-left: 4px; }
+.lom-snap-chip-active .lom-snap-chip-count { color: #c9d2de; }
+.lom-snap-filternote { background: #fffbeb; border-left: 4px solid #d9b96a; color: #78350f;
+    font-size: var(--lom-fs-2xs); line-height: 1.5; margin-bottom: 12px; padding: 10px 13px; }
 .lom-snap-table { border: 1px solid #e3e7ec; border-radius: 6px; margin-bottom: 26px; overflow: hidden; }
 .lom-snap-row { align-items: start; border-top: 1px solid #f2f4f6; display: grid; gap: 12px;
     grid-template-columns: 4rem minmax(10rem, 1fr) 5rem 5rem 9rem 9rem; padding: 11px 16px; }
@@ -447,13 +482,16 @@ a.lom-viewbtn.lom-active:hover { background: #1f2a44; color: #fff; }
 .lom-snap-total-label { color: #1f2a44; font-size: var(--lom-fs-2xs); font-weight: 700; }
 .lom-snap-total .lom-snap-num { color: #1f2a44; font-weight: 700; }
 .lom-snap-courserow { align-items: center; border-top: 1px solid #f2f4f6; display: grid; gap: 14px;
-    grid-template-columns: 5rem minmax(12rem, 1fr) auto auto auto; padding: 12px 16px; }
+    grid-template-columns: 5rem minmax(12rem, 1fr) auto auto auto 8rem; padding: 12px 16px; }
 .lom-snap-courserow:first-child { border-top: 0; }
 .lom-snap-courserow:hover { background: #fbfcfd; }
 .lom-snap-coursemain { min-width: 0; }
 .lom-snap-coursename { color: #1f2a44; display: block; font-size: var(--lom-fs-sm); font-weight: 600; }
 .lom-snap-courseshell { color: #6a737b; display: block; font-size: var(--lom-fs-3xs); margin-top: 2px; }
 .lom-snap-coursefact { color: #444; font-size: var(--lom-fs-2xs); text-align: right; white-space: nowrap; }
+.lom-snap-coursepass { text-align: right; }
+.lom-snap-coursepct { color: #1f2a44; display: block; font-size: var(--lom-fs-sm); font-weight: 700; }
+.lom-snap-coursepassnote { color: #6a737b; display: block; font-size: var(--lom-fs-3xs); margin-top: 2px; }
 .lom-snap-methods { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 26px; }
 .lom-snap-method { border: 1px solid #e3e7ec; border-radius: 6px; padding: 12px 14px; }
 .lom-snap-method-label { color: #1f2a44; font-size: var(--lom-fs-2xs); font-weight: 700; }
@@ -624,7 +662,8 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
        aligned, so they scroll rather than reflow into an unreadable stack. */
     .lom-snap-table { overflow-x: auto; }
     .lom-snap-row { min-width: 49rem; }
-    .lom-snap-courserow { min-width: 40rem; }
+    .lom-snap-courserow { min-width: 48rem; }
+    .lom-snap-progress { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 600px) {
@@ -1124,28 +1163,122 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
 .lom-map-apply-note { color: #8a93a0; font-size: var(--lom-fs-2xs); margin-top: 7px; text-align: center; }
 
 /* ---------------------------------------------------------------------------
-   Course outcome attainment: one row per outcome with a band distribution bar.
-   Reuses the coverage report's row and group chrome.
+   Course outcome attainment: one row per outcome, carrying either a band
+   distribution or the reason there is nothing to distribute. Reuses the
+   coverage report's card, row, and group chrome.
    --------------------------------------------------------------------------- */
-.lom-att-c-code { flex-shrink: 0; width: 8rem; }
-.lom-att-c-statement { color: #333; flex: 1; font-size: var(--lom-fs-xs); line-height: 1.5; min-width: 0; }
-.lom-att-c-n { flex-shrink: 0; font-size: var(--lom-fs-xs); text-align: right; width: 6rem; }
-.lom-att-c-avg { flex-shrink: 0; text-align: right; width: 5.5rem; }
-.lom-att-c-bands { flex-shrink: 0; width: 15rem; }
-.lom-att-avg { color: #1f2a44; font-size: var(--lom-fs-sm); font-weight: 700; }
-.lom-att-bar {
-    background: #eceff2;
-    border-radius: 3px;
+.lom-att-cards { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1100px) {
+    .lom-att-cards { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 620px) {
+    .lom-att-cards { grid-template-columns: 1fr; }
+}
+
+/* Group-by control: one segmented switch above the filter chips. */
+.lom-att-modebar {
+    align-items: center;
     display: flex;
-    height: 8px;
-    margin-bottom: 4px;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 16px 0 0;
+}
+.lom-att-modes {
+    border: 1px solid #cfd6de;
+    border-radius: 6px;
+    display: flex;
+    overflow: hidden;
+}
+.lom-att-modebtn {
+    background: #fff;
+    color: #555;
+    font-size: var(--lom-fs-sm);
+    padding: 7px 14px;
+    text-decoration: none;
+}
+.lom-att-modebtn + .lom-att-modebtn { border-left: 1px solid #cfd6de; }
+.lom-att-modebtn:hover { background: #f4f6f9; color: #333; text-decoration: none; }
+.lom-att-modebtn-active { background: #1f2a44; color: #fff; font-weight: 600; }
+.lom-att-modebtn-active:hover { background: #1f2a44; color: #fff; }
+.lom-att-modesub { color: #9aa3ad; font-size: var(--lom-fs-3xs); }
+
+.lom-att-toggle {
+    align-items: center;
+    color: #555;
+    display: inline-flex;
+    font-size: var(--lom-fs-xs);
+    gap: 7px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.lom-att-toggle:hover { color: #1f2a44; text-decoration: none; }
+.lom-att-toggle-on { color: #155a9c; font-weight: 600; }
+.lom-att-toggle-box { font-size: var(--lom-fs-md); line-height: 1; }
+
+/* Group header extras beyond the shared coverage chrome. */
+.lom-att-group-avg { font-size: var(--lom-fs-xs); font-weight: 700; white-space: nowrap; }
+.lom-att-ok { color: #166534; }
+.lom-att-warn { color: #b45309; }
+
+/* Row columns. */
+.lom-att-c-code { flex-shrink: 0; width: 9rem; }
+.lom-att-c-statement { color: #1f2a44; flex: 1 1 16rem; font-size: var(--lom-fs-xs); line-height: 1.5; min-width: 14rem; }
+.lom-att-c-n { flex-shrink: 0; text-align: right; width: 5.5rem; }
+.lom-att-c-result { flex: 0 0 14rem; min-width: 12rem; }
+@media (max-width: 980px) {
+    .lom-att-c-code,
+    .lom-att-c-n,
+    .lom-att-c-result { width: auto; }
+    .lom-att-c-statement { flex-basis: 100%; }
+}
+.lom-att-statement-text { display: block; text-wrap: pretty; }
+.lom-att-n-value { color: #444; display: block; font-size: var(--lom-fs-xs); font-weight: 600; }
+.lom-att-n-zero { color: #9aa3ad; font-weight: 400; }
+.lom-att-n-label { color: #9aa3ad; display: block; font-size: var(--lom-fs-3xs); margin-top: 1px; }
+
+/* Result column: average, then the band distribution it summarises. */
+/* The row is a span-only grid so the statement and result columns stay inline
+   children of one row element; each block below therefore declares its own box. */
+.lom-att-avg-line { align-items: baseline; display: flex; gap: 8px; }
+.lom-att-avg { font-size: var(--lom-fs-sm); font-weight: 700; }
+.lom-att-avg-label { color: #8a93a0; font-size: var(--lom-fs-3xs); }
+.lom-att-bar {
+    background: #eef0f3;
+    border-radius: 5px;
+    display: flex;
+    height: 9px;
+    margin-top: 5px;
     overflow: hidden;
     width: 100%;
 }
-.lom-att-seg { height: 8px; }
+.lom-att-seg { height: 9px; }
 .lom-att-seg-low { background: #991b1b; }
 .lom-att-seg-mid { background: #b45309; }
 .lom-att-seg-high { background: #166534; }
+.lom-att-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 5px; }
+.lom-att-legend-item {
+    align-items: center;
+    color: #667180;
+    display: inline-flex;
+    font-size: var(--lom-fs-3xs);
+    gap: 4px;
+    white-space: nowrap;
+}
+.lom-att-swatch { border-radius: 2px; display: inline-block; height: 7px; width: 7px; }
+
+/* Why an outcome has no distribution, and the one action that changes that. */
+.lom-att-reason {
+    border-radius: 4px;
+    display: inline-block;
+    font-size: var(--lom-fs-2xs);
+    padding: 4px 9px;
+}
+.lom-att-reason-pending { background: #fef3c7; color: #92400e; }
+.lom-att-reason-none { background: #fee2e2; color: #991b1b; }
+.lom-att-reason-neutral { background: #f3f4f6; color: #667180; }
+.lom-att-fix { display: block; font-size: var(--lom-fs-2xs); margin-top: 4px; }
+
+/* Higher-level alignment, as one chip chain per approved path. */
 .lom-att-alignment-note {
     background: #f4f9fe;
     border-left: 4px solid #155a9c;
@@ -1155,12 +1288,28 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
     margin-bottom: 14px;
     padding: 10px 13px;
 }
-.lom-att-alignments { margin-top: 5px; }
-.lom-att-alignment-path { color: #667180; font-size: var(--lom-fs-2xs); line-height: 1.45; }
-.lom-att-align-type { font-weight: 700; margin-right: 5px; }
-.lom-att-align-code { color: #155a9c; font-weight: 600; }
-.lom-att-align-statement { color: #667180; }
-.lom-att-align-arrow { color: #9aa3ad; }
+.lom-att-supports { align-items: center; display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.lom-att-supports-label { color: #9aa3ad; font-size: var(--lom-fs-3xs); }
+.lom-att-chip {
+    border-radius: 10px;
+    font-size: var(--lom-fs-3xs);
+    font-weight: 700;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+.lom-att-chip-rollup { background: #eef4fb; color: #155a9c; }
+.lom-att-chip-alignment { background: #f3f4f6; color: #667180; }
+.lom-att-chip-arrow { color: #9aa3ad; font-size: var(--lom-fs-3xs); }
+
+/* Diagnosis shown when the report has rows but nothing measured. */
+.lom-att-whytitle {
+    color: #1f2a44;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: var(--lom-fs-lg);
+    font-weight: 700;
+    margin: 4px 0 4px;
+}
+.lom-att-why { color: #667180; font-size: var(--lom-fs-xs); line-height: 1.5; margin-bottom: 16px; max-width: 52rem; }
 
 /* ---------------------------------------------------------------------------
    Course question mappings: quiz picker, then slots beside the apply panel.

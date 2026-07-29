@@ -7,7 +7,9 @@
     * isfrozen boolean Whether the snapshot is frozen and immutable.
     * statuslabel string Integrity/state badge text.
     * facts array Four headline facts, each with label, value, note.
-    * outcomes array Framework groups, each with framework, countline, rows.
+    * progress object Cohort course-progress tiles, the criterion used, and the population line.
+    * controls object Grouping links, subject-filter chips, and the filtered-view note.
+    * outcomes array Groups, each with framework (group label), countline, rows.
     * hasoutcomes boolean Whether any program-scope aggregate was captured.
     * totals object Aggregate learners, results, percent, frameworkcount.
     * courses array Course evidence rows.
@@ -26,6 +28,21 @@
         "isfrozen": true,
         "statuslabel": "Frozen & integrity verified",
         "facts": [{"label": "Population size", "value": "133 learners", "note": "Active enrolled users"}],
+        "progress": {
+            "known": true,
+            "populationline": "133 subjects in the population (active enrolled at data freeze)",
+            "criterion": "A course counts as passed at 80.0% or above",
+            "tiles": [{"label": "Passing every course so far", "value": "104", "note": "78.2% of the population", "variant": "lom-snap-progress-good"}]
+        },
+        "controls": {
+            "groupings": [{"label": "Unit outcome", "url": "#", "active": true}],
+            "groupsub": "Every captured outcome, grouped by its own framework.",
+            "filters": [{"label": "All subjects", "count": "133", "url": "#", "active": true}],
+            "filtered": false,
+            "filternote": "",
+            "liverollup": false,
+            "liverollupnote": ""
+        },
         "outcomes": [{
             "framework": "MBA-PLO",
             "countline": "2 outcomes reported",
@@ -75,8 +92,51 @@
         </div>
     </section>
 
+    <h3 class="lom-snap-section-title">{{#str}} snapreport_progress_heading, local_outcomemap {{/str}}</h3>
+    <div class="lom-snap-section-sub">{{#str}} snapreport_progress_sub, local_outcomemap {{/str}}</div>
+    {{#progress.known}}
+    <div class="lom-snap-progressline">{{progress.populationline}} &middot; {{progress.criterion}}</div>
+    <div class="lom-snap-progress">
+        {{#progress.tiles}}
+        <div class="lom-snap-progresstile {{variant}}">
+            <div class="lom-snap-progress-label">{{label}}</div>
+            <div class="lom-snap-progress-value">{{value}}</div>
+            <div class="lom-snap-progress-note">{{note}}</div>
+        </div>
+        {{/progress.tiles}}
+    </div>
+    {{/progress.known}}
+    {{^progress.known}}
+    <div class="lom-page-empty">{{#str}} snapreport_progress_nocriterion, local_outcomemap {{/str}}</div>
+    {{/progress.known}}
+
     <h3 class="lom-snap-section-title">{{#str}} snapreport_attainment_heading, local_outcomemap {{/str}}</h3>
     <div class="lom-snap-section-sub">{{#str}} snapreport_attainment_sub, local_outcomemap {{/str}}</div>
+    <div class="lom-snap-controls">
+        <span class="lom-snap-controls-label">{{#str}} snapreport_groupby, local_outcomemap {{/str}}</span>
+        <span class="lom-snap-modes">
+            {{#controls.groupings}}
+            <a class="lom-snap-modebtn {{#active}}lom-snap-modebtn-active{{/active}}" href="{{url}}"
+               {{#active}}aria-current="true"{{/active}}>{{label}}</a>
+            {{/controls.groupings}}
+        </span>
+        <span class="lom-snap-controls-sub">{{controls.groupsub}}</span>
+    </div>
+    <div class="lom-snap-controls">
+        <span class="lom-snap-controls-label">{{#str}} snapreport_subjectsby, local_outcomemap {{/str}}</span>
+        <span class="lom-snap-chips">
+            {{#controls.filters}}
+            <a class="lom-snap-chip {{#active}}lom-snap-chip-active{{/active}}" href="{{url}}"
+               {{#active}}aria-current="true"{{/active}}>{{label}} <span class="lom-snap-chip-count">{{count}}</span></a>
+            {{/controls.filters}}
+        </span>
+    </div>
+    {{#controls.liverollup}}
+    <div class="lom-snap-filternote">{{controls.liverollupnote}}</div>
+    {{/controls.liverollup}}
+    {{#controls.filtered}}
+    <div class="lom-snap-filternote">{{controls.filternote}}</div>
+    {{/controls.filtered}}
     {{#hasoutcomes}}
     <div class="lom-snap-table">
         <div class="lom-snap-row lom-snap-head">
@@ -158,6 +218,15 @@
             <span class="lom-snap-coursefact">{{outcomes}}</span>
             <span class="lom-snap-coursefact">{{learners}}</span>
             <span class="lom-snap-coursefact">{{results}}</span>
+            {{#haspass}}
+            <span class="lom-snap-coursepass" title="{{passline}}">
+                <span class="lom-snap-coursepct">{{passrate}}</span>
+                <span class="lom-snap-coursepassnote">{{passline}}</span>
+            </span>
+            {{/haspass}}
+            {{^haspass}}
+            <span class="lom-snap-coursefact lom-snap-withheld">&mdash;</span>
+            {{/haspass}}
         </div>
         {{/courses}}
     </div>

@@ -104,6 +104,43 @@ final class course_attainment_service_test extends \advanced_testcase {
     }
 
     /**
+     * Create an approved outcome in a framework the catalog course owns.
+     *
+     * Only these outcomes are in the course's own scope, so only these appear on
+     * the report when nothing has been calculated for them yet.
+     *
+     * @param int $catalogid Catalog course ID owning the framework.
+     * @param string $fwcode Framework code.
+     * @param string $code Outcome code.
+     * @return int Outcome-version ID.
+     */
+    private function create_course_outcome(int $catalogid, string $fwcode, string $code): int {
+        global $DB;
+        $now = time();
+        $fwid = (int) ($DB->get_field('local_outcomemap_fw', 'id',
+            ['code' => $fwcode, 'ownertype' => 'catalog_course', 'ownerid' => $catalogid]) ?: 0);
+        if (!$fwid) {
+            $fwid = (int) $DB->insert_record('local_outcomemap_fw', (object) [
+                'uuid' => uuid::generate(), 'code' => $fwcode, 'name' => $fwcode, 'description' => null,
+                'ownertype' => 'catalog_course', 'ownerid' => $catalogid, 'status' => workflow::APPROVED,
+                'createdby' => null, 'modifiedby' => null, 'timecreated' => $now, 'timemodified' => $now,
+            ]);
+        }
+        $itemid = $DB->insert_record('local_outcomemap_item', (object) [
+            'uuid' => uuid::generate(), 'frameworkid' => $fwid, 'code' => $code,
+            'status' => workflow::APPROVED, 'createdby' => null, 'timecreated' => $now,
+            'timemodified' => $now,
+        ]);
+        return (int) $DB->insert_record('local_outcomemap_itemver', (object) [
+            'uuid' => uuid::generate(), 'itemid' => $itemid, 'version' => 1,
+            'statement' => 'Course outcome ' . $code, 'shortstatement' => null,
+            'bloomlevel' => null, 'status' => workflow::APPROVED, 'effectivefrom' => $now - 86400,
+            'effectiveto' => null, 'changereason' => null, 'createdby' => null, 'approvedby' => null,
+            'timecreated' => $now, 'timemodified' => $now, 'approvedat' => $now,
+        ]);
+    }
+
+    /**
      * Store one course-scope result for a learner.
      *
      * @param int $cinstid Course instance ID.
@@ -252,6 +289,108 @@ final class course_attainment_service_test extends \advanced_testcase {
         $this->assertFalse($path->propagates);
         $this->assertSame(['0a', 'PLO1'], array_column($path->targets, 'code'));
         $this->assertSame(['TEST-CLO', 'TEST-PLO'], array_column($path->targets, 'frameworkcode'));
+    }
+
+    /**
+     * Measured rows are classified by the lowest band's share of the cohort.
+     */
+    public function test_summary_states_split_attention_from_attained(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        [$course, $cinstid, $policyid, $lowband] = $this->create_fixture();
+        $metband = (int) $DB->get_field('local_outcomemap_band', 'id',
+            ['policyid' => $policyid, 'code' => 'MET']);
+        $strong = $this->create_outcome('TESTFW3', 'S1');
+        $weak = $this->create_outcome('TESTFW3', 'W1');
+
+        $u1 = $this->getDataGenerator()->create_user();
+        $u2 = $this->getDataGenerator()->create_user();
+        $this->store_result($cinstid, $u1->id, $strong, $policyid, '90.0000000000', $metband);
+        $this->store_result($cinstid, $u2->id, $strong, $policyid, '95.0000000000', $metband);
+        $this->store_result($cinstid, $u1->id, $weak, $policyid, '90.0000000000', $metband);
+        $this->store_result($cinstid, $u2->id, $weak, $policyid, '40.0000000000', $lowband);
+
+        $summary = course_attainment_service::summary((int) $course->id);
+        $states = array_combine(
+            array_column($summary->rows, 'code'),
+            array_column($summary->rows, 'state')
+        );
+        $this->assertSame(course_attainment_service::STATE_ATTAINED, $states['S1']);
+        $this->assertSame(course_attainment_service::STATE_ATTENTION, $states['W1'],
+            'Half the assessed learners in the lowest band must flag the outcome.');
+        $this->assertSame(2, $summary->measured);
+        $this->assertSame(1, $summary->counts[course_attainment_service::STATE_ATTENTION]);
+        $this->assertEqualsWithDelta(78.75, $summary->average, 0.001,
+            'The headline average is the mean of the per-outcome cohort averages.');
+
+        // Nobody sits in the bottom band of the strong outcome, so there is no
+        // lowest-band row to report and its share is zero rather than everything.
+        $rows = array_combine(array_column($summary->rows, 'code'), $summary->rows);
+        $this->assertNull($rows['S1']->lowestband,
+            'An outcome every learner passed has no result in the policy\'s bottom band.');
+        $this->assertSame(0.0, $rows['S1']->lowshare);
+        $this->assertSame('NOTMET', $rows['W1']->lowestband->code);
+        $this->assertEqualsWithDelta(0.5, $rows['W1']->lowshare, 0.001);
+    }
+
+    /**
+     * An outcome the course owns but holds no result for still gets a row, and is
+     * reported as never assessed when no assessing content maps to it.
+     */
+    public function test_summary_reports_outcomes_with_no_result(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        [$course, $cinstid, $policyid, $lowband] = $this->create_fixture();
+        $catalogid = (int) $DB->get_field('local_outcomemap_cinst', 'courseid', ['id' => $cinstid]);
+        $measured = $this->create_course_outcome($catalogid, 'CAT-ULO', '1a');
+        $this->create_course_outcome($catalogid, 'CAT-ULO', '1b');
+        $user = $this->getDataGenerator()->create_user();
+        $this->store_result($cinstid, $user->id, $measured, $policyid, '75.0000000000', $lowband);
+
+        $summary = course_attainment_service::summary((int) $course->id);
+
+        $this->assertSame(2, $summary->outcomes, 'An unmeasured course outcome is still a row.');
+        $this->assertSame(1, $summary->measured);
+        $this->assertTrue($summary->coverageknown);
+        $rows = array_combine(array_column($summary->rows, 'code'), $summary->rows);
+        $this->assertSame(course_attainment_service::STATE_ATTENTION, $rows['1a']->state);
+        $this->assertSame(course_attainment_service::STATE_UNASSESSED, $rows['1b']->state);
+        $this->assertSame(0, $rows['1b']->calculated);
+        $this->assertNull($rows['1b']->average);
+        $this->assertSame(1, $summary->counts[course_attainment_service::STATE_UNASSESSED]);
+    }
+
+    /**
+     * An outcome with an approved assessing mapping is awaiting calculation
+     * rather than never assessed, which is a different thing to fix.
+     */
+    public function test_summary_separates_pending_from_never_assessed(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        [$course, $cinstid, , ] = $this->create_fixture();
+        $catalogid = (int) $DB->get_field('local_outcomemap_cinst', 'courseid', ['id' => $cinstid]);
+        $pending = $this->create_course_outcome($catalogid, 'CAT-ULO', '2a');
+        $this->create_course_outcome($catalogid, 'CAT-ULO', '2b');
+        $page = $this->getDataGenerator()->create_module('page', ['course' => $course->id]);
+        $now = time();
+        $DB->insert_record('local_outcomemap_cmmap', (object) [
+            'mappinguuid' => uuid::generate(), 'version' => 1, 'cinstid' => $cinstid,
+            'cmid' => $page->cmid, 'itemverid' => $pending, 'role' => 'assesses',
+            'weight' => null, 'priority' => 0, 'notes' => null, 'status' => workflow::APPROVED,
+            'effectivefrom' => $now - 3600, 'effectiveto' => null, 'createdby' => null,
+            'approvedby' => null, 'timecreated' => $now, 'timemodified' => $now, 'approvedat' => $now,
+        ]);
+
+        $summary = course_attainment_service::summary((int) $course->id);
+
+        $rows = array_combine(array_column($summary->rows, 'code'), $summary->rows);
+        $this->assertSame(course_attainment_service::STATE_PENDING, $rows['2a']->state);
+        $this->assertTrue($rows['2a']->assessedcontent);
+        $this->assertSame(course_attainment_service::STATE_UNASSESSED, $rows['2b']->state);
+        $this->assertFalse($rows['2b']->assessedcontent);
     }
 
     /**
