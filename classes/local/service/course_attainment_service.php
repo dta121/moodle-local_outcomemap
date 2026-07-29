@@ -36,13 +36,6 @@ use local_outcomemap\local\workflow;
  */
 final class course_attainment_service extends base_service {
     /**
-     * Summarise attainment for every outcome the course's learners hold results for.
-     *
-     * @param int $courseid Moodle course ID.
-     * @param int|null $at Evaluation timestamp; defaults to now.
-     * @return \stdClass Course instances, outcome rows, and cohort totals.
-     */
-    /**
      * Explain why a course holds no outcome results.
      *
      * Reports each gate the evidence pipeline applies, in the order it applies
@@ -166,6 +159,13 @@ final class course_attainment_service extends base_service {
         ];
     }
 
+    /**
+     * Summarise attainment for every outcome the course's learners hold results for.
+     *
+     * @param int $courseid Moodle course ID.
+     * @param int|null $at Evaluation timestamp; defaults to now.
+     * @return \stdClass Course instances, outcome rows, and cohort totals.
+     */
     public static function summary(int $courseid, ?int $at = null): \stdClass {
         global $DB;
         $context = \context_course::instance($courseid, MUST_EXIST);
