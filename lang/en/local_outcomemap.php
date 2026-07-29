@@ -268,6 +268,18 @@ $string['status_retired'] = 'Retired';
 $string['owner_institution'] = 'Institution';
 $string['owner_program'] = 'Program';
 $string['owner_catalog_course'] = 'Catalog course';
+$string['owner_choose'] = 'Choose…';
+$string['owner_required'] = 'Choose the record that owns this framework.';
+$string['frameworkcode'] = 'Code';
+$string['frameworkcode_help'] = 'The code prefixes every outcome label in the framework, so MEI-PLO.PLO1 is outcome PLO1 of the MEI-PLO framework.
+
+The convention is the code of the owner followed by the kind of outcomes the framework holds: PLO for program outcomes, CLO for course outcomes, and ULO for unit outcomes. A code ending in ULO is what marks the unit-level set of a catalog course, so the suffix decides how the outcomes are grouped and counted.
+
+The code cannot be changed once the framework is finalized, because every accreditation snapshot that has captured it holds it verbatim.';
+$string['frameworkownerfixed_program'] = 'This framework will belong to the program above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
+$string['frameworkownerfixed_catalog_course'] = 'This framework will belong to the catalog course above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
+$string['frameworkdefaultname_program'] = '{$a} program learning outcomes';
+$string['frameworkdefaultname_catalog_course'] = '{$a} course learning outcomes';
 $string['relation_is_child_of'] = 'Is child of';
 $string['relation_aligns_to'] = 'Aligns to';
 $string['relation_contributes_to'] = 'Contributes to';
@@ -490,7 +502,16 @@ $string['periodandweight'] = 'Reporting period and weight';
 // Course outcome attainment.
 $string['attainment_heading'] = 'Outcome attainment';
 $string['attainment_subtitle'] = 'Cohort attainment stored by the calculation engine. {$a->learners} learner(s) with results; reporting period(s): {$a->periods}.';
-$string['attainment_noresults'] = 'No outcome results have been calculated for this course yet. Results appear once approved assessed mappings exist and learners have completed the assessments they are mapped to.';
+$string['attainment_noresults'] = 'No outcome results have been calculated for this course yet.';
+$string['attainment_why_noinstance'] = 'This course has no approved, confirmed course instance, so nothing links it to a catalog course.';
+$string['attainment_why_nopolicy'] = 'No approved policy governs this course for: {$a->policies}. The plugin calculates no official result without one.';
+$string['attainment_why_nomappings'] = 'No approved assessed question mapping covers the questions learners answered here. Map the questions to outcomes, then approve the mappings.';
+$string['attainment_why_noattempts'] = 'There are {$a->mappings} approved assessed mappings, but no learner has completed a mapped assessment yet.';
+$string['attainment_why_notinforce'] = 'All {$a->mappings} approved assessed mappings postdate the attempts. The earliest mapping takes effect {$a->from}, while the most recent of {$a->attempts} completed attempts finished {$a->finish} — so no mapping was in force when the assessments were taken, and evidence is attributed only to the mapping version in force at that moment. Backdate the mappings\' effective start to before the attempts to report on them.';
+$string['attainment_why_notreconciled'] = '{$a->inforce} of {$a->attempts} completed attempts are covered by a mapping in force at the time, but no evidence has been captured yet. The reconciliation task creates it on its next run.';
+$string['attainment_why_pendingcalculation'] = 'Evidence exists for this course but no course-scope result has been stored yet, which usually means manual grading is still outstanding under the governing calculation policy.';
+$string['attainment_why_unknown'] = 'The cause could not be determined from the stored evidence and mappings.';
+$string['attainment_whyheading'] = 'Why this is empty';
 $string['attainment_learners'] = 'Learners';
 $string['attainment_assessed'] = 'Assessed';
 $string['attainment_average'] = 'Average';
@@ -977,6 +998,7 @@ $string['curriculum_typeline_graduate'] = 'Graduate degree program';
 $string['curriculum_typeline_undergraduate'] = 'Undergraduate degree program';
 $string['curriculum_typeline_specialization'] = 'Certificate-awarding course series';
 $string['curriculum_programoutcomes'] = 'Program outcomes';
+$string['curriculum_addframework'] = '+ Add outcome framework';
 $string['curriculum_editprogram'] = 'Edit program';
 $string['curriculum_fact_credential'] = 'Credential';
 $string['curriculum_fact_courses'] = 'Courses';
@@ -1005,6 +1027,18 @@ $string['curriculum_addcourse'] = 'Add a course to';
 $string['curriculum_fromcatalog'] = 'From the catalog';
 $string['curriculum_attach'] = 'Attach';
 $string['curriculum_allattached'] = 'Every catalog course is already in this program.';
+$string['membershipmove'] = 'Move';
+$string['membershipmovefrom'] = 'Currently in';
+$string['membershipmoveto'] = 'Move into';
+$string['membershipmovenotarget'] = 'Choose the program to move this course into.';
+$string['membershipmoved'] = 'The catalog course was moved. Its membership of the new program starts as a draft, like any other.';
+$string['membershipremoveaction'] = 'Remove';
+$string['membershipretireaction'] = 'Retire';
+$string['membershipremoveconfirm'] = 'Take {$a->course} out of {$a->program}? This membership is still a draft, so it governs nothing and is deleted outright. The removal is recorded in the audit history.';
+$string['membershipretireconfirm'] = 'Take {$a->course} out of {$a->program}? This membership is finalized and may already be captured in a frozen accreditation snapshot, so it is retired rather than deleted: it stops counting towards the program from now on, and the snapshots that recorded it keep what they reported. The change is recorded in the audit history.';
+$string['membershipremoved'] = '{$a->course} is no longer in {$a->program}.';
+$string['membershipsameprogram'] = 'That catalog course is already in this program.';
+$string['membershipalreadyintarget'] = 'That catalog course is already in the program you are moving it into.';
 
 // Redesigned Accreditation snapshots list.
 $string['snapshots_subtitle'] = 'Frozen, verifiable records of outcome attainment, grouped by the snapshot they correct.';

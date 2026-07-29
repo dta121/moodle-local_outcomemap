@@ -63,7 +63,12 @@ class reconcile_evidence extends \core\task\scheduled_task {
         );
         $this->collect($stale, $tuples);
 
-        // Finished attempts on mapped quizzes without any current evidence.
+        // Learners with a finished attempt on a mapped quiz but no evidence yet
+        // for that assessment. Deliberately not "attempts without evidence":
+        // ingestion only reads the attempts the governing attempt-selection
+        // policy selects, so under any single-attempt method every other
+        // finished attempt would stay evidence-free permanently and this query
+        // would hand back the same learners on every run, forever.
         $missing = $DB->get_recordset_sql(
             "SELECT DISTINCT cm.course AS courseid, cm.id AS cmid, qa.userid
                FROM {quiz_attempts} qa
@@ -82,7 +87,8 @@ class reconcile_evidence extends \core\task\scheduled_task {
                      WHERE sqa.questionusageid = qa.uniqueid)
                 AND NOT EXISTS (
                     SELECT 1 FROM {local_outcomemap_evidence} e
-                     WHERE e.quizattemptid = qa.id AND e.supersededby IS NULL)",
+                     WHERE e.cinstid = ci.id AND e.userid = qa.userid
+                       AND e.assessmentcmid = cm.id AND e.supersededby IS NULL)",
             ['approved' => workflow::APPROVED, 'mapapproved' => workflow::APPROVED],
             '',
             '*',

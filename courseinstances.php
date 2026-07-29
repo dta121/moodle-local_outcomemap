@@ -25,6 +25,14 @@ $id = optional_param('id', 0, PARAM_INT);
 // The catalog courses page links here for one course, so the list opens filtered
 // to it rather than making the reader retype a code they just clicked.
 $catalogcode = trim(optional_param('catalog', '', PARAM_TEXT));
+// The curriculum page is where associating a Moodle course is usually asked for, and
+// the reader is in the middle of reading one program there. The program is carried as
+// its id and the return URL is rebuilt here rather than passed in, so the parameter
+// cannot send anyone anywhere but back to the page they came from.
+$returnprogram = optional_param('returnprogram', 0, PARAM_INT);
+$returnurl = $returnprogram > 0
+    ? new moodle_url('/local/outcomemap/curriculum.php', ['program' => $returnprogram])
+    : $url;
 
 if ($action === 'submit' && $id) {
     require_sesskey();
@@ -53,17 +61,30 @@ if ($action === 'delete' && $id) {
     exit;
 }
 if ($action === 'add') {
+    // Associating is always asked for about one catalog course, so the course the
+    // reader clicked opens already chosen. It used to open on whichever course sorted
+    // first, which reads as the right form filled in with the wrong course.
+    $catalogcourseid = optional_param('courseid', 0, PARAM_INT);
     $formurl = new moodle_url($url, ['action' => 'add']);
+    if ($catalogcourseid > 0) {
+        $formurl->param('courseid', $catalogcourseid);
+    }
+    if ($returnprogram > 0) {
+        $formurl->param('returnprogram', $returnprogram);
+    }
     $form = new course_instance_form($formurl);
     if ($form->is_cancelled()) {
-        redirect($url);
+        redirect($returnurl);
     }
     if ($data = $form->get_data()) {
         course_instance_service::create_confirmed((array) $data);
-        redirect($url, get_string(
+        redirect($returnurl, get_string(
             workflow::requires_independent_approval() ? 'saved' : 'courseinstanceready',
             'local_outcomemap'
         ));
+    }
+    if ($catalogcourseid > 0) {
+        $form->set_data(['courseid' => $catalogcourseid]);
     }
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string('addcourseinstance', 'local_outcomemap'));

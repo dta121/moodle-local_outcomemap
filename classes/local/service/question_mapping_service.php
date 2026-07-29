@@ -187,6 +187,115 @@ final class question_mapping_service extends base_service {
     }
 
     /**
+     * Correct when an approved mapping took effect.
+     *
+     * A mapping authored for an existing course describes what its assessments
+     * have measured all along, but effectivefrom defaults to the moment of
+     * authoring, so evidence is attributed to nothing and the course reports no
+     * results. A new version cannot express this: versions of one mapping may
+     * not overlap, and the correction has to reach back over the period the
+     * current version already covers.
+     *
+     * This is a correction, not a re-decision, so the mapping keeps its UUID
+     * and version and the audit event records both the previous start and the
+     * stated reason. A reason is mandatory: moving the start changes which
+     * attempts the mapping is held to have governed.
+     *
+     * Corrections apply as one set. Moving the rows of a multi-outcome assessed
+     * set one at a time would leave the corrected start covered by only part of
+     * the set, whose weights total less than one, so each row would be rejected
+     * on the way to a state that is perfectly valid once complete.
+     *
+     * @param int[] $ids Approved mapping record IDs to correct together.
+     * @param int $effectivefrom Corrected effective start.
+     * @param string $reason Why the recorded start was wrong.
+     * @return int Number of mappings corrected.
+     */
+    public static function correct_effectivefrom(array $ids, int $effectivefrom, string $reason): int {
+        global $DB;
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new validation_exception('requiredfield', 'reason');
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+        if (!$ids) {
+            return 0;
+        }
+        $records = [];
+        $questionids = [];
+        foreach ($ids as $id) {
+            $record = self::get_required(self::TABLE, $id, 'question_mapping');
+            if ($record->status !== workflow::APPROVED) {
+                throw new validation_exception('invalidtransition', 'status', $record->status . ':correct');
+            }
+            $records[$id] = $record;
+            $questionids[(int) $record->questionid] = (int) $record->questionid;
+        }
+        $locks = self::acquire_bulk_locks(array_values($questionids));
+        try {
+            $corrected = [];
+            $questionversionids = [];
+            foreach ($records as $id => $before) {
+                $after = clone $before;
+                $after->effectivefrom = $effectivefrom;
+                $after->timemodified = time();
+                effective_dates::validate(
+                    (int) $after->effectivefrom,
+                    $after->effectiveto === null ? null : (int) $after->effectiveto
+                );
+                self::require_mutation_capabilities(
+                    (int) $after->questionversionid,
+                    (int) $after->questionid
+                );
+                $corrected[$id] = $after;
+                if ($after->role === content_mapping_service::ROLE_ASSESSES) {
+                    $questionversionids[(int) $after->questionversionid] = (int) $after->questionversionid;
+                }
+            }
+            global $USER;
+            $actorid = (int) $USER->id;
+            $transaction = $DB->start_delegated_transaction();
+            try {
+                foreach ($corrected as $id => $after) {
+                    self::require_no_approved_overlap($after);
+                    $DB->update_record(self::TABLE, $after);
+                    audit_writer::write(
+                        'correct_effectivefrom',
+                        'question_mapping',
+                        $id,
+                        $after->mappinguuid,
+                        $records[$id],
+                        $after,
+                        $reason,
+                        context_resolver::for_question_version((int) $after->questionversionid),
+                        $actorid
+                    );
+                }
+                // Validated only once the whole set has moved, at which point
+                // the corrected start is a boundary the weights must total one at.
+                foreach ($questionversionids as $questionversionid) {
+                    $batch = $DB->get_records(self::TABLE, [
+                        'questionversionid' => $questionversionid,
+                        'role' => content_mapping_service::ROLE_ASSESSES,
+                        'status' => workflow::APPROVED,
+                    ]);
+                    self::require_valid_assessed_total($questionversionid, array_values($batch));
+                    // Results calculated without these mappings in force are wrong.
+                    calculation_service::mark_stale_for_question_version($questionversionid);
+                }
+                $transaction->allow_commit();
+            } catch (\Throwable $e) {
+                self::rollback($transaction, $e);
+            }
+            return count($corrected);
+        } finally {
+            foreach (array_reverse($locks) as $lock) {
+                $lock->release();
+            }
+        }
+    }
+
+    /**
      * Create the next draft version of an approved mapping.
      *
      * @param int $id Approved mapping record ID.

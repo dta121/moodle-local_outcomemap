@@ -18,6 +18,7 @@ namespace local_outcomemap\output;
 
 use local_outcomemap\local\service\catalog_course_service;
 use local_outcomemap\local\service\course_instance_service;
+use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\program_course_service;
 use local_outcomemap\local\service\program_service;
 use local_outcomemap\local\workflow;
@@ -90,6 +91,7 @@ final class curriculum_page implements renderable, templatable {
         $context = \context_system::instance();
         $canmanageprograms = has_capability('local/outcomemap:manageprograms', $context);
         $canmanagecourses = has_capability('local/outcomemap:managecatalogcourses', $context);
+        $canmanageframeworks = has_capability('local/outcomemap:manageframeworks', $context);
         $programsurl = new moodle_url('/local/outcomemap/programs.php');
         $catalogurl = new moodle_url('/local/outcomemap/catalogcourses.php');
 
@@ -100,10 +102,10 @@ final class curriculum_page implements renderable, templatable {
             'canmanagecourses' => $canmanagecourses,
             'addprogramurl' => (new moodle_url($programsurl, ['action' => 'add']))->out(false),
             'addcourseurl' => (new moodle_url($catalogurl, ['action' => 'add']))->out(false),
-            'addinstanceurl' => (new moodle_url('/local/outcomemap/courseinstances.php',
-                ['action' => 'add']))->out(false),
+            'addinstanceurl' => $this->addinstanceurl(),
             'statsline' => $this->statsline(),
-        ] + $this->selected($canmanageprograms, $canmanagecourses, $programsurl, $catalogurl);
+        ] + $this->selected($canmanageprograms, $canmanagecourses, $canmanageframeworks,
+            $programsurl, $catalogurl);
     }
 
     /**
@@ -176,12 +178,13 @@ final class curriculum_page implements renderable, templatable {
      *
      * @param bool $canmanageprograms Whether the reader may act on programs.
      * @param bool $canmanagecourses Whether the reader may act on catalog courses.
+     * @param bool $canmanageframeworks Whether the reader may create frameworks.
      * @param moodle_url $programsurl Programs page URL.
      * @param moodle_url $catalogurl Catalog courses page URL.
      * @return array Template context for the right-hand column.
      */
     private function selected(bool $canmanageprograms, bool $canmanagecourses,
-            moodle_url $programsurl, moodle_url $catalogurl): array {
+            bool $canmanageframeworks, moodle_url $programsurl, moodle_url $catalogurl): array {
         $program = $this->programs[$this->programid] ?? null;
         if ($program === null) {
             return ['hasselection' => false];
@@ -195,7 +198,8 @@ final class curriculum_page implements renderable, templatable {
             if ($course === null) {
                 continue;
             }
-            $card = $this->course($course, $membership, $canmanagecourses, $canmanageprograms, $catalogurl);
+            $card = $this->course($course, $membership, $canmanagecourses, $canmanageprograms,
+                $canmanageframeworks, $catalogurl);
             $unconfirmed += $card['unconfirmedcount'];
             if (!$card['hasoutcomes']) {
                 $withoutoutcomes++;
@@ -240,7 +244,6 @@ final class curriculum_page implements renderable, templatable {
             'statuslabel' => workflow::status_label($program->status),
             'statusclass' => $this->statusclass($program->status),
             'facts' => $this->facts($program, count($courses), $unconfirmed, $withoutoutcomes),
-            'outcomesurl' => (new moodle_url('/local/outcomemap/frameworks.php'))->out(false),
             'canedit' => $canmanageprograms && $program->status === workflow::DRAFT,
             'editurl' => (new moodle_url($programsurl, [
                 'action' => 'edit',
@@ -255,6 +258,69 @@ final class curriculum_page implements renderable, templatable {
                 'action' => 'addmembership',
                 'programid' => $this->programid,
             ]))->out(false),
+        ] + $this->outcomeslink(framework_service::OWNER_PROGRAM, $this->programid,
+            (int) $program->frameworkcount, $canmanageframeworks);
+    }
+
+    /**
+     * Build the link that associates a Moodle course, coming back here afterwards.
+     *
+     * The reader is in the middle of one program, and saving used to leave them on the
+     * course-instances list with no way back to where they had got to. Both the course
+     * being associated and the program to return to travel with the link.
+     *
+     * @param int $courseid Catalog course to preselect, or 0 for none.
+     * @return string
+     */
+    private function addinstanceurl(int $courseid = 0): string {
+        $params = ['action' => 'add'];
+        if ($courseid > 0) {
+            $params['courseid'] = $courseid;
+        }
+        if ($this->programid > 0) {
+            $params['returnprogram'] = $this->programid;
+        }
+        return (new moodle_url('/local/outcomemap/courseinstances.php', $params))->out(false);
+    }
+
+    /**
+     * Build the outcomes action for one framework owner.
+     *
+     * An owner with no framework has nowhere to put an outcome, so what the reader
+     * needs there is the framework, not a hierarchy that cannot yet list anything of
+     * theirs. The owner travels with the link, which is what spares the reader from
+     * re-stating on the form the program or course they opened it from.
+     *
+     * @param string $ownertype Framework owner type.
+     * @param int $ownerid Program or catalog course id.
+     * @param int $frameworkcount Non-retired frameworks the owner already has.
+     * @param bool $canmanageframeworks Whether the reader may create one.
+     * @return array Template context for the action link.
+     */
+    private function outcomeslink(string $ownertype, int $ownerid, int $frameworkcount,
+            bool $canmanageframeworks): array {
+        $frameworksurl = new moodle_url('/local/outcomemap/frameworks.php');
+        $iscourse = $ownertype === framework_service::OWNER_COURSE;
+        if ($frameworkcount === 0 && $canmanageframeworks) {
+            return [
+                'outcomesurl' => (new moodle_url($frameworksurl, [
+                    'action' => 'addframework',
+                    'ownertype' => $ownertype,
+                    'ownerid' => $ownerid,
+                ]))->out(false),
+                'outcomeslabel' => get_string('curriculum_addframework', 'local_outcomemap'),
+            ];
+        }
+        // The two hierarchy views are different lenses, and a catalog-course framework
+        // is only ever listed under its course, so each owner is sent to its own.
+        return [
+            'outcomesurl' => (new moodle_url($frameworksurl, [
+                'view' => $iscourse ? 'course' : 'program',
+            ]))->out(false),
+            'outcomeslabel' => get_string(
+                $iscourse ? 'curriculum_courseoutcomes' : 'curriculum_programoutcomes',
+                'local_outcomemap'
+            ),
         ];
     }
 
@@ -319,11 +385,12 @@ final class curriculum_page implements renderable, templatable {
      * @param \stdClass $membership The membership tying it to this program.
      * @param bool $canmanagecourses Whether the reader may act on associations.
      * @param bool $canmanageprograms Whether the reader may act on memberships.
+     * @param bool $canmanageframeworks Whether the reader may create frameworks.
      * @param moodle_url $catalogurl Catalog courses page URL.
      * @return array Template card context.
      */
     private function course(\stdClass $course, \stdClass $membership, bool $canmanagecourses,
-            bool $canmanageprograms, moodle_url $catalogurl): array {
+            bool $canmanageprograms, bool $canmanageframeworks, moodle_url $catalogurl): array {
         $courseid = (int) $course->id;
         $instanceurl = new moodle_url('/local/outcomemap/courseinstances.php');
         $hasoutcomes = (int) $course->courseoutcomecount + (int) $course->unitoutcomecount > 0;
@@ -403,20 +470,44 @@ final class curriculum_page implements renderable, templatable {
             'membershipstatusclass' => $this->statusclass($membership->status),
             'membershipeffective' => $this->effective($membership),
             'cansubmitmembership' => false,
-            'outcomesurl' => (new moodle_url('/local/outcomemap/frameworks.php'))->out(false),
+            'canmovemembership' => false,
+            'addinstanceurl' => $this->addinstanceurl($courseid),
             'instancesurl' => (new moodle_url($instanceurl, ['catalog' => $course->code]))->out(false),
             'canedit' => $canmanagecourses && $course->status === workflow::DRAFT,
             'editurl' => (new moodle_url($catalogurl, [
                 'action' => 'edit',
                 'id' => $courseid,
             ]))->out(false),
-        ];
+        ] + $this->outcomeslink(framework_service::OWNER_COURSE, $courseid,
+            (int) $course->frameworkcount, $canmanageframeworks);
         if ($canmanageprograms && $membership->status === workflow::DRAFT) {
             $card['cansubmitmembership'] = true;
             $card['membershipsubmitlabel'] = workflow::submit_action_label();
             $card['membershipsubmiturl'] = (new moodle_url($catalogurl, [
                 'action' => 'submit',
                 'type' => 'membership',
+                'id' => (int) $membership->id,
+                'sesskey' => sesskey(),
+            ]))->out(false);
+        }
+        // Attaching a course to the wrong program is an easy mistake and used to be
+        // a one-way one, so each membership carries its own correction: move it to
+        // the program it belongs in, or take it out of this one altogether.
+        if ($canmanageprograms) {
+            $card['canmovemembership'] = true;
+            $card['membershipmovelabel'] = get_string('membershipmove', 'local_outcomemap');
+            $card['membershipmoveurl'] = (new moodle_url($catalogurl, [
+                'action' => 'movemembership',
+                'id' => (int) $membership->id,
+            ]))->out(false);
+            $card['membershipremovelabel'] = get_string(
+                $membership->status === workflow::APPROVED
+                    ? 'membershipretireaction'
+                    : 'membershipremoveaction',
+                'local_outcomemap'
+            );
+            $card['membershipremoveurl'] = (new moodle_url($catalogurl, [
+                'action' => 'removemembership',
                 'id' => (int) $membership->id,
                 'sesskey' => sesskey(),
             ]))->out(false);

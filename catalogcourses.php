@@ -3,8 +3,10 @@
 
 use local_outcomemap\form\catalog_course_form;
 use local_outcomemap\form\program_course_form;
+use local_outcomemap\form\program_course_move_form;
 use local_outcomemap\local\service\catalog_course_service;
 use local_outcomemap\local\service\program_course_service;
+use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
 $configpath = __DIR__ . '/../../config.php';
@@ -33,6 +35,67 @@ if ($action === 'submit' && $id) {
         catalog_course_service::submit_for_review($id);
     }
     redirect($url, workflow::submission_success_message());
+}
+
+if ($action === 'removemembership' && $id) {
+    require_sesskey();
+    $membership = $DB->get_record_sql(
+        'SELECT pc.*, p.code AS programcode, c.code AS coursecode
+           FROM {local_outcomemap_progcourse} pc
+           JOIN {local_outcomemap_program} p ON p.id = pc.programid
+           JOIN {local_outcomemap_course} c ON c.id = pc.courseid
+          WHERE pc.id = :id', ['id' => $id], MUST_EXIST);
+    $back = new moodle_url('/local/outcomemap/curriculum.php', ['program' => (int) $membership->programid]);
+    if (optional_param('confirm', 0, PARAM_BOOL)) {
+        program_course_service::remove($id);
+        redirect($back, get_string('membershipremoved', 'local_outcomemap', (object) [
+            'course' => s($membership->coursecode),
+            'program' => s($membership->programcode),
+        ]));
+    }
+    // Taking a course out of a program is destructive, so it keeps its own
+    // confirmation step. An approved membership is retired rather than deleted,
+    // and the prompt says which of the two is about to happen.
+    echo $OUTPUT->header();
+    echo $OUTPUT->confirm(
+        get_string(
+            $membership->status === workflow::APPROVED
+                ? 'membershipretireconfirm'
+                : 'membershipremoveconfirm',
+            'local_outcomemap',
+            (object) ['course' => s($membership->coursecode), 'program' => s($membership->programcode)]
+        ),
+        new moodle_url($url, ['action' => 'removemembership', 'id' => $id, 'confirm' => 1,
+            'sesskey' => sesskey()]),
+        $back
+    );
+    echo $OUTPUT->footer();
+    exit;
+}
+
+if ($action === 'movemembership' && $id) {
+    $membership = $DB->get_record('local_outcomemap_progcourse', ['id' => $id], '*', MUST_EXIST);
+    $formurl = new moodle_url($url, ['action' => 'movemembership', 'id' => $id]);
+    $form = new program_course_move_form($formurl, ['membership' => $membership]);
+    $back = new moodle_url('/local/outcomemap/curriculum.php', ['program' => (int) $membership->programid]);
+    if ($form->is_cancelled()) {
+        redirect($back);
+    }
+    if ($data = $form->get_data()) {
+        try {
+            program_course_service::move($id, (int) $data->targetprogramid, $data->reason ?: null);
+            redirect(new moodle_url('/local/outcomemap/curriculum.php',
+                ['program' => (int) $data->targetprogramid]),
+                get_string('membershipmoved', 'local_outcomemap'));
+        } catch (validation_exception $e) {
+            \core\notification::error($e->getMessage());
+        }
+    }
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('membershipmove', 'local_outcomemap'));
+    $form->display();
+    echo $OUTPUT->footer();
+    exit;
 }
 
 if ($action === 'addmembership') {

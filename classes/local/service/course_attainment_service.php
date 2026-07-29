@@ -42,6 +42,130 @@ final class course_attainment_service extends base_service {
      * @param int|null $at Evaluation timestamp; defaults to now.
      * @return \stdClass Course instances, outcome rows, and cohort totals.
      */
+    /**
+     * Explain why a course holds no outcome results.
+     *
+     * Reports each gate the evidence pipeline applies, in the order it applies
+     * them, so an empty page names its own cause instead of listing the two
+     * causes readers guess at. The in-force test deliberately mirrors
+     * {@see calculation_service::ingest_attempt_evidence()} rather than
+     * approximating it: a diagnosis that disagreed with the engine would be
+     * worse than none.
+     *
+     * @param int $courseid Moodle course ID.
+     * @param int|null $at Evaluation timestamp; defaults to now.
+     * @return \stdClass Counts, boundary timestamps, and the resolved cause.
+     */
+    public static function diagnose(int $courseid, ?int $at = null): \stdClass {
+        global $DB;
+        $context = \context_course::instance($courseid, MUST_EXIST);
+        require_capability('local/outcomemap:viewallresults', $context);
+        $at = $at ?? time();
+
+        $quizjoin = "FROM {quiz_attempts} qa
+                     JOIN {quiz} q ON q.id = qa.quiz
+                     JOIN {course_modules} cm ON cm.instance = q.id
+                     JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
+                    WHERE cm.course = :courseid AND qa.state = 'finished' AND qa.preview = 0";
+        $params = ['courseid' => $courseid];
+        $attempts = (int) $DB->get_field_sql("SELECT COUNT(qa.id) $quizjoin", $params);
+        $lastfinish = (int) $DB->get_field_sql("SELECT MAX(qa.timefinish) $quizjoin", $params);
+
+        // Attempts reachable by an approved assessed mapping, ignoring dates.
+        $mappingjoin = "JOIN {question_attempts} sqa ON sqa.questionusageid = qa.uniqueid
+                        JOIN {question_versions} sqv ON sqv.questionid = sqa.questionid
+                        JOIN {local_outcomemap_qmap} sm ON sm.questionversionid = sqv.id
+                             AND sm.role = :role AND sm.status = :status";
+        $mapparams = $params + ['role' => content_mapping_service::ROLE_ASSESSES,
+            'status' => workflow::APPROVED];
+        $mapped = (int) $DB->get_field_sql(
+            "SELECT COUNT(DISTINCT qa.id) FROM {quiz_attempts} qa
+               JOIN {quiz} q ON q.id = qa.quiz
+               JOIN {course_modules} cm ON cm.instance = q.id
+               JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
+               $mappingjoin
+              WHERE cm.course = :courseid AND qa.state = 'finished' AND qa.preview = 0",
+            $mapparams
+        );
+        $mappings = (int) $DB->get_field_sql(
+            "SELECT COUNT(DISTINCT sm.id) FROM {quiz_attempts} qa
+               JOIN {quiz} q ON q.id = qa.quiz
+               JOIN {course_modules} cm ON cm.instance = q.id
+               JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
+               $mappingjoin
+              WHERE cm.course = :courseid AND qa.state = 'finished' AND qa.preview = 0",
+            $mapparams
+        );
+        $firstmapping = (int) $DB->get_field_sql(
+            "SELECT MIN(sm.effectivefrom) FROM {quiz_attempts} qa
+               JOIN {quiz} q ON q.id = qa.quiz
+               JOIN {course_modules} cm ON cm.instance = q.id
+               JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
+               $mappingjoin
+              WHERE cm.course = :courseid AND qa.state = 'finished' AND qa.preview = 0",
+            $mapparams
+        );
+
+        // The engine's own test: in force at the attempt's finish time.
+        $inforce = (int) $DB->get_field_sql(
+            "SELECT COUNT(DISTINCT qa.id) FROM {quiz_attempts} qa
+               JOIN {quiz} q ON q.id = qa.quiz
+               JOIN {course_modules} cm ON cm.instance = q.id
+               JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
+               $mappingjoin
+              WHERE cm.course = :courseid AND qa.state = 'finished' AND qa.preview = 0
+                AND sm.effectivefrom <= COALESCE(NULLIF(qa.timefinish, 0), qa.timemodified)
+                AND (sm.effectiveto IS NULL
+                     OR sm.effectiveto > COALESCE(NULLIF(qa.timefinish, 0), qa.timemodified))",
+            $mapparams
+        );
+
+        $instances = $DB->get_records('local_outcomemap_cinst', [
+            'moodlecourseid' => $courseid,
+            'status' => workflow::APPROVED,
+            'confirmed' => 1,
+        ], 'periodcode, id', 'id, periodcode');
+        $missingpolicies = [];
+        $evidence = 0;
+        foreach ($instances as $instance) {
+            foreach ([policy_service::TYPE_ATTEMPT_SELECTION, policy_service::TYPE_CALCULATION] as $type) {
+                if (policy_service::resolve($type, (int) $instance->id, null, $at) === null) {
+                    $missingpolicies[$type] = $type;
+                }
+            }
+            $evidence += $DB->count_records('local_outcomemap_evidence', ['cinstid' => $instance->id]);
+        }
+
+        $cause = 'unknown';
+        if (!$instances) {
+            $cause = 'noinstance';
+        } else if ($missingpolicies) {
+            $cause = 'nopolicy';
+        } else if ($mappings === 0) {
+            $cause = 'nomappings';
+        } else if ($attempts === 0) {
+            $cause = 'noattempts';
+        } else if ($inforce === 0) {
+            $cause = 'notinforce';
+        } else if ($evidence === 0) {
+            $cause = 'notreconciled';
+        } else {
+            $cause = 'pendingcalculation';
+        }
+
+        return (object) [
+            'cause' => $cause,
+            'attempts' => $attempts,
+            'mappedattempts' => $mapped,
+            'mappings' => $mappings,
+            'inforceattempts' => $inforce,
+            'evidence' => $evidence,
+            'lastattemptfinish' => $lastfinish ?: null,
+            'firstmappingfrom' => $firstmapping ?: null,
+            'missingpolicies' => array_values($missingpolicies),
+        ];
+    }
+
     public static function summary(int $courseid, ?int $at = null): \stdClass {
         global $DB;
         $context = \context_course::instance($courseid, MUST_EXIST);

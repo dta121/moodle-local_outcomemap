@@ -272,6 +272,137 @@ final class curriculum_page_test extends \advanced_testcase {
     }
 
     /**
+     * An owner with no framework is offered the framework, carrying its own identity.
+     *
+     * A program or catalog course with no framework has nowhere to put an outcome, so
+     * the action that matters is creating one. It used to link to the bare frameworks
+     * page, where the owner had to be chosen again from a list of every program and
+     * course on the site.
+     */
+    public function test_export_offers_the_missing_framework_for_its_owner(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+
+        $programid = program_service::create([
+            'code' => 'MEI',
+            'name' => "Master's in Entrepreneurship & Innovation",
+            'programtype' => program_service::TYPE_GRADUATE,
+        ]);
+        $courseid = $this->attach($programid, 'MEI604', 'New Venture Finance');
+
+        $context = $this->export($programid);
+
+        $this->assertSame(get_string('curriculum_addframework', 'local_outcomemap'),
+            $context['outcomeslabel']);
+        $this->assertStringContainsString('action=addframework', $context['outcomesurl']);
+        $this->assertStringContainsString('ownertype=' . framework_service::OWNER_PROGRAM,
+            $context['outcomesurl']);
+        $this->assertStringContainsString('ownerid=' . $programid, $context['outcomesurl'],
+            'The program travels with the link so the form does not ask for it again.');
+
+        $card = $context['courses'][0];
+        $this->assertSame(get_string('curriculum_addframework', 'local_outcomemap'),
+            $card['outcomeslabel']);
+        $this->assertStringContainsString('ownertype=' . framework_service::OWNER_COURSE,
+            $card['outcomesurl']);
+        $this->assertStringContainsString('ownerid=' . $courseid, $card['outcomesurl']);
+    }
+
+    /**
+     * An owner that already has a framework is sent to the view that lists it.
+     */
+    public function test_export_browses_the_hierarchy_once_a_framework_exists(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+
+        $programid = program_service::create([
+            'code' => 'MEI',
+            'name' => "Master's in Entrepreneurship & Innovation",
+            'programtype' => program_service::TYPE_GRADUATE,
+        ]);
+        framework_service::create([
+            'code' => 'MEI-PLO',
+            'name' => 'MEI program learning outcomes',
+            'ownertype' => framework_service::OWNER_PROGRAM,
+            'ownerid' => $programid,
+        ]);
+        $courseid = $this->attach($programid, 'MEI604', 'New Venture Finance');
+        $this->add_framework($courseid, 'MEI604-CLO');
+
+        $context = $this->export($programid);
+
+        $this->assertSame(get_string('curriculum_programoutcomes', 'local_outcomemap'),
+            $context['outcomeslabel']);
+        $this->assertStringNotContainsString('addframework', $context['outcomesurl']);
+        $this->assertStringContainsString('view=program', $context['outcomesurl']);
+
+        $card = $context['courses'][0];
+        $this->assertSame(get_string('curriculum_courseoutcomes', 'local_outcomemap'),
+            $card['outcomeslabel']);
+        $this->assertStringContainsString('view=course', $card['outcomesurl'],
+            'A course-owned framework is only ever listed under its course.');
+    }
+
+    /**
+     * A reader who may not create frameworks is not offered one.
+     */
+    public function test_export_does_not_offer_a_framework_without_the_capability(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+
+        $programid = program_service::create([
+            'code' => 'MEI',
+            'name' => "Master's in Entrepreneurship & Innovation",
+            'programtype' => program_service::TYPE_GRADUATE,
+        ]);
+
+        $systemcontext = \context_system::instance();
+        $roleid = $this->getDataGenerator()->create_role();
+        assign_capability('local/outcomemap:viewdefinitions', CAP_ALLOW, $roleid, $systemcontext->id);
+        $reader = $this->getDataGenerator()->create_user();
+        role_assign($roleid, $reader->id, $systemcontext->id);
+        $this->setUser($reader);
+
+        $context = $this->export($programid);
+        $this->assertStringNotContainsString('addframework', $context['outcomesurl'],
+            'The frameworks page would refuse the action, so it must not be offered.');
+        $this->assertSame(get_string('curriculum_programoutcomes', 'local_outcomemap'),
+            $context['outcomeslabel']);
+    }
+
+    /**
+     * Associating a Moodle course is asked about one course, and comes back here.
+     *
+     * The link used to be the same generic one on every card, so the form opened on
+     * whichever catalog course sorted first, and saving left the reader on the
+     * course-instances list with no way back to the program they were reading.
+     */
+    public function test_export_associates_the_card_course_and_returns_to_the_program(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+
+        $programid = program_service::create([
+            'code' => 'MEI',
+            'name' => "Master's in Entrepreneurship & Innovation",
+            'programtype' => program_service::TYPE_GRADUATE,
+        ]);
+        $courseid = $this->attach($programid, 'MEI604', 'New Venture Finance');
+
+        $context = $this->export($programid);
+        $card = $context['courses'][0];
+
+        $this->assertStringContainsString('courseid=' . $courseid, $card['addinstanceurl'],
+            'The card asks about its own course, not whichever one sorts first.');
+        $this->assertStringContainsString('returnprogram=' . $programid, $card['addinstanceurl']);
+        // The page-level action has no one course, but still comes back here.
+        $this->assertStringNotContainsString('courseid=', $context['addinstanceurl']);
+        $this->assertStringContainsString('returnprogram=' . $programid, $context['addinstanceurl']);
+    }
+
+    /**
      * An unknown program falls back to the first rather than showing nothing.
      */
     public function test_export_falls_back_to_the_first_program(): void {

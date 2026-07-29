@@ -11,7 +11,8 @@
     * statsline string Aggregate summary line.
     * code, name, typeline, typeclass, statuslabel, statusclass Selected program identity.
     * facts array Fact tiles with label, value, warn.
-    * outcomesurl, canedit, editurl Program actions.
+    * outcomesurl, outcomeslabel, canedit, editurl Program actions. The outcomes action
+      creates the framework while the program has none, and browses the hierarchy after.
     * courses array Course cards with their delivery rows.
     * hascourses boolean, coursehint string
     * attachable array Catalog courses not yet in this program.
@@ -39,6 +40,7 @@
         "statusclass": "approved",
         "facts": [{"label": "Credential", "value": "Degree", "warn": false}],
         "outcomesurl": "#",
+        "outcomeslabel": "Program outcomes",
         "canedit": false,
         "editurl": "#",
         "courses": [{
@@ -54,7 +56,11 @@
                            "mappingurl": "#"}],
             "membershipstatus": "Finalized", "membershipstatusclass": "approved",
             "membershipeffective": "From 31 December 2025", "cansubmitmembership": false,
-            "outcomesurl": "#", "addinstanceurl": "#", "instancesurl": "#",
+            "canmovemembership": true, "membershipmovelabel": "Move",
+            "membershipmoveurl": "#", "membershipremovelabel": "Retire",
+            "membershipremoveurl": "#",
+            "outcomesurl": "#", "outcomeslabel": "+ Add outcome framework",
+            "addinstanceurl": "#", "instancesurl": "#",
             "canedit": false, "editurl": "#"
         }],
         "hascourses": true,
@@ -114,7 +120,7 @@
                     <span class="lom-cur-program-type">{{typeline}}</span>
                     <span class="lom-workflow lom-workflow-{{statusclass}}">{{statuslabel}}</span>
                     <span class="lom-cur-program-actions">
-                        <a class="lom-page-btn lom-page-btn-sm" href="{{outcomesurl}}">{{#str}} curriculum_programoutcomes, local_outcomemap {{/str}}</a>
+                        <a class="lom-page-btn lom-page-btn-sm" href="{{outcomesurl}}">{{outcomeslabel}}</a>
                         {{#canedit}}<a class="lom-page-btn lom-page-btn-sm" href="{{editurl}}">{{#str}} curriculum_editprogram, local_outcomemap {{/str}}</a>{{/canedit}}
                     </span>
                 </div>
@@ -178,7 +184,7 @@
                     {{/instances}}
                     <div class="lom-cur-course-foot">
                         {{#canmanagecourses}}<a href="{{addinstanceurl}}">{{#str}} curriculum_addinstance, local_outcomemap {{/str}}</a>{{/canmanagecourses}}
-                        <a href="{{outcomesurl}}">{{#str}} curriculum_courseoutcomes, local_outcomemap {{/str}}</a>
+                        <a href="{{outcomesurl}}">{{outcomeslabel}}</a>
                         <a href="{{instancesurl}}">{{#str}} curriculum_allinstances, local_outcomemap {{/str}}</a>
                         {{#canedit}}<a href="{{editurl}}">{{#str}} catalogcourses_action_edit, local_outcomemap {{/str}}</a>{{/canedit}}
                         <span class="lom-cur-membership">
@@ -186,6 +192,10 @@
                             <span class="lom-workflow lom-workflow-{{membershipstatusclass}}">{{membershipstatus}}</span>
                             {{membershipeffective}}
                             {{#cansubmitmembership}}<a href="{{membershipsubmiturl}}">{{membershipsubmitlabel}}</a>{{/cansubmitmembership}}
+                            {{#canmovemembership}}
+                            <a href="{{membershipmoveurl}}">{{membershipmovelabel}}</a>
+                            <a class="lom-cur-membership-remove" href="{{membershipremoveurl}}">{{membershipremovelabel}}</a>
+                            {{/canmovemembership}}
                         </span>
                     </div>
                 </div>

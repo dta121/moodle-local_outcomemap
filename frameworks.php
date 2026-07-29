@@ -29,6 +29,29 @@ $type = optional_param('type', 'framework', PARAM_ALPHA);
 $id = optional_param('id', 0, PARAM_INT);
 $view = optional_param('view', 'program', PARAM_ALPHA);
 
+// A framework reached from the program or catalog course it will belong to carries
+// that owner with it, so the reader is not asked to re-state what the link already
+// said. An owner that does not resolve is dropped rather than reported: the full
+// form it falls back to is the one that lets any owner be chosen anyway.
+$ownercontext = null;
+$ownertype = optional_param('ownertype', '', PARAM_ALPHAEXT);
+$ownerid = optional_param('ownerid', 0, PARAM_INT);
+$ownertables = [
+    framework_service::OWNER_PROGRAM => 'local_outcomemap_program',
+    framework_service::OWNER_COURSE => 'local_outcomemap_course',
+];
+if ($ownerid > 0 && isset($ownertables[$ownertype])) {
+    $owner = $DB->get_record($ownertables[$ownertype], ['id' => $ownerid], 'id, code, name');
+    if ($owner !== false) {
+        $ownercontext = (object) [
+            'ownertype' => $ownertype,
+            'ownerid' => (int) $owner->id,
+            'code' => $owner->code,
+            'name' => $owner->name,
+        ];
+    }
+}
+
 if ($action === 'submit' && $id) {
     require_sesskey();
     if ($type === 'outcome') {
@@ -166,24 +189,38 @@ if ($action === 'addframework' || $action === 'editframework') {
     $existing = $id ? $DB->get_record('local_outcomemap_fw', ['id' => $id], '*', MUST_EXIST) : null;
     $form = new framework_form($url, [
         'identitylocked' => $existing !== null && $existing->status === workflow::APPROVED,
+        'owner' => $existing === null ? $ownercontext : null,
     ]);
     if ($form->is_cancelled()) {
         redirect($url);
     }
+    $rejected = null;
     if ($data = $form->get_data()) {
-        if ($data->id) {
-            framework_service::update((int) $data->id, (array) $data);
-        } else {
-            framework_service::create((array) $data);
+        // A rejected framework is a correctable mistake, so it is reported the way
+        // every other action on this page reports one rather than as an uncaught
+        // exception page that loses what the reader had typed.
+        try {
+            if ($data->id) {
+                framework_service::update((int) $data->id, (array) $data);
+            } else {
+                framework_service::create((array) $data);
+            }
+            // The two hierarchy views are different lenses: a catalog-course framework
+            // is only ever listed under its course. Redirecting to the default view
+            // would show the reader a page their new framework is not on.
+            redirect(new moodle_url($url, [
+                'view' => $data->ownertype === framework_service::OWNER_COURSE ? 'course' : 'program',
+            ]), get_string('saved', 'local_outcomemap'));
+        } catch (validation_exception $e) {
+            \core\notification::error($e->getMessage());
+            $rejected = $data;
         }
-        // The two hierarchy views are different lenses: a catalog-course framework
-        // is only ever listed under its course. Redirecting to the default view
-        // would show the reader a page their new framework is not on.
-        redirect(new moodle_url($url, [
-            'view' => $data->ownertype === framework_service::OWNER_COURSE ? 'course' : 'program',
-        ]), get_string('saved', 'local_outcomemap'));
     }
-    if ($existing !== null) {
+    // The rejected submission wins over the stored record: it is what the reader
+    // is still correcting.
+    if ($rejected !== null) {
+        $form->set_data($rejected);
+    } else if ($existing !== null) {
         $form->set_data($existing);
     }
     echo $OUTPUT->header();

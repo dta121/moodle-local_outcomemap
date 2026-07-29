@@ -91,6 +91,99 @@ final class program_course_service extends base_service {
     }
 
     /**
+     * Take a catalog course out of a program.
+     *
+     * What that means depends on whether the membership ever took effect. A draft
+     * or in-review membership governed nothing and was never captured by any
+     * accreditation snapshot, so a mistaken attachment is deleted outright. An
+     * approved one may already be recorded in a frozen snapshot, so the row has to
+     * survive as history and is retired instead — which the curriculum page treats
+     * the same way, since it lists only non-retired memberships.
+     *
+     * @param int $id Membership ID.
+     * @param string|null $reason Why it is being removed.
+     * @return void
+     */
+    public static function remove(int $id, ?string $reason = null): void {
+        global $DB;
+        $actorid = self::require_system('local/outcomemap:manageprograms');
+        $before = self::get_required(self::TABLE, $id, 'program_course');
+        if ($before->status === workflow::RETIRED) {
+            return;
+        }
+        $context = \context_system::instance();
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            if ($before->status === workflow::APPROVED) {
+                $after = clone $before;
+                $after->status = workflow::RETIRED;
+                $after->timemodified = time();
+                $DB->update_record(self::TABLE, $after);
+                audit_writer::write('retire', 'program_course', $id, $before->uuid, $before, $after,
+                    $reason, $context, $actorid);
+            } else {
+                $DB->delete_records(self::TABLE, ['id' => $id]);
+                audit_writer::write('delete', 'program_course', $id, $before->uuid, $before, null,
+                    $reason, $context, $actorid);
+            }
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+    }
+
+    /**
+     * Move a catalog course from the program it is in to another one.
+     *
+     * A move is the correction for attaching a course to the wrong program, so it
+     * is the two halves — leaving the old program and joining the new one — done
+     * together, keeping the effective dates the reader already set. The new
+     * membership starts as a draft like any other, because which program teaches a
+     * course is exactly the kind of claim this plugin governs.
+     *
+     * @param int $id Membership to move.
+     * @param int $targetprogramid Program to move it into.
+     * @param string|null $reason Why it is being moved.
+     * @return int The new membership ID.
+     */
+    public static function move(int $id, int $targetprogramid, ?string $reason = null): int {
+        global $DB;
+        self::require_system('local/outcomemap:manageprograms');
+        $before = self::get_required(self::TABLE, $id, 'program_course');
+        $targetprogramid = input::positive_int($targetprogramid, 'programid');
+        self::get_required('local_outcomemap_program', $targetprogramid, 'program');
+        if ((int) $before->programid === $targetprogramid) {
+            throw new validation_exception('membershipsameprogram', 'programid', $targetprogramid);
+        }
+        $duplicate = $DB->record_exists_select(
+            self::TABLE,
+            'programid = :programid AND courseid = :courseid AND status <> :retired',
+            [
+                'programid' => $targetprogramid,
+                'courseid' => (int) $before->courseid,
+                'retired' => workflow::RETIRED,
+            ]
+        );
+        if ($duplicate) {
+            throw new validation_exception('membershipalreadyintarget', 'programid', $targetprogramid);
+        }
+        // Both halves open their own delegated transaction, and a nested rollback
+        // already forces this outer one back, so a catch here would only replace the
+        // real failure with "Transactions already disposed". The exception is left
+        // to propagate to the caller, which reports it.
+        $transaction = $DB->start_delegated_transaction();
+        self::remove($id, $reason);
+        $newid = self::create([
+            'programid' => $targetprogramid,
+            'courseid' => (int) $before->courseid,
+            'effectivefrom' => (int) $before->effectivefrom,
+            'effectiveto' => $before->effectiveto === null ? null : (int) $before->effectiveto,
+        ]);
+        $transaction->allow_commit();
+        return $newid;
+    }
+
+    /**
      * Return every membership with its program and catalog course descriptors.
      *
      * The program name and type travel with the row so a page can group

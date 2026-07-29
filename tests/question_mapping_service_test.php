@@ -782,6 +782,132 @@ final class question_mapping_service_test extends \advanced_testcase {
     }
 
     /**
+     * An approved mapping's effective start can be corrected backwards, which no
+     * new version could express, and the correction is audited and reasoned.
+     */
+    public function test_correct_effectivefrom_moves_an_approved_mapping_backwards(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+        set_config('autosubmitquestionmappings', 1, 'local_outcomemap');
+        $reviewer = $this->create_reviewer();
+        $itemverids = $this->create_outcomes($reviewer, ['CLO1']);
+        $question = $this->create_question();
+
+        $id = question_mapping_service::create([
+            'questionversionid' => $question->versionid,
+            'itemverid' => $itemverids['CLO1'],
+            'role' => 'assesses',
+            'weight' => '1',
+            'effectivefrom' => self::EFFECTIVEFROM,
+        ]);
+        $before = question_mapping_service::get($id);
+        $this->assertSame(workflow::APPROVED, $before->status);
+
+        $backdated = self::EFFECTIVEFROM - (86400 * 365);
+        $this->assertSame(1, question_mapping_service::correct_effectivefrom([$id], $backdated,
+            'Authored for an existing course; the mapping described the exam all along.'));
+
+        $after = question_mapping_service::get($id);
+        $this->assertSame($backdated, (int) $after->effectivefrom,
+            'The corrected start must be stored.');
+        $this->assertSame((int) $before->version, (int) $after->version,
+            'A correction is not a new decision, so the version does not move.');
+        $this->assertSame($before->mappinguuid, $after->mappinguuid);
+        $this->assertSame(workflow::APPROVED, $after->status);
+
+        $audit = $DB->get_records('local_outcomemap_audit',
+            ['objecttype' => 'question_mapping', 'action' => 'correct_effectivefrom']);
+        $this->assertCount(1, $audit, 'The correction must be audited.');
+        $event = reset($audit);
+        $this->assertStringContainsString('existing course', (string) $event->reason);
+        $this->assertSame(
+            self::EFFECTIVEFROM,
+            (int) json_decode($event->beforejson, true)['effectivefrom'],
+            'The audit trail must retain the start that was replaced.'
+        );
+
+        // A reason is mandatory, and a draft cannot be corrected this way.
+        try {
+            question_mapping_service::correct_effectivefrom([$id], $backdated, '   ');
+            $this->fail('A correction without a reason must be rejected.');
+        } catch (validation_exception $e) {
+            $this->assertSame('requiredfield', $e->errorcode);
+        }
+        $draftid = question_mapping_service::create([
+            'questionversionid' => $question->versionid,
+            'itemverid' => $itemverids['CLO1'],
+            'role' => 'alignment_only',
+            'effectivefrom' => self::EFFECTIVEFROM,
+        ]);
+        $DB->set_field('local_outcomemap_qmap', 'status', workflow::DRAFT, ['id' => $draftid]);
+        try {
+            question_mapping_service::correct_effectivefrom([$draftid], $backdated, 'Not approved yet.');
+            $this->fail('Only an approved mapping may be corrected.');
+        } catch (validation_exception $e) {
+            $this->assertSame('invalidtransition', $e->errorcode);
+        }
+    }
+
+    /**
+     * A four-way assessed set moves as one unit; correcting it row by row would
+     * be rejected because each intermediate state totals less than 1.0.
+     */
+    public function test_correct_effectivefrom_moves_a_split_set_atomically(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+        set_config('autosubmitquestionmappings', 1, 'local_outcomemap');
+        $reviewer = $this->create_reviewer();
+        $codes = ['CLO1', 'CLO2', 'CLO3', 'CLO4'];
+        $itemverids = $this->create_outcomes($reviewer, $codes);
+        $question = $this->create_question();
+
+        $ids = [];
+        foreach ($codes as $code) {
+            $ids[] = question_mapping_service::create([
+                'questionversionid' => $question->versionid,
+                'itemverid' => $itemverids[$code],
+                'role' => 'assesses',
+                'weight' => '0.25',
+                'effectivefrom' => self::EFFECTIVEFROM,
+            ]);
+        }
+        // Autosubmit reports each row it has to leave as a draft while the set's
+        // weights are still short of 1.0, so three notices are expected here.
+        $this->assertDebuggingCalledCount(3);
+        foreach ($ids as $id) {
+            $this->assertSame(workflow::APPROVED, question_mapping_service::get($id)->status);
+        }
+
+        $backdated = self::EFFECTIVEFROM - 86400;
+
+        // One row alone cannot move: at the corrected start only that row is in
+        // force, so the assessed total there is 0.25.
+        try {
+            question_mapping_service::correct_effectivefrom([$ids[0]], $backdated, 'Partial move.');
+            $this->fail('Moving one row of a split set must be rejected.');
+        } catch (validation_exception $e) {
+            $this->assertSame('assessedweighttotalinvalid', $e->errorcode);
+        }
+        $this->assertSame(self::EFFECTIVEFROM,
+            (int) question_mapping_service::get($ids[0])->effectivefrom,
+            'The rejected correction must not have been committed.');
+
+        // The whole set moves together.
+        $this->assertSame(4, question_mapping_service::correct_effectivefrom($ids, $backdated,
+            'The exam measured all four outcomes from the start.'));
+        foreach ($ids as $id) {
+            $this->assertSame($backdated, (int) question_mapping_service::get($id)->effectivefrom);
+        }
+        $report = question_mapping_service::validate_assessed_weights($question->versionid, $backdated);
+        $this->assertSame(decimal::ONE, $report->approvedtotal,
+            'The four corrected rows must total 1.0 at the corrected start.');
+        $this->assertTrue($report->approvedvalid);
+    }
+
+    /**
      * A multi-outcome assessed set stays draft until its weights total 1.0, then
      * the final creation carries the whole set through together.
      */

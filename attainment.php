@@ -172,8 +172,28 @@ if (!$summary->hasinstance) {
     exit;
 }
 if (!$summary->rows) {
+    // An empty page names its own cause: the two conditions readers assume
+    // (mappings approved, assessments completed) are often both satisfied while
+    // a third one, the mapping's effective window, is what actually fails.
+    $why = course_attainment_service::diagnose($courseid);
     echo $OUTPUT->notification(get_string('attainment_noresults', 'local_outcomemap'),
         \core\output\notification::NOTIFY_INFO);
+    echo html_writer::tag('h3', get_string('attainment_whyheading', 'local_outcomemap'),
+        ['class' => 'lom-cov-title']);
+    echo html_writer::div(
+        get_string('attainment_why_' . $why->cause, 'local_outcomemap', (object) [
+            'mappings' => $why->mappings,
+            'attempts' => $why->attempts,
+            'inforce' => $why->inforceattempts,
+            'from' => $why->firstmappingfrom === null ? '-' : userdate($why->firstmappingfrom),
+            'finish' => $why->lastattemptfinish === null ? '-' : userdate($why->lastattemptfinish),
+            'policies' => implode(', ', array_map(
+                fn(string $type): string => get_string('policytype_' . $type, 'local_outcomemap'),
+                $why->missingpolicies
+            )),
+        ]),
+        'lom-cov-subtitle'
+    );
     echo $OUTPUT->footer();
     exit;
 }

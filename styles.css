@@ -370,6 +370,7 @@ a.lom-viewbtn.lom-active:hover { background: #1f2a44; color: #fff; }
     gap: 12px; margin-top: 12px; }
 .lom-cur-membership { color: #6a737b; display: flex; flex-wrap: wrap; gap: 6px;
     font-size: var(--lom-fs-3xs); margin-left: auto; }
+.lom-cur-membership-remove { color: #a8321f; }
 .lom-cur-add { background: #fbfcfd; border: 1px dashed #cfd6de; border-radius: 8px; padding: 14px 16px; }
 .lom-cur-add-title { color: #1f2a44; font-size: var(--lom-fs-2xs); font-weight: 700; margin-bottom: 9px; }
 .lom-cur-attach { align-items: center; border-top: 1px solid #f2f4f6; display: flex; flex-wrap: wrap;
