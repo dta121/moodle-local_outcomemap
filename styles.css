@@ -1634,7 +1634,12 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
 .lom-oa-lede { color: var(--oa-text-soft); font-size: var(--oa-fs-md); line-height: 1.6; margin: 0; text-wrap: pretty; }
 .lom-oa-masthead-actions { display: flex; gap: var(--oa-s2); }
 
-/* -- buttons: shaped like the theme's, not like a second design system -- */
+/* -- buttons: shaped like the theme's, not like a second design system --
+
+   Every control here is an anchor, so each colour rule is written with two
+   classes. `.lom-oa a` is one class plus an element and would otherwise win,
+   which paints white button text back to link blue — invisible on a filled
+   button. Keep the doubled selector on anything that sets `color`. */
 .lom-oa-btn,
 .lom-oa-btn-ghost {
     align-items: center;
@@ -1649,12 +1654,12 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
     line-height: 1.3;
     white-space: nowrap;
 }
-.lom-oa-btn { border-color: var(--oa-divider); color: inherit; padding: var(--oa-s2) var(--oa-s4); }
-.lom-oa-btn:hover { background: var(--oa-fill-subtle); color: inherit; text-decoration: none; }
-.lom-oa-btn-primary { background: var(--oa-accent); border-color: var(--oa-accent); color: #fff; }
-.lom-oa-btn-primary:hover { background: var(--oa-accent); color: #fff; filter: brightness(0.92); }
-.lom-oa-btn-ghost { color: var(--oa-accent); font-size: var(--oa-fs-sm); padding: 0 var(--oa-s1); }
-.lom-oa-btn-ghost:hover { background: var(--oa-accent-wash); text-decoration: none; }
+.lom-oa .lom-oa-btn { border-color: var(--oa-divider); color: inherit; padding: var(--oa-s2) var(--oa-s4); }
+.lom-oa .lom-oa-btn:hover { background: var(--oa-fill-subtle); color: inherit; text-decoration: none; }
+.lom-oa .lom-oa-btn-primary { background: var(--oa-accent); border-color: var(--oa-accent); color: #fff; }
+.lom-oa .lom-oa-btn-primary:hover { background: var(--oa-accent); color: #fff; filter: brightness(0.92); }
+.lom-oa .lom-oa-btn-ghost { color: var(--oa-accent); font-size: var(--oa-fs-sm); padding: 0 var(--oa-s1); }
+.lom-oa .lom-oa-btn-ghost:hover { background: var(--oa-accent-wash); color: var(--oa-accent); text-decoration: none; }
 
 /* -- headline strip -- */
 .lom-oa-strip {
@@ -1730,7 +1735,7 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
     display: inline-flex;
     overflow: hidden;
 }
-.lom-oa-seg-opt {
+.lom-oa .lom-oa-seg-opt {
     color: inherit;
     cursor: pointer;
     font-size: var(--oa-fs-sm);
@@ -1738,9 +1743,9 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
     padding: 7px 13px;
 }
 .lom-oa-seg-opt + .lom-oa-seg-opt { border-left: 1px solid var(--oa-divider); }
-.lom-oa-seg-opt:hover { background: var(--oa-fill-subtle); color: inherit; text-decoration: none; }
-.lom-oa-seg-on,
-.lom-oa-seg-on:hover { background: var(--oa-accent); color: #fff; }
+.lom-oa .lom-oa-seg-opt:hover { background: var(--oa-fill-subtle); color: inherit; text-decoration: none; }
+.lom-oa .lom-oa-seg-on,
+.lom-oa .lom-oa-seg-on:hover { background: var(--oa-accent); color: #fff; font-weight: 600; }
 .lom-oa-search { align-items: center; display: flex; gap: var(--oa-s2); margin: 0; }
 .lom-oa-input {
     background: transparent;
@@ -2003,14 +2008,14 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
 .lom-oa-mapcol-title { font-size: var(--oa-fs-md); font-weight: 600; }
 .lom-oa-mapcol-sub { color: var(--oa-text-muted); font-size: var(--oa-fs-label); margin-top: 2px; }
 .lom-oa-mapcol-body { max-height: 44rem; overflow: auto; }
-.lom-oa-mapnode {
+.lom-oa .lom-oa-mapnode {
     border-bottom: 1px solid var(--oa-divider);
     border-left: 3px solid var(--oa-fill-track);
     color: inherit;
     display: block;
     padding: 10px 12px;
 }
-.lom-oa-mapnode:hover { background: var(--oa-fill-subtle); color: inherit; text-decoration: none; }
+.lom-oa .lom-oa-mapnode:hover { background: var(--oa-fill-subtle); color: inherit; text-decoration: none; }
 .lom-oa-mapnode-off { opacity: 0.3; }
 .lom-oa-mapnode-traced { background: var(--oa-accent-wash); }
 .lom-oa-mapedge-ok { border-left-color: var(--oa-band-high); }
