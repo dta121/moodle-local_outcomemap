@@ -474,6 +474,59 @@ a.lom-viewbtn.lom-active:hover { background: #1f2a44; color: #fff; }
 .lom-snap-bar { background: #eef0f3; border-radius: 4px; flex: 1; height: 8px; overflow: hidden; }
 .lom-snap-bar-fill { background: #1077d1; border-radius: 4px; display: block; height: 8px; }
 .lom-snap-pct { color: #1f2a44; font-size: var(--lom-fs-2xs); font-weight: 700; text-align: right; }
+
+/* Attainment bands. Met or not stays the recorded verdict; the band is a reading
+   aid, because a rate a point under the criterion and one thirty points under it
+   call for very different responses and must not render identically. Colours are
+   the design system's, and each band is also distinguished by its own text so the
+   report does not rely on colour alone. */
+.lom-snap-band-met { color: #166534; }
+.lom-snap-band-near { color: #b45309; }
+.lom-snap-band-below { color: #991b1b; }
+.lom-snap-bar-fill.lom-snap-band-met { background: #166534; }
+.lom-snap-bar-fill.lom-snap-band-near { background: #b45309; }
+.lom-snap-bar-fill.lom-snap-band-below { background: #991b1b; }
+
+.lom-snap-legend { align-items: center; color: #8a93a0; display: flex; flex-wrap: wrap;
+    font-size: var(--lom-fs-3xs); gap: 6px 14px; margin: 10px 0 4px; }
+.lom-snap-legend-key { align-items: center; display: inline-flex; gap: 6px; }
+.lom-snap-legend-note { color: #9aa3ad; margin-left: auto; }
+.lom-snap-swatch { border-radius: 50%; display: inline-block; height: 8px; width: 8px; }
+.lom-snap-swatch.lom-snap-band-met { background: #166534; }
+.lom-snap-swatch.lom-snap-band-near { background: #b45309; }
+.lom-snap-swatch.lom-snap-band-below { background: #991b1b; }
+
+/* Per-outcome course contributions. A programme figure below its benchmark
+   immediately raises "which course pulled it down", so the courses behind each
+   rate are one disclosure away rather than a separate table to cross-reference.
+   <details> rather than scripted toggles: it is keyboard accessible, survives
+   printing when opened, and needs no state kept anywhere. */
+.lom-snap-contrib { margin-top: 6px; }
+.lom-snap-contrib-summary { align-items: center; color: #1077d1; cursor: pointer; display: flex;
+    flex-wrap: wrap; font-size: var(--lom-fs-3xs); gap: 8px; list-style: none; width: fit-content; }
+.lom-snap-contrib-summary::-webkit-details-marker { display: none; }
+.lom-snap-contrib-summary::before { content: "B8"; color: #9aa3ad; font-size: var(--lom-fs-3xs); }
+.lom-snap-contrib[open] > .lom-snap-contrib-summary::before { content: "BE"; }
+.lom-snap-contrib-summary:hover .lom-snap-contrib-count { text-decoration: underline; }
+.lom-snap-contrib-summary:focus-visible { outline: 2px solid #1077d1; outline-offset: 2px; }
+.lom-snap-contrib-withheld { background: #fef3c7; border-radius: 9px; color: #92400e;
+    font-weight: 600; padding: 1px 7px; }
+.lom-snap-contrib-list { background: #fbfcfd; border: 1px solid #eceff2; border-radius: 6px;
+    display: block; margin-top: 6px; padding: 4px 0; }
+.lom-snap-contrib-row { align-items: center; display: grid; gap: 10px; padding: 5px 10px;
+    grid-template-columns: 4.5rem minmax(0, 1fr) minmax(3rem, 7rem) 3.4rem minmax(0, 9rem); }
+.lom-snap-contrib-row + .lom-snap-contrib-row { border-top: 1px solid #f2f4f6; }
+.lom-snap-contrib-code { font-size: var(--lom-fs-3xs); }
+.lom-snap-contrib-name { color: #444; font-size: var(--lom-fs-2xs); overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; }
+.lom-snap-contrib-bar { background: #eef0f3; border-radius: 4px; height: 7px; overflow: hidden; }
+.lom-snap-contrib-rate { font-size: var(--lom-fs-2xs); font-weight: 700; text-align: right; }
+.lom-snap-contrib-note { color: #8a93a0; font-size: var(--lom-fs-3xs); text-align: right; }
+
+@media (max-width: 60rem) {
+    .lom-snap-contrib-row { grid-template-columns: 4.5rem minmax(0, 1fr) 3.4rem; }
+    .lom-snap-contrib-bar, .lom-snap-contrib-note { display: none; }
+}
 .lom-snap-rate { align-items: flex-start; display: flex; flex-direction: column; gap: 3px; }
 .lom-snap-benchmark { color: #6a737b; font-size: var(--lom-fs-3xs); }
 .lom-snap-withheld { color: #9aa3ad; }
