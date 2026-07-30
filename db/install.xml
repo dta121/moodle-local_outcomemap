@@ -647,6 +647,7 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="snapshottypeorder_ix" UNIQUE="false" FIELDS="snapshotid, itemtype, sortorder"/>
+        <INDEX NAME="snapshottypesuppressed_ix" UNIQUE="false" FIELDS="snapshotid, itemtype, suppressed"/>
         <INDEX NAME="subjectref_ix" UNIQUE="false" FIELDS="subjectref"/>
         <INDEX NAME="sourceuuid_ix" UNIQUE="false" FIELDS="sourceuuid"/>
         <INDEX NAME="itemversuppressed_ix" UNIQUE="false" FIELDS="itemverid, suppressed"/>

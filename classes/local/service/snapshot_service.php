@@ -362,6 +362,143 @@ final class snapshot_service extends base_service {
      * @param \stdClass $snapshot Snapshot record.
      * @param \stdClass[] $items Ordered snapshot items.
      */
+    /**
+     * Verify a capture by streaming it, without loading it into memory.
+     *
+     * A programme-wide capture holds hundreds of thousands of rows, and the
+     * payloads exist only to be hashed: nothing reads an evidence row
+     * individually. Streaming keeps the integrity guarantee identical while
+     * letting a web request verify a capture it could never hold.
+     *
+     * @param \stdClass $snapshot Snapshot record.
+     * @return void
+     */
+    public static function verify_streamed(\stdClass $snapshot): void {
+        self::require_system('local/outcomemap:managesnapshots');
+        audit_lineage_service::verify_snapshot_payload_streamed(
+            $snapshot, self::stream_items((int) $snapshot->id));
+    }
+
+    /**
+     * Yield a capture's rows in the order it was hashed, a page at a time.
+     *
+     * A recordset would be the obvious tool and is the wrong one: Moodle's mysqli
+     * driver builds recordsets with MYSQLI_STORE_RESULT deliberately, because
+     * MYSQLI_USE_RESULT would block writes on the table, so the whole result is
+     * buffered and — under mysqlnd — counted against memory_limit. Iterating a
+     * recordset over a programme-wide capture therefore exhausts memory before
+     * yielding its first row.
+     *
+     * Paging on the primary key keeps memory flat and is index-backed. That is
+     * sound because sortorder is assigned densely as rows are inserted, so id
+     * order reproduces the sortorder order the payload hash was taken over; the
+     * generator asserts that rather than trusting it, since a wrong order would
+     * otherwise yield a wrong hash and read as tampering.
+     *
+     * @param int $snapshotid Snapshot ID.
+     * @return \Generator<\stdClass> Rows in hashed order.
+     */
+    private static function stream_items(int $snapshotid): \Generator {
+        global $DB;
+        $pagesize = 2000;
+        $lastid = 0;
+        $lastsortorder = null;
+        while (true) {
+            $rows = $DB->get_records_select('local_outcomemap_snapitem',
+                'snapshotid = :snapshotid AND id > :lastid',
+                ['snapshotid' => $snapshotid, 'lastid' => $lastid],
+                'id ASC', '*', 0, $pagesize);
+            if (!$rows) {
+                return;
+            }
+            foreach ($rows as $row) {
+                $sortorder = (int) $row->sortorder;
+                if ($lastsortorder !== null && $sortorder < $lastsortorder) {
+                    throw new validation_exception('snapshotintegrityfailure', 'sortorder', $row->id);
+                }
+                $lastsortorder = $sortorder;
+                $lastid = (int) $row->id;
+                yield $row;
+            }
+            if (count($rows) < $pagesize) {
+                return;
+            }
+            unset($rows);
+        }
+    }
+
+    /**
+     * Load only the captured rows of the given types, with their payloads.
+     *
+     * @param int $snapshotid Snapshot ID.
+     * @param string[] $itemtypes Item types to load.
+     * @return \stdClass[] Ordered snapshot items.
+     */
+    public static function items_of_types(int $snapshotid, array $itemtypes): array {
+        global $DB;
+        self::require_system('local/outcomemap:managesnapshots');
+        self::get_required('local_outcomemap_snapshot', $snapshotid, 'snapshot');
+        if (!$itemtypes) {
+            return [];
+        }
+        [$insql, $params] = $DB->get_in_or_equal($itemtypes, SQL_PARAMS_NAMED, 'it');
+        $params['snapshotid'] = $snapshotid;
+        return array_values($DB->get_records_select('local_outcomemap_snapitem',
+            "snapshotid = :snapshotid AND itemtype $insql", $params, 'sortorder ASC, id ASC'));
+    }
+
+    /**
+     * Count captured rows per type, and how many of each are suppressed.
+     *
+     * Aggregated in the database because the counts describe the whole capture
+     * while only a small governance subset is ever loaded.
+     *
+     * @param int $snapshotid Snapshot ID.
+     * @return array<string,array{total:int,suppressed:int}> Counts keyed by item type.
+     */
+    public static function item_counts(int $snapshotid): array {
+        global $DB;
+        self::require_system('local/outcomemap:managesnapshots');
+        $counts = [];
+        // A recordset, not get_records_sql(): that keys rows by the first column,
+        // which is fine here, but the aggregate is small and explicit is clearer.
+        $rs = $DB->get_recordset_sql(
+            "SELECT itemtype, COUNT(1) AS total, SUM(suppressed) AS suppressed
+               FROM {local_outcomemap_snapitem}
+              WHERE snapshotid = :snapshotid
+           GROUP BY itemtype",
+            ['snapshotid' => $snapshotid]);
+        foreach ($rs as $row) {
+            $counts[(string) $row->itemtype] = [
+                'total' => (int) $row->total,
+                'suppressed' => (int) $row->suppressed,
+            ];
+        }
+        $rs->close();
+        ksort($counts, SORT_STRING);
+        return $counts;
+    }
+
+    /**
+     * Stream captured learner results as their indexed columns only.
+     *
+     * The report pools points per learner and course from these rows and never
+     * reads their payloads, which are the second largest thing in a capture.
+     * Selecting the indexed columns alone drops tens of megabytes per view.
+     *
+     * @param int $snapshotid Snapshot ID.
+     * @return \moodle_recordset Rows carrying cinstid, subjectref, itemverid, state and points.
+     */
+    public static function result_index_rows(int $snapshotid) {
+        global $DB;
+        self::require_system('local/outcomemap:managesnapshots');
+        return $DB->get_recordset_select('local_outcomemap_snapitem',
+            'snapshotid = :snapshotid AND itemtype = :itemtype AND cinstid IS NOT NULL',
+            ['snapshotid' => $snapshotid, 'itemtype' => self::ITEM_RESULT],
+            'sortorder ASC, id ASC',
+            'id, cinstid, subjectref, itemverid, state, percentage, numerator, denominator');
+    }
+
     public static function verify(\stdClass $snapshot, array $items): void {
         audit_lineage_service::verify_snapshot_payload($snapshot, $items);
         if ($snapshot->status === self::STATUS_FROZEN) {

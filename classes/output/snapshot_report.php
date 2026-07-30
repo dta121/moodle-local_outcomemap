@@ -111,9 +111,13 @@ final class snapshot_report implements renderable, templatable {
     /**
      * Load and verify one snapshot.
      *
-     * Verification recomputes the payload hash over every frozen row, so it needs
-     * the whole capture in memory. That is the same guarantee the page it replaces
-     * offered: a tampered snapshot must not render as though it were sound.
+     * Verification recomputes the payload hash over every frozen row, so a
+     * tampered snapshot still cannot render as though it were sound. It streams
+     * those rows rather than holding them: a programme-wide capture runs to
+     * hundreds of thousands of rows, four fifths of them evidence payloads that
+     * exist only to be hashed, and loading them cost around a gigabyte — enough
+     * that a perfectly sound record could not be viewed at all. What the page
+     * displays is loaded separately, and is a few thousand rows.
      *
      * @param int $snapshotid Snapshot ID.
      * @param string $groupby One of this class's GROUP_* values.
@@ -127,27 +131,32 @@ final class snapshot_report implements renderable, templatable {
             : self::SUBJECTS_ALL;
         $this->snapshot = snapshot_service::get($snapshotid);
         raise_memory_limit(MEMORY_EXTRA);
-        $items = snapshot_service::items($snapshotid);
-        snapshot_service::verify($this->snapshot, $items);
-        $displaytypes = array_fill_keys(self::DISPLAY_TYPES, true);
+        // Verifying a programme-wide capture is hundreds of thousands of hash and
+        // canonical-JSON operations, which outlasts the default request budget
+        // even though it now fits in a fraction of the memory. The alternative
+        // would be to verify less of the record than the page reports on.
+        \core_php_time_limit::raise(300);
+        // Verification streams the capture rather than loading it: the payloads
+        // exist only to be hashed, and a programme-wide capture is far larger
+        // than any request could hold.
+        snapshot_service::verify_streamed($this->snapshot);
+        // Counts describe the whole capture, so they are aggregated in the
+        // database instead of tallied over rows nothing else here reads.
+        $this->counts = snapshot_service::item_counts($snapshotid);
         $filtering = $this->subjectfilter !== self::SUBJECTS_ALL;
-        foreach ($items as $item) {
-            $type = (string) $item->itemtype;
-            if (!isset($this->counts[$type])) {
-                $this->counts[$type] = ['total' => 0, 'suppressed' => 0];
-            }
-            $this->counts[$type]['total']++;
-            $this->counts[$type]['suppressed'] += (int) $item->suppressed;
-            // Only the small governance types are decoded. A real reporting period
-            // holds tens of thousands of evidence rows, and none of them is read
-            // individually here.
-            if (isset($displaytypes[$type])) {
-                // Each captured row is an envelope of type, identity, indexed
-                // columns, and the canonical payload; only the payload is read.
-                $decoded = json_decode((string) $item->payloadjson, true);
-                $item->payload = is_array($decoded['payload'] ?? null) ? $decoded['payload'] : [];
-                $this->grouped[$type][] = $item;
-            } else if ($type === snapshot_service::ITEM_RESULT && $item->cinstid !== null) {
+        // Only the small governance types are loaded with their payloads.
+        foreach (snapshot_service::items_of_types($snapshotid, self::DISPLAY_TYPES) as $item) {
+            // Each captured row is an envelope of type, identity, indexed
+            // columns, and the canonical payload; only the payload is read.
+            $decoded = json_decode((string) $item->payloadjson, true);
+            $item->payload = is_array($decoded['payload'] ?? null) ? $decoded['payload'] : [];
+            $this->grouped[(string) $item->itemtype][] = $item;
+        }
+        // Learner results are pooled from their indexed columns; their payloads
+        // are the second largest thing in a capture and are never read here.
+        $rs = snapshot_service::result_index_rows($snapshotid);
+        try {
+            foreach ($rs as $item) {
                 $subjectref = (string) $item->subjectref;
                 $cinstid = (int) $item->cinstid;
                 $this->learnersbycourse[$cinstid][$subjectref] = true;
@@ -169,8 +178,9 @@ final class snapshot_report implements renderable, templatable {
                     );
                 }
             }
+        } finally {
+            $rs->close();
         }
-        ksort($this->counts, SORT_STRING);
         $this->criterion = $this->criterion();
         $this->verdicts = $this->verdicts();
         $this->selected = $this->selected();

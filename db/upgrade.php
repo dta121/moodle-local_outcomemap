@@ -661,5 +661,22 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026072801, 'local', 'outcomemap');
     }
 
+    if ($oldversion < 2026072906) {
+        // Counting captured rows per type meant summing suppressed over every
+        // row, which cannot be answered from an index and so read the whole
+        // capture: 67s on a programme-wide snapshot of 171,713 rows, and the
+        // report page could not render inside any request budget because of it.
+        // Carrying suppressed in the index makes that count index-only, which
+        // measured 0.1s on the same capture.
+        $table = new xmldb_table('local_outcomemap_snapitem');
+        $index = new xmldb_index('snapshottypesuppressed_ix', XMLDB_INDEX_NOTUNIQUE,
+            ['snapshotid', 'itemtype', 'suppressed']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        upgrade_plugin_savepoint(true, 2026072906, 'local', 'outcomemap');
+    }
+
     return true;
 }
