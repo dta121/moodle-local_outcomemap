@@ -447,6 +447,21 @@ final class student_results_page_test extends \advanced_testcase {
             ));
         }
 
+        // Sheet-wide: no page may substitute its own text typeface. The only
+        // legitimate override is a monospace run for hashes and identifiers,
+        // where character alignment carries meaning the theme font cannot.
+        preg_match_all('/font-family\s*:\s*([^;}]+)/', $css, $families);
+        foreach ($families[1] as $family) {
+            $family = trim($family);
+            $allowed = $family === 'inherit'
+                || str_starts_with($family, 'var(')
+                || str_contains($family, 'monospace');
+            $this->assertTrue($allowed, sprintf(
+                'Only monospace or an inherited family may be declared; found "%s".',
+                $family
+            ));
+        }
+
         // Every rem size in the whole sheet, not just this block: the floor is
         // a stylesheet-wide policy.
         preg_match_all('/(?:font-size|--[a-z0-9-]*fs[a-z0-9-]*)\s*:\s*([0-9.]+)rem/', $css, $m);
