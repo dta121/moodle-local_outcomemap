@@ -42,7 +42,7 @@ $report = student_result_service::get_own_report($courseid);
 $view = new student_results($report);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('outcomeresults_heading', 'local_outcomemap'));
-echo html_writer::div(get_string('outcomeresults_intro', 'local_outcomemap'), 'mb-3');
+// The template opens with its own summary heading and closes with the
+// data-handling note, so neither is echoed here as well.
 echo $OUTPUT->render_from_template('local_outcomemap/student_results', $view->export_for_template($OUTPUT));
 echo $OUTPUT->footer();
