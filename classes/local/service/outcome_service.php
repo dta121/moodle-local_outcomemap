@@ -325,6 +325,80 @@ final class outcome_service extends base_service {
         return $corrected;
     }
 
+    /**
+     * Correct the display label of approved outcome versions.
+     *
+     * The short statement is a display label, not the normative wording: it is
+     * what a learner-facing page uses as a heading, while the statement itself
+     * carries the meaning. Filling it in therefore asserts nothing new about
+     * what the outcome required, which is why it is a correction rather than a
+     * new version.
+     *
+     * A new version cannot do this job. A learner report resolves a stored
+     * result to the exact version it was calculated against and shows that
+     * version's wording, so a label added to a later version would never reach
+     * any result already calculated — the rows most in need of a readable
+     * heading are precisely the ones it would miss. Re-dating versions to fix
+     * that would in turn disturb the effective ranges that gate evidence
+     * propagation (see correct_effectivefrom above).
+     *
+     * Approved versions are otherwise immutable, so every row is audited with a
+     * required reason. Only the label moves; the statement is never touched.
+     *
+     * @param array $labels New short statements keyed by approved version ID.
+     *      A null or empty value clears the label back to unset.
+     * @param string $reason Required audit reason.
+     * @return int Number of versions corrected.
+     */
+    public static function correct_shortstatement(array $labels, string $reason): int {
+        global $DB;
+        $actorid = self::require_system('local/outcomemap:manageframeworks');
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new validation_exception('requiredfield', 'reason');
+        }
+        $normalized = [];
+        foreach ($labels as $versionid => $label) {
+            $versionid = (int) $versionid;
+            if ($versionid < 1) {
+                throw new validation_exception('invalidparameter', 'versionid', $versionid);
+            }
+            $version = self::get_required(self::VERSION_TABLE, $versionid, 'outcome_version');
+            if ($version->status !== workflow::APPROVED) {
+                throw new validation_exception('invalidtransition', 'status',
+                    $version->status . ':correct_shortstatement');
+            }
+            $normalized[$versionid] = [
+                'before' => $version,
+                'label' => input::optional_text($label, 'shortstatement', 255),
+            ];
+        }
+        if (!$normalized) {
+            return 0;
+        }
+        $corrected = 0;
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            foreach ($normalized as $versionid => $change) {
+                $before = $change['before'];
+                if ((string) $before->shortstatement === (string) $change['label']) {
+                    continue;
+                }
+                $after = clone $before;
+                $after->shortstatement = $change['label'];
+                $after->timemodified = time();
+                $DB->update_record(self::VERSION_TABLE, $after);
+                audit_writer::write('correct_shortstatement', 'outcome_version', $versionid,
+                    $after->uuid, $before, $after, $reason, \context_system::instance(), $actorid);
+                $corrected++;
+            }
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+        return $corrected;
+    }
+
     public static function list_all(): array {
         global $DB;
         self::require_system('local/outcomemap:viewdefinitions');
