@@ -2181,3 +2181,262 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
     .lom-oa-sheets { position: static; padding: 0; }
     .lom-oa:has(> .lom-oa-sheets) > *:not(.lom-oa-sheets) { display: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Learner outcome progress page (results.php).
+
+   A port of the "Classical" design system, scoped to .lom-sr so it restyles
+   this one page without touching Moodle's own chrome. The token values are the
+   design's; the font families are stacks rather than the design's webfonts,
+   because a plugin stylesheet must not reach out to a third-party font host —
+   that is a privacy leak on every page view and breaks offline installs.
+   ══════════════════════════════════════════════════════════════════════ */
+.lom-sr {
+    --sr-text: #201f1d;
+    --sr-accent: #b68235;
+    --sr-divider: rgba(32, 31, 29, 0.16);
+
+    --sr-n200: #eae7e7;
+    --sr-n300: #d7d3d3;
+    --sr-n500: #9b9797;
+    --sr-n600: #7d7979;
+    --sr-n700: #605d5d;
+    --sr-n800: #444141;
+    --sr-n900: #2d2b2b;
+    --sr-a200: #ffe3bf;
+    --sr-a300: #facb8d;
+    --sr-a600: #a06f24;
+    --sr-a700: #7d5411;
+
+    --sr-1: 4.6px;
+    --sr-2: 9.2px;
+    --sr-3: 13.8px;
+    --sr-4: 18.4px;
+    --sr-6: 27.6px;
+    --sr-8: 36.8px;
+
+    --sr-heading: "Cormorant Garamond", "Palatino Linotype", Palatino, Georgia, serif;
+    --sr-body: Lora, Georgia, "Times New Roman", serif;
+
+    font-family: var(--sr-body);
+    color: var(--sr-text);
+    font-size: var(--lom-fs-sm);
+    line-height: 1.55;
+    max-width: 68rem;
+}
+.lom-sr .lom-hidden { display: none !important; }
+.lom-sr p { margin: 0 0 var(--sr-3); }
+.lom-sr a { color: var(--sr-a700); text-underline-offset: 3px; }
+.lom-sr a:hover { color: var(--sr-accent); }
+.lom-sr .lom-sr-hr { height: 1px; border: 0; background: var(--sr-divider);
+    margin: var(--sr-8) 0 var(--sr-6); opacity: 1; }
+
+/* Headings. The display sizes go lighter than the interface ones, as the
+   design system specifies - weight is only needed at small sizes. */
+.lom-sr .lom-sr-title { font-family: var(--sr-heading); font-weight: 400; font-size: 2.75rem;
+    letter-spacing: -0.02em; line-height: 1.05; margin: 0 0 var(--sr-3); }
+.lom-sr .lom-sr-h { font-family: var(--sr-heading); font-weight: 400; font-size: var(--lom-fs-3xl);
+    line-height: 1.12; margin: 0 0 var(--sr-1); }
+.lom-sr .lom-sr-h-sm { font-size: var(--lom-fs-2xl); margin-bottom: var(--sr-3); }
+.lom-sr .lom-sr-sub { font-size: var(--lom-fs-xs); color: var(--sr-n700); margin: 0 0 var(--sr-4);
+    max-width: 40rem; text-wrap: pretty; }
+.lom-sr .lom-sr-kicker { font-size: var(--lom-fs-3xs); letter-spacing: 0.11em;
+    text-transform: uppercase; color: var(--sr-n700); }
+.lom-sr .lom-sr-code { font-variant-numeric: tabular-nums; color: var(--sr-n600); }
+.lom-sr .lom-sr-strong { font-weight: 600; }
+
+/* Tone - the band a figure falls in. Colour is never the only carrier: every
+   toned figure sits beside its band name in text. */
+.lom-sr .lom-sr-tone-strong,
+.lom-sr .lom-sr-tone-ontrack { color: var(--sr-n900); }
+.lom-sr .lom-sr-tone-below { color: var(--sr-a600); }
+.lom-sr .lom-sr-tone-none { color: var(--sr-n500); }
+.lom-sr .lom-sr-fill-strong,
+.lom-sr .lom-sr-fill-ontrack { background: var(--sr-n900); }
+.lom-sr .lom-sr-fill-below { background: var(--sr-a600); }
+.lom-sr .lom-sr-fill-none { background: var(--sr-n500); }
+
+/* Hero and standing tally. */
+.lom-sr .lom-sr-hero { display: grid; grid-template-columns: 1.5fr 1fr; gap: var(--sr-8);
+    align-items: start; }
+.lom-sr .lom-sr-lede { font-size: var(--lom-fs-md); line-height: 1.65; color: var(--sr-n800);
+    text-wrap: pretty; }
+.lom-sr .lom-sr-second { font-size: var(--lom-fs-xs); line-height: 1.65; color: var(--sr-n700);
+    margin: 0; text-wrap: pretty; }
+.lom-sr .lom-sr-standing { border: 1px solid var(--sr-divider);
+    border-top: 2px solid var(--sr-n900); border-radius: 4px; padding: var(--sr-4); }
+.lom-sr .lom-sr-standing-line { display: grid; grid-template-columns: 2.75rem 1fr; gap: var(--sr-3);
+    padding: var(--sr-2) 0; border-bottom: 1px solid var(--sr-divider); align-items: baseline; }
+.lom-sr .lom-sr-standing-count { font-family: var(--sr-heading); font-size: var(--lom-fs-3xl);
+    line-height: 1; font-variant-numeric: tabular-nums; }
+.lom-sr .lom-sr-standing-label { font-size: var(--lom-fs-2xs); display: block; line-height: 1.3; }
+.lom-sr .lom-sr-standing-note { font-size: var(--lom-fs-3xs); color: var(--sr-n700); display: block;
+    line-height: 1.4; margin-top: 2px; }
+.lom-sr .lom-sr-standing-foot { font-size: var(--lom-fs-3xs); line-height: 1.55;
+    color: var(--sr-n700); margin: var(--sr-3) 0 0; text-wrap: pretty; }
+
+/* "Start here" cards. */
+.lom-sr .lom-sr-actions { display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); gap: var(--sr-4); }
+.lom-sr .lom-sr-action { border: 1px solid var(--sr-divider);
+    border-left: 3px solid var(--sr-accent); border-radius: 4px; padding: var(--sr-4);
+    display: flex; flex-direction: column; gap: var(--sr-2); }
+.lom-sr .lom-sr-action-top { display: flex; justify-content: space-between; align-items: baseline;
+    gap: var(--sr-2); }
+.lom-sr .lom-sr-action-score { font-size: var(--lom-fs-3xs); color: var(--sr-n700);
+    font-variant-numeric: tabular-nums; }
+.lom-sr .lom-sr-action-title { font-family: var(--sr-heading); font-size: var(--lom-fs-md);
+    line-height: 1.3; text-wrap: pretty; }
+.lom-sr .lom-sr-action-body { font-size: var(--lom-fs-2xs); line-height: 1.6; color: var(--sr-n800);
+    margin: 0; text-wrap: pretty; }
+.lom-sr .lom-sr-action-links { border-top: 1px solid var(--sr-divider); padding-top: var(--sr-2);
+    margin-top: auto; }
+.lom-sr .lom-sr-action-link { font-size: var(--lom-fs-2xs); padding: 3px 0; }
+.lom-sr .lom-sr-action-link a { border-bottom: 1px solid var(--sr-a300); text-decoration: none; }
+.lom-sr .lom-sr-action-linkmeta { color: var(--sr-n600); font-size: var(--lom-fs-3xs); }
+.lom-sr .lom-sr-action-linknote { color: var(--sr-n700); font-size: var(--lom-fs-3xs);
+    line-height: 1.5; }
+
+/* Section head with the filter control. */
+.lom-sr .lom-sr-sectionhead { display: flex; align-items: baseline;
+    justify-content: space-between; gap: var(--sr-4); flex-wrap: wrap; margin-bottom: var(--sr-4); }
+.lom-sr .lom-sr-seg { display: inline-flex; overflow: hidden; border: 1px solid var(--sr-divider);
+    border-radius: 4px; }
+.lom-sr .lom-sr-seg-opt { display: inline-flex; align-items: center; padding: 7px 12px;
+    font-size: var(--lom-fs-2xs); font-family: var(--sr-heading); font-weight: 600;
+    cursor: pointer; margin: 0; }
+.lom-sr .lom-sr-seg-opt + .lom-sr-seg-opt { border-left: 1px solid var(--sr-divider); }
+.lom-sr .lom-sr-seg-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+.lom-sr .lom-sr-seg-opt:has(input:checked) { color: var(--sr-accent);
+    box-shadow: inset 0 0 0 1px var(--sr-accent); }
+.lom-sr .lom-sr-seg-opt:not(:has(input:checked)):hover { background: rgba(32, 31, 29, 0.07); }
+.lom-sr .lom-sr-seg-opt:has(input:focus-visible) { outline: 2px solid var(--sr-accent);
+    outline-offset: -2px; }
+
+/* The skills list. */
+.lom-sr .lom-sr-skill { border-bottom: 1px solid var(--sr-divider); }
+.lom-sr-skills[data-filter="below"] .lom-sr-skill:not([data-filter="below"]),
+.lom-sr-skills[data-filter="ontrack"] .lom-sr-skill:not([data-filter="ontrack"]),
+.lom-sr-skills[data-filter="strong"] .lom-sr-skill:not([data-filter="strong"]),
+.lom-sr-skills[data-filter="unmeasured"] .lom-sr-skill:not([data-filter="unmeasured"]) {
+    display: none;
+}
+.lom-sr .lom-sr-skill-row { display: grid; grid-template-columns: 1fr 18rem 9rem; gap: var(--sr-4);
+    align-items: center; padding: var(--sr-4) 0 var(--sr-2); }
+.lom-sr .lom-sr-skill-title { font-family: var(--sr-heading); font-size: var(--lom-fs-lg);
+    line-height: 1.25; margin-bottom: 3px; text-wrap: pretty; }
+.lom-sr .lom-sr-skill-meta { display: flex; flex-wrap: wrap; gap: var(--sr-2);
+    font-size: var(--lom-fs-3xs); color: var(--sr-n700); line-height: 1.5; }
+.lom-sr .lom-sr-skill-bar { position: relative; }
+.lom-sr .lom-sr-bar { position: relative; height: 8px; background: var(--sr-n200);
+    border-radius: 4px; overflow: hidden; }
+.lom-sr .lom-sr-bar-fill { position: absolute; inset: 0 auto 0 0; }
+.lom-sr .lom-sr-bar-mark { position: absolute; top: -2px; bottom: -2px; width: 1px;
+    background: var(--sr-n700); }
+.lom-sr .lom-sr-bar-label { position: relative; transform: translateX(-50%);
+    display: inline-block; margin-top: 4px; font-size: 0.6875rem; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--sr-n600); white-space: nowrap; }
+.lom-sr .lom-sr-score { font-family: var(--sr-heading); font-size: var(--lom-fs-2xl);
+    line-height: 1; font-variant-numeric: tabular-nums; }
+.lom-sr .lom-sr-band { font-size: var(--lom-fs-3xs); color: var(--sr-n700); margin-top: 3px;
+    line-height: 1.3; }
+
+/* Per-skill detail. The disclosure is a details element, so it opens with no
+   JavaScript and can be printed open. */
+.lom-sr .lom-sr-skill-links { display: flex; flex-wrap: wrap; align-items: baseline;
+    gap: var(--sr-2); padding-bottom: var(--sr-2); }
+
+.lom-sr .lom-sr-skill-more { margin-bottom: var(--sr-3); }
+.lom-sr .lom-sr-skill-more > summary { font-size: var(--lom-fs-3xs); color: var(--sr-a700);
+    cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; }
+.lom-sr .lom-sr-skill-more > summary::-webkit-details-marker { display: none; }
+.lom-sr .lom-sr-skill-more > summary::before { content: "+"; font-size: var(--lom-fs-md);
+    line-height: 1; }
+.lom-sr .lom-sr-skill-more[open] > summary::before { content: "\2212"; }
+.lom-sr .lom-sr-skill-detail { padding: var(--sr-2) 0 var(--sr-3) var(--sr-4);
+    border-left: 2px solid var(--sr-a200); margin: var(--sr-2) 0 0 var(--sr-2); }
+.lom-sr .lom-sr-unit { display: grid; grid-template-columns: 1fr 13rem; gap: var(--sr-4);
+    padding: 9px 0; border-bottom: 1px solid var(--sr-divider); align-items: baseline; }
+.lom-sr .lom-sr-unit-name { font-size: var(--lom-fs-2xs); line-height: 1.45; }
+.lom-sr .lom-sr-unit-status { font-size: var(--lom-fs-3xs); line-height: 1.4; }
+.lom-sr .lom-sr-explain { font-size: var(--lom-fs-3xs); color: var(--sr-n700); line-height: 1.55;
+    margin: var(--sr-3) 0 0; text-wrap: pretty; }
+.lom-sr .lom-sr-empty { border: 1px dashed var(--sr-n300); border-radius: 4px;
+    padding: var(--sr-6); text-align: center; color: var(--sr-n700); font-size: var(--lom-fs-xs);
+    margin-top: var(--sr-4); }
+
+/* Two-column pairs. */
+.lom-sr .lom-sr-split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sr-8); }
+
+/* Unmeasured-row explanations. */
+.lom-sr .lom-sr-blank { border: 1px solid var(--sr-divider); border-radius: 4px;
+    padding: var(--sr-4); margin-bottom: var(--sr-3); }
+.lom-sr .lom-sr-blank-top { display: flex; justify-content: space-between; align-items: baseline;
+    gap: var(--sr-2); margin-bottom: var(--sr-2); }
+.lom-sr .lom-sr-blank-title { font-family: var(--sr-heading); font-size: var(--lom-fs-lg); }
+.lom-sr .lom-sr-blank-count { font-family: var(--sr-heading); font-size: var(--lom-fs-2xl);
+    font-variant-numeric: tabular-nums; color: var(--sr-a700); }
+.lom-sr .lom-sr-blank-body { font-size: var(--lom-fs-2xs); line-height: 1.6; color: var(--sr-n800);
+    margin: 0 0 var(--sr-2); text-wrap: pretty; }
+.lom-sr .lom-sr-blank-groups { font-size: var(--lom-fs-3xs); color: var(--sr-n700);
+    line-height: 1.5; }
+.lom-sr .lom-sr-blank-next { font-size: var(--lom-fs-3xs); color: var(--sr-a700);
+    margin-top: var(--sr-2); font-style: italic; }
+
+/* Strengths. */
+.lom-sr .lom-sr-strength { display: grid; grid-template-columns: 1fr 4rem; gap: var(--sr-3);
+    padding: var(--sr-3) 0; border-top: 1px solid var(--sr-divider); align-items: baseline; }
+.lom-sr .lom-sr-strength-name { font-family: var(--sr-heading); font-size: var(--lom-fs-md);
+    line-height: 1.25; }
+.lom-sr .lom-sr-strength-note { display: flex; flex-wrap: wrap; gap: var(--sr-2);
+    font-size: var(--lom-fs-3xs); color: var(--sr-n700); margin-top: 2px; line-height: 1.45; }
+.lom-sr .lom-sr-strength-score { font-family: var(--sr-heading); font-size: var(--lom-fs-lg);
+    text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Programme roll-up. */
+.lom-sr .lom-sr-degree { display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    border-top: 1px solid var(--sr-n900); }
+.lom-sr .lom-sr-degree-item { padding: var(--sr-4); border-bottom: 1px solid var(--sr-divider);
+    border-right: 1px solid var(--sr-divider); }
+.lom-sr .lom-sr-degree-name { font-family: var(--sr-heading); font-size: var(--lom-fs-lg);
+    line-height: 1.2; margin: var(--sr-2) 0; }
+.lom-sr .lom-sr-degree-figure { display: flex; align-items: baseline; gap: var(--sr-2);
+    margin-bottom: var(--sr-2); }
+.lom-sr .lom-sr-degree-items { font-size: var(--lom-fs-3xs); color: var(--sr-n700);
+    line-height: 1.35; }
+.lom-sr .lom-sr-degree-reading { font-size: var(--lom-fs-3xs); line-height: 1.55;
+    color: var(--sr-n800); margin: var(--sr-2) 0 0; text-wrap: pretty; }
+.lom-sr .lom-sr-degree-contrib { font-size: var(--lom-fs-3xs); color: var(--sr-n600);
+    margin-top: var(--sr-1); line-height: 1.5; }
+
+/* Questions, glossary, footnote. */
+.lom-sr .lom-sr-faq { border-top: 1px solid var(--sr-divider); padding: var(--sr-3) 0; }
+.lom-sr .lom-sr-faq-q { font-family: var(--sr-heading); font-size: var(--lom-fs-sm);
+    margin-bottom: 4px; }
+.lom-sr .lom-sr-faq-a { font-size: var(--lom-fs-2xs); line-height: 1.6; color: var(--sr-n800);
+    text-wrap: pretty; }
+.lom-sr .lom-sr-gloss { border-top: 1px solid var(--sr-divider); padding: 9px 0; display: grid;
+    grid-template-columns: 10rem 1fr; gap: var(--sr-3); }
+.lom-sr .lom-sr-gloss-term { font-size: var(--lom-fs-2xs); font-family: var(--sr-heading);
+    font-weight: 600; }
+.lom-sr .lom-sr-gloss-def { font-size: var(--lom-fs-3xs); color: var(--sr-n700); line-height: 1.5; }
+.lom-sr .lom-sr-footnote { border-top: 1px solid var(--sr-divider); margin-top: var(--sr-4);
+    padding-top: var(--sr-3); font-size: var(--lom-fs-3xs); color: var(--sr-n600);
+    line-height: 1.6; }
+
+@media (max-width: 62rem) {
+    .lom-sr .lom-sr-hero,
+    .lom-sr .lom-sr-split { grid-template-columns: 1fr; gap: var(--sr-6); }
+    .lom-sr .lom-sr-skill-row { grid-template-columns: 1fr; gap: var(--sr-2); }
+    .lom-sr .lom-sr-unit { grid-template-columns: 1fr; gap: var(--sr-1); }
+    .lom-sr .lom-sr-gloss { grid-template-columns: 1fr; gap: var(--sr-1); }
+    .lom-sr .lom-sr-title { font-size: 2rem; }
+}
+
+@media print {
+    .lom-sr .lom-sr-noprint { display: none !important; }
+    /* Print the whole record, not whichever filter happened to be selected. */
+    .lom-sr .lom-sr-skill { display: block !important; }
+    .lom-sr .lom-sr-skill-detail { border-left: 1px solid var(--sr-n300); }
+}

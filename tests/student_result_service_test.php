@@ -22,6 +22,7 @@ use local_outcomemap\local\service\outcome_service;
 use local_outcomemap\local\service\policy_service;
 use local_outcomemap\local\service\program_service;
 use local_outcomemap\local\service\question_mapping_service;
+use local_outcomemap\local\service\relation_service;
 use local_outcomemap\local\service\remediation_engagement_service;
 use local_outcomemap\local\service\remediation_service;
 use local_outcomemap\local\service\student_result_service;
@@ -318,7 +319,8 @@ final class student_result_service_test extends \advanced_testcase {
         $this->assertCount(1, $released['rows']);
         $row = $released['rows'][0];
         $this->assertSame([
-            'code', 'shortstatement', 'periodcode', 'scopetype', 'scopeid', 'scopename',
+            'code', 'shortstatement', 'itemid', 'tier', 'frameworkcode', 'parentitemids',
+            'expectedpercent', 'strongpercent', 'periodcode', 'scopetype', 'scopeid', 'scopename',
             'state', 'percentage', 'displayscale', 'bandname', 'bandfeedback', 'bandid',
             'distinctitems', 'weightedpossible', 'timecalculated', 'releasedat', 'remediation',
         ], array_keys($row));
@@ -470,9 +472,12 @@ final class student_result_service_test extends \advanced_testcase {
      * one course outcome and one programme outcome defined.
      *
      * @param bool $joinprogramme Whether to record programme membership.
-     * @return array{0:\stdClass,1:\stdClass} Course and enrolled learner.
+     * @param bool $withhierarchy Also create a unit outcome and the alignment
+     *      edges that place it under the course outcome and the course outcome
+     *      under the programme outcome.
+     * @return array{0:\stdClass,1:\stdClass,2:int} Course, learner, catalog course ID.
      */
-    private function create_programme_fixture(bool $joinprogramme): array {
+    private function create_programme_fixture(bool $joinprogramme, bool $withhierarchy = false): array {
         global $DB;
         $this->setAdminUser();
         $this->reviewer = $this->create_reviewer();
@@ -496,7 +501,11 @@ final class student_result_service_test extends \advanced_testcase {
         $this->setAdminUser();
 
         // Course-owned outcome: visible before and after the change.
-        $this->create_outcome_in(framework_service::OWNER_COURSE, $catalogid, 'CLOFW' . $suffix, 'C1');
+        $courseitemid = $this->create_outcome_in(
+            framework_service::OWNER_COURSE, $catalogid, 'CLOFW' . $suffix, 'C1');
+        // The framework code suffix is what marks a framework as unit level.
+        $unititemid = $withhierarchy ? $this->create_outcome_in(
+            framework_service::OWNER_COURSE, $catalogid, 'FW' . $suffix . 'ULO', 'U1') : null;
 
         // Through the service so programme type and credential normalise correctly.
         $programid = program_service::create([
@@ -518,9 +527,43 @@ final class student_result_service_test extends \advanced_testcase {
                 'timecreated' => time(), 'timemodified' => time(), 'approvedat' => time(),
             ]);
         }
-        $this->create_outcome_in(framework_service::OWNER_PROGRAM, $programid, 'PLOFW' . $suffix, 'P1');
+        $programitemid = $this->create_outcome_in(
+            framework_service::OWNER_PROGRAM, $programid, 'PLOFW' . $suffix, 'P1');
 
-        return [$course, $student];
+        if ($withhierarchy) {
+            $this->approve_relation($unititemid, $courseitemid, relation_service::ALIGNS_TO);
+            $this->approve_relation($courseitemid, $programitemid, relation_service::CONTRIBUTES_TO);
+        }
+
+        return [$course, $student, $catalogid];
+    }
+
+    /**
+     * Create one approved relation between two stable outcomes.
+     *
+     * @param int $sourceitemid Lower-level outcome.
+     * @param int $targetitemid Higher-level outcome.
+     * @param string $type Relation type.
+     * @return void
+     */
+    private function approve_relation(int $sourceitemid, int $targetitemid, string $type): void {
+        $data = [
+            'sourceitemid' => $sourceitemid,
+            'targetitemid' => $targetitemid,
+            'type' => $type,
+            'effectivefrom' => self::EFFECTIVEFROM,
+        ];
+        if ($type === relation_service::CONTRIBUTES_TO) {
+            // Only a propagating relation may carry a weight.
+            $data['weight'] = '1.0000000000';
+        }
+        $relationid = relation_service::create($data);
+        relation_service::submit_for_review($relationid);
+        if (workflow::requires_independent_approval()) {
+            $this->setUser($this->reviewer);
+            relation_service::approve($relationid);
+            $this->setAdminUser();
+        }
     }
 
     /**
@@ -530,9 +573,9 @@ final class student_result_service_test extends \advanced_testcase {
      * @param int $ownerid Owner record ID.
      * @param string $fwcode Framework code.
      * @param string $code Outcome code.
-     * @return void
+     * @return int Stable outcome item ID.
      */
-    private function create_outcome_in(string $ownertype, int $ownerid, string $fwcode, string $code): void {
+    private function create_outcome_in(string $ownertype, int $ownerid, string $fwcode, string $code): int {
         global $DB;
         $frameworkid = framework_service::create([
             'code' => $fwcode,
@@ -559,6 +602,70 @@ final class student_result_service_test extends \advanced_testcase {
             outcome_service::approve($itemverid);
             $this->setAdminUser();
         }
+        return $itemid;
+    }
+
+    /**
+     * The report classifies each outcome into its display tier and records the
+     * outcomes directly above it, so a learner page can nest unit outcomes
+     * under the course skill they build without inferring the shape itself.
+     */
+    public function test_report_classifies_tiers_and_records_alignment_parents(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        [$course, $student, $catalogid] = $this->create_programme_fixture(true, true);
+
+        $this->setUser($student);
+        $report = student_result_service::get_own_report((int) $course->id);
+        $rows = [];
+        foreach ($report['rows'] as $row) {
+            $rows[$row['code']] = $row;
+        }
+
+        $this->assertSame(student_result_service::TIER_COURSE, $rows['C1']['tier'],
+            'A course-owned framework whose code does not end in ULO holds course outcomes.');
+        $this->assertSame(student_result_service::TIER_UNIT, $rows['U1']['tier'],
+            'A course-owned framework whose code ends in ULO holds unit outcomes.');
+        $this->assertSame(student_result_service::TIER_PROGRAM, $rows['P1']['tier'],
+            'A programme-owned framework holds programme outcomes.');
+
+        // U1 aligns to C1, and C1 contributes to P1.
+        $this->assertSame([$rows['C1']['itemid']], $rows['U1']['parentitemids']);
+        $this->assertSame([$rows['P1']['itemid']], $rows['C1']['parentitemids']);
+        $this->assertSame([], $rows['P1']['parentitemids'],
+            'Nothing in this report sits above the programme outcome.');
+    }
+
+    /**
+     * The achievement thresholds a learner is shown come from the band ladder
+     * of the calculation policy, not from a constant in the page.
+     */
+    public function test_report_reads_thresholds_from_the_band_ladder(): void {
+        $this->resetAfterTest(true);
+        [$course, $student] = $this->create_programme_fixture(true);
+        $this->approve_policy([
+            'policytype' => policy_service::TYPE_CALCULATION,
+            'scopetype' => policy_service::SCOPE_INSTITUTION,
+            'name' => 'Ladder policy',
+            'config' => ['minitems' => 1, 'displayscale' => 1],
+            'effectivefrom' => self::EFFECTIVEFROM,
+            'bands' => [
+                ['code' => 'NM', 'name' => 'Does not meet expectations',
+                    'minpercent' => '0.0000000000', 'maxpercent' => '70.0000000000', 'sortorder' => 0],
+                ['code' => 'M', 'name' => 'Meets expectations', 'minpercent' => '70.0000000000',
+                    'maxpercent' => '85.0000000000', 'sortorder' => 1],
+                ['code' => 'E', 'name' => 'Exceeds expectations', 'minpercent' => '85.0000000000',
+                    'maxpercent' => null, 'sortorder' => 2],
+            ],
+        ]);
+
+        $this->setUser($student);
+        $report = student_result_service::get_own_report((int) $course->id);
+
+        // The bottom band's own floor of 0 is the start of the scale, not a
+        // pass mark: reading it as one would report every learner as passing.
+        $this->assertSame('70.0000000000', $report['expectedpercent']);
+        $this->assertSame('85.0000000000', $report['strongpercent']);
     }
 
     /**

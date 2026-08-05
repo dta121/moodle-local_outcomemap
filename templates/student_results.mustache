@@ -1,71 +1,320 @@
 {{!
-    Student outcome-results table.
+    Learner-facing outcome progress page.
+
+    Answers "where do I stand", "what do I do next" and "what does this mean",
+    in that order. Every figure and sentence comes from the exported context;
+    the template adds no thresholds or judgements of its own.
+
     @template local_outcomemap/student_results
+
+    Example context (json):
+    {
+        "hasrows": true,
+        "hasthresholds": true,
+        "expected": "70",
+        "hero": {
+            "title": "You are on track in 6 of 10 course skills",
+            "lede": "This course asks you to demonstrate 10 skills.",
+            "second": "A blank row is not a low score."
+        },
+        "standing": {"has": true, "title": "The 10 course skills", "note": "Results so far.",
+            "lines": [{"count": 3, "label": "At or above 85%", "tone": "strong", "note": "Channels"}]},
+        "actions": {"has": false, "cards": []},
+        "skills": {"has": true, "title": "Every skill in this course", "intro": "Your score.",
+            "items": [{"code": "0a", "name": "Marketing in the economy", "score": "50%",
+                "band": "Does not meet expectations", "tone": "below", "filter": "below",
+                "scope": "Course to date", "evidence": "Scored across 6 graded items",
+                "bar": {"fill": "50%", "hasmark": true, "mark": "70%", "marklabel": "70% expected"},
+                "hasunits": false, "units": [], "explain": "Scored from your graded work."}]},
+        "filters": {"has": false, "options": []},
+        "blanks": {"has": false, "cards": []},
+        "strengths": {"has": false, "items": []},
+        "degree": {"has": false, "items": []},
+        "faq": {"title": "Questions you might have", "items": [{"question": "Is this my grade?",
+            "answer": "No."}]},
+        "glossary": {"title": "What the words mean", "items": [{"term": "Course skill",
+            "definition": "Something this course promises you will be able to do."}]},
+        "footnote": "Results calculated 4 August 2026.",
+        "privacynote": "These results contain no question text."
+    }
 }}
 {{#hasrows}}
-<div class="table-responsive">
-    <table class="generaltable table">
-        <caption class="accesshide">{{caption}}</caption>
-        <thead>
-            <tr>
-                <th scope="col">{{#str}} resultcolumn_outcome, local_outcomemap {{/str}}</th>
-                <th scope="col">{{#str}} resultcolumn_result, local_outcomemap {{/str}}</th>
-                <th scope="col">{{#str}} resultcolumn_bandstate, local_outcomemap {{/str}}</th>
-                <th scope="col">{{#str}} resultcolumn_scope, local_outcomemap {{/str}}</th>
-                <th scope="col">{{#str}} resultcolumn_calculation, local_outcomemap {{/str}}</th>
-                <th scope="col">{{#str}} resultcolumn_remediation, local_outcomemap {{/str}}</th>
-            </tr>
-        </thead>
-        <tbody>
-        {{#rows}}
-            <tr>
-                <th scope="row">
-                    <strong>{{code}}</strong>
-                    <div>{{shortstatement}}</div>
-                </th>
-                <td>{{percentage}}</td>
-                <td>
-                    <strong>{{bandstate}}</strong>
+<div class="lom-sr" id="lom-sr">
+
+    <div class="lom-sr-hero">
+        <div class="lom-sr-hero-text">
+            <h2 class="lom-sr-title">{{hero.title}}</h2>
+            <p class="lom-sr-lede">{{hero.lede}}</p>
+            <p class="lom-sr-second">{{hero.second}}</p>
+        </div>
+        {{#standing.has}}
+        <div class="lom-sr-standing">
+            <div class="lom-sr-kicker">{{standing.title}}</div>
+            {{#standing.lines}}
+            <div class="lom-sr-standing-line">
+                <span class="lom-sr-standing-count lom-sr-tone-{{tone}}">{{count}}</span>
+                <span>
+                    <span class="lom-sr-standing-label">{{label}}</span>
+                    {{#note}}<span class="lom-sr-standing-note">{{.}}</span>{{/note}}
+                </span>
+            </div>
+            {{/standing.lines}}
+            <p class="lom-sr-standing-foot">{{standing.note}}</p>
+        </div>
+        {{/standing.has}}
+    </div>
+
+    {{#actions.has}}
+    <hr class="lom-sr-hr">
+    <h3 class="lom-sr-h">{{actions.title}}</h3>
+    <p class="lom-sr-sub">{{actions.intro}}</p>
+    <div class="lom-sr-actions">
+        {{#actions.cards}}
+        <div class="lom-sr-action">
+            <div class="lom-sr-action-top">
+                <span class="lom-sr-kicker">{{step}}</span>
+                <span class="lom-sr-action-score">{{score}}</span>
+            </div>
+            <div class="lom-sr-action-title">{{title}}</div>
+            <p class="lom-sr-action-body">{{body}}</p>
+            {{#links.has}}
+            <div class="lom-sr-action-links">
+                <div class="lom-sr-kicker">{{links.label}}</div>
+                {{#links.items}}
+                <div class="lom-sr-action-link">
+                    <a href="{{url}}">{{title}}</a>
+                    <span class="lom-sr-action-linkmeta">{{designation}} &middot; {{purpose}}</span>
+                    {{#explanation}}<div class="lom-sr-action-linknote">{{.}}</div>{{/explanation}}
+                </div>
+                {{/links.items}}
+            </div>
+            {{/links.has}}
+        </div>
+        {{/actions.cards}}
+    </div>
+    {{/actions.has}}
+
+    {{#skills.has}}
+    <hr class="lom-sr-hr">
+    <div class="lom-sr-sectionhead">
+        <div>
+            <h3 class="lom-sr-h">{{skills.title}}</h3>
+            <p class="lom-sr-sub">{{skills.intro}}</p>
+        </div>
+        {{#filters.has}}
+        <div class="lom-sr-seg lom-sr-noprint" role="group" aria-label="{{filters.legend}}">
+            {{#filters.options}}
+            <label class="lom-sr-seg-opt">
+                <input type="radio" name="lom-sr-filter" value="{{value}}" id="{{id}}"
+                    {{#checked}}checked{{/checked}}>
+                <span>{{label}}</span>
+            </label>
+            {{/filters.options}}
+        </div>
+        {{/filters.has}}
+    </div>
+
+    <div class="lom-sr-skills" data-filter="all" id="lom-sr-skills">
+        {{#skills.items}}
+        <div class="lom-sr-skill" data-filter="{{filter}}">
+            <div class="lom-sr-skill-row">
+                <div class="lom-sr-skill-name">
+                    <div class="lom-sr-skill-title">{{name}}</div>
+                    <div class="lom-sr-skill-meta">
+                        <span class="lom-sr-code">{{code}}</span>
+                        <span>{{scope}}</span>
+                        {{#evidence}}<span>{{.}}</span>{{/evidence}}
+                    </div>
+                </div>
+                <div class="lom-sr-skill-bar">
+                    {{#bar}}
+                    <div class="lom-sr-bar">
+                        <div class="lom-sr-bar-fill lom-sr-fill-{{tone}}" style="width: {{fill}}"></div>
+                        {{#hasmark}}<div class="lom-sr-bar-mark" style="left: {{mark}}"></div>{{/hasmark}}
+                    </div>
+                    {{#hasmark}}
+                    <div class="lom-sr-bar-label" style="left: {{mark}}">{{marklabel}}</div>
+                    {{/hasmark}}
+                    {{/bar}}
+                </div>
+                <div class="lom-sr-skill-score">
+                    <div class="lom-sr-score lom-sr-tone-{{tone}}">{{score}}</div>
+                    <div class="lom-sr-band">{{band}}</div>
+                </div>
+            </div>
+            {{#links.has}}
+            <div class="lom-sr-skill-links">
+                <span class="lom-sr-kicker">{{links.label}}</span>
+                {{#links.items}}
+                <span class="lom-sr-action-link">
+                    <a href="{{url}}">{{title}}</a>
+                    <span class="lom-sr-action-linkmeta">{{designation}} &middot; {{purpose}}</span>
+                </span>
+                {{/links.items}}
+            </div>
+            {{/links.has}}
+            <details class="lom-sr-skill-more">
+                <summary class="lom-sr-noprint">
+                    {{#hasunits}}{{unitstitle}}{{/hasunits}}
+                    {{^hasunits}}{{#str}} sr_showdetail, local_outcomemap {{/str}}{{/hasunits}}
+                </summary>
+                <div class="lom-sr-skill-detail">
+                    {{#hasunits}}
+                    <div class="lom-sr-kicker">{{unitstitle}}</div>
+                    {{#units}}
+                    <div class="lom-sr-unit">
+                        <div>
+                            <div class="lom-sr-unit-name">{{name}}</div>
+                            <div class="lom-sr-code">{{code}}</div>
+                        </div>
+                        <div class="lom-sr-unit-status lom-sr-tone-{{tone}}">{{status}}</div>
+                    </div>
+                    {{/units}}
+                    {{/hasunits}}
+                    <p class="lom-sr-explain">{{explain}}</p>
                     {{#bandfeedback}}
-                        <div><span class="fw-bold">{{#str}} bandfeedback, local_outcomemap {{/str}}:</span> {{bandfeedback}}</div>
+                    <p class="lom-sr-explain"><span class="lom-sr-strong">{{#str}} bandfeedback, local_outcomemap {{/str}}:</span> {{.}}</p>
                     {{/bandfeedback}}
-                </td>
-                <td>{{scope}}</td>
-                <td>
-                    {{#hascalculation}}
-                    <details>
-                        <summary>{{#str}} resultdetails, local_outcomemap {{/str}}</summary>
-                        <dl class="mb-0">
-                            <dt>{{#str}} contributingitems, local_outcomemap {{/str}}</dt>
-                            <dd>{{distinctitems}}</dd>
-                            <dt>{{#str}} weightedpossiblepoints, local_outcomemap {{/str}}</dt>
-                            <dd>{{weightedpossible}}</dd>
-                            <dt>{{#str}} calculationtimestamp, local_outcomemap {{/str}}</dt>
-                            <dd>{{timecalculated}}</dd>
-                        </dl>
-                    </details>
-                    {{/hascalculation}}
-                    {{^hascalculation}}{{timecalculated}}{{/hascalculation}}
-                </td>
-                <td>
-                    {{#hasremediation}}
-                    <ul class="list-unstyled mb-0">
-                        {{#remediation}}
-                        <li class="mb-2">
-                            <a href="{{url}}">{{title}}</a>
-                            <span>({{designation}}; {{purpose}})</span>
-                            {{#explanation}}<div>{{explanation}}</div>{{/explanation}}
-                        </li>
-                        {{/remediation}}
-                    </ul>
-                    {{/hasremediation}}
-                    {{^hasremediation}}{{#str}} noremediation, local_outcomemap {{/str}}{{/hasremediation}}
-                </td>
-            </tr>
-        {{/rows}}
-        </tbody>
-    </table>
+                </div>
+            </details>
+        </div>
+        {{/skills.items}}
+    </div>
+    <div class="lom-sr-empty lom-sr-noprint lom-hidden" id="lom-sr-noresults">
+        {{#str}} sr_filter_empty, local_outcomemap {{/str}}
+    </div>
+    {{/skills.has}}
+
+    {{#blanks.has}}
+    <hr class="lom-sr-hr">
+    <div class="lom-sr-split">
+        <div>
+            <h3 class="lom-sr-h">{{blanks.title}}</h3>
+            <p class="lom-sr-sub">{{blanks.intro}}</p>
+            {{#blanks.cards}}
+            <div class="lom-sr-blank">
+                <div class="lom-sr-blank-top">
+                    <span class="lom-sr-blank-title">{{title}}</span>
+                    <span class="lom-sr-blank-count">{{count}}</span>
+                </div>
+                <p class="lom-sr-blank-body">{{body}}</p>
+                {{#groups}}<div class="lom-sr-blank-groups">{{.}}</div>{{/groups}}
+                <div class="lom-sr-blank-next">{{next}}</div>
+            </div>
+            {{/blanks.cards}}
+        </div>
+        <div>
+            {{#strengths.has}}
+            <h3 class="lom-sr-h">{{strengths.title}}</h3>
+            <p class="lom-sr-sub">{{strengths.intro}}</p>
+            {{#strengths.items}}
+            <div class="lom-sr-strength">
+                <div>
+                    <div class="lom-sr-strength-name">{{name}}</div>
+                    <div class="lom-sr-strength-note">
+                        <span class="lom-sr-code">{{code}}</span>
+                        {{#note}}<span>{{.}}</span>{{/note}}
+                    </div>
+                </div>
+                <div class="lom-sr-strength-score">{{score}}</div>
+            </div>
+            {{/strengths.items}}
+            {{/strengths.has}}
+        </div>
+    </div>
+    {{/blanks.has}}
+
+    {{#degree.has}}
+    <hr class="lom-sr-hr">
+    <h3 class="lom-sr-h">{{degree.title}}</h3>
+    <p class="lom-sr-sub">{{degree.intro}}</p>
+    <div class="lom-sr-degree">
+        {{#degree.items}}
+        <div class="lom-sr-degree-item">
+            <div class="lom-sr-action-top">
+                <span class="lom-sr-kicker">{{code}}</span>
+                <span class="lom-sr-band">{{band}}</span>
+            </div>
+            <div class="lom-sr-degree-name">{{name}}</div>
+            <div class="lom-sr-degree-figure">
+                <span class="lom-sr-score lom-sr-tone-{{tone}}">{{score}}</span>
+                {{#evidence}}<span class="lom-sr-degree-items">{{.}}</span>{{/evidence}}
+            </div>
+            {{#bar}}
+            <div class="lom-sr-bar">
+                <div class="lom-sr-bar-fill lom-sr-fill-{{tone}}" style="width: {{fill}}"></div>
+                {{#hasmark}}<div class="lom-sr-bar-mark" style="left: {{mark}}"></div>{{/hasmark}}
+            </div>
+            {{/bar}}
+            <p class="lom-sr-degree-reading">{{reading}}</p>
+            {{#contributors}}
+            <div class="lom-sr-degree-contrib">{{#str}} sr_degree_fedby, local_outcomemap {{/str}} {{.}}</div>
+            {{/contributors}}
+        </div>
+        {{/degree.items}}
+    </div>
+    {{/degree.has}}
+
+    <hr class="lom-sr-hr">
+    <div class="lom-sr-split">
+        <div>
+            <h3 class="lom-sr-h lom-sr-h-sm">{{faq.title}}</h3>
+            {{#faq.items}}
+            <div class="lom-sr-faq">
+                <div class="lom-sr-faq-q">{{question}}</div>
+                <div class="lom-sr-faq-a">{{answer}}</div>
+            </div>
+            {{/faq.items}}
+        </div>
+        <div>
+            <h3 class="lom-sr-h lom-sr-h-sm">{{glossary.title}}</h3>
+            {{#glossary.items}}
+            <div class="lom-sr-gloss">
+                <span class="lom-sr-gloss-term">{{term}}</span>
+                <span class="lom-sr-gloss-def">{{definition}}</span>
+            </div>
+            {{/glossary.items}}
+            <div class="lom-sr-footnote">
+                {{#footnote}}<div>{{.}}</div>{{/footnote}}
+                <div>{{privacynote}}</div>
+            </div>
+        </div>
+    </div>
 </div>
+{{#filters.has}}
+{{#js}}
+(function() {
+    var list = document.getElementById('lom-sr-skills');
+    var noresults = document.getElementById('lom-sr-noresults');
+    if (!list) {
+        return;
+    }
+    var radios = document.querySelectorAll('input[name="lom-sr-filter"]');
+
+    function apply(value) {
+        list.setAttribute('data-filter', value);
+        var visible = 0;
+        Array.prototype.forEach.call(list.querySelectorAll('.lom-sr-skill'), function(row) {
+            if (value === 'all' || row.getAttribute('data-filter') === value) {
+                visible++;
+            }
+        });
+        noresults.classList.toggle('lom-hidden', visible !== 0);
+    }
+
+    Array.prototype.forEach.call(radios, function(radio) {
+        radio.addEventListener('change', function() {
+            if (radio.checked) {
+                apply(radio.value);
+            }
+        });
+        if (radio.checked) {
+            apply(radio.value);
+        }
+    });
+})();
+{{/js}}
+{{/filters.has}}
 {{/hasrows}}
 {{^hasrows}}
 <div class="alert alert-info" role="status">{{#str}} outcomeresults_empty, local_outcomemap {{/str}}</div>

@@ -784,6 +784,120 @@ $string['remediation_required'] = 'Required';
 $string['remediation_recommended'] = 'Recommended';
 $string['noremediation'] = 'No curated recommendations apply.';
 
+// Learner outcome progress page (results.php). The page speaks to a student
+// about their own work, so these strings avoid governance vocabulary: a course
+// learning outcome is a "course skill", a unit learning outcome a "unit
+// outcome", and a programme learning outcome a "degree promise". The glossary
+// at the foot of the page maps each back to its formal name.
+$string['sr_hero_title'] = 'You are on track in {$a->ontrack} of your {$a->total} course skills';
+$string['sr_hero_title_partial'] = 'You are on track in {$a->ontrack} of the {$a->measured} course skills measured so far';
+$string['sr_hero_title_plain'] = 'You have results in {$a->measured} of your {$a->total} course skills';
+$string['sr_hero_title_none'] = 'None of your {$a->total} course skills has a result yet';
+$string['sr_hero_lede'] = 'This course asks you to demonstrate {$a->total} skills. You have cleared the {$a->expectedpct}% mark on {$a->ontrack} of them, and {$a->strong} of those reach {$a->strongpct}% or above. {$a->below} sit below the mark, and working out what they have in common is the useful part of this page.';
+$string['sr_hero_lede_nostrong'] = 'This course asks you to demonstrate {$a->total} skills. You have cleared the {$a->expectedpct}% mark on {$a->ontrack} of them, and {$a->below} sit below it. Working out what those have in common is the useful part of this page.';
+$string['sr_hero_lede_plain'] = 'This course asks you to demonstrate {$a->total} skills. Your score for each one is listed below. This course has no achievement bands set, so the page reports your figures without judging them against a mark.';
+$string['sr_hero_lede_none'] = 'This course asks you to demonstrate {$a->total} skills. None of them can be scored yet, which is normal early in a course: a skill needs a certain amount of graded work behind it before a figure means anything.';
+$string['sr_hero_blanks'] = 'A blank row is not a low score. It is either work that has not been graded yet, or a result your instructor has not published. Both are listed separately further down so you can tell them apart at a glance.';
+
+$string['sr_standing_title'] = 'Your {$a} course skills';
+$string['sr_standing_strong'] = 'At {$a}% or above';
+$string['sr_standing_ontrack'] = 'Comfortably past the {$a}% mark';
+$string['sr_standing_below'] = 'Below the {$a}% mark';
+$string['sr_standing_unmeasured'] = 'Not measured yet';
+$string['sr_standing_note'] = 'These are results so far, not a final grade. Your course grade is separate, and clearing {$a}% on a skill is a floor rather than a finish line.';
+
+$string['sr_actions_title'] = 'Start here';
+$string['sr_actions_intro'] = 'These {$a} things are holding your results down. Work through them in this order.';
+$string['sr_actions_intro_one'] = 'One thing is holding your results down.';
+$string['sr_actionstep'] = 'Step {$a}';
+$string['sr_action_below'] = 'This skill is at {$a->score}, below the {$a->expected}% mark.';
+$string['sr_action_weakunits'] = 'The weakness is specific: {$a->count} of the unit outcomes underneath it are below the mark, starting with {$a->names}.';
+$string['sr_action_nounits'] = 'None of its {$a} unit outcomes has been measured, so this figure rests entirely on work counted at course level. Expect it to move as unit results come in.';
+$string['sr_action_someunits'] = '{$a->unmeasured} of its {$a->total} unit outcomes are still unmeasured, so this figure will keep shifting.';
+$string['sr_action_soleroute'] = 'This is also the one place a low score reaches your degree: it is the only route this course offers to "{$a->name}", which sits at {$a->score}.';
+$string['sr_action_hidden_title'] = 'One weak spot inside {$a}';
+$string['sr_action_hidden'] = '{$a->skill} sits at {$a->skillscore} overall, but the unit outcome "{$a->unit}" inside it is at {$a->unitscore}. The average hides it. Worth revisiting, because a strong average will not protect you if that specific thing comes up again.';
+$string['sr_action_links'] = 'Go back to';
+
+$string['sr_skills_title'] = 'Every skill in this course';
+$string['sr_skills_intro'] = 'Your score against the {$a}% mark this course expects. Open a skill to see the unit-by-unit detail behind it.';
+$string['sr_skills_intro_plain'] = 'Your score for each skill. Open a skill to see the unit-by-unit detail behind it.';
+$string['sr_showdetail'] = 'What is behind this figure';
+$string['sr_units'] = 'The {$a} unit outcomes behind this skill';
+$string['sr_units_one'] = 'The one unit outcome behind this skill';
+$string['sr_noscore'] = 'Not measured yet';
+$string['sr_bar_mark'] = '{$a}% expected';
+$string['sr_evidence'] = 'Scored across {$a} graded items';
+$string['sr_evidence_one'] = 'Scored on a single graded item';
+$string['sr_unit_ontrack'] = '{$a} — on track';
+$string['sr_unit_below'] = '{$a} — below the mark';
+$string['sr_unit_awaiting'] = 'Result not published yet';
+$string['sr_unit_nowork'] = 'No graded work here yet';
+$string['sr_explain_direct'] = 'This skill is scored directly from your graded work rather than from separate unit outcomes.';
+$string['sr_explain_nonemeasured'] = 'None of the {$a->total} unit outcomes here has a result yet, so your {$a->score} comes entirely from graded work counted at course level. Expect this figure to move as unit results come in.';
+$string['sr_explain_measured'] = '{$a->measured} of {$a->total} unit outcomes here have results, so your {$a->score} will keep shifting until the rest are measured.';
+$string['sr_explain_awaiting'] = '{$a} are waiting on your instructor.';
+$string['sr_explain_nowork'] = '{$a} have no graded work yet.';
+
+$string['sr_filter_legend'] = 'Show only';
+$string['sr_filter_all'] = 'All {$a}';
+$string['sr_filter_below'] = 'Needs work ({$a})';
+$string['sr_filter_ontrack'] = 'On track ({$a})';
+$string['sr_filter_strong'] = 'Strong ({$a})';
+$string['sr_filter_unmeasured'] = 'Not measured ({$a})';
+$string['sr_filter_empty'] = 'No skills match that filter.';
+
+$string['sr_blanks_title'] = 'Not a grade — just not measured yet';
+$string['sr_blanks_intro'] = 'Most blank rows on this page are one of two things. Neither counts against you.';
+$string['sr_blank_nowork_title'] = 'No graded work yet';
+$string['sr_blank_nowork'] = 'You have not completed enough graded work in these areas for a result to be calculated. They are not counted as zero and they are not dragging your scores down — there is simply nothing to measure yet.';
+$string['sr_blank_nowork_next'] = 'These fill in as you work through the course. Nothing to do but keep going.';
+$string['sr_blank_awaiting_title'] = 'Waiting to be published';
+$string['sr_blank_awaiting'] = 'Your work here is in, but the results have not been published to you yet. Nothing in this group needs action from you.';
+$string['sr_blank_awaiting_next'] = 'Ask your instructor if these stay blank after an assessment has closed.';
+
+$string['sr_strengths_title'] = 'What you are strong at';
+$string['sr_strengths_intro'] = 'Worth knowing, and worth saying out loud in an interview.';
+
+$string['sr_degree_title'] = 'How this course counts toward your degree';
+$string['sr_degree_intro'] = 'Your degree makes {$a} promises about what you can do. Each of your course skills feeds one of them, so a gap here shows up there.';
+$string['sr_degree_fedby'] = 'Fed by:';
+$string['sr_degree_strong'] = 'Well clear of the {$a}% mark. This course is contributing strongly to this promise.';
+$string['sr_degree_ontrack'] = 'Past the {$a}% mark. Lifting your weaker skills would move this comfortably clear.';
+$string['sr_degree_below'] = 'Below the {$a}% mark. The course skills feeding it are where this gets decided.';
+$string['sr_degree_below_sole'] = 'Below the mark, and this course decides it through one skill only — "{$a}". Nothing else here offsets it.';
+$string['sr_degree_none'] = 'Not measured yet against the {$a}% mark.';
+$string['sr_degree_unmeasured'] = 'Not measured yet. This fills in once the course skills feeding it have results.';
+$string['sr_degree_plain'] = 'Fed by {$a} of your course skills.';
+
+$string['sr_faq_title'] = 'Questions you might have';
+$string['sr_faq_grade_q'] = 'Is this my grade?';
+$string['sr_faq_grade_a'] = 'No. This shows which skills you have demonstrated; your grade is on the Grades page. You can be on track on most skills and still need more points overall to complete the course.';
+$string['sr_faq_changed_q'] = 'Why did a score change?';
+$string['sr_faq_changed_a'] = 'Each skill is recalculated as new graded work comes in. An early score rests on very few items, so it moves a lot — a skill measured on three items can swing thirty points on one quiz.';
+$string['sr_faq_record_q'] = 'Does a low score stay on my record?';
+$string['sr_faq_record_a'] = 'No. These are a running picture of where you are now, not a permanent mark. Later work replaces the picture.';
+$string['sr_faq_hundred_q'] = 'Why is a skill at 100% when I got questions wrong?';
+$string['sr_faq_hundred_a'] = 'A skill only counts the questions mapped to it. Questions you missed may have been counted against a different skill.';
+$string['sr_faq_disagree_q'] = 'What if I disagree with a result?';
+$string['sr_faq_disagree_a'] = 'Open the skill to see which unit outcomes it was built from, then raise that specific outcome with your instructor. It is far more actionable than querying the overall figure.';
+
+$string['sr_glossary_title'] = 'What the words mean';
+$string['sr_glossary_skill_term'] = 'Course skill';
+$string['sr_glossary_skill_def'] = 'One of the things this course promises you will be able to do. Formally, a course learning outcome.';
+$string['sr_glossary_unit_term'] = 'Unit outcome';
+$string['sr_glossary_unit_def'] = 'A smaller, more specific step. Several of these build up to one course skill. Formally, a unit learning outcome.';
+$string['sr_glossary_mark_term'] = 'The {$a}% mark';
+$string['sr_glossary_mark_def'] = 'The level this course treats as having demonstrated a skill. Formally, "meets expectations".';
+$string['sr_glossary_strong_term'] = 'Strong';
+$string['sr_glossary_strong_def'] = '{$a}% or above. Formally, "exceeds expectations".';
+$string['sr_glossary_degree_term'] = 'Degree promise';
+$string['sr_glossary_degree_def'] = 'One of the things your whole programme claims you can do. Several courses feed each one. Formally, a program learning outcome.';
+
+$string['sr_listsep'] = ', ';
+$string['sr_andmore'] = '{$a->names}, and {$a->count} more';
+$string['sr_footnote'] = 'Calculated {$a} from your graded work in this course to date. Figures cover this course only and update automatically as more work is graded.';
+
 
 // Redesigned Programs page.
 $string['programs_subtitle'] = 'Degree and certificate programs grouped by program type.';
