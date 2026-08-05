@@ -166,6 +166,17 @@
                         <div>
                             <div class="lom-sr-unit-name">{{name}}</div>
                             <div class="lom-sr-code">{{code}}</div>
+                            {{#links.has}}
+                            <div class="lom-sr-unit-links">
+                                <span class="lom-sr-kicker">{{links.label}}</span>
+                                {{#links.items}}
+                                <span class="lom-sr-action-link">
+                                    <a href="{{url}}">{{title}}</a>
+                                    <span class="lom-sr-action-linkmeta">{{designation}} &middot; {{purpose}}</span>
+                                </span>
+                                {{/links.items}}
+                            </div>
+                            {{/links.has}}
                         </div>
                         <div class="lom-sr-unit-status lom-sr-tone-{{tone}}">{{status}}</div>
                     </div>

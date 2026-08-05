@@ -296,6 +296,67 @@ final class student_results_page_test extends \advanced_testcase {
     }
 
     /**
+     * A mixed-policy report has no single page-level mark, but each row still
+     * knows its own. An actionable gap must not vanish because a different row
+     * was judged against a different ladder.
+     */
+    public function test_a_gap_still_acts_when_the_report_has_no_single_ladder(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+
+        [$context] = $this->render($this->report([
+            $this->row(['itemid' => 40, 'code' => 'C8', 'shortstatement' => 'Ethical judgement',
+                'percentage' => '50.0000000000', 'expectedpercent' => '70.0000000000',
+                'strongpercent' => '85.0000000000', 'bandname' => 'Does not meet expectations',
+                'bandid' => 1]),
+            $this->row(['itemid' => 41, 'code' => 'C9', 'shortstatement' => 'Pricing decisions',
+                'percentage' => '65.0000000000', 'expectedpercent' => '60.0000000000',
+                'strongpercent' => '80.0000000000', 'bandname' => 'Meets expectations',
+                'bandid' => 2]),
+        ], null, null));
+
+        $this->assertFalse($context['hasthresholds'], 'No single ladder covers the whole report.');
+        $this->assertSame(['below', 'ontrack'], array_column($context['skills']['items'], 'tone'),
+            'Each row is judged against its own mark.');
+        $this->assertTrue($context['actions']['has'],
+            'The gap on C8 is still actionable even with no page-level ladder.');
+        $this->assertStringContainsString('70% mark', $context['actions']['cards'][0]['body'],
+            "The card names the row's own mark, not a page-level one.");
+        $this->assertTrue($context['filters']['has'],
+            'Tone-based filters stay meaningful under mixed policies.');
+    }
+
+    /**
+     * Curated recommendations attached to a unit outcome reach the page. That
+     * row is rendered nowhere else, so dropping them loses the most specific
+     * help the report has.
+     */
+    public function test_recommendations_on_a_unit_outcome_are_not_dropped(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+
+        [$context, $html] = $this->render($this->report([
+            $this->row(['itemid' => 50, 'code' => 'C10', 'shortstatement' => 'Channels and promotion',
+                'percentage' => '100.0000000000']),
+            $this->row(['itemid' => 51, 'code' => 'U10', 'shortstatement' => 'Time to market and cost',
+                'tier' => student_result_service::TIER_UNIT, 'frameworkcode' => 'FW-ULO',
+                'percentage' => '50.0000000000', 'parentitemids' => [50], 'remediation' => [[
+                    'title' => 'Unit 6 · Logistics and delivery',
+                    'explanation' => null,
+                    'url' => 'https://example.com/logistics',
+                    'required' => false,
+                    'purpose' => 'practice',
+                ]]]),
+        ]));
+
+        $unit = $context['skills']['items'][0]['units'][0];
+        $this->assertTrue($unit['links']['has']);
+        $this->assertSame('Unit 6 · Logistics and delivery', $unit['links']['items'][0]['title']);
+        $this->assertStringContainsString('Unit 6 · Logistics and delivery', $html,
+            'The unit recommendation must reach the rendered page.');
+    }
+
+    /**
      * The plugin stylesheet must parse.
      *
      * A plugin styles.css is concatenated into the theme, so one unterminated

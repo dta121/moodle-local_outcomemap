@@ -2359,6 +2359,9 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
     padding: 9px 0; border-bottom: 1px solid var(--sr-divider); align-items: baseline; }
 .lom-sr .lom-sr-unit-name { font-size: var(--lom-fs-2xs); line-height: 1.45; }
 .lom-sr .lom-sr-unit-status { font-size: var(--lom-fs-3xs); line-height: 1.4; }
+.lom-sr .lom-sr-unit-links { display: flex; flex-wrap: wrap; align-items: baseline;
+    gap: var(--sr-2); margin-top: var(--sr-1); }
+
 .lom-sr .lom-sr-explain { font-size: var(--lom-fs-3xs); color: var(--sr-n700); line-height: 1.55;
     margin: var(--sr-3) 0 0; text-wrap: pretty; }
 .lom-sr .lom-sr-empty { border: 1px dashed var(--sr-n300); border-radius: 4px;

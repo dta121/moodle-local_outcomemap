@@ -278,9 +278,10 @@ final class student_results implements \renderable, \templatable {
      * @return array Actions context.
      */
     private function actions(array $skills, array $children, array $programs, array $below): array {
-        if ($this->expected === null) {
-            return ['has' => false, 'cards' => []];
-        }
+        // Deliberately not gated on the page-level ladder. When a report mixes
+        // calculation policies that value is null, but each row still knows the
+        // mark it was judged against — and a gap a learner can act on must not
+        // disappear because some other row used a different ladder.
         $cards = [];
         uasort($below, fn(array $left, array $right): int
             => decimal::cmp($left['percentage'], $right['percentage']));
@@ -330,7 +331,7 @@ final class student_results implements \renderable, \templatable {
         $unmeasured = array_filter($units, fn(array $unit): bool => $unit['percentage'] === null);
         $body = [get_string('sr_action_below', 'local_outcomemap', (object) [
             'score' => $this->score($row),
-            'expected' => $this->percent($this->expected),
+            'expected' => $this->percent($this->expected_for($row)),
         ])];
         if ($weak) {
             $body[] = get_string('sr_action_weakunits', 'local_outcomemap', (object) [
@@ -378,7 +379,7 @@ final class student_results implements \renderable, \templatable {
                 'skillscore' => $this->score($row),
                 'unit' => $worst['shortstatement'],
                 'unitscore' => $this->score($worst),
-                'expected' => $this->percent($this->expected),
+                'expected' => $this->percent($this->expected_for($worst)),
             ]),
             'links' => $this->links($row),
         ];
@@ -439,11 +440,15 @@ final class student_results implements \renderable, \templatable {
                     'local_outcomemap',
                     count($units)
                 ),
+                // A unit row is rendered nowhere else, so its own curated
+                // recommendations travel with it or they are lost — and those
+                // are the most specific help the report can offer.
                 'units' => array_map(fn(array $unit): array => [
                     'code' => $unit['code'],
                     'name' => $unit['shortstatement'],
                     'status' => $this->unit_status($unit),
                     'tone' => $this->tone($unit),
+                    'links' => $this->links($unit),
                 ], array_values($units)),
                 'explain' => $this->explain($row, $units),
                 'evidence' => $this->evidence($row),
@@ -534,7 +539,10 @@ final class student_results implements \renderable, \templatable {
         array $strong,
         array $below
     ): array {
-        if ($this->expected === null || !$measured) {
+        // Same reasoning as actions(): the groups are tone-based, so they stay
+        // meaningful under mixed policies. They are only meaningless when no
+        // row anywhere has a mark to be measured against.
+        if (!$measured || !$this->any_threshold($measured)) {
             return ['has' => false, 'options' => []];
         }
         $candidates = [
@@ -802,6 +810,34 @@ final class student_results implements \renderable, \templatable {
     }
 
     /**
+     * Whether any of these rows was judged against a mark at all.
+     *
+     * @param array $rows Report rows.
+     * @return bool True when at least one row has a threshold.
+     */
+    private function any_threshold(array $rows): bool {
+        foreach ($rows as $row) {
+            if ($this->expected_for($row) !== null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Return the pass mark one row was actually judged against.
+     *
+     * A row's own threshold wins over the page-level one, which is null
+     * whenever the report spans more than one calculation policy.
+     *
+     * @param array $row Report row.
+     * @return string|null Canonical percentage, or null when there is no mark.
+     */
+    private function expected_for(array $row): ?string {
+        return $row['expectedpercent'] ?? $this->expected;
+    }
+
+    /**
      * Classify a row against the band ladder.
      *
      * @param array $row Report row.
@@ -811,7 +847,7 @@ final class student_results implements \renderable, \templatable {
         if ($row['percentage'] === null) {
             return 'none';
         }
-        $expected = $row['expectedpercent'] ?? $this->expected;
+        $expected = $this->expected_for($row);
         if ($expected === null) {
             return 'ontrack';
         }
@@ -878,7 +914,7 @@ final class student_results implements \renderable, \templatable {
         if ($row['percentage'] === null) {
             return null;
         }
-        $expected = $row['expectedpercent'] ?? $this->expected;
+        $expected = $this->expected_for($row);
         return [
             'fill' => $this->offset($row['percentage']),
             'hasmark' => $expected !== null,
@@ -900,7 +936,7 @@ final class student_results implements \renderable, \templatable {
     private function unit_status(array $row): string {
         if ($row['percentage'] !== null) {
             // Judge a unit against its own result's ladder, matching tone().
-            if (($row['expectedpercent'] ?? $this->expected) === null) {
+            if ($this->expected_for($row) === null) {
                 return $this->score($row);
             }
             return get_string(
