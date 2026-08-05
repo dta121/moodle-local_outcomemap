@@ -37,6 +37,7 @@ final class student_results_page_test extends \advanced_testcase {
         return $overrides + [
             'code' => 'C1',
             'shortstatement' => 'Course skill one',
+            'statement' => 'Course skill one',
             'itemid' => 1,
             'tier' => student_result_service::TIER_COURSE,
             'frameworkcode' => 'FW-CLO',
@@ -293,6 +294,62 @@ final class student_results_page_test extends \advanced_testcase {
         $this->assertSame(['ontrack', 'below'], array_column($context['standing']['lines'], 'tone'),
             'With no strong boundary the tally collapses to on-track and below.');
         $this->assertSame([1, 0], array_column($context['standing']['lines'], 'count'));
+    }
+
+    /**
+     * A learner sees the label as the heading and the normative wording beneath
+     * it — but never the same text twice, which is what an outcome with no
+     * separate label would otherwise produce.
+     */
+    public function test_the_full_statement_accompanies_its_label_without_repeating_it(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+
+        $long = 'Describe the role that marketing plays in the economy, and its importance '
+            . 'within the corporate structure, and the broader global environment';
+
+        [$context, $html] = $this->render($this->report([
+            // Labelled: heading and statement are different, so both show.
+            $this->row(['itemid' => 60, 'code' => '0a',
+                'shortstatement' => "Marketing's role in the economy", 'statement' => $long,
+                'percentage' => '50.0000000000', 'bandname' => 'Does not meet expectations',
+                'bandid' => 1]),
+            // Unlabelled: the service falls back to the statement for both, so
+            // the supporting line must be suppressed rather than duplicated.
+            $this->row(['itemid' => 61, 'code' => '0b',
+                'shortstatement' => $long, 'statement' => $long,
+                'percentage' => '90.0000000000']),
+            // A unit outcome carries its wording the same way.
+            $this->row(['itemid' => 62, 'code' => '1a',
+                'shortstatement' => 'Ethical marketing', 'statement' => 'Explain the role of '
+                    . 'ethical marketing activities',
+                'tier' => student_result_service::TIER_UNIT, 'frameworkcode' => 'FW-ULO',
+                'percentage' => '40.0000000000', 'parentitemids' => [60]]),
+        ]));
+
+        $labelled = $context['skills']['items'][0];
+        $this->assertSame("Marketing's role in the economy", $labelled['name']);
+        $this->assertSame($long, $labelled['statement'],
+            'The normative wording travels with the label.');
+
+        $unlabelled = $context['skills']['items'][1];
+        $this->assertSame($long, $unlabelled['name']);
+        $this->assertNull($unlabelled['statement'],
+            'An outcome with no separate label must not print its statement twice.');
+
+        $this->assertSame('Explain the role of ethical marketing activities',
+            $labelled['units'][0]['statement']);
+
+        // Exactly one supporting line carries this wording: 0a's. For 0b the
+        // wording is the heading itself, so no supporting line is emitted.
+        // (The standing tally also lists skill names, which is why counting the
+        // wording across the whole page would not measure what this asserts.)
+        $supporting = substr_count(
+            $html,
+            '<div class="lom-sr-statement">' . htmlspecialchars($long, ENT_QUOTES)
+        );
+        $this->assertSame(1, $supporting,
+            'An outcome must never repeat its wording as its own supporting line.');
     }
 
     /**

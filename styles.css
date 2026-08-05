@@ -2327,6 +2327,9 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #1077d1; text-decoration: 
     line-height: 1.25; margin-bottom: 3px; text-wrap: pretty; }
 .lom-sr .lom-sr-skill-meta { display: flex; flex-wrap: wrap; gap: var(--sr-2);
     font-size: var(--lom-fs-3xs); color: var(--sr-n700); line-height: 1.5; }
+/* The normative wording, set as supporting text beneath its label. */
+.lom-sr .lom-sr-statement { font-size: var(--lom-fs-3xs); color: var(--sr-n700);
+    line-height: 1.5; margin-bottom: 3px; text-wrap: pretty; }
 .lom-sr .lom-sr-skill-bar { position: relative; }
 .lom-sr .lom-sr-bar { position: relative; height: 8px; background: var(--sr-n200);
     border-radius: 4px; overflow: hidden; }

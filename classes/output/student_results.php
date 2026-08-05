@@ -427,6 +427,7 @@ final class student_results implements \renderable, \templatable {
             $items[] = [
                 'code' => $row['code'],
                 'name' => $row['shortstatement'],
+                'statement' => $this->statement_of($row),
                 'score' => $this->score($row),
                 'band' => $this->band($row),
                 'bandfeedback' => $row['bandfeedback'],
@@ -446,6 +447,7 @@ final class student_results implements \renderable, \templatable {
                 'units' => array_map(fn(array $unit): array => [
                     'code' => $unit['code'],
                     'name' => $unit['shortstatement'],
+                    'statement' => $this->statement_of($unit),
                     'status' => $this->unit_status($unit),
                     'tone' => $this->tone($unit),
                     'links' => $this->links($unit),
@@ -466,6 +468,24 @@ final class student_results implements \renderable, \templatable {
                 : 'sr_skills_intro', 'local_outcomemap', $this->percent($this->expected)),
             'items' => $items,
         ];
+    }
+
+    /**
+     * Return the normative wording to show beneath a heading.
+     *
+     * Null when it would merely repeat the heading, which is the case for any
+     * outcome that has no separate display label — there the statement already
+     * *is* the heading, and printing it twice reads as a rendering fault.
+     *
+     * @param array $row Report row.
+     * @return string|null Full statement, or null when it duplicates the label.
+     */
+    private function statement_of(array $row): ?string {
+        $statement = $row['statement'] ?? null;
+        if ($statement === null || trim($statement) === '') {
+            return null;
+        }
+        return trim($statement) === trim((string) $row['shortstatement']) ? null : $statement;
     }
 
     /**
@@ -670,6 +690,7 @@ final class student_results implements \renderable, \templatable {
             $items[] = [
                 'code' => $row['code'],
                 'name' => $row['shortstatement'],
+                'statement' => $this->statement_of($row),
                 'score' => $this->score($row),
                 'band' => $this->band($row),
                 'tone' => $this->tone($row),

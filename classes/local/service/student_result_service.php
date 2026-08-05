@@ -142,6 +142,7 @@ final class student_result_service {
                     'itemverid' => (int) $outcome->id,
                     'code' => (string) $outcome->code,
                     'shortstatement' => (string) ($outcome->shortstatement ?? $outcome->statement),
+                    'statement' => (string) $outcome->statement,
                     'frameworkcode' => (string) $outcome->frameworkcode,
                     'tier' => self::tier((string) $outcome->ownertype, (string) $outcome->frameworkcode),
                 ];
@@ -214,6 +215,7 @@ final class student_result_service {
                 'itemverid' => (int) $result->itemverid,
                 'code' => (string) $result->resultcode,
                 'shortstatement' => (string) ($result->resultshortstatement ?? $result->resultstatement),
+                'statement' => (string) $result->resultstatement,
                 'frameworkcode' => (string) $result->resultframeworkcode,
                 'tier' => self::tier(
                     (string) $result->resultownertype,
@@ -898,6 +900,7 @@ final class student_result_service {
         $base = [
             'code' => $outcome->code,
             'shortstatement' => $outcome->shortstatement,
+            'statement' => $outcome->statement,
             'itemid' => (int) $outcome->itemid,
             'tier' => $outcome->tier,
             'frameworkcode' => $outcome->frameworkcode,

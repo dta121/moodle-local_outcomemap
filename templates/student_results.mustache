@@ -120,6 +120,7 @@
             <div class="lom-sr-skill-row">
                 <div class="lom-sr-skill-name">
                     <div class="lom-sr-skill-title">{{name}}</div>
+                    {{#statement}}<div class="lom-sr-statement">{{.}}</div>{{/statement}}
                     <div class="lom-sr-skill-meta">
                         <span class="lom-sr-code">{{code}}</span>
                         <span>{{scope}}</span>
@@ -165,6 +166,7 @@
                     <div class="lom-sr-unit">
                         <div>
                             <div class="lom-sr-unit-name">{{name}}</div>
+                            {{#statement}}<div class="lom-sr-statement">{{.}}</div>{{/statement}}
                             <div class="lom-sr-code">{{code}}</div>
                             {{#links.has}}
                             <div class="lom-sr-unit-links">
@@ -247,6 +249,7 @@
                 <span class="lom-sr-band">{{band}}</span>
             </div>
             <div class="lom-sr-degree-name">{{name}}</div>
+            {{#statement}}<div class="lom-sr-statement">{{.}}</div>{{/statement}}
             <div class="lom-sr-degree-figure">
                 <span class="lom-sr-score lom-sr-tone-{{tone}}">{{score}}</span>
                 {{#evidence}}<span class="lom-sr-degree-items">{{.}}</span>{{/evidence}}

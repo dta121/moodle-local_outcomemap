@@ -319,7 +319,7 @@ final class student_result_service_test extends \advanced_testcase {
         $this->assertCount(1, $released['rows']);
         $row = $released['rows'][0];
         $this->assertSame([
-            'code', 'shortstatement', 'itemid', 'tier', 'frameworkcode', 'parentitemids',
+            'code', 'shortstatement', 'statement', 'itemid', 'tier', 'frameworkcode', 'parentitemids',
             'expectedpercent', 'strongpercent', 'periodcode', 'scopetype', 'scopeid', 'scopename',
             'state', 'percentage', 'displayscale', 'bandname', 'bandfeedback', 'bandid',
             'distinctitems', 'weightedpossible', 'timecalculated', 'releasedat', 'remediation',
