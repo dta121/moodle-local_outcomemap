@@ -422,6 +422,45 @@ final class student_results_page_test extends \advanced_testcase {
      * factored out a closing brace shared by both sides of a conflict, and the
      * result rendered as an unstyled page rather than as an error.
      */
+    /**
+     * The learner page wears the site theme and stays readable.
+     *
+     * Two properties, both of which regressed once already. The block must
+     * declare no typeface of its own — a plugin that ships a webfont stack
+     * reads as a foreign page inside Moodle and pins text to a look the theme
+     * did not choose. And no size anywhere in the stylesheet may fall below the
+     * 13px floor the sheet documents, because 11–12px text is what made this
+     * page uncomfortable to read in the first place.
+     */
+    public function test_the_learner_page_inherits_the_theme_font_and_holds_the_size_floor(): void {
+        $css = file_get_contents(__DIR__ . '/../styles.css');
+        $this->assertNotFalse($css);
+
+        $start = strpos($css, 'Learner outcome progress page (results.php)');
+        $this->assertNotFalse($start, 'The learner page block should be findable.');
+        $block = substr($css, $start);
+
+        foreach (['Cormorant', 'Lora', 'Georgia', 'Palatino', 'font-family:'] as $needle) {
+            $this->assertStringNotContainsString($needle, $block, sprintf(
+                'The learner page must inherit the theme typeface, but the block names "%s".',
+                $needle
+            ));
+        }
+
+        // Every rem size in the whole sheet, not just this block: the floor is
+        // a stylesheet-wide policy.
+        preg_match_all('/(?:font-size|--[a-z0-9-]*fs[a-z0-9-]*)\s*:\s*([0-9.]+)rem/', $css, $m);
+        $this->assertNotEmpty($m[1], 'The sheet should declare rem sizes.');
+        $undersized = array_values(array_unique(array_filter(
+            array_map('floatval', $m[1]),
+            static fn(float $rem): bool => $rem < 0.8125
+        )));
+        $this->assertSame([], $undersized, sprintf(
+            'Font sizes below 0.8125rem (13px) are not readable enough; found: %s',
+            implode(', ', array_map(static fn($r): string => $r . 'rem', $undersized))
+        ));
+    }
+
     public function test_the_plugin_stylesheet_has_balanced_braces(): void {
         $css = file_get_contents(__DIR__ . '/../styles.css');
         $this->assertNotFalse($css, 'The plugin stylesheet should be readable.');
