@@ -784,6 +784,120 @@ $string['remediation_required'] = 'Required';
 $string['remediation_recommended'] = 'Recommended';
 $string['noremediation'] = 'No curated recommendations apply.';
 
+// Learner outcome progress page (results.php). The page speaks to a student
+// about their own work, so these strings avoid governance vocabulary: a course
+// learning outcome is a "course skill", a unit learning outcome a "unit
+// outcome", and a programme learning outcome a "degree promise". The glossary
+// at the foot of the page maps each back to its formal name.
+$string['sr_hero_title'] = 'You are on track in {$a->ontrack} of your {$a->total} course skills';
+$string['sr_hero_title_partial'] = 'You are on track in {$a->ontrack} of the {$a->measured} course skills measured so far';
+$string['sr_hero_title_plain'] = 'You have results in {$a->measured} of your {$a->total} course skills';
+$string['sr_hero_title_none'] = 'None of your {$a->total} course skills has a result yet';
+$string['sr_hero_lede'] = 'This course asks you to demonstrate {$a->total} skills. You have cleared the {$a->expectedpct}% mark on {$a->ontrack} of them, and {$a->strong} of those reach {$a->strongpct}% or above. {$a->below} sit below the mark, and working out what they have in common is the useful part of this page.';
+$string['sr_hero_lede_nostrong'] = 'This course asks you to demonstrate {$a->total} skills. You have cleared the {$a->expectedpct}% mark on {$a->ontrack} of them, and {$a->below} sit below it. Working out what those have in common is the useful part of this page.';
+$string['sr_hero_lede_plain'] = 'This course asks you to demonstrate {$a->total} skills. Your score for each one is listed below. This course has no achievement bands set, so the page reports your figures without judging them against a mark.';
+$string['sr_hero_lede_none'] = 'This course asks you to demonstrate {$a->total} skills. None of them can be scored yet, which is normal early in a course: a skill needs a certain amount of graded work behind it before a figure means anything.';
+$string['sr_hero_blanks'] = 'A blank row is not a low score. It is either work that has not been graded yet, or a result your instructor has not published. Both are listed separately further down so you can tell them apart at a glance.';
+
+$string['sr_standing_title'] = 'Your {$a} course skills';
+$string['sr_standing_strong'] = 'At {$a}% or above';
+$string['sr_standing_ontrack'] = 'Comfortably past the {$a}% mark';
+$string['sr_standing_below'] = 'Below the {$a}% mark';
+$string['sr_standing_unmeasured'] = 'Not measured yet';
+$string['sr_standing_note'] = 'These are results so far, not a final grade. Your course grade is separate, and clearing {$a}% on a skill is a floor rather than a finish line.';
+
+$string['sr_actions_title'] = 'Start here';
+$string['sr_actions_intro'] = 'These {$a} things are holding your results down. Work through them in this order.';
+$string['sr_actions_intro_one'] = 'One thing is holding your results down.';
+$string['sr_actionstep'] = 'Step {$a}';
+$string['sr_action_below'] = 'This skill is at {$a->score}, below the {$a->expected}% mark.';
+$string['sr_action_weakunits'] = 'The weakness is specific: {$a->count} of the unit outcomes underneath it are below the mark, starting with {$a->names}.';
+$string['sr_action_nounits'] = 'None of its {$a} unit outcomes has been measured, so this figure rests entirely on work counted at course level. Expect it to move as unit results come in.';
+$string['sr_action_someunits'] = '{$a->unmeasured} of its {$a->total} unit outcomes are still unmeasured, so this figure will keep shifting.';
+$string['sr_action_soleroute'] = 'This is also the one place a low score reaches your degree: it is the only route this course offers to "{$a->name}", which sits at {$a->score}.';
+$string['sr_action_hidden_title'] = 'One weak spot inside {$a}';
+$string['sr_action_hidden'] = '{$a->skill} sits at {$a->skillscore} overall, but the unit outcome "{$a->unit}" inside it is at {$a->unitscore}. The average hides it. Worth revisiting, because a strong average will not protect you if that specific thing comes up again.';
+$string['sr_action_links'] = 'Go back to';
+
+$string['sr_skills_title'] = 'Every skill in this course';
+$string['sr_skills_intro'] = 'Your score against the {$a}% mark this course expects. Open a skill to see the unit-by-unit detail behind it.';
+$string['sr_skills_intro_plain'] = 'Your score for each skill. Open a skill to see the unit-by-unit detail behind it.';
+$string['sr_showdetail'] = 'What is behind this figure';
+$string['sr_units'] = 'The {$a} unit outcomes behind this skill';
+$string['sr_units_one'] = 'The one unit outcome behind this skill';
+$string['sr_noscore'] = 'Not measured yet';
+$string['sr_bar_mark'] = '{$a}% expected';
+$string['sr_evidence'] = 'Scored across {$a} graded items';
+$string['sr_evidence_one'] = 'Scored on a single graded item';
+$string['sr_unit_ontrack'] = '{$a} — on track';
+$string['sr_unit_below'] = '{$a} — below the mark';
+$string['sr_unit_awaiting'] = 'Result not published yet';
+$string['sr_unit_nowork'] = 'No graded work here yet';
+$string['sr_explain_direct'] = 'This skill is scored directly from your graded work rather than from separate unit outcomes.';
+$string['sr_explain_nonemeasured'] = 'None of the {$a->total} unit outcomes here has a result yet, so your {$a->score} comes entirely from graded work counted at course level. Expect this figure to move as unit results come in.';
+$string['sr_explain_measured'] = '{$a->measured} of {$a->total} unit outcomes here have results, so your {$a->score} will keep shifting until the rest are measured.';
+$string['sr_explain_awaiting'] = '{$a} are waiting on your instructor.';
+$string['sr_explain_nowork'] = '{$a} have no graded work yet.';
+
+$string['sr_filter_legend'] = 'Show only';
+$string['sr_filter_all'] = 'All {$a}';
+$string['sr_filter_below'] = 'Needs work ({$a})';
+$string['sr_filter_ontrack'] = 'On track ({$a})';
+$string['sr_filter_strong'] = 'Strong ({$a})';
+$string['sr_filter_unmeasured'] = 'Not measured ({$a})';
+$string['sr_filter_empty'] = 'No skills match that filter.';
+
+$string['sr_blanks_title'] = 'Not a grade — just not measured yet';
+$string['sr_blanks_intro'] = 'Most blank rows on this page are one of two things. Neither counts against you.';
+$string['sr_blank_nowork_title'] = 'No graded work yet';
+$string['sr_blank_nowork'] = 'You have not completed enough graded work in these areas for a result to be calculated. They are not counted as zero and they are not dragging your scores down — there is simply nothing to measure yet.';
+$string['sr_blank_nowork_next'] = 'These fill in as you work through the course. Nothing to do but keep going.';
+$string['sr_blank_awaiting_title'] = 'Waiting to be published';
+$string['sr_blank_awaiting'] = 'Your work here is in, but the results have not been published to you yet. Nothing in this group needs action from you.';
+$string['sr_blank_awaiting_next'] = 'Ask your instructor if these stay blank after an assessment has closed.';
+
+$string['sr_strengths_title'] = 'What you are strong at';
+$string['sr_strengths_intro'] = 'Worth knowing, and worth saying out loud in an interview.';
+
+$string['sr_degree_title'] = 'How this course counts toward your degree';
+$string['sr_degree_intro'] = 'Your degree makes {$a} promises about what you can do. Each of your course skills feeds one of them, so a gap here shows up there.';
+$string['sr_degree_fedby'] = 'Fed by:';
+$string['sr_degree_strong'] = 'Well clear of the {$a}% mark. This course is contributing strongly to this promise.';
+$string['sr_degree_ontrack'] = 'Past the {$a}% mark. Lifting your weaker skills would move this comfortably clear.';
+$string['sr_degree_below'] = 'Below the {$a}% mark. The course skills feeding it are where this gets decided.';
+$string['sr_degree_below_sole'] = 'Below the mark, and this course decides it through one skill only — "{$a}". Nothing else here offsets it.';
+$string['sr_degree_none'] = 'Not measured yet against the {$a}% mark.';
+$string['sr_degree_unmeasured'] = 'Not measured yet. This fills in once the course skills feeding it have results.';
+$string['sr_degree_plain'] = 'Fed by {$a} of your course skills.';
+
+$string['sr_faq_title'] = 'Questions you might have';
+$string['sr_faq_grade_q'] = 'Is this my grade?';
+$string['sr_faq_grade_a'] = 'No. This shows which skills you have demonstrated; your grade is on the Grades page. You can be on track on most skills and still need more points overall to complete the course.';
+$string['sr_faq_changed_q'] = 'Why did a score change?';
+$string['sr_faq_changed_a'] = 'Each skill is recalculated as new graded work comes in. An early score rests on very few items, so it moves a lot — a skill measured on three items can swing thirty points on one quiz.';
+$string['sr_faq_record_q'] = 'Does a low score stay on my record?';
+$string['sr_faq_record_a'] = 'No. These are a running picture of where you are now, not a permanent mark. Later work replaces the picture.';
+$string['sr_faq_hundred_q'] = 'Why is a skill at 100% when I got questions wrong?';
+$string['sr_faq_hundred_a'] = 'A skill only counts the questions mapped to it. Questions you missed may have been counted against a different skill.';
+$string['sr_faq_disagree_q'] = 'What if I disagree with a result?';
+$string['sr_faq_disagree_a'] = 'Open the skill to see which unit outcomes it was built from, then raise that specific outcome with your instructor. It is far more actionable than querying the overall figure.';
+
+$string['sr_glossary_title'] = 'What the words mean';
+$string['sr_glossary_skill_term'] = 'Course skill';
+$string['sr_glossary_skill_def'] = 'One of the things this course promises you will be able to do. Formally, a course learning outcome.';
+$string['sr_glossary_unit_term'] = 'Unit outcome';
+$string['sr_glossary_unit_def'] = 'A smaller, more specific step. Several of these build up to one course skill. Formally, a unit learning outcome.';
+$string['sr_glossary_mark_term'] = 'The {$a}% mark';
+$string['sr_glossary_mark_def'] = 'The level this course treats as having demonstrated a skill. Formally, "meets expectations".';
+$string['sr_glossary_strong_term'] = 'Strong';
+$string['sr_glossary_strong_def'] = '{$a}% or above. Formally, "exceeds expectations".';
+$string['sr_glossary_degree_term'] = 'Degree promise';
+$string['sr_glossary_degree_def'] = 'One of the things your whole programme claims you can do. Several courses feed each one. Formally, a program learning outcome.';
+
+$string['sr_listsep'] = ', ';
+$string['sr_andmore'] = '{$a->names}, and {$a->count} more';
+$string['sr_footnote'] = 'Calculated {$a} from your graded work in this course to date. Figures cover this course only and update automatically as more work is graded.';
+
 
 // Redesigned Programs page.
 $string['programs_subtitle'] = 'Degree and certificate programs grouped by program type.';
@@ -964,6 +1078,13 @@ $string['reportcolumn_suppressed'] = 'Suppressed';
 $string['reportcolumn_timecreated'] = 'Created';
 $string['snapshotcohort'] = 'Population cohort';
 $string['snapshotcohort_help'] = 'Select a cohort only when the effective approved accreditation policy uses the Moodle-cohort population source. Leave it empty for active enrolments.';
+$string['snapshotperiod'] = 'Reporting period code';
+$string['snapshotperiod_help'] = 'Reporting periods come from the course instances themselves, so only periods that resolve to approved, confirmed instances of the selected program are listed. A capture covers every course instance carrying the chosen period code — if each course carries its own code, a capture covers that one course.';
+$string['snapshotperiodcourse'] = '({$a} course)';
+$string['snapshotperiodcourses'] = '({$a} courses)';
+$string['snapshotperiodnonevalid'] = 'none — this program has no approved, confirmed course instances';
+$string['snapshotperiodunresolved'] = 'No approved, confirmed course instances of {$a->program} carry the reporting period "{$a->period}", so the capture would be empty. Periods available for this program: {$a->valid}.';
+$string['snapshotperiodcaptured'] = 'Reporting period "{$a->period}" is already captured by snapshot {$a->id} (version {$a->version}, {$a->status}). Creating another here would start a second, independent record of the same period, with nothing to say which one is authoritative. To revise the existing capture, use its Correct action instead.';
 $string['snapshotitems_caption'] = 'Immutable snapshot rows grouped by type';
 $string['snapshotlist_caption'] = 'Accreditation snapshot versions';
 
@@ -1174,6 +1295,14 @@ $string['snapreport_method_algorithm'] = 'Algorithm and plugin version';
 $string['snapreport_method_algorithmvalue'] = 'Calculated by {$a->algo} running on plugin version {$a->plugin}.';
 $string['snapreport_provenance_heading'] = 'Provenance and integrity record';
 $string['snapreport_provenance_sub'] = 'Hashes, captured row counts, and approvals — for technical verification';
+$string['snapreport_band_below'] = 'below criterion';
+$string['snapreport_band_met'] = 'at or above criterion';
+$string['snapreport_band_near'] = 'within 10 points of criterion';
+$string['snapreport_contribution'] = '{$a} contributing courses';
+$string['snapreport_contribution_one'] = '1 contributing course';
+$string['snapreport_contribution_suppressed'] = 'withheld: fewer learners than the suppression threshold';
+$string['snapreport_contribution_withheld'] = '{$a} withheld';
+$string['snapreport_pooledscore'] = 'pooled {$a}%';
 $string['snapreport_capturedrows'] = 'Captured rows by object type';
 $string['snapreport_rowsline'] = '{$a->total} rows captured in total · {$a->suppressed} suppressed · suppression threshold {$a->threshold}.';
 $string['snapreport_originalversion'] = '{$a} (original — no correction versions issued)';
@@ -1301,3 +1430,236 @@ $string['privacy:metadata:subjectkey:userid'] = 'The Moodle user identifier reta
 $string['privacy:metadata:subjectkey:userhash'] = 'A site-keyed one-way hash of the Moodle user identifier retained as an irreversible erasure marker.';
 $string['privacy:metadata:subjectkey:keyvalue'] = 'Random key material used to derive snapshot-specific subject references; it is destroyed on privacy erasure.';
 $string['privacy:metadata:subjectkey:legacyerased'] = 'Whether resolution of legacy site-secret snapshot references has been permanently blocked.';
+
+// Course outcome attainment report — the redesigned attainment page.
+$string['oa_question'] = 'Are learners reaching the outcomes?';
+$string['oa_lede'] = 'One reading of {$a->learners} learner(s) with stored results, traced across {$a->levels} level(s) of outcome — {$a->outcomes} in all — up to {$a->top}.';
+$string['oa_kickerperiod'] = 'Reporting period {$a}';
+$string['oa_opensheets'] = 'Summary sheets';
+
+$string['oa_level_institution'] = 'Institutional outcomes';
+$string['oa_level_program'] = 'Program outcomes';
+$string['oa_level_catalog_course'] = 'Course outcomes';
+
+$string['oa_headlinelabel'] = 'The headline, honestly';
+$string['oa_headlineof'] = 'of graded results at {$a} reached the standard or better';
+$string['oa_headlinesentence'] = 'At the level of {$a->top}, {$a->met} of {$a->judged} graded learner-outcome results {$a->cohort} reached the achievement standard. Weighted by the learners actually behind them, the mean score is {$a->mean}%.';
+$string['oa_headlinenone'] = 'Nothing has been calculated at the level of {$a} yet, so there is no rate to report.';
+$string['oa_evidencelabel'] = 'Evidence behind it';
+$string['oa_evidencerow'] = '{$a->measured} of {$a->outcomes} measured · {$a->metpct}';
+$string['oa_evidencegap'] = 'No assessing content mapped';
+$string['oa_carelabel'] = 'Read with care';
+$string['oa_care'] = 'A single figure of <em>{$a->old}%</em> for this course would be an unweighted mean of {$a->outcomes} outcome averages spread over {$a->levels} level(s). An outcome measured on a handful of learners moves that number exactly as hard as one measured on the whole cohort, and levels that describe the same coursework two or three times over are blended into it. Everything below is reported per level and weighted by the learners actually behind it.';
+$string['oa_care_nomean'] = 'Nothing on this page is recomputed at view time: every figure is the result the calculation engine stored. Where an outcome has no stored result it is reported as absent, never as a zero.';
+$string['oa_care_policy'] = 'A learner reached the standard at {$a->criterion}% or above; an outcome meets the benchmark at {$a->target}% of graded learners; and a figure resting on fewer than {$a->floor} learners is withheld from the accreditation export.';
+$string['oa_care_nopolicy'] = 'No approved accreditation policy governs this course, so there is no benchmark to compare against and no suppression floor to enforce. Reaching the standard means clearing the lowest band the calculation policy defined.';
+
+$string['oa_controlview'] = 'View';
+$string['oa_controlcohort'] = 'Which learners';
+$string['oa_controllens'] = 'Reading as';
+$string['oa_view_summary'] = 'Summary';
+$string['oa_view_ledger'] = 'Full ledger';
+$string['oa_view_map'] = 'Alignment map';
+$string['oa_view_rollup'] = 'Program rollup';
+
+$string['oa_cohort_all'] = 'Everyone';
+$string['oa_cohort_completed'] = 'Completed';
+$string['oa_cohort_notcompleted'] = 'Did not complete';
+$string['oa_cohortphrase_all'] = 'across all {$a} learner(s) with a stored result';
+$string['oa_cohortphrase_completed'] = 'among the {$a} learner(s) who completed the course';
+$string['oa_cohortphrase_notcompleted'] = 'among the {$a} learner(s) who did not complete the course';
+$string['oa_cohortnote_all'] = 'All {$a->count} learner(s) holding a stored result, whether or not they finished. This is the number to quote for coverage rather than for course quality: it mixes learners who left in week two with those who completed.';
+$string['oa_cohortnote_completed'] = '{$a->count} of {$a->total} learner(s) counted as having completed the course ({$a->rule}). This is the cohort a credential vouches for. An outcome below the benchmark here means the course is certifying something it has not evidenced.';
+$string['oa_cohortnote_notcompleted'] = '{$a->count} of {$a->total} learner(s) who did not complete ({$a->rule}). Read this against the completers: outcomes where the two look alike are not the ones deciding who passes, and outcomes with a wide gap are the ones the course is really assessing.';
+$string['oa_rule_completion'] = 'Moodle course completion';
+$string['oa_rule_gradepass'] = 'a final course grade at or above the {$a}% pass mark';
+
+$string['oa_lens_educator'] = 'Educator';
+$string['oa_lens_program'] = 'Program director';
+$string['oa_lens_accreditation'] = 'Accreditation';
+$string['oa_lensnotelabel'] = 'Reading as {$a}';
+$string['oa_lensnote_educator'] = 'Diagnostic flags are on: outcomes where completers still fall short, and outcomes that fail to separate passing from failing. Thin results are shown with their sample size so you can judge them yourself.';
+$string['oa_lensnote_program'] = 'The ledger stops one level above the finest grain — the program does not act at unit level — and findings are framed as risk to a claim about {$a->top} rather than as teaching notes.';
+$string['oa_lensnote_accreditation'] = 'Suppression is enforced, not annotated: any outcome graded for fewer than {$a->floor} learners reads “withheld” wherever it appears, exactly as it would in a submission. Diagnostic flags are hidden — they are internal judgements, not evidence.';
+
+$string['oa_toplevelheading'] = 'The {$a->count} {$a->level}';
+$string['oa_targetline'] = 'Benchmark: {$a->target}% of graded learners at {$a->criterion}% or above';
+$string['oa_notarget'] = 'No approved benchmark — figures are reported without a target to compare against';
+$string['oa_gradedof'] = '{$a->graded} of {$a->total} graded';
+$string['oa_cardsentence'] = '{$a->met} of {$a->judged} graded learners reached the standard · mean score {$a->mean}%';
+$string['oa_cardnone'] = 'no graded results in this cohort';
+$string['oa_restson'] = 'Rests on {$a->count} outcome(s): {$a->codes}';
+$string['oa_restsonnothing'] = 'Nothing below it feeds this outcome';
+$string['oa_tracelink'] = 'Trace and evidence';
+
+$string['oa_withheld'] = 'withheld';
+$string['oa_withheldbar'] = 'Band counts withheld: fewer than {$a} graded learners';
+$string['oa_withheldsentence'] = 'withheld: {$a->graded} graded learner(s) is below the {$a->floor}-learner suppression floor, so no figure may be reported';
+$string['oa_bandwithheld'] = 'counts withheld · {$a->graded} graded, floor {$a->floor}';
+$string['oa_notmeasured'] = 'Not yet measured';
+$string['oa_notmeasuredshort'] = 'not measured';
+$string['oa_nobands'] = 'graded, but no band was assigned';
+$string['oa_graded'] = 'graded';
+$string['oa_gradedn'] = '{$a} graded';
+$string['oa_belowfloor'] = 'below the suppression floor';
+$string['oa_targetmarker'] = 'Benchmark {$a}%';
+$string['oa_targetshort'] = 'benchmark {$a}%';
+$string['oa_notargetshort'] = 'no benchmark set';
+$string['oa_nopolicyshort'] = 'no accreditation policy';
+
+$string['oa_flag_unassessed'] = 'No assessing content mapped';
+$string['oa_flag_pending'] = 'Awaiting calculation';
+$string['oa_flag_thin'] = 'Thin evidence · {$a->graded} graded, floor {$a->floor}';
+$string['oa_flag_withheld'] = 'Withheld from export';
+$string['oa_flag_belowtarget'] = 'Below benchmark';
+$string['oa_flag_completersshort'] = 'Completers fall short';
+$string['oa_flag_alike'] = 'Does not separate pass from fail';
+
+$string['oa_priorities_educator'] = 'What to look at first';
+$string['oa_prioritiessub_educator'] = 'Ranked by how much the result should change your teaching, not by how low the number is.';
+$string['oa_priorities_program'] = 'What this course does for the program';
+$string['oa_prioritiessub_program'] = 'Ranked by the risk each finding carries to a claim made above course level.';
+$string['oa_priorities_accreditation'] = 'Adequacy of the evidence';
+$string['oa_prioritiessub_accreditation'] = 'Ranked by how far each claim is from being defensible in a submission.';
+$string['oa_nopriorities'] = 'Nothing here is far enough from the benchmark, thin enough, or inconsistent enough to lead a review. Read the ledger for the detail.';
+
+$string['oa_gapsheading'] = 'Where the evidence runs out';
+$string['oa_gapsintro'] = '{$a->unassessed} of the {$a->total} outcomes at the finest grain have no assessing content mapped, so they can never produce attainment data. A further {$a->thin} rest on fewer learners than the suppression floor allows. Neither is a low score — both are silence, and silence is what a reviewer asks about.';
+$string['oa_gapcount'] = '{$a->missing} of {$a->total} empty';
+$string['oa_gaphollow'] = '{$a->missing} of the {$a->total} outcomes underneath {$a->code} have no stored result, so the claim it makes rests on less than half of what is supposed to evidence it.';
+$string['oa_gapunassessed'] = 'Outcomes nothing assesses';
+$string['oa_gapofall'] = '{$a->count} of {$a->total}';
+$string['oa_gapunassessedbody'] = 'These appear in the course as taught outcomes but no approved assessing mapping points at them, so the calculation engine has nothing to draw on. They are excluded from every rate on this page rather than counted as zero.';
+$string['oa_gapthin'] = 'Results resting on a handful of learners';
+$string['oa_gapthinbody'] = 'Measured, but on fewer than {$a} learners — one score moves these a long way. Shown here for faculty; withheld under the accreditation lens and in the accreditation export.';
+$string['oa_gapaffected'] = 'Affected: {$a}';
+$string['oa_nogaps'] = 'Every outcome in scope has assessing content mapped to it, and none rests on fewer learners than the floor allows.';
+
+$string['oa_ledgerheading'] = 'The full ledger, top down';
+$string['oa_ledgersub'] = 'Each outcome opens onto the outcomes one level down that are approved to support it.';
+$string['oa_col_outcome'] = 'Outcome';
+$string['oa_col_statement'] = 'What learners should be able to do';
+$string['oa_col_level'] = 'Level';
+$string['oa_col_graded'] = 'Learners graded';
+$string['oa_col_judged'] = 'Learners judged';
+$string['oa_col_met'] = 'Reached standard';
+$string['oa_col_metpct'] = 'Reached standard (%)';
+$string['oa_col_mean'] = 'Mean score (%)';
+$string['oa_col_landed'] = 'How they landed';
+$string['oa_col_reached'] = 'Reached standard';
+$string['oa_col_completedpct'] = 'Completers reached standard (%)';
+$string['oa_col_notcompletedpct'] = 'Non-completers reached standard (%)';
+$string['oa_detail'] = 'detail';
+
+$string['oa_mapheading'] = 'How the outcomes map upward';
+$string['oa_mapsub'] = 'Choose any outcome to trace its line. Unrelated outcomes fade; the connected ones stay lit.';
+$string['oa_mapcolsub'] = '{$a->total} at this level · {$a->measured} measured';
+$string['oa_mapupward'] = 'Supports {$a}';
+$string['oa_mapupwardnone'] = 'Supports nothing above it';
+$string['oa_tracenone'] = 'Nothing traced. The left edge of each outcome shows whether it is at the benchmark, below it, or never measured.';
+$string['oa_tracing'] = 'Tracing {$a->code} and the {$a->count} outcome(s) connected to it, above and below.';
+$string['oa_cleartrace'] = 'Clear trace';
+
+$string['oa_rollupheading'] = '{$a}: every course that claims these outcomes';
+$string['oa_rollupsub'] = 'A single course cannot evidence a program outcome on its own.';
+$string['oa_rollupthis'] = 'This course';
+$string['oa_rollupother'] = 'Same program, same reporting period';
+$string['oa_rollupn'] = 'n={$a}';
+$string['oa_rollupnotclaimed'] = 'not claimed';
+$string['oa_rollupnote1'] = 'Each cell is that course\'s own stored results for the outcome, never a share of a program total. Reading down a column tells you which courses carry a claim and which lean on the others.';
+$string['oa_rollupnote2'] = 'Courses are matched on this course\'s reporting period(s): {$a}. A course running in a different period is a different cohort and is not shown here.';
+
+$string['oa_provenance'] = 'Provenance';
+$string['oa_provenancebody'] = 'Every figure is the result the calculation engine stored for reporting period(s) {$a->periods}, under the calculation policy in force when each result was calculated. Nothing on this page is recomputed at view time, and band thresholds come from the policy version current at calculation. Outcomes with no stored result are carried as rows and excluded from every rate; they are never counted as zero.';
+$string['oa_provenancepolicy'] = 'Reporting is governed by accreditation policy “{$a->name}” v{$a->version}, approved for {$a->program}: a learner reaches the standard at {$a->criterion}% or above, an outcome meets the benchmark at {$a->target}% of graded learners, and results resting on fewer than {$a->floor} learners are suppressed in the accreditation export.';
+$string['oa_provenancenopolicy'] = 'No approved accreditation policy governs this course, so no benchmark, achievement criterion or suppression floor is applied. Reaching the standard means clearing the lowest band the governing calculation policy defined, which is a weaker statement than an approved criterion and should not be quoted as one.';
+
+$string['oa_definitions'] = 'Definitions';
+$string['oa_def_reached'] = 'Reached the standard';
+$string['oa_def_reached_policy'] = 'The share of graded learners whose stored percentage is {$a}% or above, the achievement criterion the approved accreditation policy sets. This is the figure shown large everywhere on this page.';
+$string['oa_def_reached_band'] = 'The share of graded learners placed above the lowest band the governing calculation policy defines. With no approved accreditation policy there is no criterion to apply, so this is the nearest defensible reading.';
+$string['oa_def_mean'] = 'Mean score';
+$string['oa_def_mean_body'] = 'The average stored percentage for this outcome and cohort. Useful for trend, misleading as a headline: it hides how many learners are behind it.';
+$string['oa_def_graded'] = 'Learners graded';
+$string['oa_def_graded_body'] = 'Learners for whom the engine produced a percentage. A learner with a result row but no percentage is counted as awaiting calculation, not as a failure.';
+$string['oa_def_completed'] = 'Completed';
+$string['oa_def_completed_completion'] = 'Moodle records the learner as having completed this course.';
+$string['oa_def_completed_gradepass'] = 'A final course grade at or above the {$a}% pass mark set on the course grade item.';
+$string['oa_def_thin'] = 'Thin evidence';
+$string['oa_def_thin_body'] = 'Fewer than {$a} graded learners. Reported here for faculty, withheld under the accreditation lens and in the accreditation export.';
+$string['oa_def_unassessed'] = 'No assessing content mapped';
+$string['oa_def_unassessed_body'] = 'The outcome exists in the course but no approved assessing mapping points at it. It cannot produce a result and is never counted as zero.';
+
+$string['oa_drawerkicker'] = '{$a->level} · {$a->code} · v{$a->version}';
+$string['oa_drawercohorts'] = 'Everyone, completers, non-completers';
+$string['oa_drawercohortline'] = '{$a->graded} of {$a->total} graded · {$a->bands} · mean score {$a->mean}%';
+$string['oa_drawerreading'] = 'What this tells you';
+$string['oa_drawersources'] = 'Where the evidence comes from';
+$string['oa_srcquestions'] = '{$a} question(s)';
+$string['oa_srcnone'] = 'No assessing content is mapped to this outcome.';
+$string['oa_srcinherited'] = 'Nothing is mapped directly to this outcome. Its evidence is inherited from the outcomes underneath it.';
+$string['oa_lineagedown'] = 'What it rests on';
+$string['oa_lineageup'] = 'What it supports';
+$string['oa_lineagenone'] = 'This outcome is not aligned to anything above or below it.';
+
+$string['oa_read_withheld'] = 'This outcome is graded for fewer than {$a} learners, so no figure, band count or cohort comparison may be reported under the suppression rule. Switch to the educator lens to inspect it internally.';
+$string['oa_read_nothing'] = 'There is no graded evidence for this outcome, so nothing can be concluded about any cohort. It is a coverage problem, not a performance problem.';
+$string['oa_read_nosplit'] = 'This course records neither completion nor a pass mark on its course grade item, so learners cannot be split into completers and non-completers. The rate is descriptive; whether it separates the learners the course passes from the ones it does not cannot be answered here.';
+$string['oa_read_onecohort'] = 'Only one of the two cohorts has graded results here, so the outcome cannot tell you what the other could or could not do. Treat the number as descriptive, not diagnostic.';
+$string['oa_read_alike'] = 'Completers and non-completers perform almost identically on this outcome ({$a->completed}% against {$a->notcompleted}%). Whatever separates passing from failing in this course, it is not this: either the assessment does not discriminate, or the outcome is not really being tested.';
+$string['oa_read_completersshort'] = 'Even learners who completed the course fall short of the {$a->target}% benchmark here ({$a->completed}%). The course is passing people who have not demonstrated this outcome — the clearest signal on this page that instruction or assessment needs attention.';
+$string['oa_read_separates'] = 'Completers reach {$a->completed}% against {$a->notcompleted}% for non-completers, a {$a->spread}-point gap. This outcome behaves the way a well-aligned one should: passing the course means demonstrating it.';
+
+$string['oa_sheetsintro'] = 'One section per top-level outcome — the shape an accreditation reviewer asks for. Print this view to save it as a PDF.';
+$string['oa_sheetkicker'] = '{$a->code} · {$a->level}';
+$string['oa_sheetmeta'] = 'Period {$a->periods} · {$a->policy} · {$a->course}';
+$string['oa_sheet_meets'] = 'Attainment meets the benchmark for reporting period {$a}.';
+$string['oa_sheet_below'] = 'Attainment is below the benchmark for reporting period {$a} and belongs on the faculty review agenda.';
+$string['oa_sheet_none'] = 'No result has been calculated for this outcome, so no attainment is claimed for it in this period.';
+$string['oa_sheet_thin'] = 'The sample of {$a->graded} graded learner(s) is below the {$a->floor}-learner suppression floor. This result is for internal review only and is withheld from the accreditation submission.';
+$string['oa_sheetevidence'] = 'Evidence: {$a}.';
+$string['oa_sheetnoevidence'] = 'No assessing content is mapped anywhere beneath this outcome.';
+
+// Priority findings. Each is detected from the stored results, so a finding
+// that does not appear is one the data did not support.
+$string['oapri_belowbenchmark_headline'] = '{$a->code} is below the benchmark at {$a->metpct}%';
+$string['oapri_belowbenchmark_why'] = '{$a->met} of {$a->judged} graded learners reached the standard, against a benchmark of {$a->target}%. Of the {$a->children} outcome(s) underneath it, {$a->behind} are themselves below the benchmark.';
+$string['oapri_belowbenchmark_action_educator'] = 'Start with the outcomes underneath that are also short: the shortfall is theirs before it is this one\'s.';
+$string['oapri_belowbenchmark_action_program'] = 'Report this outcome with its course-level spread attached rather than as a single average.';
+$string['oapri_belowbenchmark_action_accreditation'] = 'State the shortfall and the response in the self-study. A benchmark missed and addressed reads far better than one presented as met.';
+
+$string['oapri_thinflattering_headline'] = '{$a->code} looks strong on {$a->graded} learners';
+$string['oapri_thinflattering_why'] = '{$a->metpct}% rests on {$a->graded} graded learner(s), below the {$a->floor}-learner floor, and it sits above the {$a->tier}% its own level averages — so it pulls the level up on the thinnest evidence on the page.';
+$string['oapri_thinflattering_action_educator'] = 'Map assessing content so this outcome is graded for the whole cohort, or stop claiming it for this course.';
+$string['oapri_thinflattering_action_program'] = 'Weight this outcome by sample size before it reaches any program dashboard, or exclude this course from the claim.';
+$string['oapri_thinflattering_action_accreditation'] = 'Not reportable as it stands. Either widen the assessment coverage or drop the claim from the submission.';
+
+$string['oapri_nodiscrimination_headline'] = '{$a->code} does not separate the learners who passed from the ones who did not';
+$string['oapri_nodiscrimination_why'] = 'Completers reach {$a->completed}% and non-completers {$a->notcompleted}% — close enough that this outcome is not part of what decides who passes the course.';
+$string['oapri_nodiscrimination_action_educator'] = 'Look at the assessment before the outcome. A measure that everybody clears is not measuring the thing the outcome describes.';
+$string['oapri_nodiscrimination_action_program'] = 'Treat this as coverage rather than evidence of attainment until the assessment discriminates.';
+$string['oapri_nodiscrimination_action_accreditation'] = 'Do not lead with this outcome. A reviewer who compares the two cohorts will ask the same question.';
+
+$string['oapri_widestgap_headline'] = '{$a->code} is doing most of the sorting';
+$string['oapri_widestgap_why'] = 'Completers reach {$a->completed}% against {$a->notcompleted}% for non-completers, a {$a->spread}-point gap — the widest on the page. This is where the course actually decides who passes.';
+$string['oapri_widestgap_action_educator'] = 'Confirm this is intentional. If this outcome is meant to be a gate, say so in the syllabus; if not, its assessment carries more weight than the outcome warrants.';
+$string['oapri_widestgap_action_program'] = 'This is the outcome the course\'s credential rests on. Any change to its assessment changes what the qualification means.';
+$string['oapri_widestgap_action_accreditation'] = 'A wide, explained gap is strong evidence. Include the cohort split rather than the pooled figure.';
+
+$string['oapri_completersshortfall_headline'] = 'Learners who completed still fall short on {$a->code}';
+$string['oapri_completersshortfall_why'] = 'Completers reach only {$a->completed}% against the {$a->target}% benchmark, on {$a->judged} graded learner(s). The course is passing people who have not demonstrated this outcome.';
+$string['oapri_completersshortfall_action_educator'] = 'This is the most actionable finding on the page: instruction or assessment for this outcome needs attention before the next cohort.';
+$string['oapri_completersshortfall_action_program'] = 'Any claim resting on this outcome is weaker than its headline rate suggests. Check what else in the program evidences it.';
+$string['oapri_completersshortfall_action_accreditation'] = 'Disclose this. A completion standard and an attainment standard that disagree is exactly what a reviewer looks for.';
+
+$string['oapri_hollowclaim_headline'] = '{$a->code} rests on outcomes that produced nothing';
+$string['oapri_hollowclaim_why'] = '{$a->missing} of the {$a->children} outcomes underneath it have no stored result ({$a->codes}), so the claim is carried by less than half of what is supposed to evidence it.';
+$string['oapri_hollowclaim_action_educator'] = 'Map assessing content to the empty outcomes, or retire them from the course if they are no longer taught.';
+$string['oapri_hollowclaim_action_program'] = 'Treat this claim as provisional until the alignment chain underneath it produces evidence.';
+$string['oapri_hollowclaim_action_accreditation'] = 'Document the gap in the self-study alongside the coverage table. Absence explained is far stronger than absence discovered.';
+
+// An approved accreditation policy that predates a now-required field.
+$string['oa_policyunreadable'] = 'An approved accreditation policy governs {$a->program}, but it cannot be applied: its stored configuration has no valid <em>{$a->field}</em>. This normally means the policy was approved before that field became required, and an approved policy cannot be edited in place. The attainment figures below are unaffected, but nothing can be compared to a benchmark and no suppression floor is enforced until a replacement version is approved.';
+$string['oa_policyfieldunknown'] = 'required setting';
+$string['oa_care_badpolicy'] = 'The approved accreditation policy for this program cannot be read, so there is no benchmark to compare against and no suppression floor to enforce. Reaching the standard means clearing the lowest band the calculation policy defined — a weaker statement than an approved criterion, and one that should not be quoted as one.';
+$string['oa_provenancebadpolicy'] = 'An approved accreditation policy exists for this program but could not be applied: its stored configuration has no valid {$a->field}. No benchmark, achievement criterion or suppression floor is in force on this page as a result, and reaching the standard means only clearing the lowest band the governing calculation policy defined. Approve a replacement policy version carrying the missing setting before quoting anything here in a submission.';

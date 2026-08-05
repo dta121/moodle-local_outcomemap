@@ -26,6 +26,90 @@ final class foundation_service_test extends \advanced_testcase {
         return $user;
     }
 
+    /**
+     * The display label of an approved outcome can be corrected in place.
+     *
+     * A learner report resolves a stored result to the exact version it was
+     * calculated against, so a label added on a later version would never reach
+     * a result already calculated. The correction fills the label without
+     * touching the statement, and records why against every row it moves.
+     */
+    public function test_correct_shortstatement_labels_an_approved_outcome(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $approver = $this->create_approver();
+
+        $frameworkid = framework_service::create([
+            'code' => 'MBA602-CLO',
+            'name' => 'Course outcomes',
+            'ownertype' => framework_service::OWNER_INSTITUTION,
+        ]);
+        framework_service::submit_for_review($frameworkid);
+        $this->setUser($approver);
+        framework_service::approve($frameworkid);
+        $this->setAdminUser();
+
+        $statement = 'Describe the role that marketing plays in the economy, and its importance '
+            . 'within the corporate structure, and the broader global environment';
+        $itemid = outcome_service::create([
+            'frameworkid' => $frameworkid,
+            'code' => '0a',
+            'statement' => $statement,
+            'effectivefrom' => 1704067200,
+        ]);
+        $versionid = (int) $DB->get_field('local_outcomemap_itemver', 'id',
+            ['itemid' => $itemid, 'version' => 1], MUST_EXIST);
+        outcome_service::submit_for_review($versionid);
+        $this->setUser($approver);
+        outcome_service::approve($versionid);
+        $this->setAdminUser();
+
+        $this->assertNull($DB->get_field('local_outcomemap_itemver', 'shortstatement',
+            ['id' => $versionid], MUST_EXIST), 'The label starts unset.');
+
+        $corrected = outcome_service::correct_shortstatement(
+            [$versionid => "Marketing's role in the economy"],
+            'Populated the learner-facing label from the approved course design.'
+        );
+
+        $this->assertSame(1, $corrected);
+        $stored = $DB->get_record('local_outcomemap_itemver', ['id' => $versionid], '*', MUST_EXIST);
+        $this->assertSame("Marketing's role in the economy", $stored->shortstatement);
+        $this->assertSame($statement, $stored->statement, 'The normative wording must not move.');
+        $this->assertSame(1, (int) $stored->version, 'No new version is created.');
+        $this->assertSame(workflow::APPROVED, $stored->status);
+        $this->assertTrue($DB->record_exists('local_outcomemap_audit', [
+            'objecttype' => 'outcome_version',
+            'action' => 'correct_shortstatement',
+        ]), 'The correction must be audited.');
+
+        // Idempotent: re-applying the same label writes nothing.
+        $this->assertSame(0, outcome_service::correct_shortstatement(
+            [$versionid => "Marketing's role in the economy"], 'Re-run.'));
+
+        // A reason is mandatory, because this amends an approved record.
+        try {
+            outcome_service::correct_shortstatement([$versionid => 'Something else'], '  ');
+            $this->fail('A correction was accepted without a reason.');
+        } catch (validation_exception $e) {
+            $this->assertSame('requiredfield', $e->errorcode);
+        }
+
+        // A draft is not a correction target; it should be edited instead.
+        $draftid = outcome_service::create_version($itemid, [
+            'statement' => $statement,
+            'effectivefrom' => 1735689600,
+            'changereason' => 'Later revision',
+        ]);
+        try {
+            outcome_service::correct_shortstatement([$draftid => 'Draft label'], 'Not approved.');
+            $this->fail('A draft version was accepted as a correction target.');
+        } catch (validation_exception $e) {
+            $this->assertSame('invalidtransition', $e->errorcode);
+        }
+    }
+
     /** Framework and outcome approval preserves immutable historical versions. */
     public function test_outcome_approval_and_effective_versions(): void {
         global $DB;

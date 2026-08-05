@@ -30,6 +30,15 @@ final class student_result_service {
     /** Read-time state used instead of exposing stale calculated values. */
     public const STATE_STALE = 'stale';
 
+    /** Programme-level outcome, reached from this course by alignment. */
+    public const TIER_PROGRAM = 'program';
+
+    /** Course-level outcome — the skills the course itself promises. */
+    public const TIER_COURSE = 'course';
+
+    /** Unit-level outcome, a step within one course-level outcome. */
+    public const TIER_UNIT = 'unit';
+
     /**
      * Return one display-safe row per relevant course learning outcome.
      *
@@ -56,7 +65,8 @@ final class student_result_service {
             'confirmed' => 1,
         ], 'periodcode, id');
         if (!$instances) {
-            return ['courseid' => $courseid, 'generatedat' => $at, 'rows' => []];
+            return ['courseid' => $courseid, 'generatedat' => $at,
+                'expectedpercent' => null, 'strongpercent' => null, 'rows' => []];
         }
 
         $catalogids = [];
@@ -94,7 +104,8 @@ final class student_result_service {
             $outcomeparams += $programparams + ['programowner' => framework_service::OWNER_PROGRAM];
         }
         $outcomesql = "SELECT v.id, v.itemid, v.shortstatement, v.statement,
-                              i.code, f.ownerid AS catalogcourseid, f.ownertype
+                              i.code, f.ownerid AS catalogcourseid, f.ownertype,
+                              f.code AS frameworkcode
                          FROM {local_outcomemap_itemver} v
                          JOIN {local_outcomemap_item} i ON i.id = v.itemid
                          JOIN {local_outcomemap_fw} f ON f.id = i.frameworkid
@@ -131,6 +142,9 @@ final class student_result_service {
                     'itemverid' => (int) $outcome->id,
                     'code' => (string) $outcome->code,
                     'shortstatement' => (string) ($outcome->shortstatement ?? $outcome->statement),
+                    'statement' => (string) $outcome->statement,
+                    'frameworkcode' => (string) $outcome->frameworkcode,
+                    'tier' => self::tier((string) $outcome->ownertype, (string) $outcome->frameworkcode),
                 ];
             }
         }
@@ -159,7 +173,8 @@ final class student_result_service {
         // historical versions or policies to remain effective at view time.
         $resultsql = "SELECT r.*, p.configjson, b.name AS bandname, b.description AS banddescription,
                              v.itemid AS resultitemid, v.shortstatement AS resultshortstatement,
-                             v.statement AS resultstatement, i.code AS resultcode
+                             v.statement AS resultstatement, i.code AS resultcode,
+                             f.code AS resultframeworkcode, f.ownertype AS resultownertype
                         FROM {local_outcomemap_result} r
                         JOIN {local_outcomemap_cinst} ci ON ci.id = r.cinstid
                         JOIN {local_outcomemap_itemver} v ON v.id = r.itemverid
@@ -200,10 +215,17 @@ final class student_result_service {
                 'itemverid' => (int) $result->itemverid,
                 'code' => (string) $result->resultcode,
                 'shortstatement' => (string) ($result->resultshortstatement ?? $result->resultstatement),
+                'statement' => (string) $result->resultstatement,
+                'frameworkcode' => (string) $result->resultframeworkcode,
+                'tier' => self::tier(
+                    (string) $result->resultownertype,
+                    (string) $result->resultframeworkcode
+                ),
             ];
         }
         if (!$relevant) {
-            return ['courseid' => $courseid, 'generatedat' => $at, 'rows' => []];
+            return ['courseid' => $courseid, 'generatedat' => $at,
+                'expectedpercent' => null, 'strongpercent' => null, 'rows' => []];
         }
         uasort($relevant, static function(\stdClass $left, \stdClass $right): int {
             return [$left->code, $left->periodcode, $left->cinstid, $left->itemid]
@@ -475,11 +497,213 @@ final class student_result_service {
             }
         }
 
+        // Curriculum context: which higher-level outcomes each row feeds, and
+        // the band thresholds it was judged against. Both are definitional
+        // metadata rather than evidence, so they are safe at learner level and
+        // let a report group unit outcomes under the course outcome they build.
+        $parents = self::parent_map(array_map(
+            static fn(array $row): int => (int) $row['itemid'],
+            $rows
+        ), $at);
+        $policyids = [];
+        foreach (array_keys($rows) as $key) {
+            if ($selected[$key] !== null) {
+                $policyids[(int) $selected[$key]->policyid] = (int) $selected[$key]->policyid;
+            }
+        }
+        $ladders = self::band_ladders(array_values($policyids));
+        $fallback = self::fallback_ladder($ladders, $instances, $at);
+        $distinct = [];
+        foreach ($rows as $key => $row) {
+            $result = $selected[$key];
+            $ladder = $result === null
+                ? $fallback
+                : ($ladders[(int) $result->policyid] ?? $fallback);
+            $rows[$key]['parentitemids'] = $parents[(int) $row['itemid']] ?? [];
+            $rows[$key]['expectedpercent'] = $ladder['expected'];
+            $rows[$key]['strongpercent'] = $ladder['strong'];
+            $distinct[$ladder['expected'] . '|' . $ladder['strong']] = $ladder;
+        }
+
         return [
             'courseid' => $courseid,
             'generatedat' => $at,
+            // A single ladder across every row lets a report speak of "the 70%
+            // mark" in one voice. Mixed calculation policies make that claim
+            // untrue, so the report withholds it and rows keep their own.
+            'expectedpercent' => count($distinct) === 1 ? reset($distinct)['expected'] : null,
+            'strongpercent' => count($distinct) === 1 ? reset($distinct)['strong'] : null,
             'rows' => array_values($rows),
         ];
+    }
+
+    /**
+     * Classify one outcome into the display hierarchy.
+     *
+     * This deliberately repeats the rule used by the staff hierarchy view in
+     * \local_outcomemap\output\outcomes_hierarchy, so a learner and their
+     * teacher never disagree about whether an outcome is a course skill or a
+     * unit step: programme frameworks own programme outcomes, a course
+     * framework whose code ends in ULO owns unit outcomes, and anything else a
+     * course owns is a course outcome.
+     *
+     * @param string $ownertype Framework owner type.
+     * @param string $frameworkcode Framework code.
+     * @return string One of the TIER_* constants.
+     */
+    private static function tier(string $ownertype, string $frameworkcode): string {
+        if ($ownertype === framework_service::OWNER_PROGRAM) {
+            return self::TIER_PROGRAM;
+        }
+        return preg_match('/ULO$/i', $frameworkcode) === 1 ? self::TIER_UNIT : self::TIER_COURSE;
+    }
+
+    /**
+     * Map each reported outcome to the reported outcomes directly above it.
+     *
+     * Only single edges between rows of this report are followed, because the
+     * report groups adjacent tiers rather than tracing full paths. Both
+     * relation types count: an aligns_to edge is curriculum structure even
+     * though it never propagates evidence, and the grouping makes no
+     * attainment claim about the parent.
+     *
+     * @param int[] $itemids Stable outcome item IDs present in the report.
+     * @param int $at Effective timestamp.
+     * @return array<int, int[]> Parent item IDs keyed by source item ID.
+     */
+    private static function parent_map(array $itemids, int $at): array {
+        global $DB;
+        $itemids = array_values(array_unique(array_map('intval', $itemids)));
+        if (count($itemids) < 2) {
+            return [];
+        }
+        [$sourcesql, $sourceparams] = $DB->get_in_or_equal($itemids, SQL_PARAMS_NAMED, 'relsource');
+        [$targetsql, $targetparams] = $DB->get_in_or_equal($itemids, SQL_PARAMS_NAMED, 'reltarget');
+        [$typesql, $typeparams] = $DB->get_in_or_equal([
+            relation_service::ALIGNS_TO,
+            relation_service::CONTRIBUTES_TO,
+        ], SQL_PARAMS_NAMED, 'reltype');
+        $relations = $DB->get_records_select(
+            'local_outcomemap_rel',
+            "sourceitemid $sourcesql AND targetitemid $targetsql AND type $typesql
+                AND status = :relstatus AND effectivefrom <= :relat1
+                AND (effectiveto IS NULL OR effectiveto > :relat2)",
+            $sourceparams + $targetparams + $typeparams + [
+                'relstatus' => workflow::APPROVED,
+                'relat1' => $at,
+                'relat2' => $at,
+            ],
+            'sourceitemid, id',
+            'id, sourceitemid, targetitemid'
+        );
+        $map = [];
+        foreach ($relations as $relation) {
+            $sourceid = (int) $relation->sourceitemid;
+            $targetid = (int) $relation->targetitemid;
+            if ($sourceid === $targetid) {
+                continue;
+            }
+            // aligns_to and contributes_to commonly mirror each other, so the
+            // parent list is a set rather than one entry per edge.
+            $map[$sourceid][$targetid] = $targetid;
+        }
+        return array_map('array_values', $map);
+    }
+
+    /**
+     * Read the achievement thresholds out of each policy's band ladder.
+     *
+     * The thresholds are the ladder's interior boundaries: the floor of the
+     * second band is the point at which the policy stops calling an outcome
+     * unmet, and the floor of the top band is the point at which it calls it
+     * exceeded. The bottom band's own floor is deliberately excluded — it is
+     * the start of the scale, not an achievement threshold, and a policy that
+     * writes it as 0 rather than leaving it open must not be read as passing
+     * everyone. A ladder of one band therefore yields no thresholds at all,
+     * which is correct: it draws no distinction to report.
+     *
+     * @param int[] $policyids Calculation policy IDs.
+     * @return array<int, array{expected: ?string, strong: ?string}> Keyed by policy ID.
+     */
+    private static function band_ladders(array $policyids): array {
+        global $DB;
+        $policyids = array_values(array_unique(array_map('intval', $policyids)));
+        if (!$policyids) {
+            return [];
+        }
+        [$insql, $params] = $DB->get_in_or_equal($policyids, SQL_PARAMS_NAMED, 'bandpolicy');
+        $bands = $DB->get_records_select(
+            'local_outcomemap_band',
+            "policyid $insql",
+            $params,
+            'policyid, sortorder',
+            'id, policyid, minpercent, sortorder'
+        );
+        $ladders = array_fill_keys($policyids, ['expected' => null, 'strong' => null]);
+        $bottom = [];
+        foreach ($bands as $band) {
+            $policyid = (int) $band->policyid;
+            // Rows arrive in sortorder, which policy_service validates as an
+            // ascending non-overlapping ladder, so the first row of a policy is
+            // its bottom band.
+            if (!array_key_exists($policyid, $bottom)) {
+                $bottom[$policyid] = true;
+                continue;
+            }
+            if ($band->minpercent === null) {
+                continue;
+            }
+            $boundary = decimal::canonical($band->minpercent, 'minpercent');
+            $ladder = $ladders[$policyid];
+            if ($ladder['expected'] === null || decimal::cmp($boundary, $ladder['expected']) < 0) {
+                $ladders[$policyid]['expected'] = $boundary;
+            }
+            if ($ladder['strong'] === null || decimal::cmp($boundary, $ladder['strong']) > 0) {
+                $ladders[$policyid]['strong'] = $boundary;
+            }
+        }
+        return $ladders;
+    }
+
+    /**
+     * Resolve the ladder to use for rows with no stored result of their own.
+     *
+     * An unassessed row has no policy reference, so the report falls back to
+     * the calculation policy that governs the course instance now. When the
+     * learner already has results, their ladder is preferred over a resolved
+     * one so the page cannot describe a threshold their figures were not
+     * judged against.
+     *
+     * @param array $ladders Ladders keyed by policy ID.
+     * @param \stdClass[] $instances Approved confirmed course instances.
+     * @param int $at Effective timestamp.
+     * @return array{expected: ?string, strong: ?string} Ladder for unassessed rows.
+     */
+    private static function fallback_ladder(array $ladders, array $instances, int $at): array {
+        $empty = ['expected' => null, 'strong' => null];
+        if (count($ladders) === 1) {
+            return reset($ladders);
+        }
+        if ($ladders) {
+            // Several ladders already in play: no single one can be assumed.
+            return $empty;
+        }
+        $requests = [];
+        foreach ($instances as $instance) {
+            $requests[(int) $instance->id] = ['cinstid' => (int) $instance->id, 'cmid' => null];
+        }
+        if (!$requests) {
+            return $empty;
+        }
+        $policies = policy_service::resolve_many(policy_service::TYPE_CALCULATION, $requests, $at);
+        $policyids = [];
+        foreach ($policies as $policy) {
+            if ($policy !== null) {
+                $policyids[(int) $policy->id] = (int) $policy->id;
+            }
+        }
+        $resolved = self::band_ladders(array_values($policyids));
+        return count($resolved) === 1 ? reset($resolved) : $empty;
     }
 
     /**
@@ -676,6 +900,13 @@ final class student_result_service {
         $base = [
             'code' => $outcome->code,
             'shortstatement' => $outcome->shortstatement,
+            'statement' => $outcome->statement,
+            'itemid' => (int) $outcome->itemid,
+            'tier' => $outcome->tier,
+            'frameworkcode' => $outcome->frameworkcode,
+            'parentitemids' => [],
+            'expectedpercent' => null,
+            'strongpercent' => null,
             'periodcode' => $outcome->periodcode,
             'scopetype' => $scopetype,
             'scopeid' => $scopeid,

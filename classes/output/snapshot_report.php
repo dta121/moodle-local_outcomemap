@@ -111,9 +111,13 @@ final class snapshot_report implements renderable, templatable {
     /**
      * Load and verify one snapshot.
      *
-     * Verification recomputes the payload hash over every frozen row, so it needs
-     * the whole capture in memory. That is the same guarantee the page it replaces
-     * offered: a tampered snapshot must not render as though it were sound.
+     * Verification recomputes the payload hash over every frozen row, so a
+     * tampered snapshot still cannot render as though it were sound. It streams
+     * those rows rather than holding them: a programme-wide capture runs to
+     * hundreds of thousands of rows, four fifths of them evidence payloads that
+     * exist only to be hashed, and loading them cost around a gigabyte — enough
+     * that a perfectly sound record could not be viewed at all. What the page
+     * displays is loaded separately, and is a few thousand rows.
      *
      * @param int $snapshotid Snapshot ID.
      * @param string $groupby One of this class's GROUP_* values.
@@ -127,27 +131,32 @@ final class snapshot_report implements renderable, templatable {
             : self::SUBJECTS_ALL;
         $this->snapshot = snapshot_service::get($snapshotid);
         raise_memory_limit(MEMORY_EXTRA);
-        $items = snapshot_service::items($snapshotid);
-        snapshot_service::verify($this->snapshot, $items);
-        $displaytypes = array_fill_keys(self::DISPLAY_TYPES, true);
+        // Verifying a programme-wide capture is hundreds of thousands of hash and
+        // canonical-JSON operations, which outlasts the default request budget
+        // even though it now fits in a fraction of the memory. The alternative
+        // would be to verify less of the record than the page reports on.
+        \core_php_time_limit::raise(300);
+        // Verification streams the capture rather than loading it: the payloads
+        // exist only to be hashed, and a programme-wide capture is far larger
+        // than any request could hold.
+        snapshot_service::verify_streamed($this->snapshot);
+        // Counts describe the whole capture, so they are aggregated in the
+        // database instead of tallied over rows nothing else here reads.
+        $this->counts = snapshot_service::item_counts($snapshotid);
         $filtering = $this->subjectfilter !== self::SUBJECTS_ALL;
-        foreach ($items as $item) {
-            $type = (string) $item->itemtype;
-            if (!isset($this->counts[$type])) {
-                $this->counts[$type] = ['total' => 0, 'suppressed' => 0];
-            }
-            $this->counts[$type]['total']++;
-            $this->counts[$type]['suppressed'] += (int) $item->suppressed;
-            // Only the small governance types are decoded. A real reporting period
-            // holds tens of thousands of evidence rows, and none of them is read
-            // individually here.
-            if (isset($displaytypes[$type])) {
-                // Each captured row is an envelope of type, identity, indexed
-                // columns, and the canonical payload; only the payload is read.
-                $decoded = json_decode((string) $item->payloadjson, true);
-                $item->payload = is_array($decoded['payload'] ?? null) ? $decoded['payload'] : [];
-                $this->grouped[$type][] = $item;
-            } else if ($type === snapshot_service::ITEM_RESULT && $item->cinstid !== null) {
+        // Only the small governance types are loaded with their payloads.
+        foreach (snapshot_service::items_of_types($snapshotid, self::DISPLAY_TYPES) as $item) {
+            // Each captured row is an envelope of type, identity, indexed
+            // columns, and the canonical payload; only the payload is read.
+            $decoded = json_decode((string) $item->payloadjson, true);
+            $item->payload = is_array($decoded['payload'] ?? null) ? $decoded['payload'] : [];
+            $this->grouped[(string) $item->itemtype][] = $item;
+        }
+        // Learner results are pooled from their indexed columns; their payloads
+        // are the second largest thing in a capture and are never read here.
+        $rs = snapshot_service::result_index_rows($snapshotid);
+        try {
+            foreach ($rs as $item) {
                 $subjectref = (string) $item->subjectref;
                 $cinstid = (int) $item->cinstid;
                 $this->learnersbycourse[$cinstid][$subjectref] = true;
@@ -169,8 +178,9 @@ final class snapshot_report implements renderable, templatable {
                     );
                 }
             }
+        } finally {
+            $rs->close();
         }
-        ksort($this->counts, SORT_STRING);
         $this->criterion = $this->criterion();
         $this->verdicts = $this->verdicts();
         $this->selected = $this->selected();
@@ -375,6 +385,9 @@ final class snapshot_report implements renderable, templatable {
             'progress' => $progress,
             'outcomes' => $outcomes,
             'hasoutcomes' => $outcomes !== [],
+            // The band legend only means something where a criterion was in force
+            // to band against; without one every rate is unjudged.
+            'hascriterion' => $this->criterion !== null,
             'totals' => $this->totals($outcomes),
             'courses' => $this->courses(),
             'methods' => $this->methods(),
@@ -490,12 +503,43 @@ final class snapshot_report implements renderable, templatable {
         foreach ($this->grouped[snapshot_service::ITEM_OUTCOME_VERSION] ?? [] as $item) {
             $statements[(int) $item->itemverid] = $item->payload;
         }
+        // Each program outcome's contributing courses, with the figures each one
+        // reported. A bare list of course codes says which courses answered an
+        // outcome but not how well any of them did, which is the first question
+        // asked of a programme figure that sits below its benchmark.
+        $names = [];
+        foreach ($this->grouped[snapshot_service::ITEM_COURSE_INSTANCE] ?? [] as $item) {
+            $code = (string) ($item->payload['coursecode'] ?? '');
+            if ($code !== '') {
+                $names[$code] = format_string((string) ($item->payload['coursename'] ?? ''));
+            }
+        }
         $evidence = [];
         foreach ($this->grouped[snapshot_service::ITEM_COURSE_AGGREGATE] ?? [] as $item) {
-            $code = $item->payload['coursecode'] ?? '';
-            if ($code !== '') {
-                $evidence[(int) $item->itemverid][$code] = true;
+            $code = (string) ($item->payload['coursecode'] ?? '');
+            if ($code === '') {
+                continue;
             }
+            $suppressed = (bool) $item->suppressed;
+            $rate = $item->payload['attainmentpercent'] ?? null;
+            $evidence[(int) $item->itemverid][$code] = [
+                'code' => $code,
+                'name' => $names[$code] ?? '',
+                'suppressed' => $suppressed,
+                'learners' => number_format((int) ($item->payload['subjectcount'] ?? 0)),
+                'assessed' => number_format((int) ($item->payload['assessedcount'] ?? 0)),
+                'met' => number_format((int) ($item->payload['metcount'] ?? 0)),
+                'hasrate' => !$suppressed && $rate !== null,
+                'rate' => $rate === null
+                    ? get_string('calculationnotavailable', 'local_outcomemap')
+                    : number_format((float) $rate, 1) . '%',
+                'barwidth' => $rate === null ? 0 : round(min(100, max(0, (float) $rate)), 2),
+                'band' => self::rate_band($rate, $this->criterion),
+                'pooled' => $item->payload['percentage'] === null
+                    ? get_string('calculationnotavailable', 'local_outcomemap')
+                    : get_string('snapreport_pooledscore', 'local_outcomemap',
+                        number_format((float) $item->payload['percentage'], 1)),
+            ];
         }
         $overrides = $this->overrides();
         $rollup = $this->groupby === self::GROUP_FRAMEWORK ? [] : $this->rollup_labels();
@@ -505,14 +549,31 @@ final class snapshot_report implements renderable, templatable {
             $outcome = $statements[$itemverid] ?? [];
             $cells = $this->cells($item, $overrides);
             $suppressed = (bool) $cells['suppressed'];
-            $codes = array_keys($evidence[$itemverid] ?? []);
-            sort($codes, SORT_NATURAL);
+            $contributions = $evidence[$itemverid] ?? [];
+            ksort($contributions, SORT_NATURAL);
+            $contributions = array_values($contributions);
+            $codes = array_map(static fn(array $c): string => $c['code'], $contributions);
+            $withheld = 0;
+            foreach ($contributions as $contribution) {
+                $withheld += $contribution['suppressed'] ? 1 : 0;
+            }
             $row = [
                 'itemverid' => $itemverid,
                 'code' => $outcome['code'] ?? ($item->payload['outcomecode'] ?? ''),
                 'statement' => format_string($outcome['statement'] ?? ''),
                 'evidence' => $codes,
                 'hasevidence' => $codes !== [],
+                'contributions' => $contributions,
+                'hascontributions' => $contributions !== [],
+                'contributionline' => get_string(
+                    count($contributions) === 1
+                        ? 'snapreport_contribution_one' : 'snapreport_contribution',
+                    'local_outcomemap',
+                    count($contributions)
+                ),
+                'haswithheld' => $withheld > 0,
+                'withheldline' => get_string('snapreport_contribution_withheld',
+                    'local_outcomemap', $withheld),
                 'suppressed' => $suppressed,
                 'learners' => number_format((int) $cells['subjectcount']),
                 'results' => number_format((int) $cells['calculatedcount']),
@@ -539,6 +600,7 @@ final class snapshot_report implements renderable, templatable {
                     : null,
                 'metcount' => $cells['metcount'],
                 'assessedcount' => $cells['assessedcount'],
+                'criterion' => $this->criterion,
             ]);
 
             $framework = (string) ($outcome['frameworkcode'] ?? ($item->payload['frameworkcode'] ?? ''));
@@ -959,11 +1021,39 @@ final class snapshot_report implements renderable, templatable {
      * @param array $payload Program aggregate payload.
      * @return array Template values.
      */
+    /**
+     * Which band an attainment rate falls in, relative to the criterion.
+     *
+     * Met or not is the judgement the engine recorded, and it stays the verdict.
+     * The band is a reading aid on top of it: a rate a point under the criterion
+     * and one thirty points under both read as "not met", yet they call for very
+     * different responses, and a report that renders them identically hides that.
+     * Ten points is the width used for the near band.
+     *
+     * @param string|float|null $rate Attainment rate, or null when not calculable.
+     * @param string|null $criterion Canonical achievement criterion, when known.
+     * @return string One of met, near, below, or empty when unjudgeable.
+     */
+    private static function rate_band($rate, ?string $criterion): string {
+        if ($rate === null || $criterion === null) {
+            return '';
+        }
+        $rate = decimal::canonical((string) $rate, 'attainmentpercent');
+        if (decimal::cmp($rate, $criterion) >= 0) {
+            return 'met';
+        }
+        // Comparing on the canonical strings keeps this free of float drift, the
+        // same reason no percentage is ever averaged anywhere in this plugin.
+        $near = decimal::sub($criterion, decimal::canonical('10', 'band'));
+        return decimal::cmp($rate, $near) >= 0 ? 'near' : 'below';
+    }
+
     private static function attainment_cells(array $payload): array {
         $rate = $payload['attainmentpercent'] ?? null;
         $benchmark = $payload['benchmarkpercent'] ?? null;
         $met = $payload['benchmarkmet'] ?? null;
         return [
+            'band' => self::rate_band($rate, $payload['criterion'] ?? null),
             'hasrate' => $rate !== null,
             'rate' => $rate === null
                 ? get_string('calculationnotavailable', 'local_outcomemap')

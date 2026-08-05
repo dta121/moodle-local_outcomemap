@@ -242,6 +242,79 @@ final class course_instance_service extends base_service {
         }
     }
 
+    /**
+     * Move approved associations onto a different reporting period.
+     *
+     * The period code decides which associations a capture covers, because
+     * aggregate_service::course_instances() matches it exactly. An association
+     * seeded with a course code rather than an academic period therefore cannot
+     * be captured alongside its siblings, and no new version can express the
+     * change: an association carries no version history of its own.
+     *
+     * Approved associations are otherwise immutable, so this is deliberately a
+     * correction rather than an edit — it is audited per row with a required
+     * reason, and it asserts that the association always belonged to the period
+     * now named. Existing results keep the period they were reported under;
+     * recalculation writes the new one, which is the honest record of when each
+     * figure was produced.
+     *
+     * @param int[] $ids Approved association IDs to move together.
+     * @param string $periodcode New reporting period code.
+     * @param string $reason Required audit reason.
+     * @return int Number of associations moved.
+     */
+    public static function correct_periodcode(array $ids, string $periodcode, string $reason): int {
+        global $DB;
+        $actorid = self::require_system('local/outcomemap:managecatalogcourses');
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new validation_exception('requiredfield', 'reason');
+        }
+        $periodcode = input::required_text($periodcode, 'periodcode', 100);
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+        if (!$ids) {
+            return 0;
+        }
+        $records = [];
+        foreach ($ids as $id) {
+            $record = self::get_required(self::TABLE, $id, 'course_instance');
+            if ($record->status !== workflow::APPROVED || (int) $record->confirmed !== 1) {
+                throw new validation_exception('invalidtransition', 'status',
+                    $record->status . ':correct_periodcode');
+            }
+            $records[$id] = $record;
+        }
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            foreach ($records as $id => $before) {
+                if ((string) $before->periodcode === $periodcode) {
+                    continue;
+                }
+                // One Moodle course may hold only one association per period, so a
+                // move that would collide has to fail before anything is written.
+                $clash = $DB->get_record_select(self::TABLE,
+                    'moodlecourseid = :cid AND periodcode = :period AND id <> :id',
+                    ['cid' => $before->moodlecourseid, 'period' => $periodcode, 'id' => $id],
+                    'id', IGNORE_MULTIPLE);
+                if ($clash) {
+                    throw new validation_exception('courseinstanceexists', 'periodcode', $periodcode);
+                }
+                $after = clone $before;
+                $after->periodcode = $periodcode;
+                $after->modifiedby = $actorid;
+                $after->timemodified = time();
+                $DB->update_record(self::TABLE, $after);
+                audit_writer::write('correct_periodcode', 'course_instance', $id, $after->uuid,
+                    $before, $after, $reason,
+                    \context_course::instance($after->moodlecourseid), $actorid);
+            }
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+        return count($records);
+    }
+
     public static function list_all(): array {
         global $DB;
         self::require_system('local/outcomemap:viewdefinitions');

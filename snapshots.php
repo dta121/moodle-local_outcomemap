@@ -16,7 +16,6 @@
 
 use local_outcomemap\form\snapshot_form;
 use local_outcomemap\local\service\snapshot_service;
-use local_outcomemap\local\workflow;
 use local_outcomemap\output\snapshot_report;
 use local_outcomemap\output\snapshots_page;
 
@@ -28,28 +27,9 @@ require_once($configpath);
 unset($configpath);
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir . '/formslib.php');
-
-/**
- * Build snapshot form selectors without per-row lookups.
- *
- * @return array
- */
-function local_outcomemap_snapshot_options(): array {
-    global $DB;
-    $programs = [];
-    foreach ($DB->get_records('local_outcomemap_program', ['status' => workflow::APPROVED], 'code, name') as $program) {
-        $programs[(int) $program->id] = $program->code . ' — ' . format_string($program->name);
-    }
-    $cohorts = [];
-    foreach ($DB->get_records('cohort', null, 'name, idnumber') as $cohort) {
-        $label = format_string($cohort->name);
-        if ($cohort->idnumber !== '') {
-            $label .= ' [' . s($cohort->idnumber) . ']';
-        }
-        $cohorts[(int) $cohort->id] = $label;
-    }
-    return ['programs' => $programs, 'cohorts' => $cohorts];
-}
+// The form's selectors are built by library functions rather than page-local ones,
+// so they can be covered by tests without executing this page.
+require_once($CFG->dirroot . '/local/outcomemap/lib.php');
 
 admin_externalpage_setup('local_outcomemap_snapshots');
 $context = context_system::instance();
@@ -116,6 +96,9 @@ if (in_array($action, ['add', 'correct'], true)) {
     $form = new snapshot_form($formurl, [
         'options' => local_outcomemap_snapshot_options(),
         'iscorrection' => $previous !== null,
+        // A correction freezes the period, which must therefore stay selectable
+        // even if it no longer resolves to any instance.
+        'currentperiod' => $previous !== null ? (string) $previous->periodcode : '',
     ]);
     if ($form->is_cancelled()) {
         redirect($url);

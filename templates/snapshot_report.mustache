@@ -10,6 +10,8 @@
     * progress object Cohort course-progress tiles, the criterion used, and the population line.
     * controls object Grouping links, subject-filter chips, and the filtered-view note.
     * outcomes array Groups, each with framework (group label), countline, rows.
+      Each row carries band (met/near/below) and contributions: the courses behind its rate.
+    * hascriterion boolean Whether a criterion was in force, so bands can be read.
     * hasoutcomes boolean Whether any program-scope aggregate was captured.
     * totals object Aggregate learners, results, percent, frameworkcount.
     * courses array Course evidence rows.
@@ -49,10 +51,18 @@
             "rows": [{
                 "code": "PLO1", "statement": "Analyse financial statements.",
                 "evidence": ["MBA601"], "hasevidence": true, "suppressed": false,
-                "learners": "128", "results": "868", "percent": "87.5%", "barwidth": 87.5, "hasbar": true
+                "learners": "128", "results": "868", "percent": "87.5%", "barwidth": 87.5, "hasbar": true,
+                "band": "met", "hascontributions": true, "contributionline": "2 contributing courses",
+                "haswithheld": false, "withheldline": "0 withheld",
+                "contributions": [{
+                    "code": "MBA601", "name": "Financial Management", "suppressed": false,
+                    "hasrate": true, "rate": "87.5%", "barwidth": 87.5, "band": "met",
+                    "learners": "128", "pooled": "pooled 84.2%"
+                }]
             }]
         }],
         "hasoutcomes": true,
+        "hascriterion": true,
         "totals": {"learners": "133", "results": "1,484", "percent": "82.1%", "frameworkcount": 3},
         "courses": [{
             "code": "MBA601", "name": "Financial Management",
@@ -155,15 +165,40 @@
         {{#rows}}
         <div class="lom-snap-row">
             <span class="lom-code-badge lom-code-catalog lom-snap-code">{{code}}</span>
-            <span class="lom-snap-statement">
+            <div class="lom-snap-statement">
                 <span class="lom-snap-statement-text">{{statement}}</span>
-                {{#hasevidence}}
-                <span class="lom-snap-evidence">
-                    <span class="lom-snap-evidence-label">{{#str}} snapreport_evidence, local_outcomemap {{/str}}</span>
-                    {{#evidence}}<span class="lom-snap-evidence-chip">{{.}}</span>{{/evidence}}
-                </span>
-                {{/hasevidence}}
-            </span>
+                {{#hascontributions}}
+                <details class="lom-snap-contrib">
+                    <summary class="lom-snap-contrib-summary">
+                        <span class="lom-snap-contrib-count">{{contributionline}}</span>
+                        {{#haswithheld}}<span class="lom-snap-contrib-withheld">{{withheldline}}</span>{{/haswithheld}}
+                    </summary>
+                    <span class="lom-snap-contrib-list">
+                        {{#contributions}}
+                        <span class="lom-snap-contrib-row">
+                            <span class="lom-code-badge lom-code-catalog lom-snap-contrib-code">{{code}}</span>
+                            <span class="lom-snap-contrib-name">{{name}}</span>
+                            {{#hasrate}}
+                            <span class="lom-snap-contrib-bar">
+                                <span class="lom-snap-bar-fill lom-snap-band-{{band}}" style="width: {{barwidth}}%"></span>
+                            </span>
+                            <span class="lom-snap-contrib-rate lom-snap-band-{{band}}">{{rate}}</span>
+                            <span class="lom-snap-contrib-note">{{learners}} &middot; {{pooled}}</span>
+                            {{/hasrate}}
+                            {{^hasrate}}
+                            <span class="lom-snap-contrib-bar"></span>
+                            <span class="lom-snap-contrib-rate lom-snap-withheld">&mdash;</span>
+                            <span class="lom-snap-contrib-note">
+                                {{#suppressed}}{{#str}} snapreport_contribution_suppressed, local_outcomemap {{/str}}{{/suppressed}}
+                                {{^suppressed}}{{rate}}{{/suppressed}}
+                            </span>
+                            {{/hasrate}}
+                        </span>
+                        {{/contributions}}
+                    </span>
+                </details>
+                {{/hascontributions}}
+            </div>
             {{^suppressed}}
             <span class="lom-snap-num">{{learners}}</span>
             <span class="lom-snap-num">{{results}}</span>
@@ -172,7 +207,7 @@
                 <span class="lom-snap-pct">{{percent}}</span>
             </span>
             <span class="lom-snap-rate" title="{{ratedetail}}">
-                <span class="lom-snap-pct">{{rate}}</span>
+                <span class="lom-snap-pct lom-snap-band-{{band}}">{{rate}}</span>
                 {{#hasbenchmark}}
                 <span class="lom-snap-benchmark">{{benchmark}}</span>
                 {{/hasbenchmark}}
@@ -200,6 +235,14 @@
             </span>
         </div>
     </div>
+    {{#hascriterion}}
+    <div class="lom-snap-legend">
+        <span class="lom-snap-legend-key"><i class="lom-snap-swatch lom-snap-band-met"></i>{{#str}} snapreport_band_met, local_outcomemap {{/str}}</span>
+        <span class="lom-snap-legend-key"><i class="lom-snap-swatch lom-snap-band-near"></i>{{#str}} snapreport_band_near, local_outcomemap {{/str}}</span>
+        <span class="lom-snap-legend-key"><i class="lom-snap-swatch lom-snap-band-below"></i>{{#str}} snapreport_band_below, local_outcomemap {{/str}}</span>
+        <span class="lom-snap-legend-note">{{rowsline}}</span>
+    </div>
+    {{/hascriterion}}
     {{/hasoutcomes}}
     {{^hasoutcomes}}
     <div class="lom-page-empty">{{#str}} snapreport_nooutcomes, local_outcomemap {{/str}}</div>

@@ -23,6 +23,77 @@
  */
 
 use local_outcomemap\local\service\content_mapping_service;
+use local_outcomemap\local\workflow;
+
+/**
+ * Build snapshot form selectors without per-row lookups.
+ *
+ * @return array
+ */
+function local_outcomemap_snapshot_options(): array {
+    global $DB;
+    $programs = [];
+    foreach ($DB->get_records('local_outcomemap_program', ['status' => workflow::APPROVED], 'code, name') as $program) {
+        $programs[(int) $program->id] = $program->code . ' — ' . format_string($program->name);
+    }
+    $cohorts = [];
+    foreach ($DB->get_records('cohort', null, 'name, idnumber') as $cohort) {
+        $label = format_string($cohort->name);
+        if ($cohort->idnumber !== '') {
+            $label .= ' [' . s($cohort->idnumber) . ']';
+        }
+        $cohorts[(int) $cohort->id] = $label;
+    }
+    return [
+        'programs' => $programs,
+        'cohorts' => $cohorts,
+        'periods' => local_outcomemap_snapshot_periods(),
+    ];
+}
+
+/**
+ * Reporting periods that actually resolve to course instances, per program.
+ *
+ * A capture is built from the approved, confirmed course instances carrying the
+ * chosen period code, so a period that matches none produces an empty capture
+ * and the attempt fails. Offering only the periods that resolve makes that
+ * outcome unreachable from the form, rather than something the operator finds
+ * out by submitting.
+ *
+ * The filters mirror aggregate_service::course_instances() exactly; if that
+ * query changes, this one has to change with it.
+ *
+ * @return array<int,array<string,int>> Course-instance counts by program ID then period code.
+ */
+function local_outcomemap_snapshot_periods(): array {
+    global $DB;
+    $now = time();
+    $sql = "SELECT pc.programid AS programid, ci.periodcode AS periodcode,
+                   COUNT(DISTINCT ci.id) AS instances
+              FROM {local_outcomemap_progcourse} pc
+              JOIN {local_outcomemap_course} cc ON cc.id = pc.courseid
+              JOIN {local_outcomemap_cinst} ci ON ci.courseid = cc.id
+              JOIN {course} mc ON mc.id = ci.moodlecourseid
+             WHERE pc.status = :pcstatus AND ci.status = :cistatus AND ci.confirmed = 1
+               AND pc.effectivefrom <= :at1
+               AND (pc.effectiveto IS NULL OR pc.effectiveto > :at2)
+          GROUP BY pc.programid, ci.periodcode
+          ORDER BY pc.programid, ci.periodcode";
+    $periods = [];
+    // A recordset, not get_records_sql(): that keys rows by the first column, and
+    // programid repeats across periods, so every period but one would vanish.
+    $rs = $DB->get_recordset_sql($sql, [
+        'pcstatus' => workflow::APPROVED,
+        'cistatus' => workflow::APPROVED,
+        'at1' => $now,
+        'at2' => $now,
+    ]);
+    foreach ($rs as $row) {
+        $periods[(int) $row->programid][(string) $row->periodcode] = (int) $row->instances;
+    }
+    $rs->close();
+    return $periods;
+}
 
 /**
  * Add an explicit outcome-mapping entry point to standard activity settings forms.

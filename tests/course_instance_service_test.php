@@ -163,4 +163,77 @@ final class course_instance_service_test extends \advanced_testcase {
         $this->assertSame(1, (int) $row->enrolledcount,
             'Only active enrolments in the associated shell should be counted.');
     }
+
+    /**
+     * Associations seeded under separate periods can be gathered onto one.
+     *
+     * The period code decides which associations a capture covers, so
+     * associations each carrying their own course code can never be captured
+     * together. An association has no version history, so the only way to say
+     * "these belong to one reporting period" is an audited correction.
+     */
+    public function test_correct_periodcode_gathers_associations_onto_one_period(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+        [$first] = $this->create_association('COURSE-A');
+        [$second] = $this->create_association('COURSE-B');
+
+        $moved = course_instance_service::correct_periodcode([$first, $second], '2026',
+            'Gathered onto one reporting period so the programme can be captured at once.');
+
+        $this->assertSame(2, $moved);
+        $this->assertSame('2026', $DB->get_field('local_outcomemap_cinst', 'periodcode', ['id' => $first]));
+        $this->assertSame('2026', $DB->get_field('local_outcomemap_cinst', 'periodcode', ['id' => $second]));
+        $this->assertTrue($DB->record_exists('local_outcomemap_audit',
+            ['action' => 'correct_periodcode', 'objecttype' => 'course_instance', 'objectid' => $first]),
+            'A correction to an approved record must leave an audit trail.');
+    }
+
+    /**
+     * A correction has to say why, like every other change to an approved record.
+     */
+    public function test_correct_periodcode_requires_a_reason(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+        [$id] = $this->create_association('COURSE-A');
+
+        $this->expectException(validation_exception::class);
+        course_instance_service::correct_periodcode([$id], '2026', '   ');
+    }
+
+    /**
+     * One Moodle course cannot hold two associations for the same period.
+     */
+    public function test_correct_periodcode_refuses_a_collision(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+        $course = $this->getDataGenerator()->create_course();
+        $ids = [];
+        foreach (['COURSE-A', '2026'] as $period) {
+            $catalogid = catalog_course_service::create([
+                'code' => 'CINST' . strtoupper(random_string(4)),
+                'name' => 'Collision test',
+            ]);
+            $ids[$period] = course_instance_service::create_confirmed([
+                'courseid' => $catalogid,
+                'moodlecourseid' => $course->id,
+                'periodcode' => $period,
+            ]);
+        }
+
+        try {
+            course_instance_service::correct_periodcode([$ids['COURSE-A']], '2026', 'Should not land.');
+            $this->fail('Moving onto a period the same course already holds must be refused.');
+        } catch (validation_exception $e) {
+            $this->assertSame('courseinstanceexists', $e->errorcode);
+        }
+        $this->assertSame('COURSE-A',
+            $DB->get_field('local_outcomemap_cinst', 'periodcode', ['id' => $ids['COURSE-A']]),
+            'A refused correction must leave the association untouched.');
+    }
 }
