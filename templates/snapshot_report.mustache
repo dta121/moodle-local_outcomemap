@@ -148,24 +148,26 @@
     <div class="lom-snap-filternote">{{controls.filternote}}</div>
     {{/controls.filtered}}
     {{#hasoutcomes}}
-    <div class="lom-snap-table">
-        <div class="lom-snap-row lom-snap-head">
-            <span>{{#str}} snapreport_col_outcome, local_outcomemap {{/str}}</span>
-            <span>{{#str}} snapreport_col_statement, local_outcomemap {{/str}}</span>
-            <span class="lom-snap-num">{{#str}} snapreport_col_learners, local_outcomemap {{/str}}</span>
-            <span class="lom-snap-num">{{#str}} snapreport_col_results, local_outcomemap {{/str}}</span>
-            <span>{{#str}} snapreport_col_attainment, local_outcomemap {{/str}}</span>
-            <span>{{#str}} snapreport_col_rate, local_outcomemap {{/str}}</span>
+    {{! The grid is laid out with CSS, so the table relationships screen readers
+        need (which column a figure belongs to) are declared with ARIA roles. }}
+    <div class="lom-snap-table" role="table" aria-label="{{#str}} snapreport_attainment_heading, local_outcomemap {{/str}}">
+        <div class="lom-snap-row lom-snap-head" role="row">
+            <span role="columnheader">{{#str}} snapreport_col_outcome, local_outcomemap {{/str}}</span>
+            <span role="columnheader">{{#str}} snapreport_col_statement, local_outcomemap {{/str}}</span>
+            <span class="lom-snap-num" role="columnheader">{{#str}} snapreport_col_learners, local_outcomemap {{/str}}</span>
+            <span class="lom-snap-num" role="columnheader">{{#str}} snapreport_col_results, local_outcomemap {{/str}}</span>
+            <span role="columnheader">{{#str}} snapreport_col_attainment, local_outcomemap {{/str}}</span>
+            <span role="columnheader">{{#str}} snapreport_col_rate, local_outcomemap {{/str}}</span>
         </div>
         {{#outcomes}}
-        <div class="lom-snap-fwrow">
-            <span class="lom-snap-fwcode">{{framework}}</span>
-            <span class="lom-snap-fwcount">{{countline}}</span>
+        <div class="lom-snap-fwrow" role="row">
+            <span class="lom-snap-fwcode" role="cell" aria-colspan="2">{{framework}}</span>
+            <span class="lom-snap-fwcount" role="cell" aria-colspan="4">{{countline}}</span>
         </div>
         {{#rows}}
-        <div class="lom-snap-row">
-            <span class="lom-code-badge lom-code-catalog lom-snap-code">{{code}}</span>
-            <div class="lom-snap-statement">
+        <div class="lom-snap-row" role="row">
+            <span class="lom-code-badge lom-code-catalog lom-snap-code" role="cell">{{code}}</span>
+            <div class="lom-snap-statement" role="cell">
                 <span class="lom-snap-statement-text">{{statement}}</span>
                 {{#hascontributions}}
                 <details class="lom-snap-contrib">
@@ -179,14 +181,14 @@
                             <span class="lom-code-badge lom-code-catalog lom-snap-contrib-code">{{code}}</span>
                             <span class="lom-snap-contrib-name">{{name}}</span>
                             {{#hasrate}}
-                            <span class="lom-snap-contrib-bar">
+                            <span class="lom-snap-contrib-bar" aria-hidden="true">
                                 <span class="lom-snap-bar-fill lom-snap-band-{{band}}" style="width: {{barwidth}}%"></span>
                             </span>
-                            <span class="lom-snap-contrib-rate lom-snap-band-{{band}}">{{rate}}</span>
+                            <span class="lom-snap-contrib-rate lom-snap-band-{{band}}">{{rate}}{{#hasband}}<span class="sr-only visually-hidden"> ({{bandlabel}})</span>{{/hasband}}</span>
                             <span class="lom-snap-contrib-note">{{learners}} &middot; {{pooled}}</span>
                             {{/hasrate}}
                             {{^hasrate}}
-                            <span class="lom-snap-contrib-bar"></span>
+                            <span class="lom-snap-contrib-bar" aria-hidden="true"></span>
                             <span class="lom-snap-contrib-rate lom-snap-withheld">&mdash;</span>
                             <span class="lom-snap-contrib-note">
                                 {{#suppressed}}{{#str}} snapreport_contribution_suppressed, local_outcomemap {{/str}}{{/suppressed}}
@@ -200,14 +202,15 @@
                 {{/hascontributions}}
             </div>
             {{^suppressed}}
-            <span class="lom-snap-num">{{learners}}</span>
-            <span class="lom-snap-num">{{results}}</span>
-            <span class="lom-snap-attain">
-                {{#hasbar}}<span class="lom-snap-bar"><span class="lom-snap-bar-fill" style="width: {{barwidth}}%"></span></span>{{/hasbar}}
+            <span class="lom-snap-num" role="cell">{{learners}}</span>
+            <span class="lom-snap-num" role="cell">{{results}}</span>
+            <span class="lom-snap-attain" role="cell">
+                {{#hasbar}}<span class="lom-snap-bar" aria-hidden="true"><span class="lom-snap-bar-fill" style="width: {{barwidth}}%"></span></span>{{/hasbar}}
                 <span class="lom-snap-pct">{{percent}}</span>
             </span>
-            <span class="lom-snap-rate" title="{{ratedetail}}">
-                <span class="lom-snap-pct lom-snap-band-{{band}}">{{rate}}</span>
+            <span class="lom-snap-rate" role="cell" title="{{ratedetail}}">
+                <span class="lom-snap-pct lom-snap-band-{{band}}">{{rate}}{{#hasband}}<span class="sr-only visually-hidden"> ({{bandlabel}})</span>{{/hasband}}</span>
+                <span class="sr-only visually-hidden">{{ratedetail}}</span>
                 {{#hasbenchmark}}
                 <span class="lom-snap-benchmark">{{benchmark}}</span>
                 {{/hasbenchmark}}
@@ -216,30 +219,30 @@
             </span>
             {{/suppressed}}
             {{#suppressed}}
-            <span class="lom-snap-num lom-snap-withheld">&mdash;</span>
-            <span class="lom-snap-num lom-snap-withheld">&mdash;</span>
-            <span class="lom-workflow lom-workflow-review">{{#str}} exportsuppressed, local_outcomemap {{/str}}</span>
-            <span class="lom-snap-num lom-snap-withheld">&mdash;</span>
+            <span class="lom-snap-num lom-snap-withheld" role="cell">&mdash;</span>
+            <span class="lom-snap-num lom-snap-withheld" role="cell">&mdash;</span>
+            <span class="lom-workflow lom-workflow-review" role="cell">{{#str}} exportsuppressed, local_outcomemap {{/str}}</span>
+            <span class="lom-snap-num lom-snap-withheld" role="cell">&mdash;</span>
             {{/suppressed}}
         </div>
         {{/rows}}
         {{/outcomes}}
-        <div class="lom-snap-row lom-snap-total">
-            <span></span>
-            <span class="lom-snap-total-label">{{#str}} snapreport_programaggregate, local_outcomemap {{/str}}</span>
-            <span class="lom-snap-num">{{totals.learners}}</span>
-            <span class="lom-snap-num">{{totals.results}}</span>
-            <span class="lom-snap-attain"><span class="lom-snap-pct">{{totals.percent}}</span></span>
-            <span class="lom-snap-rate">
+        <div class="lom-snap-row lom-snap-total" role="row">
+            <span role="cell"></span>
+            <span class="lom-snap-total-label" role="cell">{{#str}} snapreport_programaggregate, local_outcomemap {{/str}}</span>
+            <span class="lom-snap-num" role="cell">{{totals.learners}}</span>
+            <span class="lom-snap-num" role="cell">{{totals.results}}</span>
+            <span class="lom-snap-attain" role="cell"><span class="lom-snap-pct">{{totals.percent}}</span></span>
+            <span class="lom-snap-rate" role="cell">
                 {{#totals.hasbenchmarks}}<span class="lom-snap-benchmark">{{totals.benchmarksummary}}</span>{{/totals.hasbenchmarks}}
             </span>
         </div>
     </div>
     {{#hascriterion}}
     <div class="lom-snap-legend">
-        <span class="lom-snap-legend-key"><i class="lom-snap-swatch lom-snap-band-met"></i>{{#str}} snapreport_band_met, local_outcomemap {{/str}}</span>
-        <span class="lom-snap-legend-key"><i class="lom-snap-swatch lom-snap-band-near"></i>{{#str}} snapreport_band_near, local_outcomemap {{/str}}</span>
-        <span class="lom-snap-legend-key"><i class="lom-snap-swatch lom-snap-band-below"></i>{{#str}} snapreport_band_below, local_outcomemap {{/str}}</span>
+        <span class="lom-snap-legend-key"><i class="lom-snap-swatch lom-snap-band-met" aria-hidden="true"></i>{{#str}} snapreport_band_met, local_outcomemap {{/str}}</span>
+        <span class="lom-snap-legend-key"><i class="lom-snap-swatch lom-snap-band-near" aria-hidden="true"></i>{{#str}} snapreport_band_near, local_outcomemap {{/str}}</span>
+        <span class="lom-snap-legend-key"><i class="lom-snap-swatch lom-snap-band-below" aria-hidden="true"></i>{{#str}} snapreport_band_below, local_outcomemap {{/str}}</span>
         <span class="lom-snap-legend-note">{{rowsline}}</span>
     </div>
     {{/hascriterion}}

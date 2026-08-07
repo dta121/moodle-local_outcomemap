@@ -522,6 +522,7 @@ final class snapshot_report implements renderable, templatable {
             }
             $suppressed = (bool) $item->suppressed;
             $rate = $item->payload['attainmentpercent'] ?? null;
+            $band = self::rate_band($rate, $this->criterion);
             $evidence[(int) $item->itemverid][$code] = [
                 'code' => $code,
                 'name' => $names[$code] ?? '',
@@ -534,7 +535,13 @@ final class snapshot_report implements renderable, templatable {
                     ? get_string('calculationnotavailable', 'local_outcomemap')
                     : number_format((float) $rate, 1) . '%',
                 'barwidth' => $rate === null ? 0 : round(min(100, max(0, (float) $rate)), 2),
-                'band' => self::rate_band($rate, $this->criterion),
+                'band' => $band,
+                // The band is shown as a colour; the label repeats it in words
+                // for readers the colour does not reach.
+                'hasband' => $band !== '',
+                'bandlabel' => $band === ''
+                    ? ''
+                    : get_string('snapreport_band_' . $band, 'local_outcomemap'),
                 'pooled' => $item->payload['percentage'] === null
                     ? get_string('calculationnotavailable', 'local_outcomemap')
                     : get_string('snapreport_pooledscore', 'local_outcomemap',
@@ -1052,8 +1059,15 @@ final class snapshot_report implements renderable, templatable {
         $rate = $payload['attainmentpercent'] ?? null;
         $benchmark = $payload['benchmarkpercent'] ?? null;
         $met = $payload['benchmarkmet'] ?? null;
+        $band = self::rate_band($rate, $payload['criterion'] ?? null);
         return [
-            'band' => self::rate_band($rate, $payload['criterion'] ?? null),
+            'band' => $band,
+            // The band is shown as a colour; the label repeats it in words for
+            // readers the colour does not reach.
+            'hasband' => $band !== '',
+            'bandlabel' => $band === ''
+                ? ''
+                : get_string('snapreport_band_' . $band, 'local_outcomemap'),
             'hasrate' => $rate !== null,
             'rate' => $rate === null
                 ? get_string('calculationnotavailable', 'local_outcomemap')

@@ -86,7 +86,9 @@
                 <span class="lom-dash-program-meta">{{meta}}</span>
             </span>
             <span class="lom-dash-readiness">
-                <span class="lom-snap-bar">
+                {{! The percentage beside the bar carries the figure, so the bar is
+                    decorative to assistive technology. }}
+                <span class="lom-snap-bar" aria-hidden="true">
                     <span class="lom-snap-bar-fill lom-dash-bar-{{bartone}}" style="{{barstyle}}"></span>
                 </span>
                 <span class="lom-dash-pct lom-dash-pct-{{bartone}}">{{percentlabel}}</span>
