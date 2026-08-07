@@ -3,6 +3,7 @@
 
 use local_outcomemap\form\framework_form;
 use local_outcomemap\form\outcome_form;
+use local_outcomemap\local\csv_safety;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\outcome_service;
 use local_outcomemap\local\service\relation_service;
@@ -142,7 +143,9 @@ if ($action === 'exportcsv') {
     $stream = fopen('php://output', 'w');
     fwrite($stream, "\xEF\xBB\xBF");
     foreach ($rows as $row) {
-        fputcsv($stream, $row, ',', '"', '');
+        // Outcome statements are staff-entered free text, so every cell is
+        // neutralized against spreadsheet formula execution before download.
+        fputcsv($stream, csv_safety::row($row), ',', '"', '');
     }
     fclose($stream);
     exit;

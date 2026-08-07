@@ -2,6 +2,7 @@
 // This file is part of Moodle - http://moodle.org/
 
 use local_outcomemap\form\relation_form;
+use local_outcomemap\local\csv_safety;
 use local_outcomemap\local\service\relation_service;
 use local_outcomemap\local\workflow;
 use local_outcomemap\output\outcomes_hierarchy;
@@ -39,7 +40,9 @@ if ($action === 'exportcsv') {
     $stream = fopen('php://output', 'w');
     fwrite($stream, "\xEF\xBB\xBF");
     foreach ($page->csv_rows() as $row) {
-        fputcsv($stream, $row, ',', '"', '');
+        // Outcome statements are staff-entered free text, so every cell is
+        // neutralized against spreadsheet formula execution before download.
+        fputcsv($stream, csv_safety::row($row), ',', '"', '');
     }
     fclose($stream);
     exit;
