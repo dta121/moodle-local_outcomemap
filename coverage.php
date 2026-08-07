@@ -22,6 +22,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use local_outcomemap\local\csv_safety;
 use local_outcomemap\local\highlight;
 use local_outcomemap\local\service\content_mapping_service;
 use local_outcomemap\local\service\coverage_service;
@@ -160,14 +161,16 @@ if ($action === 'export') {
         get_string('coverage_assessedby', 'local_outcomemap'),
     ]);
     foreach ($visible as $row) {
-        $exporter->add_data([
+        // Statements, codes, and activity names are staff-entered free text,
+        // so they are neutralized against spreadsheet formula execution.
+        $exporter->add_data(csv_safety::row([
             $row->code,
             'v' . $row->version,
             $row->statement,
             get_string('coveragestatus_' . $row->statusid, 'local_outcomemap'),
             implode('; ', array_map(fn($e) => $e->label, $row->taught)),
             implode('; ', array_map(fn($e) => $e->label, $row->assessed)),
-        ]);
+        ]));
     }
     $exporter->download_file();
     exit;

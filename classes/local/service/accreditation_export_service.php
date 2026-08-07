@@ -9,6 +9,7 @@
 namespace local_outcomemap\local\service;
 
 use local_outcomemap\local\canonical_json;
+use local_outcomemap\local\csv_safety;
 use local_outcomemap\local\decimal;
 use local_outcomemap\local\validation_exception;
 
@@ -118,7 +119,10 @@ final class accreditation_export_service {
                 continue;
             }
             $suppressed = (int) $item->suppressed === 1;
-            fputcsv($stream, [
+            // Free-text cells (the period code in particular) are neutralized
+            // so a value typed to look like a spreadsheet formula stays text
+            // when the summary is opened in a spreadsheet application.
+            fputcsv($stream, csv_safety::row([
                 (string) $snapshot->snapshotuuid,
                 (int) $snapshot->version,
                 (int) $snapshot->programid,
@@ -148,7 +152,7 @@ final class accreditation_export_service {
                 $suppressed || $item->benchmarkmet === null ? '' : (int) $item->benchmarkmet,
                 (string) $item->payloadhash,
                 (string) $snapshot->manifesthash,
-            ]);
+            ]));
         }
         rewind($stream);
         $csv = stream_get_contents($stream);

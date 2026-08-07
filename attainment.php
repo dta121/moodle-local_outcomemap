@@ -22,6 +22,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use local_outcomemap\local\csv_safety;
 use local_outcomemap\local\highlight;
 use local_outcomemap\local\service\attainment_report_service as report_service;
 use local_outcomemap\local\service\course_attainment_service;
@@ -458,7 +459,10 @@ if ($action === 'export') {
                         ? '' : number_format($split->metpct, 2, '.', '');
                 }
             }
-            $exporter->add_data($row);
+            // Statements and band names are staff-entered free text, so they
+            // are neutralized against spreadsheet formula execution before the
+            // download; genuine values pass through unchanged.
+            $exporter->add_data(csv_safety::row($row));
         }
     }
     $exporter->download_file();
