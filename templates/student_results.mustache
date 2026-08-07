@@ -114,9 +114,9 @@
         {{/filters.has}}
     </div>
 
-    <div class="lom-sr-skills" data-filter="all" id="lom-sr-skills">
+    <div class="lom-sr-skills" data-filter="all" id="lom-sr-skills" role="list">
         {{#skills.items}}
-        <div class="lom-sr-skill" data-filter="{{filter}}">
+        <div class="lom-sr-skill" data-filter="{{filter}}" role="listitem">
             <div class="lom-sr-skill-row">
                 <div class="lom-sr-skill-name">
                     <div class="lom-sr-skill-title">{{name}}</div>
@@ -129,7 +129,9 @@
                 </div>
                 <div class="lom-sr-skill-bar">
                     {{#bar}}
-                    <div class="lom-sr-bar">
+                    {{! The bar repeats the score and mark shown in text, so it is
+                        decorative to assistive technology. }}
+                    <div class="lom-sr-bar" aria-hidden="true">
                         <div class="lom-sr-bar-fill lom-sr-fill-{{tone}}" style="width: {{fill}}"></div>
                         {{#hasmark}}<div class="lom-sr-bar-mark" style="left: {{mark}}"></div>{{/hasmark}}
                     </div>
@@ -193,7 +195,7 @@
         </div>
         {{/skills.items}}
     </div>
-    <div class="lom-sr-empty lom-sr-noprint lom-hidden" id="lom-sr-noresults">
+    <div class="lom-sr-empty lom-sr-noprint lom-hidden" id="lom-sr-noresults" role="status" aria-live="polite">
         {{#str}} sr_filter_empty, local_outcomemap {{/str}}
     </div>
     {{/skills.has}}
@@ -255,7 +257,7 @@
                 {{#evidence}}<span class="lom-sr-degree-items">{{.}}</span>{{/evidence}}
             </div>
             {{#bar}}
-            <div class="lom-sr-bar">
+            <div class="lom-sr-bar" aria-hidden="true">
                 <div class="lom-sr-bar-fill lom-sr-fill-{{tone}}" style="width: {{fill}}"></div>
                 {{#hasmark}}<div class="lom-sr-bar-mark" style="left: {{mark}}"></div>{{/hasmark}}
             </div>

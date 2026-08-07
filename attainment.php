@@ -283,7 +283,11 @@ $bar = static function (stdClass $stats, string $extra = '') use ($target, $with
         'style' => 'left:' . round($target, 2) . '%',
         'title' => get_string('oa_targetmarker', 'local_outcomemap', report_service::pct($target)),
     ]);
-    return html_writer::span($segments . $marker, trim('lom-oa-bar ' . $extra));
+    // Every rendering of the bar sits beside a band line or legend that states
+    // the same shares in words, so the graphic is decorative to assistive
+    // technology; the titles remain as sighted hover detail.
+    return html_writer::span($segments . $marker, trim('lom-oa-bar ' . $extra),
+        ['aria-hidden' => 'true']);
 };
 
 /**

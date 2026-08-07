@@ -652,11 +652,16 @@ a.lom-viewbtn.lom-active:hover { background: #1f2a44; color: #fff; }
 .lom-matrix tbody tr:hover td { background: #fbfcfd; }
 .lom-matrix-cell { align-items: center; color: #6a737b; display: flex; height: 36px; justify-content: center; min-width: 44px; text-decoration: none; }
 a.lom-matrix-cell:hover { background: #eef4fb; color: #0b5ca8; text-decoration: none; }
+/* Colour assignments for the workflow dots. Their shapes are set with the
+   matrix layout rules further down, so the states stay tellable apart when the
+   hues do not reach the reader: approved a filled circle, review a diamond,
+   draft a hollow square, retired a ring. Draft is hollow so fill separates it
+   from approved even in monochrome. The sr-only cell text names the status. */
 .lom-matrix-dot { border: 1px solid #d7dce3; border-radius: 50%; box-sizing: border-box; height: 11px; width: 11px; }
 .lom-dot-approved { background: #1f2a44; border-color: #1f2a44; }
 .lom-dot-review { background: #d97706; border-color: #d97706; }
-.lom-dot-draft { background: #1077d1; border-color: #1077d1; }
-.lom-dot-retired { background: #d7dce3; border-color: #6a737b; }
+.lom-dot-draft { background: transparent; border: 2px solid #1077d1; }
+.lom-dot-retired { background: transparent; border-color: #6a737b; }
 .lom-matrix-empty { font-size: var(--lom-fs-lg); opacity: 0; }
 .lom-matrix td:hover .lom-matrix-empty,
 .lom-matrix-empty:focus { opacity: 1; }
@@ -2486,4 +2491,15 @@ a.lom-matrix-cell:hover { background: #eef4fb; color: #0b5ca8; text-decoration: 
     .lom-sr .lom-sr-noprint { display: none !important; }
     /* Print the whole record, not whichever filter happened to be selected. */
     .lom-sr .lom-sr-skill { display: block !important; }
+}
+
+/* The filter control marks its checked and focused option through :has() on the
+   label. Engines without :has() (Firefox ESR 115 among them) would otherwise
+   show no selected state and no focus ring at all, so the adjacent span carries
+   both states there. */
+@supports not selector(:has(*)) {
+    .lom-sr .lom-sr-seg-opt input:checked + span { color: var(--sr-accent-text);
+        text-decoration: underline; text-underline-offset: 4px; }
+    .lom-sr .lom-sr-seg-opt input:focus-visible + span { outline: 2px solid var(--sr-accent);
+        outline-offset: 2px; }
 }
