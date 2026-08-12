@@ -41,6 +41,7 @@ $string['outcomemap:viewallresults'] = 'View all authorized outcome results';
 $string['outcomemap:managepolicies'] = 'Manage calculation and release policies';
 $string['outcomemap:managesnapshots'] = 'Manage accreditation snapshots';
 $string['outcomemap:exportaccreditation'] = 'Export accreditation data';
+$string['outcomemap:exportattainment'] = 'Export learner program-outcome attainment to the SIS';
 $string['outcomemap:overridecalculations'] = 'Override outcome calculations';
 
 $string['nav_dashboard'] = 'Dashboard';

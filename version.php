@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_outcomemap';
-$plugin->version = 2026080600;
+$plugin->version = 2026081200; // Registers the outcomemap_sis web service and export capability.
 $plugin->requires = 2024100700; // Moodle 4.5 minimum per the specification.
 $plugin->maturity = MATURITY_BETA;
-$plugin->release = '0.8.9';
+$plugin->release = '0.9.0';
