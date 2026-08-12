@@ -99,4 +99,14 @@ $capabilities = [
         'contextlevel' => CONTEXT_COURSE,
         'archetypes' => ['manager' => CAP_ALLOW],
     ],
+    // Read any learner's released program-outcome attainment through the SIS
+    // web service. Identified personal data, hence the risk bit; granted to
+    // the web-service role explicitly rather than to any archetype below
+    // manager, matching exportaccreditation.
+    'local/outcomemap:exportattainment' => [
+        'riskbitmask' => RISK_PERSONAL,
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => ['manager' => CAP_ALLOW],
+    ],
 ];

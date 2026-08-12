@@ -52,11 +52,33 @@ final class student_result_service {
      * @return array Report data containing courseid, generatedat, and rows.
      */
     public static function get_own_report(int $courseid, ?int $at = null): array {
-        global $CFG, $DB, $USER;
+        global $USER;
         get_course($courseid);
         $context = \context_course::instance($courseid, MUST_EXIST);
         require_capability('local/outcomemap:viewownresults', $context);
-        $userid = (int) $USER->id;
+        return self::report_for((int) $USER->id, $courseid, $at);
+    }
+
+    /**
+     * Build the learner-safe report for a specific user.
+     *
+     * Carries NO capability check of its own: the caller vouches for its
+     * authority over $userid's results. The learner-facing page reaches this
+     * through get_own_report above; the SIS attainment export reaches it after
+     * checking local/outcomemap:exportattainment at system context. Every
+     * release gate — lineage verification, module visibility, grade
+     * visibility, quiz review state — is still evaluated against $userid, so
+     * an authorized caller sees exactly what that learner would see, never
+     * more.
+     *
+     * @param int $userid Learner whose released results are reported.
+     * @param int $courseid Moodle course ID.
+     * @param int|null $at Evaluation timestamp; defaults to now.
+     * @return array Report data containing courseid, generatedat, and rows.
+     */
+    public static function report_for(int $userid, int $courseid, ?int $at = null): array {
+        global $CFG, $DB;
+        get_course($courseid);
         $at = $at ?? time();
 
         $instances = $DB->get_records('local_outcomemap_cinst', [
@@ -908,6 +930,11 @@ final class student_result_service {
             'expectedpercent' => null,
             'strongpercent' => null,
             'periodcode' => $outcome->periodcode,
+            // The course instance this row was judged in. scopeid cannot carry
+            // it alone — an assessment-scope row's scopeid is the course-module
+            // ID — and cross-course pooling needs the instance to attribute
+            // each contribution to one catalog course.
+            'cinstid' => (int) $outcome->cinstid,
             'scopetype' => $scopetype,
             'scopeid' => $scopeid,
             'scopename' => $scopename,
@@ -918,6 +945,7 @@ final class student_result_service {
             'bandfeedback' => null,
             'bandid' => null,
             'distinctitems' => null,
+            'weightedearned' => null,
             'weightedpossible' => null,
             'timecalculated' => null,
             'releasedat' => $decision->releasedat,
@@ -938,6 +966,11 @@ final class student_result_service {
         $base['state'] = (string) $result->state;
         $base['displayscale'] = (int) ($config['displayscale'] ?? 1);
         $base['distinctitems'] = (int) $result->distinctitems;
+        // Both sides of the stored fraction, so a pooled figure can sum the
+        // canonical values instead of un-rounding a per-row percentage — ADR
+        // 0003 forbids rounding per row and re-summing. The same sensitivity
+        // class as the percentage: it is this learner's own weighted score.
+        $base['weightedearned'] = decimal::canonical($result->numerator, 'numerator');
         $base['weightedpossible'] = decimal::canonical($result->denominator, 'denominator');
         $base['timecalculated'] = (int) $result->timecalculated;
         if ($result->state === calculation_service::STATE_CALCULATED && $result->percentage !== null) {
