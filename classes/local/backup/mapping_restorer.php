@@ -192,8 +192,12 @@ final class mapping_restorer {
         }
         $externalurl = $targettype === 'external_url'
             ? clean_param((string) ($data->externalurl ?? ''), PARAM_URL) : null;
-        if ($targettype === 'external_url' && $externalurl === '') {
-            return null;
+        if ($targettype === 'external_url') {
+            $scheme = strtolower((string) parse_url($externalurl, PHP_URL_SCHEME));
+            $host = (string) parse_url($externalurl, PHP_URL_HOST);
+            if ($externalurl === '' || $host === '' || !in_array($scheme, ['http', 'https'], true)) {
+                return null;
+            }
         }
         $title = clean_param((string) ($data->title ?? ''), PARAM_TEXT);
         if ($title === '') {

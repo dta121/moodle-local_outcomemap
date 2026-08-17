@@ -97,6 +97,34 @@ final class content_mapping_service_test extends \advanced_testcase {
         return [$cinstid, $itemverid];
     }
 
+    /** Create an approved outcome owned by one catalog course. */
+    private function create_catalog_outcome(int $catalogid, \stdClass $reviewer, string $code): int {
+        global $DB;
+        $this->setAdminUser();
+        $frameworkid = framework_service::create([
+            'code' => 'SCOPED' . $catalogid . $code,
+            'name' => 'Catalog-scoped outcomes',
+            'ownertype' => framework_service::OWNER_COURSE,
+            'ownerid' => $catalogid,
+        ]);
+        framework_service::submit_for_review($frameworkid);
+        $this->setUser($reviewer);
+        framework_service::approve($frameworkid);
+        $this->setAdminUser();
+        $itemid = outcome_service::create([
+            'frameworkid' => $frameworkid,
+            'code' => $code,
+            'statement' => 'Outcome visible only in its catalog course.',
+            'effectivefrom' => 1704067200,
+        ]);
+        $itemverid = (int) $DB->get_field('local_outcomemap_itemver', 'id', ['itemid' => $itemid], MUST_EXIST);
+        outcome_service::submit_for_review($itemverid);
+        $this->setUser($reviewer);
+        outcome_service::approve($itemverid);
+        $this->setAdminUser();
+        return $itemverid;
+    }
+
     /**
      * Tests governed module and section mappings.
      */
@@ -211,6 +239,174 @@ final class content_mapping_service_test extends \advanced_testcase {
         $this->assertSame('0.0000000000', $record->minpercent);
         $this->assertSame('69.9990000000', $record->maxpercent);
         $this->assertEquals(1, $record->required);
+    }
+
+    /** Service reads and posted outcomes are constrained to the authoritative course. */
+    public function test_record_reads_and_outcome_mutations_are_course_scoped(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $firstcourse = $this->getDataGenerator()->create_course();
+        $secondcourse = $this->getDataGenerator()->create_course();
+        $firstpage = $this->getDataGenerator()->create_module('page', ['course' => $firstcourse->id]);
+        $secondpage = $this->getDataGenerator()->create_module('page', ['course' => $secondcourse->id]);
+        $firstcm = get_coursemodule_from_instance(
+            'page',
+            $firstpage->id,
+            $firstcourse->id,
+            false,
+            MUST_EXIST
+        );
+        $secondcm = get_coursemodule_from_instance(
+            'page',
+            $secondpage->id,
+            $secondcourse->id,
+            false,
+            MUST_EXIST
+        );
+        $reviewer = $this->create_reviewer();
+        [$firstcinstid, $firstitemverid] = $this->create_scope($firstcourse, $reviewer);
+        [$secondcinstid, $seconditemverid] = $this->create_scope($secondcourse, $reviewer);
+        $secondcatalogid = (int) $DB->get_field('local_outcomemap_cinst', 'courseid', [
+            'id' => $secondcinstid,
+        ], MUST_EXIST);
+        $foreignitemverid = $this->create_catalog_outcome($secondcatalogid, $reviewer, 'PRIVATE');
+
+        $options = content_mapping_service::editor_options((int) $firstcourse->id);
+        $this->assertArrayNotHasKey($foreignitemverid, $options['outcomes']);
+        try {
+            content_mapping_service::create_course_module([
+                'cinstid' => $firstcinstid,
+                'cmid' => $firstcm->id,
+                'itemverid' => $foreignitemverid,
+                'role' => content_mapping_service::ROLE_TEACHES,
+                'effectivefrom' => 1704067200,
+            ]);
+            $this->fail('A content mapping accepted an outcome outside the course scope.');
+        } catch (validation_exception $e) {
+            $this->assertSame('recordnotfound', $e->errorcode);
+        }
+        try {
+            remediation_service::create([
+                'cinstid' => $firstcinstid,
+                'itemverid' => $foreignitemverid,
+                'targettype' => remediation_service::TARGET_EXTERNAL,
+                'externalurl' => 'https://example.test/foreign',
+                'title' => 'Foreign outcome',
+                'effectivefrom' => 1704067200,
+            ]);
+            $this->fail('A remediation recommendation accepted an outcome outside the course scope.');
+        } catch (validation_exception $e) {
+            $this->assertSame('recordnotfound', $e->errorcode);
+        }
+
+        $mappingid = content_mapping_service::create_course_module([
+            'cinstid' => $secondcinstid,
+            'cmid' => $secondcm->id,
+            'itemverid' => $seconditemverid,
+            'role' => content_mapping_service::ROLE_TEACHES,
+            'effectivefrom' => 1704067200,
+        ]);
+        $remediationid = remediation_service::create([
+            'cinstid' => $secondcinstid,
+            'itemverid' => $seconditemverid,
+            'targettype' => remediation_service::TARGET_EXTERNAL,
+            'externalurl' => 'https://example.test/second',
+            'title' => 'Second-course remediation',
+            'effectivefrom' => 1704067200,
+        ]);
+
+        try {
+            content_mapping_service::get(
+                content_mapping_service::TARGET_MODULE,
+                $mappingid,
+                (int) $firstcourse->id
+            );
+            $this->fail('A mapping was loaded through a different course URL.');
+        } catch (validation_exception $e) {
+            $this->assertSame('recordnotfound', $e->errorcode);
+        }
+        try {
+            remediation_service::get($remediationid, (int) $firstcourse->id);
+            $this->fail('A remediation recommendation was loaded through a different course URL.');
+        } catch (validation_exception $e) {
+            $this->assertSame('recordnotfound', $e->errorcode);
+        }
+
+        $reader = $this->getDataGenerator()->create_user();
+        $roleid = create_role('First course outcome reader', 'firstcoursereader', '');
+        $firstcontext = \context_course::instance((int) $firstcourse->id);
+        foreach ([
+            'local/outcomemap:viewdefinitions',
+            'local/outcomemap:mapactivities',
+            'local/outcomemap:mapcourse',
+            'moodle/course:manageactivities',
+            'moodle/course:update',
+        ] as $capability) {
+            assign_capability($capability, CAP_ALLOW, $roleid, $firstcontext->id);
+        }
+        role_assign($roleid, $reader->id, $firstcontext->id);
+        $this->setUser($reader);
+        foreach ([
+            static fn() => content_mapping_service::update_draft(
+                content_mapping_service::TARGET_MODULE,
+                $mappingid,
+                [
+                    'cinstid' => $firstcinstid,
+                    'cmid' => $firstcm->id,
+                    'itemverid' => $firstitemverid,
+                ]
+            ),
+            static fn() => remediation_service::update_draft($remediationid, [
+                'cinstid' => $firstcinstid,
+                'itemverid' => $firstitemverid,
+                'externalurl' => 'https://example.test/moved',
+            ]),
+        ] as $update) {
+            try {
+                $update();
+                $this->fail('A draft was moved out of a course the caller cannot manage.');
+            } catch (\required_capability_exception $e) {
+                $this->assertNotEmpty($e->getMessage());
+            }
+        }
+        foreach ([
+            static fn() => content_mapping_service::get(content_mapping_service::TARGET_MODULE, $mappingid),
+            static fn() => remediation_service::get($remediationid),
+        ] as $read) {
+            try {
+                $read();
+                $this->fail('A cross-course service read was allowed.');
+            } catch (\required_capability_exception $e) {
+                $this->assertNotEmpty($e->getMessage());
+            }
+        }
+    }
+
+    /** Restored or corrupted drafts cannot smuggle a non-web external URL through approval. */
+    public function test_remediation_revalidates_stored_external_urls(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $reviewer = $this->create_reviewer();
+        [$cinstid, $itemverid] = $this->create_scope($course, $reviewer);
+        $id = remediation_service::create([
+            'cinstid' => $cinstid,
+            'itemverid' => $itemverid,
+            'targettype' => remediation_service::TARGET_EXTERNAL,
+            'externalurl' => 'https://example.test/safe',
+            'title' => 'Stored URL validation',
+            'effectivefrom' => 1704067200,
+        ]);
+        $DB->set_field('local_outcomemap_remed', 'externalurl', 'javascript:alert(1)', ['id' => $id]);
+        try {
+            remediation_service::submit_for_review($id);
+            $this->fail('A non-HTTP external URL reached review.');
+        } catch (validation_exception $e) {
+            $this->assertSame('invalidexternalurl', $e->errorcode);
+        }
+        $this->assertSame(workflow::DRAFT, $DB->get_field('local_outcomemap_remed', 'status', ['id' => $id]));
     }
 
     /**

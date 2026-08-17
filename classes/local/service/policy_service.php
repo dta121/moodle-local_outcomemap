@@ -166,11 +166,11 @@ final class policy_service extends base_service {
     public static function update_draft(int $id, array $data): void {
         global $DB;
         $before = self::get_required('local_outcomemap_policy', $id, 'policy');
+        // Moving a draft between scopes requires authority in both contexts.
+        self::require_policy_capability($before);
         if ($before->status !== workflow::DRAFT) {
             throw new validation_exception('approvedimmutable', 'policy', $id);
         }
-        // Moving a draft between scopes requires authority in both contexts.
-        self::require_policy_capability($before);
         $beforebands = self::get_bands($id);
         $merged = array_merge((array) $before, $data);
         if (!array_key_exists('config', $data)) {
@@ -221,10 +221,10 @@ final class policy_service extends base_service {
     public static function delete_draft(int $id, ?string $reason = null): void {
         global $DB;
         $before = self::get_required('local_outcomemap_policy', $id, 'policy');
+        $actorid = self::require_policy_capability($before);
         if ($before->status !== workflow::DRAFT) {
             throw new validation_exception('approvedimmutable', 'policy', $id);
         }
-        $actorid = self::require_policy_capability($before);
         if ($DB->record_exists('local_outcomemap_evidence', ['policyid' => $id])
                 || $DB->record_exists('local_outcomemap_result', ['policyid' => $id])
                 || $DB->record_exists('local_outcomemap_snapshot', ['policyid' => $id])) {
@@ -253,6 +253,7 @@ final class policy_service extends base_service {
     public static function create_version(int $id, array $data): int {
         global $DB;
         $previous = self::get_required('local_outcomemap_policy', $id, 'policy');
+        self::require_policy_capability($previous);
         if ($previous->status !== workflow::APPROVED) {
             throw new validation_exception('invalidtransition', 'status', $previous->status . ':new_version');
         }
@@ -281,10 +282,10 @@ final class policy_service extends base_service {
     public static function submit_for_review(int $id, ?string $reason = null): void {
         global $DB;
         $before = self::get_required('local_outcomemap_policy', $id, 'policy');
+        $actorid = self::require_policy_capability($before);
         if ($before->status !== workflow::DRAFT) {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':needs_review');
         }
-        $actorid = self::require_policy_capability($before);
         $after = clone $before;
         $after->status = workflow::NEEDS_REVIEW;
         $after->timemodified = time();
@@ -312,15 +313,15 @@ final class policy_service extends base_service {
     public static function approve(int $id, ?string $reason = null): void {
         global $DB, $USER;
         $before = self::get_required('local_outcomemap_policy', $id, 'policy');
-        if ($before->status !== workflow::NEEDS_REVIEW) {
-            throw new validation_exception('invalidtransition', 'status', $before->status . ':approved');
-        }
         $context = self::policy_context($before);
         if (workflow::requires_independent_approval()) {
             require_capability('local/outcomemap:approve', $context);
             $actorid = (int) $USER->id;
         } else {
             $actorid = self::require_policy_capability($before);
+        }
+        if ($before->status !== workflow::NEEDS_REVIEW) {
+            throw new validation_exception('invalidtransition', 'status', $before->status . ':approved');
         }
         workflow::require_approver_separation((int) $before->createdby, $actorid);
         self::validate_config($before->policytype, json_decode($before->configjson, true) ?? []);
@@ -362,6 +363,7 @@ final class policy_service extends base_service {
     public static function get(int $id): \stdClass {
         global $DB;
         $record = self::get_required('local_outcomemap_policy', $id, 'policy');
+        require_capability('local/outcomemap:managepolicies', self::policy_context($record));
         $record->config = json_decode($record->configjson, true) ?? [];
         $record->bands = self::get_bands($id);
         $releasedat = $DB->get_field('local_outcomemap_policyrel', 'releasedat', ['policyid' => $id]);
@@ -598,16 +600,16 @@ final class policy_service extends base_service {
     public static function release_manual(int $policyid, ?string $reason = null): int {
         global $DB;
         $policy = self::get_required('local_outcomemap_policy', $policyid, 'policy');
+        $policycontext = self::policy_context($policy);
+        $actorid = self::require_policy_capability($policy);
+        if (in_array($policy->scopetype, [self::SCOPE_COURSE_INSTANCE, self::SCOPE_ASSESSMENT], true)) {
+            require_capability('moodle/course:update', $policycontext);
+        }
         $config = json_decode($policy->configjson, true) ?? [];
         if ($policy->status !== workflow::APPROVED
                 || $policy->policytype !== self::TYPE_RELEASE
                 || ($config['mode'] ?? null) !== self::RELEASE_MANUAL) {
             throw new validation_exception('invalidpolicyconfig', 'mode', $config['mode'] ?? '');
-        }
-        $policycontext = self::policy_context($policy);
-        $actorid = self::require_policy_capability($policy);
-        if (in_array($policy->scopetype, [self::SCOPE_COURSE_INSTANCE, self::SCOPE_ASSESSMENT], true)) {
-            require_capability('moodle/course:update', $policycontext);
         }
         $existing = $DB->get_record('local_outcomemap_policyrel', ['policyid' => $policyid]);
         if ($existing) {

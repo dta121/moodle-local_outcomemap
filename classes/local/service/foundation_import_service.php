@@ -38,6 +38,12 @@ use local_outcomemap\local\workflow;
  * Provides preview-and-commit CSV imports for foundation entities.
  */
 final class foundation_import_service extends base_service {
+    /** Maximum accepted upload size before CSV parsing. */
+    public const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
+
+    /** Maximum number of data rows accepted in one atomic import. */
+    public const MAX_IMPORT_ROWS = 10000;
+
     /**
      * Programs import entity.
      *
@@ -153,14 +159,23 @@ final class foundation_import_service extends base_service {
         global $CFG;
         require_once($CFG->libdir . '/csvlib.class.php');
         self::require_system('local/outcomemap:manageframeworks');
+        if (strlen($content) > self::MAX_IMPORT_BYTES) {
+            throw new validation_exception('importtoolarge', 'csvfile', display_size(self::MAX_IMPORT_BYTES));
+        }
         $importid = \csv_import_reader::get_new_iid('local_outcomemap');
         $reader = new \csv_import_reader($importid, 'local_outcomemap');
         $count = $reader->load_csv_content($content, $encoding, $delimiter);
         if ($count === false) {
+            $reader->cleanup();
             throw new validation_exception('invalidfield', 'csvfile', $reader->get_error());
         }
         if ($count === 0) {
+            $reader->cleanup();
             throw new validation_exception('importempty', 'csvfile');
+        }
+        if ($count > self::MAX_IMPORT_ROWS + 1) {
+            $reader->cleanup();
+            throw new validation_exception('importtoomanyrows', 'csvfile', self::MAX_IMPORT_ROWS);
         }
         return $importid;
     }
@@ -532,6 +547,10 @@ final class foundation_import_service extends base_service {
         $reader->init();
         $rows = [];
         while (($values = $reader->next()) !== false) {
+            if (count($rows) >= self::MAX_IMPORT_ROWS) {
+                $reader->close();
+                throw new validation_exception('importtoomanyrows', 'csvfile', self::MAX_IMPORT_ROWS);
+            }
             $values = array_pad(array_values($values), count($columns), '');
             $row = array_combine($columns, array_slice($values, 0, count($columns)));
             $rows[] = array_replace(array_fill_keys(self::HEADERS[$entity], ''), $row);

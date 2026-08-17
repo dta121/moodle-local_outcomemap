@@ -71,7 +71,8 @@ final class remediation_engagement_service extends base_service {
                 }
                 $candidate = clean_param(trim((string) ($item['targeturl'] ?? '')), PARAM_URL);
                 $scheme = strtolower((string) parse_url($candidate, PHP_URL_SCHEME));
-                if ($candidate !== '' && in_array($scheme, ['http', 'https'], true)) {
+                $host = (string) parse_url($candidate, PHP_URL_HOST);
+                if ($candidate !== '' && $host !== '' && in_array($scheme, ['http', 'https'], true)) {
                     $destination = $candidate;
                 }
                 break 2;

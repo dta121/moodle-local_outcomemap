@@ -842,7 +842,8 @@ final class student_result_service {
                 } else if ($record->targettype === remediation_service::TARGET_EXTERNAL) {
                     $externalurl = clean_param(trim((string) $record->externalurl), PARAM_URL);
                     $scheme = strtolower((string) parse_url($externalurl, PHP_URL_SCHEME));
-                    if ($externalurl !== '' && in_array($scheme, ['http', 'https'], true)) {
+                    $host = (string) parse_url($externalurl, PHP_URL_HOST);
+                    if ($externalurl !== '' && $host !== '' && in_array($scheme, ['http', 'https'], true)) {
                         $url = $externalurl;
                     }
                 }

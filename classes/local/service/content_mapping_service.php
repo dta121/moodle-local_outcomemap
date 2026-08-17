@@ -24,6 +24,7 @@
 
 namespace local_outcomemap\local\service;
 
+use local_outcomemap\api\outcome_search;
 use local_outcomemap\local\audit_writer;
 use local_outcomemap\local\decimal;
 use local_outcomemap\local\effective_dates;
@@ -104,6 +105,7 @@ final class content_mapping_service extends base_service {
         global $DB;
         [$table, $targetfield] = self::table_definition($targettype);
         $before = self::get_required($table, $id, 'content_mapping');
+        self::require_mapping_capabilities($targettype, $before);
         if ($before->status !== workflow::DRAFT) {
             throw new validation_exception('approvedimmutable', 'content_mapping', $id);
         }
@@ -149,10 +151,10 @@ final class content_mapping_service extends base_service {
         global $DB;
         [$table, $targetfield] = self::table_definition($targettype);
         $before = self::get_required($table, $id, 'content_mapping');
+        $actorid = self::require_mapping_capabilities($targettype, $before);
         if ($before->status !== workflow::DRAFT) {
             throw new validation_exception('approvedimmutable', 'content_mapping', $id);
         }
-        $actorid = self::require_mapping_capabilities($targettype, $before);
         $transaction = $DB->start_delegated_transaction();
         try {
             $DB->delete_records($table, ['id' => $id]);
@@ -185,6 +187,7 @@ final class content_mapping_service extends base_service {
         global $DB;
         [$table, $targetfield] = self::table_definition($targettype);
         $previous = self::get_required($table, $id, 'content_mapping');
+        self::require_mapping_capabilities($targettype, $previous);
         if ($previous->status !== workflow::APPROVED) {
             throw new validation_exception('invalidtransition', 'status', $previous->status . ':new_version');
         }
@@ -216,10 +219,10 @@ final class content_mapping_service extends base_service {
         global $DB;
         [$table, $targetfield] = self::table_definition($targettype);
         $before = self::get_required($table, $id, 'content_mapping');
+        $actorid = self::require_mapping_capabilities($targettype, $before);
         if ($before->status !== workflow::DRAFT) {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':needs_review');
         }
-        $actorid = self::require_mapping_capabilities($targettype, $before);
         self::validate_record($targettype, $before, true);
         $after = clone $before;
         $after->status = workflow::NEEDS_REVIEW;
@@ -259,10 +262,10 @@ final class content_mapping_service extends base_service {
         global $DB, $USER;
         [$table, $targetfield] = self::table_definition($targettype);
         $before = self::get_required($table, $id, 'content_mapping');
+        self::require_mapping_capabilities($targettype, $before, true);
         if ($before->status !== workflow::NEEDS_REVIEW) {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':approved');
         }
-        self::require_mapping_capabilities($targettype, $before, true);
         $actorid = (int) $USER->id;
         workflow::require_approver_separation((int) $before->createdby, $actorid);
         self::validate_record($targettype, $before, true);
@@ -301,11 +304,18 @@ final class content_mapping_service extends base_service {
      *
      * @param string $targettype Mapping target type.
      * @param int $id Mapping record ID.
+     * @param int|null $expectedcourseid Optional course ID the caller is operating within.
      * @return \stdClass The mapping record with its target type.
      */
-    public static function get(string $targettype, int $id): \stdClass {
-        [$table] = self::table_definition($targettype);
+    public static function get(string $targettype, int $id, ?int $expectedcourseid = null): \stdClass {
+        [$table, $targetfield] = self::table_definition($targettype);
         $record = self::get_required($table, $id, 'content_mapping');
+        $context = self::mapping_context($targettype, (int) $record->{$targetfield});
+        require_capability('local/outcomemap:viewdefinitions', $context);
+        if ($expectedcourseid !== null && self::mapping_course_id($targettype, (int) $record->{$targetfield})
+                !== $expectedcourseid) {
+            throw new validation_exception('recordnotfound', 'content_mapping', $id);
+        }
         $record->targettype = $targettype;
         return $record;
     }
@@ -365,7 +375,7 @@ final class content_mapping_service extends base_service {
         foreach ($instances as $instance) {
             $instanceoptions[$instance->id] = $instance->periodcode;
         }
-        $outcomeoptions = self::outcome_options();
+        $outcomeoptions = self::outcome_options($context);
         $modinfo = get_fast_modinfo($courseid);
         $moduleoptions = [];
         foreach ($modinfo->get_cms() as $cm) {
@@ -413,7 +423,7 @@ final class content_mapping_service extends base_service {
         foreach ($instances as $instance) {
             $instanceoptions[$instance->id] = $instance->periodcode;
         }
-        return ['instances' => $instanceoptions, 'outcomes' => self::outcome_options()];
+        return ['instances' => $instanceoptions, 'outcomes' => self::outcome_options($context)];
     }
 
     /**
@@ -437,10 +447,15 @@ final class content_mapping_service extends base_service {
             ) {
                 throw new validation_exception('targetcoursemismatch', 'outcomemap_cinstid');
             }
-            self::require_approved_item_version(input::positive_int(
+            $itemversion = self::require_approved_item_version(input::positive_int(
                 $data['outcomemap_itemverid'],
                 'outcomemap_itemverid'
             ));
+            outcome_search::require_visible_version(
+                $context,
+                $itemversion->uuid,
+                input::positive_int($data['outcomemap_effectivefrom'] ?? time(), 'outcomemap_effectivefrom')
+            );
             self::validate_role_weight($data['outcomemap_role'] ?? '', $data['outcomemap_weight'] ?? null);
         } catch (validation_exception $e) {
             $field = match ($e->errorcode) {
@@ -506,34 +521,60 @@ final class content_mapping_service extends base_service {
     }
 
     /**
-     * Return public exact-version options for course mapping forms.
+     * Return exact-version options visible in the authoritative context.
      *
+     * @param \context|null $context Authoritative context, or system context for legacy administrative callers.
      * @return array Outcome labels keyed by outcome-version ID.
      */
-    public static function outcome_options(): array {
+    public static function outcome_options(?\context $context = null): array {
         global $DB;
+        $context = $context ?? \context_system::instance();
         $now = time();
-        $sql = "SELECT v.id, f.code AS frameworkcode, i.code, v.version, v.shortstatement, v.statement
-                  FROM {local_outcomemap_itemver} v
-                  JOIN {local_outcomemap_item} i ON i.id = v.itemid
-                  JOIN {local_outcomemap_fw} f ON f.id = i.frameworkid
-                 WHERE v.status = :vstatus AND i.status = :istatus AND f.status = :fstatus
-                   AND v.effectivefrom <= :at1 AND (v.effectiveto IS NULL OR v.effectiveto > :at2)
-              ORDER BY f.code, i.code, v.version DESC";
-        $records = $DB->get_records_sql($sql, [
-            'vstatus' => workflow::APPROVED,
-            'istatus' => workflow::APPROVED,
-            'fstatus' => workflow::APPROVED,
-            'at1' => $now,
-            'at2' => $now,
-        ]);
         $options = [];
-        foreach ($records as $record) {
-            $label = $record->frameworkcode . '.' . $record->code . ' v' . $record->version;
-            $label .= ' — ' . ($record->shortstatement ?: $record->statement);
-            $options[$record->id] = $label;
-        }
+        $offset = 0;
+        do {
+            $outcomes = outcome_search::search($context, '', $now, 200, $offset);
+            if (!$outcomes) {
+                break;
+            }
+            $versionuuids = array_map(
+                static fn($outcome): string => $outcome->versionuuid,
+                $outcomes
+            );
+            [$insql, $params] = $DB->get_in_or_equal($versionuuids, SQL_PARAMS_NAMED, 'outcomeversion');
+            $idsbyuuid = $DB->get_records_select_menu(
+                'local_outcomemap_itemver',
+                'uuid ' . $insql,
+                $params,
+                '',
+                'uuid,id'
+            );
+            foreach ($outcomes as $outcome) {
+                if (!isset($idsbyuuid[$outcome->versionuuid])) {
+                    continue;
+                }
+                $label = $outcome->frameworkcode . '.' . $outcome->code . ' v' . $outcome->version;
+                $label .= ' — ' . ($outcome->shortstatement ?: $outcome->statement);
+                $options[(int) $idsbyuuid[$outcome->versionuuid]] = $label;
+            }
+            $offset += count($outcomes);
+        } while (count($outcomes) === 200);
         return $options;
+    }
+
+    /**
+     * Resolve the Moodle course owning a mapping target.
+     *
+     * @param string $targettype Mapping target type.
+     * @param int $targetid Mapping target ID.
+     * @return int Moodle course ID.
+     */
+    private static function mapping_course_id(string $targettype, int $targetid): int {
+        global $DB;
+        if ($targettype === self::TARGET_MODULE) {
+            return (int) $DB->get_field('course_modules', 'course', ['id' => $targetid], MUST_EXIST);
+        }
+        return (int) $DB->get_field('course_sections', 'course', ['id' => $targetid], MUST_EXIST);
     }
 
     /**
@@ -652,6 +693,11 @@ final class content_mapping_service extends base_service {
             throw new validation_exception('targetcoursemismatch', $targetfield, $record->{$targetfield});
         }
         $itemversion = self::require_approved_item_version((int) $record->itemverid);
+        outcome_search::require_visible_version(
+            self::mapping_context($targettype, (int) $record->{$targetfield}),
+            $itemversion->uuid,
+            (int) $record->effectivefrom
+        );
         if (
             (int) $record->effectivefrom < (int) $itemversion->effectivefrom
                 || ($itemversion->effectiveto !== null

@@ -107,7 +107,7 @@ if (in_array($action, ['add', 'edit', 'newversion'], true)) {
         redirect($url, get_string('saved', 'local_outcomemap'));
     }
     if ($id) {
-        $record = remediation_service::get($id);
+        $record = remediation_service::get($id, $courseid);
         if ($record->targettype === remediation_service::TARGET_MODULE) {
             $record->cmid = $record->targetid;
         } else if ($record->targettype === remediation_service::TARGET_SECTION) {
@@ -150,7 +150,12 @@ foreach (remediation_service::list_for_course($courseid) as $record) {
         $section = $modinfo->get_section_info_by_id($record->targetid, MUST_EXIST);
         $target = get_section_name($courseid, $section->section);
     } else {
-        $target = html_writer::link($record->externalurl, s($record->externalurl));
+        $externalurl = clean_param((string) $record->externalurl, PARAM_URL);
+        $scheme = strtolower((string) parse_url($externalurl, PHP_URL_SCHEME));
+        $host = (string) parse_url($externalurl, PHP_URL_HOST);
+        $target = $externalurl !== '' && $host !== '' && in_array($scheme, ['http', 'https'], true)
+            ? html_writer::link(new moodle_url($externalurl), s($externalurl))
+            : s((string) $record->externalurl);
     }
     $actions = [];
     if ($canmanage && $record->status === workflow::DRAFT) {

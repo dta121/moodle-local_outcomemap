@@ -205,7 +205,7 @@ if (in_array($action, ['add', 'edit', 'newversion'], true)) {
         redirect($stateurl, get_string('saved', 'local_outcomemap'));
     }
     if ($id) {
-        $record = content_mapping_service::get($targettype, $id);
+        $record = content_mapping_service::get($targettype, $id, $courseid);
         if ($action === 'newversion') {
             $record->effectivefrom = time();
             $record->effectiveto = null;

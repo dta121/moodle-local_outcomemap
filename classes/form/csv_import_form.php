@@ -15,7 +15,11 @@ final class csv_import_form extends \moodleform {
         }
         $mform->addElement('select', 'entity', get_string('csventity', 'local_outcomemap'), $entities);
         $mform->addElement('filepicker', 'csvfile', get_string('csvfile', 'local_outcomemap'), null,
-            ['accepted_types' => ['.csv', 'text/csv']]);
+            [
+                'accepted_types' => ['.csv', 'text/csv'],
+                'maxbytes' => foundation_import_service::MAX_IMPORT_BYTES,
+                'maxfiles' => 1,
+            ]);
         $mform->addRule('csvfile', null, 'required');
         $mform->addElement('select', 'delimiter', get_string('csvdelimiter', 'local_outcomemap'),
             \csv_import_reader::get_delimiter_list());

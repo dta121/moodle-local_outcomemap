@@ -24,6 +24,7 @@
 
 namespace local_outcomemap\local\service;
 
+use local_outcomemap\api\outcome_search;
 use local_outcomemap\local\audit_writer;
 use local_outcomemap\local\effective_dates;
 use local_outcomemap\local\input;
@@ -83,6 +84,7 @@ final class remediation_service extends base_service {
     public static function update_draft(int $id, array $data): void {
         global $DB;
         $before = self::get_required(self::TABLE, $id, 'remediation');
+        self::require_capabilities($before);
         if ($before->status !== workflow::DRAFT) {
             throw new validation_exception('approvedimmutable', 'remediation', $id);
         }
@@ -126,6 +128,7 @@ final class remediation_service extends base_service {
     public static function create_version(int $id, array $data): int {
         global $DB;
         $previous = self::get_required(self::TABLE, $id, 'remediation');
+        self::require_capabilities($previous);
         if ($previous->status !== workflow::APPROVED) {
             throw new validation_exception('invalidtransition', 'status', $previous->status . ':new_version');
         }
@@ -153,10 +156,10 @@ final class remediation_service extends base_service {
     public static function submit_for_review(int $id, ?string $reason = null): void {
         global $DB;
         $before = self::get_required(self::TABLE, $id, 'remediation');
+        $actorid = self::require_capabilities($before);
         if ($before->status !== workflow::DRAFT) {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':needs_review');
         }
-        $actorid = self::require_capabilities($before);
         self::validate_record($before);
         $after = clone $before;
         $after->status = workflow::NEEDS_REVIEW;
@@ -194,10 +197,10 @@ final class remediation_service extends base_service {
     public static function approve(int $id, ?string $reason = null): void {
         global $DB, $USER;
         $before = self::get_required(self::TABLE, $id, 'remediation');
+        self::require_capabilities($before, true);
         if ($before->status !== workflow::NEEDS_REVIEW) {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':approved');
         }
-        self::require_capabilities($before, true);
         $actorid = (int) $USER->id;
         workflow::require_approver_separation((int) $before->createdby, $actorid);
         self::validate_record($before);
@@ -233,10 +236,17 @@ final class remediation_service extends base_service {
      * Get one recommendation.
      *
      * @param int $id Recommendation record ID.
+     * @param int|null $expectedcourseid Optional course ID the caller is operating within.
      * @return \stdClass The recommendation record.
      */
-    public static function get(int $id): \stdClass {
-        return self::get_required(self::TABLE, $id, 'remediation');
+    public static function get(int $id, ?int $expectedcourseid = null): \stdClass {
+        $record = self::get_required(self::TABLE, $id, 'remediation');
+        $context = self::context_for($record);
+        require_capability('local/outcomemap:viewdefinitions', $context);
+        if ($expectedcourseid !== null && (int) $context->instanceid !== $expectedcourseid) {
+            throw new validation_exception('recordnotfound', 'remediation', $id);
+        }
+        return $record;
     }
 
     /**
@@ -273,8 +283,11 @@ final class remediation_service extends base_service {
         global $DB;
         $context = \context_course::instance($courseid, MUST_EXIST);
         require_capability('local/outcomemap:viewdefinitions', $context);
-        $instances = $DB->get_records('local_outcomemap_cinst', ['moodlecourseid' => $courseid], '',
-            'id, courseid');
+        $instances = $DB->get_records('local_outcomemap_cinst', [
+            'moodlecourseid' => $courseid,
+            'status' => workflow::APPROVED,
+            'confirmed' => 1,
+        ], '', 'id, courseid');
         $cinstids = array_map('intval', array_keys($instances));
         $catalogids = [];
         foreach ($instances as $instance) {
@@ -416,6 +429,19 @@ final class remediation_service extends base_service {
      */
     private static function validate_record(\stdClass $record): void {
         global $DB;
+        if (!in_array($record->targettype, self::TARGETS, true)) {
+            throw new validation_exception('invalidtargettype', 'targettype', $record->targettype);
+        }
+        $externalurl = self::external_url($record->externalurl ?? null);
+        $targetid = $record->targetid === null ? null : input::positive_int($record->targetid, 'targetid');
+        if (
+            ($record->targettype === self::TARGET_EXTERNAL && ($targetid !== null || $externalurl === null))
+                || ($record->targettype !== self::TARGET_EXTERNAL && ($targetid === null || $externalurl !== null))
+        ) {
+            throw new validation_exception('remediationtargetinvalid', 'targettype');
+        }
+        $record->targetid = $targetid;
+        $record->externalurl = $externalurl;
         $cinst = self::get_required('local_outcomemap_cinst', (int) $record->cinstid, 'course_instance');
         if ($cinst->status !== workflow::APPROVED || !(int) $cinst->confirmed) {
             throw new validation_exception('courseinstancenotconfirmed', 'cinstid', $record->cinstid);
@@ -424,6 +450,11 @@ final class remediation_service extends base_service {
         if ($itemversion->status !== workflow::APPROVED) {
             throw new validation_exception('outcomeversionnotapproved', 'itemverid', $record->itemverid);
         }
+        outcome_search::require_visible_version(
+            self::context_for($record),
+            $itemversion->uuid,
+            (int) $record->effectivefrom
+        );
         if (
             (int) $record->effectivefrom < (int) $itemversion->effectivefrom
                 || ($itemversion->effectiveto !== null
@@ -545,7 +576,8 @@ final class remediation_service extends base_service {
         }
         $url = clean_param(trim((string) $value), PARAM_URL);
         $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
-        if ($url === '' || !in_array($scheme, ['http', 'https'], true)) {
+        $host = (string) parse_url($url, PHP_URL_HOST);
+        if ($url === '' || $host === '' || !in_array($scheme, ['http', 'https'], true)) {
             throw new validation_exception('invalidexternalurl', 'externalurl');
         }
         return $url;

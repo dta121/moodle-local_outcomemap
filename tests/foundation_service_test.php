@@ -6,6 +6,7 @@ namespace local_outcomemap;
 use local_outcomemap\api\outcome_search;
 use local_outcomemap\local\dto\outcome;
 use local_outcomemap\local\service\catalog_course_service;
+use local_outcomemap\local\service\course_instance_service;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\outcome_service;
 use local_outcomemap\local\service\program_course_service;
@@ -197,6 +198,63 @@ final class foundation_service_test extends \advanced_testcase {
             'courseid' => $course,
             'status' => workflow::APPROVED,
         ]));
+    }
+
+    /** Context scoping includes every confirmed catalog association for a Moodle course. */
+    public function test_outcome_search_includes_all_confirmed_course_instances(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $approver = $this->create_approver();
+        $moodlecourse = $this->getDataGenerator()->create_course();
+        $catalogids = [
+            catalog_course_service::create(['code' => 'MULTI-A', 'name' => 'Catalog association A']),
+            catalog_course_service::create(['code' => 'MULTI-B', 'name' => 'Catalog association B']),
+        ];
+        foreach ($catalogids as $index => $catalogid) {
+            $cinstid = course_instance_service::create([
+                'courseid' => $catalogid,
+                'moodlecourseid' => $moodlecourse->id,
+                'periodcode' => '2026-MULTI-' . $index,
+            ]);
+            course_instance_service::submit_for_review($cinstid);
+            $this->setUser($approver);
+            course_instance_service::confirm($cinstid);
+            $this->setAdminUser();
+        }
+
+        $versionuuids = [];
+        foreach ($catalogids as $index => $catalogid) {
+            $frameworkid = framework_service::create([
+                'code' => 'MULTI-FW-' . $index,
+                'name' => 'Course association framework ' . $index,
+                'ownertype' => framework_service::OWNER_COURSE,
+                'ownerid' => $catalogid,
+            ]);
+            framework_service::submit_for_review($frameworkid);
+            $this->setUser($approver);
+            framework_service::approve($frameworkid);
+            $this->setAdminUser();
+            $itemid = outcome_service::create([
+                'frameworkid' => $frameworkid,
+                'code' => 'VISIBLE' . $index,
+                'statement' => 'Visible from catalog association ' . $index,
+                'effectivefrom' => 1704067200,
+            ]);
+            $itemverid = (int) $DB->get_field('local_outcomemap_itemver', 'id', [
+                'itemid' => $itemid,
+            ], MUST_EXIST);
+            outcome_service::submit_for_review($itemverid);
+            $this->setUser($approver);
+            outcome_service::approve($itemverid);
+            $this->setAdminUser();
+            $versionuuids[] = (string) $DB->get_field('local_outcomemap_itemver', 'uuid', [
+                'id' => $itemverid,
+            ], MUST_EXIST);
+        }
+
+        $results = outcome_search::search(\context_course::instance((int) $moodlecourse->id), '', time(), 20);
+        $this->assertEqualsCanonicalizing($versionuuids, array_column($results, 'versionuuid'));
     }
 
     /** Program type and credential values are explicit, validated, and backward compatible. */

@@ -22,6 +22,7 @@ global $CFG;
 require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
 require_once($CFG->dirroot . '/backup/util/includes/restore_includes.php');
 
+use local_outcomemap\local\backup\mapping_restorer;
 use local_outcomemap\local\service\catalog_course_service;
 use local_outcomemap\local\service\content_mapping_service;
 use local_outcomemap\local\service\course_instance_service;
@@ -98,6 +99,31 @@ final class backup_restore_test extends \advanced_testcase {
         outcome_service::approve($itemverid);
         $this->setAdminUser();
         return [$cinstid, $itemverid];
+    }
+
+    /** Restore rejects external remediation schemes that must never become clickable. */
+    public function test_restore_rejects_non_web_remediation_url(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $reviewer = $this->create_reviewer();
+        [$cinstid, $itemverid] = $this->create_scope($course, $reviewer);
+        $version = $DB->get_record('local_outcomemap_itemver', ['id' => $itemverid], '*', MUST_EXIST);
+        $itemuuid = (string) $DB->get_field('local_outcomemap_item', 'uuid', [
+            'id' => $version->itemid,
+        ], MUST_EXIST);
+
+        $restored = mapping_restorer::restore_remediation('external_url', (object) [
+            'outcomeuuid' => $itemuuid,
+            'outcomeversionuuid' => $version->uuid,
+            'externalurl' => 'javascript:alert(1)',
+            'title' => 'Unsafe restored recommendation',
+            'effectivefrom' => 1704067200,
+        ], $cinstid);
+
+        $this->assertNull($restored);
+        $this->assertEquals(0, $DB->count_records('local_outcomemap_remed'));
     }
 
     /**

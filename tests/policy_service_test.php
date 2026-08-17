@@ -35,6 +35,22 @@ final class policy_service_test extends \advanced_testcase {
         return $user;
     }
 
+    /** Policy details are not exposed through the service without policy-management authority. */
+    public function test_get_requires_policy_management_capability(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $id = policy_service::create([
+            'policytype' => policy_service::TYPE_CALCULATION,
+            'scopetype' => policy_service::SCOPE_INSTITUTION,
+            'name' => 'Restricted policy',
+            'config' => ['minitems' => 1, 'displayscale' => 1],
+            'effectivefrom' => 1704067200,
+        ]);
+        $this->setUser($this->getDataGenerator()->create_user());
+        $this->expectException(\required_capability_exception::class);
+        policy_service::get($id);
+    }
+
     /**
      * Tests create, read, update, list, and delete for a draft policy.
      */

@@ -18,6 +18,8 @@ namespace local_outcomemap;
 
 use local_outcomemap\api\question_mappings;
 use local_outcomemap\local\decimal;
+use local_outcomemap\local\service\catalog_course_service;
+use local_outcomemap\local\service\content_mapping_service;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\outcome_service;
 use local_outcomemap\local\service\question_mapping_service;
@@ -89,6 +91,38 @@ final class question_mapping_service_test extends \advanced_testcase {
         }
         $this->setAdminUser();
         return $itemverids;
+    }
+
+    /** Create an approved outcome owned by an unrelated catalog course. */
+    private function create_unrelated_catalog_outcome(\stdClass $reviewer): \stdClass {
+        global $DB;
+        $this->setAdminUser();
+        $catalogid = catalog_course_service::create([
+            'code' => 'UNRELATED' . random_string(4),
+            'name' => 'Unrelated catalog course',
+        ]);
+        $frameworkid = framework_service::create([
+            'code' => 'UNRELATEDFW' . random_string(4),
+            'name' => 'Unrelated course outcomes',
+            'ownertype' => framework_service::OWNER_COURSE,
+            'ownerid' => $catalogid,
+        ]);
+        framework_service::submit_for_review($frameworkid);
+        $this->setUser($reviewer);
+        framework_service::approve($frameworkid);
+        $this->setAdminUser();
+        $itemid = outcome_service::create([
+            'frameworkid' => $frameworkid,
+            'code' => 'PRIVATE',
+            'statement' => 'Private catalog-course outcome.',
+            'effectivefrom' => self::EFFECTIVEFROM,
+        ]);
+        $itemverid = (int) $DB->get_field('local_outcomemap_itemver', 'id', ['itemid' => $itemid], MUST_EXIST);
+        outcome_service::submit_for_review($itemverid);
+        $this->setUser($reviewer);
+        outcome_service::approve($itemverid);
+        $this->setAdminUser();
+        return $DB->get_record('local_outcomemap_itemver', ['id' => $itemverid], '*', MUST_EXIST);
     }
 
     /**
@@ -743,6 +777,33 @@ final class question_mapping_service_test extends \advanced_testcase {
         $this->assertSame(3, $DB->count_records('local_outcomemap_qmap'));
         $this->assertSame(0, $DB->count_records('local_outcomemap_qmap', [
             'questionversionid' => $target->versionid,
+        ]));
+    }
+
+    /** Stable UUID mutation APIs cannot bypass the question context's outcome scope. */
+    public function test_public_create_rejects_outcome_outside_question_context(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $reviewer = $this->create_reviewer();
+        $outcomeversion = $this->create_unrelated_catalog_outcome($reviewer);
+        $question = $this->create_question();
+
+        try {
+            question_mappings::create_draft(
+                (int) $question->versionid,
+                $outcomeversion->uuid,
+                content_mapping_service::ROLE_ALIGNMENT_ONLY,
+                null,
+                null,
+                self::EFFECTIVEFROM
+            );
+            $this->fail('A question was mapped to an outcome outside its context.');
+        } catch (validation_exception $e) {
+            $this->assertSame('recordnotfound', $e->errorcode);
+        }
+        $this->assertFalse($DB->record_exists('local_outcomemap_qmap', [
+            'questionversionid' => $question->versionid,
         ]));
     }
 

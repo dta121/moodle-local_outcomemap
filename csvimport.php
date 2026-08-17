@@ -66,7 +66,12 @@ if ($data = $form->get_data()) {
         $data->delimiter,
     );
     $entity = $data->entity;
-    $preview = foundation_import_service::preview($importid, $entity);
+    try {
+        $preview = foundation_import_service::preview($importid, $entity);
+    } catch (Throwable $e) {
+        foundation_import_service::cleanup($importid);
+        throw $e;
+    }
 }
 
 echo $OUTPUT->header();

@@ -9,11 +9,39 @@ use local_outcomemap\local\validation_exception;
 
 /** Tests for CSV preview binding and all-or-nothing commit. */
 final class foundation_import_service_test extends \advanced_testcase {
+    public function test_import_size_and_row_limits_are_enforced_before_preview(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        try {
+            foundation_import_service::load(
+                str_repeat('x', foundation_import_service::MAX_IMPORT_BYTES + 1),
+                'UTF-8',
+                'comma'
+            );
+            $this->fail('An oversized CSV import was accepted.');
+        } catch (validation_exception $e) {
+            $this->assertSame('importtoolarge', $e->errorcode);
+        }
+
+        $csv = "uuid,code,name,description,externalid\n";
+        for ($index = 0; $index <= foundation_import_service::MAX_IMPORT_ROWS; $index++) {
+            $csv .= ',CODE' . $index . ',Name ' . $index . ",,\n";
+        }
+        try {
+            foundation_import_service::load($csv, 'UTF-8', 'comma');
+            $this->fail('A CSV import above the row limit was accepted.');
+        } catch (validation_exception $e) {
+            $this->assertSame('importtoomanyrows', $e->errorcode);
+        }
+    }
+
     public function test_valid_preview_requires_explicit_commit(): void {
         global $DB;
         $this->resetAfterTest(true);
         $this->setAdminUser();
-        $csv = "uuid,code,name,description,externalid\n,MBA,Master of Business Administration,,\n,MEI,Master of Entrepreneurship and Innovation,,\n";
+        $csv = "uuid,code,name,description,externalid\n"
+            . ",MBA,Master of Business Administration,,\n"
+            . ",MEI,Master of Entrepreneurship and Innovation,,\n";
         $importid = foundation_import_service::load($csv, 'UTF-8', 'comma');
         $preview = foundation_import_service::preview($importid, foundation_import_service::PROGRAMS);
         $this->assertTrue($preview->valid);

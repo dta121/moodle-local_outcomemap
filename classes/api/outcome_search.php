@@ -185,28 +185,35 @@ final class outcome_search {
         } else {
             throw new validation_exception('invalidfield', 'context', 'course or system context required');
         }
-        $courseinstance = $DB->get_record('local_outcomemap_cinst', [
+        $catalogids = $DB->get_fieldset_select('local_outcomemap_cinst', 'courseid',
+            'moodlecourseid = :moodlecourseid AND status = :status AND confirmed = :confirmed', [
             'moodlecourseid' => $moodlecourseid,
             'status' => workflow::APPROVED,
             'confirmed' => 1,
-        ], 'id,courseid', IGNORE_MULTIPLE);
+        ]);
+        $catalogids = array_values(array_unique(array_map('intval', $catalogids)));
         $scope = ['f.ownertype = :institution'];
         $params['institution'] = 'institution';
-        if ($courseinstance) {
+        if ($catalogids) {
             $params['catalogtype'] = 'catalog_course';
-            $params['catalogid'] = $courseinstance->courseid;
-            $scope[] = '(f.ownertype = :catalogtype AND f.ownerid = :catalogid)';
+            [$courseinsql, $courseparams] = $DB->get_in_or_equal(
+                $catalogids,
+                SQL_PARAMS_NAMED,
+                'catalogcourse'
+            );
+            $params += $courseparams;
+            $scope[] = '(f.ownertype = :catalogtype AND f.ownerid ' . $courseinsql . ')';
             $sql = 'SELECT programid FROM {local_outcomemap_progcourse}
-                     WHERE courseid = :courseid AND status = :status
+                     WHERE courseid ' . $courseinsql . ' AND status = :membershipstatus
                        AND effectivefrom <= :at1 AND (effectiveto IS NULL OR effectiveto > :at2)';
-            $programids = $DB->get_fieldset_sql($sql, [
-                'courseid' => $courseinstance->courseid,
-                'status' => workflow::APPROVED,
+            $programids = $DB->get_fieldset_sql($sql, $courseparams + [
+                'membershipstatus' => workflow::APPROVED,
                 'at1' => $effectiveat,
                 'at2' => $effectiveat,
             ]);
+            $programids = array_values(array_unique(array_map('intval', $programids)));
             if ($programids) {
-                [$insql, $inparams] = $DB->get_in_or_equal(array_map('intval', $programids), SQL_PARAMS_NAMED, 'program');
+                [$insql, $inparams] = $DB->get_in_or_equal($programids, SQL_PARAMS_NAMED, 'program');
                 $params['programtype'] = 'program';
                 $params += $inparams;
                 $scope[] = '(f.ownertype = :programtype AND f.ownerid ' . $insql . ')';

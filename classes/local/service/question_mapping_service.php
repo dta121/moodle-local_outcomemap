@@ -106,6 +106,7 @@ final class question_mapping_service extends base_service {
     public static function update_draft(int $id, array $data): void {
         global $DB;
         $initial = self::get_required(self::TABLE, $id, 'question_mapping');
+        self::require_mutation_capabilities((int) $initial->questionversionid, (int) $initial->questionid);
         $locks = self::acquire_bulk_locks([(int) $initial->questionid]);
         try {
             $before = self::get_required(self::TABLE, $id, 'question_mapping');
@@ -162,10 +163,10 @@ final class question_mapping_service extends base_service {
     public static function delete_draft(int $id, ?string $reason = null): void {
         global $DB;
         $before = self::get_required(self::TABLE, $id, 'question_mapping');
+        $actorid = self::require_mutation_capabilities((int) $before->questionversionid, (int) $before->questionid);
         if ($before->status !== workflow::DRAFT) {
             throw new validation_exception('approvedimmutable', 'question_mapping', $id);
         }
-        $actorid = self::require_mutation_capabilities((int) $before->questionversionid, (int) $before->questionid);
         $transaction = $DB->start_delegated_transaction();
         try {
             $DB->delete_records(self::TABLE, ['id' => $id]);
@@ -305,6 +306,7 @@ final class question_mapping_service extends base_service {
     public static function create_version(int $id, array $data): int {
         global $DB;
         $previous = self::get_required(self::TABLE, $id, 'question_mapping');
+        self::require_mutation_capabilities((int) $previous->questionversionid, (int) $previous->questionid);
         if ($previous->status !== workflow::APPROVED) {
             throw new validation_exception('invalidtransition', 'status', $previous->status . ':new_version');
         }
@@ -332,10 +334,10 @@ final class question_mapping_service extends base_service {
     public static function submit_for_review(int $id, ?string $reason = null): void {
         global $DB;
         $before = self::get_required(self::TABLE, $id, 'question_mapping');
+        $actorid = self::require_mutation_capabilities((int) $before->questionversionid, (int) $before->questionid);
         if ($before->status !== workflow::DRAFT) {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':needs_review');
         }
-        $actorid = self::require_mutation_capabilities((int) $before->questionversionid, (int) $before->questionid);
         $batch = [$before];
         if (!workflow::requires_independent_approval()
                 && $before->role === content_mapping_service::ROLE_ASSESSES) {
@@ -1634,6 +1636,11 @@ final class question_mapping_service extends base_service {
         if ($itemversion->status !== workflow::APPROVED) {
             throw new validation_exception('outcomeversionnotapproved', 'itemverid', $record->itemverid);
         }
+        outcome_search::require_visible_version(
+            context_resolver::for_question_version((int) $record->questionversionid),
+            $itemversion->uuid,
+            (int) $record->effectivefrom
+        );
         if (
             (int) $record->effectivefrom < (int) $itemversion->effectivefrom
                 || ($itemversion->effectiveto !== null
