@@ -27,15 +27,15 @@ Feature: Site administrators govern calculation policies
       | Band name 1                       | Achieved                        |
       | Minimum percentage 1              | 70                              |
     And I press "Save changes"
-    And I click on "Edit" "link" in the ".lom-pol-row" "css_element"
+    And I click on "Edit" "link" in the ".lom-pol-row[data-search*='institution calculation policy']" "css_element"
     And I set the field "Name" to "Institution calculation policy 2026"
     And I press "Save changes"
-    And I click on "Submit for review" "link" in the ".lom-pol-row" "css_element"
+    And I click on "Submit for review" "link" in the ".lom-pol-row[data-search*='institution calculation policy 2026']" "css_element"
     And I log out
     And I log in as "reviewer"
     And I navigate to "Learning outcome mapping > Approval queue" in site administration
     And I click on "Approve" "link" in the "Institution calculation policy 2026" "table_row"
     And I press "Continue"
     And I navigate to "Learning outcome mapping > Outcome policies" in site administration
-    Then I should see "Institution calculation policy 2026" in the ".lom-pol-row" "css_element"
-    And I should see "Approved" in the ".lom-pol-row" "css_element"
+    Then I should see "Institution calculation policy 2026" in the ".lom-pol-row[data-search*='institution calculation policy 2026']" "css_element"
+    And I should see "Approved" in the ".lom-pol-row[data-search*='institution calculation policy 2026']" "css_element"

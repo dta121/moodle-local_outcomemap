@@ -38,14 +38,14 @@ Feature: Governed accreditation reporting
     And I press "Continue"
     Then I should see "The snapshot was verified and frozen."
     And I should see "Frozen" in the ".lom-snapshot-group" "css_element"
-    When I click on "View" "link" in the ".lom-snapshot-group" "css_element"
+    When I click on "Open report" "link" in the ".lom-snapshot-group" "css_element"
     Then I should see "Population size"
     And I should see "Suppression threshold"
     And I should see "Payload hash"
     And I should see "Manifest hash"
-    And "Canonical JSON package" "button" should exist
-    And "Summary CSV" "button" should exist
-    And "Include de-identified subject evidence" "button" should exist
+    And "Canonical JSON package" "link" should exist
+    And "Summary CSV" "link" should exist
+    And "Include de-identified subject evidence" "link" should exist
     And the latest frozen accreditation export for "reviewer" reconstructs "85.0000000000" percent
 
   Scenario: Authorized staff can discover every governed Report Builder source

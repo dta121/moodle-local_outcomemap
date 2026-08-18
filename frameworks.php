@@ -176,7 +176,10 @@ if ($action === 'exportcsv') {
 }
 
 if (in_array($action, ['addoutcome', 'editoutcome', 'newversion'], true)) {
-    $form = new outcome_form($url);
+    // Preserve the route that handles the submitted form. Posting to the bare
+    // listing URL makes Moodle render the hierarchy without processing the data.
+    $formurl = new moodle_url($url, ['action' => $action, 'id' => $id]);
+    $form = new outcome_form($formurl);
     if ($form->is_cancelled()) {
         redirect($url);
     }
@@ -220,7 +223,14 @@ if (in_array($action, ['addoutcome', 'editoutcome', 'newversion'], true)) {
 
 if ($action === 'addframework' || $action === 'editframework') {
     $existing = $id ? $DB->get_record('local_outcomemap_fw', ['id' => $id], '*', MUST_EXIST) : null;
-    $form = new framework_form($url, [
+    $formurl = new moodle_url($url, ['action' => $action, 'id' => $id]);
+    if ($ownercontext !== null) {
+        $formurl->params([
+            'ownertype' => $ownercontext->ownertype,
+            'ownerid' => $ownercontext->ownerid,
+        ]);
+    }
+    $form = new framework_form($formurl, [
         'identitylocked' => $existing !== null && $existing->status === workflow::APPROVED,
         'owner' => $existing === null ? $ownercontext : null,
     ]);
