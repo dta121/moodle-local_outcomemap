@@ -40,6 +40,7 @@ Feature: Governed accreditation reporting
     And I should see "Frozen" in the ".lom-snapshot-group" "css_element"
     When I click on "Open report" "link" in the ".lom-snapshot-group" "css_element"
     Then I should see "Population size"
+    And I click on ".lom-snap-prov-head" "css_element"
     And I should see "Suppression threshold"
     And I should see "Payload hash"
     And I should see "Manifest hash"

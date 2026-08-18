@@ -83,7 +83,7 @@ Feature: Course staff map content to governed outcome versions
       | Framework      | MBA614-FW                         |
       | Code           | CLO1                              |
       | Statement      | Evaluate strategic alternatives. |
-      | Effective from | 1 January 2026, 00:00             |
+      | Effective from | ##1 January 2026 00:00##           |
     And I press "Save changes"
     And I click on "Submit for review" "link" in the ".lom-node[data-search*='clo1']" "css_element"
     And I log out

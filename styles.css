@@ -1234,6 +1234,13 @@ a.lom-viewbtn.lom-active:hover {
     max-width: 11rem;
     min-width: 7.5rem;
 }
+.lom-pol-policyname {
+    color: #1f2a44;
+    display: block;
+    font-size: var(--lom-fs-2xs);
+    font-weight: 700;
+    margin-bottom: 4px;
+}
 .lom-pol-scopename {
     color: #1f2a44;
     display: block;

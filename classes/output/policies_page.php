@@ -369,6 +369,7 @@ final class policies_page implements renderable, templatable {
     private function row(\stdClass $policy, moodle_url $baseurl, array $badge): array {
         $id = (int) $policy->id;
         $row = $badge + [
+            'policyname' => format_string($policy->name),
             'settings' => $this->settings($policy),
             'meta' => get_string('policies_meta', 'local_outcomemap', (object) [
                 'version' => (int) $policy->version,

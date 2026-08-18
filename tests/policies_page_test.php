@@ -110,6 +110,7 @@ final class policies_page_test extends \advanced_testcase {
         $groups = array_column($context['groups'], null, 'title');
         $attempt = $groups[get_string('policytype_attempt_selection', 'local_outcomemap')];
         $this->assertTrue($attempt['hasrows']);
+        $this->assertSame('attempt_selection at institution', $attempt['rows'][0]['policyname']);
         $this->assertFalse($attempt['badgewarn'], 'An institution default is set for this decision.');
 
         $calculation = $groups[get_string('policytype_calculation', 'local_outcomemap')];

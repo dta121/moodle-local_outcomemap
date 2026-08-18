@@ -21,6 +21,7 @@
             "hasrows": true,
             "rows": [{
                 "kind": "Institution", "name": "", "kindclass": "institution",
+                "policyname": "Institution calculation policy",
                 "settings": [{"k": "Attempt used", "v": "Most recent graded"}],
                 "meta": "v2 · from 1 January 2025",
                 "statuslabel": "Finalized", "statusclass": "active",
@@ -84,6 +85,7 @@
         {{#rows}}
         <div class="lom-pol-row lom-filter-row" data-search="{{searchtext}}">
             <span class="lom-pol-scope">
+                <span class="lom-pol-policyname">{{policyname}}</span>
                 <span class="lom-code-badge lom-scope-{{kindclass}}">{{kind}}</span>
                 {{#name}}<span class="lom-pol-scopename">{{name}}</span>{{/name}}
             </span>

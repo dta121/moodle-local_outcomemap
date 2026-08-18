@@ -35,7 +35,7 @@ Feature: Administrators govern frameworks and outcome versions
       | Framework      | MBA614                              |
       | Code           | CLO1                                |
       | Statement      | Evaluate strategic alternatives.    |
-      | Effective from | 1 January 2026, 00:00               |
+      | Effective from | ##1 January 2026 00:00##             |
     And I press "Save changes"
     And I click on "Submit for review" "link" in the ".lom-node[data-search*='clo1']" "css_element"
     And I log out
