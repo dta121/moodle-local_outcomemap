@@ -1,6 +1,21 @@
 {{!
     One course-outcome row with its aligned unit outcomes.
     @template local_outcomemap/outcomes_hierarchy_clo
+
+    Example context (json):
+    {
+        "searchtext": "clo1 analyse evidence",
+        "itemid": 101,
+        "pickerkey": "course-101",
+        "mappedjson": "[]",
+        "statement": "Analyse evidence using appropriate methods.",
+        "editnote": "Approved outcome",
+        "badge": "CLO1",
+        "haschips": false,
+        "isunmapped": true,
+        "ulocountchip": "0 unit outcomes",
+        "noulos": true
+    }
 }}
 <div class="lom-node lom-clo" data-search="{{searchtext}}">
     <div class="lom-row lom-row-toggle" data-itemid="{{itemid}}" data-picker="{{pickerkey}}" data-mapped="{{mappedjson}}"

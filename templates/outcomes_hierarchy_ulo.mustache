@@ -1,6 +1,22 @@
 {{!
     One unit-outcome row in the outcomes hierarchy.
     @template local_outcomemap/outcomes_hierarchy_ulo
+
+    Example context (json):
+    {
+        "searchtext": "ulo1 evaluate sources",
+        "itemid": 201,
+        "pickerkey": "unit-201",
+        "mappedjson": "[101]",
+        "statement": "Evaluate the quality of source evidence.",
+        "editnote": "Approved outcome",
+        "badge": "ULO1",
+        "approvedinfo": "Approved v1",
+        "canapprove": false,
+        "cansubmit": false,
+        "canmap": false,
+        "caneditinline": false
+    }
 }}
 <div class="lom-node lom-ulo" data-search="{{searchtext}}">
     <div class="lom-row" data-itemid="{{itemid}}" data-picker="{{pickerkey}}" data-mapped="{{mappedjson}}"

@@ -1,6 +1,23 @@
 {{!
     Frameworks and outcomes hierarchy page.
     @template local_outcomemap/outcomes_hierarchy
+
+    Example context (json):
+    {
+        "frameworksline": "2 frameworks",
+        "viewtabs": [
+            {"isbutton": true, "active": true, "id": "program", "label": "By program"}
+        ],
+        "statsline": "8 approved outcomes",
+        "hierarchyline": "Program, course, and unit outcomes",
+        "exporturl": "/local/outcomemap/export.php",
+        "alignmentexporturl": "/local/outcomemap/export.php?type=alignments",
+        "canmanage": false,
+        "ismatrix": false,
+        "hasunmapped": false,
+        "programcards": [],
+        "coursecards": []
+    }
 }}
 <div id="lom-hier" class="lom-hier" data-lockedmsg="{{#str}} hier_alreadymapped, local_outcomemap {{/str}}">
     <h2 class="lom-title">{{#str}} outcomes_heading, local_outcomemap {{/str}}</h2>
