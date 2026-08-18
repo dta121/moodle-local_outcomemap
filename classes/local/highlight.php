@@ -25,7 +25,7 @@
 namespace local_outcomemap\local;
 
 /**
- * Marks the searched term inside an outcome statement.
+ * * Marks the searched term inside an outcome statement.
  */
 final class highlight {
     /**

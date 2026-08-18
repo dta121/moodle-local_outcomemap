@@ -23,7 +23,6 @@
  */
 
 namespace local_outcomemap\local\service;
-
 use local_outcomemap\api\outcome_search;
 use local_outcomemap\local\audit_writer;
 use local_outcomemap\local\effective_dates;
@@ -33,34 +32,52 @@ use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
 /**
- * Governed remediation recommendations for exact outcome versions.
+ * * Governed remediation recommendations for exact outcome versions.
  */
 final class remediation_service extends base_service {
-    /** Remediation mapping table. */
+    /**
+     * Remediation mapping table.
+     */
     private const TABLE = 'local_outcomemap_remed';
 
-    /** Course-module remediation target. */
+    /**
+     * Course-module remediation target.
+     */
     public const TARGET_MODULE = 'course_module';
 
-    /** Course-section remediation target. */
+    /**
+     * Course-section remediation target.
+     */
     public const TARGET_SECTION = 'course_section';
 
-    /** External URL remediation target. */
+    /**
+     * External URL remediation target.
+     */
     public const TARGET_EXTERNAL = 'external_url';
 
-    /** Supported remediation target types. */
+    /**
+     * Supported remediation target types.
+     */
     public const TARGETS = [self::TARGET_MODULE, self::TARGET_SECTION, self::TARGET_EXTERNAL];
 
-    /** General review recommendation. */
+    /**
+     * General review recommendation.
+     */
     public const PURPOSE_REVIEW = 'review';
 
-    /** Practice activity recommendation. */
+    /**
+     * Practice activity recommendation.
+     */
     public const PURPOSE_PRACTICE = 'practice';
 
-    /** Reassessment activity recommendation. */
+    /**
+     * Reassessment activity recommendation.
+     */
     public const PURPOSE_REASSESSMENT = 'reassessment';
 
-    /** Supported student-facing recommendation purposes. */
+    /**
+     * Supported student-facing recommendation purposes.
+     */
     public const PURPOSES = [self::PURPOSE_REVIEW, self::PURPOSE_PRACTICE, self::PURPOSE_REASSESSMENT];
 
     /**
@@ -240,6 +257,7 @@ final class remediation_service extends base_service {
      * @return \stdClass The recommendation record.
      */
     public static function get(int $id, ?int $expectedcourseid = null): \stdClass {
+
         $record = self::get_required(self::TABLE, $id, 'remediation');
         $context = self::context_for($record);
         require_capability('local/outcomemap:viewdefinitions', $context);
@@ -284,17 +302,19 @@ final class remediation_service extends base_service {
         $context = \context_course::instance($courseid, MUST_EXIST);
         require_capability('local/outcomemap:viewdefinitions', $context);
         $instances = $DB->get_records('local_outcomemap_cinst', [
-            'moodlecourseid' => $courseid,
-            'status' => workflow::APPROVED,
-            'confirmed' => 1,
+            'moodlecourseid' => $courseid, 'status' => workflow::APPROVED, 'confirmed' => 1,
         ], '', 'id, courseid');
         $cinstids = array_map('intval', array_keys($instances));
         $catalogids = [];
         foreach ($instances as $instance) {
             $catalogids[(int) $instance->courseid] = true;
         }
-        $cmids = array_map('intval', $DB->get_fieldset_select('course_modules', 'id', 'course = :courseid',
-            ['courseid' => $courseid]));
+        $cmids = array_map('intval', $DB->get_fieldset_select(
+            'course_modules',
+            'id',
+            'course = :courseid',
+            ['courseid' => $courseid]
+        ));
         $sql = "SELECT b.id, b.code, b.name AS bandname, p.name AS policyname,
                        p.scopetype, p.scopeid
                   FROM {local_outcomemap_band} b
@@ -428,6 +448,7 @@ final class remediation_service extends base_service {
      * @return void
      */
     private static function validate_record(\stdClass $record): void {
+
         global $DB;
         if (!in_array($record->targettype, self::TARGETS, true)) {
             throw new validation_exception('invalidtargettype', 'targettype', $record->targettype);
@@ -450,11 +471,7 @@ final class remediation_service extends base_service {
         if ($itemversion->status !== workflow::APPROVED) {
             throw new validation_exception('outcomeversionnotapproved', 'itemverid', $record->itemverid);
         }
-        outcome_search::require_visible_version(
-            self::context_for($record),
-            $itemversion->uuid,
-            (int) $record->effectivefrom
-        );
+        outcome_search::require_visible_version(self::context_for($record), $itemversion->uuid, (int) $record->effectivefrom);
         if (
             (int) $record->effectivefrom < (int) $itemversion->effectivefrom
                 || ($itemversion->effectiveto !== null
@@ -470,23 +487,23 @@ final class remediation_service extends base_service {
                      WHERE b.id = :bandid";
             $band = $DB->get_record_sql($sql, ['bandid' => $record->bandid]);
             $applicable = $band && $band->policytype === policy_service::TYPE_CALCULATION
-                && $band->status === workflow::APPROVED;
+            && $band->status === workflow::APPROVED;
             if ($applicable && $band->scopetype === policy_service::SCOPE_CATALOG_COURSE) {
                 $applicable = (int) $band->scopeid === (int) $cinst->courseid;
             } else if ($applicable && $band->scopetype === policy_service::SCOPE_COURSE_INSTANCE) {
                 $applicable = (int) $band->scopeid === (int) $cinst->id;
             } else if ($applicable && $band->scopetype === policy_service::SCOPE_ASSESSMENT) {
                 $applicable = $DB->record_exists('course_modules', [
-                    'id' => $band->scopeid,
-                    'course' => $cinst->moodlecourseid,
+                'id' => $band->scopeid,
+                'course' => $cinst->moodlecourseid,
                 ]);
             } else if ($applicable && $band->scopetype !== policy_service::SCOPE_INSTITUTION) {
                 $applicable = false;
             }
             if ($applicable) {
                 $applicable = (int) $record->effectivefrom >= (int) $band->effectivefrom
-                    && ($band->effectiveto === null || ($record->effectiveto !== null
-                        && (int) $record->effectiveto <= (int) $band->effectiveto));
+                && ($band->effectiveto === null || ($record->effectiveto !== null
+                    && (int) $record->effectiveto <= (int) $band->effectiveto));
             }
             if (!$applicable) {
                 throw new validation_exception('bandnotapplicable', 'bandid', $record->bandid);

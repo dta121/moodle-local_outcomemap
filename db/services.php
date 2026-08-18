@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Web service definitions for local_outcomemap.
@@ -23,7 +31,8 @@ $functions = [
     // stays inside Moodle where the workflow capabilities live.
     'local_outcomemap_get_user_program_attainment' => [
         'classname'    => 'local_outcomemap\external\get_user_program_attainment',
-        'description'  => 'One learner\'s released program-outcome attainment, pooled per outcome (SIS "what your degree certifies").',
+        'description'  => 'One learner\'s released program-outcome attainment, pooled per outcome '
+            . '(SIS "what your degree certifies").',
         'type'         => 'read',
         // Server-to-server only. Page JavaScript has the learner's own report
         // page; an AJAX-exposed any-user read would be reachable with any

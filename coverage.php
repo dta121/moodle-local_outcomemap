@@ -28,6 +28,7 @@ use local_outcomemap\local\service\content_mapping_service;
 use local_outcomemap\local\service\coverage_service;
 use local_outcomemap\local\workflow;
 
+// phpcs:ignore moodle.Files.MoodleInternal.MoodleInternalGlobalState -- Portable bootstrap path.
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     // Windows junctions resolve __DIR__ to the repository target rather than
@@ -135,8 +136,10 @@ foreach ($rows as $itemverid => $row) {
     if ($filter === coverage_service::STATUS_NONE && $row->statusid !== coverage_service::STATUS_NONE) {
         continue;
     }
-    if ($filter === coverage_service::STATUS_TAUGHT
-            && !in_array($row->statusid, [coverage_service::STATUS_TAUGHT, coverage_service::STATUS_ASSESSED_ONLY], true)) {
+    if (
+        $filter === coverage_service::STATUS_TAUGHT
+            && !in_array($row->statusid, [coverage_service::STATUS_TAUGHT, coverage_service::STATUS_ASSESSED_ONLY], true)
+    ) {
         continue;
     }
     if ($needle !== '') {
@@ -195,8 +198,10 @@ echo $OUTPUT->header();
 
 // Toolbar: report identity on the left, page actions on the right.
 $actions = '';
-if (has_capability('local/outcomemap:mapcourse', $context)
-        || has_capability('local/outcomemap:mapactivities', $context)) {
+if (
+    has_capability('local/outcomemap:mapcourse', $context)
+        || has_capability('local/outcomemap:mapactivities', $context)
+) {
     $actions .= html_writer::link(
         new moodle_url('/local/outcomemap/contentmapping.php', ['courseid' => $courseid]),
         get_string('contentmapping_heading', 'local_outcomemap'),
@@ -274,7 +279,12 @@ foreach (['all', coverage_service::STATUS_NONE, coverage_service::STATUS_TAUGHT,
         ]
     );
 }
-$searchform = html_writer::start_tag('form', ['method' => 'get', 'action' => $url->out_omit_querystring(), 'class' => 'lom-cov-search'])
+$searchattributes = [
+    'method' => 'get',
+    'action' => $url->out_omit_querystring(),
+    'class' => 'lom-cov-search',
+];
+$searchform = html_writer::start_tag('form', $searchattributes)
     . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'courseid', 'value' => $courseid])
     . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'filter', 'value' => $filter])
     . html_writer::label(

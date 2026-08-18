@@ -47,10 +47,14 @@ use mod_quiz\quiz_settings;
 final class golden_calculation_test extends \advanced_testcase {
     use \local_outcomemap\tests\moodle_compat_trait;
 
-    /** @var int Governance effective start. */
+    /**
+     * @var int Governance effective start.
+     */
     private const EFFECTIVEFROM = 1704067200;
 
-    /** @var \stdClass Reviewer approving governed records. */
+    /**
+     * @var \stdClass Reviewer approving governed records.
+     */
     private $reviewer;
 
     /**
@@ -420,7 +424,7 @@ final class golden_calculation_test extends \advanced_testcase {
             $modinfo->get_cms()
         )['CLO4'];
         $this->setAdminUser();
-        $actualrecommendations = array_map(static function(array $recommendation): array {
+        $actualrecommendations = array_map(static function (array $recommendation): array {
             return [
                 'title' => $recommendation['title'],
                 'purpose' => $recommendation['purpose'],
@@ -441,9 +445,11 @@ final class golden_calculation_test extends \advanced_testcase {
         $this->assertNull($insufficient->bandid);
 
         // Multi-path propagation counted each lineage exactly once at PLOA.
-        $ploaevidence = $DB->get_records_select('local_outcomemap_evidence',
+        $ploaevidence = $DB->get_records_select(
+            'local_outcomemap_evidence',
             'itemverid = :itemverid AND supersededby IS NULL',
-            ['itemverid' => $outcomes['PLOA'][1]]);
+            ['itemverid' => $outcomes['PLOA'][1]]
+        );
         $this->assertCount(2, $ploaevidence);
         foreach ($ploaevidence as $row) {
             $this->assertSame(calculation_service::TYPE_INHERITED, $row->evidencetype);
@@ -477,15 +483,18 @@ final class golden_calculation_test extends \advanced_testcase {
         $this->assertSame(calculation_service::STATE_SUPERSEDED, $old->state);
         $this->assertSame((int) $regraded->id, (int) $old->supersededby);
         $this->assertSame('85.0000000000', $old->percentage);
-        $this->assertTrue($DB->record_exists_select('local_outcomemap_evidence',
-            'supersededby IS NOT NULL AND itemverid = :itemverid', ['itemverid' => $outcomes['CLO1'][1]]));
+        $this->assertTrue($DB->record_exists_select(
+            'local_outcomemap_evidence',
+            'supersededby IS NOT NULL AND itemverid = :itemverid',
+            ['itemverid' => $outcomes['CLO1'][1]]
+        ));
         // The propagated PLO results follow the regrade through the lineage.
         $ploa = $this->assessment_result((int) $cm->id, (int) $student->id, $outcomes['PLOA'][1]);
         $this->assertSame('90.0000000000', $ploa->percentage);
     }
 
     /**
-     * Tests governed policy resolution precedence and the unconfigured guard.
+     * * Tests governed policy resolution precedence and the unconfigured guard.
      */
     public function test_policy_scope_precedence(): void {
         $this->resetAfterTest(true);
@@ -507,7 +516,10 @@ final class golden_calculation_test extends \advanced_testcase {
 
         // No approved policy resolves: official calculation must not proceed.
         $this->assertNull(policy_service::resolve(
-            policy_service::TYPE_ATTEMPT_SELECTION, $cinstid, (int) $cm->id));
+            policy_service::TYPE_ATTEMPT_SELECTION,
+            $cinstid,
+            (int) $cm->id
+        ));
 
         $institution = $this->create_policy([
             'policytype' => policy_service::TYPE_ATTEMPT_SELECTION,

@@ -5,6 +5,22 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 namespace local_outcomemap\local\service;
 
@@ -15,11 +31,18 @@ use local_outcomemap\local\uuid;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
-/** Transactional service for program-course memberships. */
+/**
+ * Transactional service for program-course memberships.
+ */
 final class program_course_service extends base_service {
+    /**
+     * Database table name.
+     */
     private const TABLE = 'local_outcomemap_progcourse';
 
-    /** Create a draft effective-dated membership. */
+    /**
+     * Create a draft effective-dated membership.
+     */
     public static function create(array $data): int {
         global $DB;
         $actorid = self::require_system('local/outcomemap:manageprograms');
@@ -51,8 +74,17 @@ final class program_course_service extends base_service {
         try {
             $id = $DB->insert_record(self::TABLE, $record);
             $record->id = $id;
-            audit_writer::write('create', 'program_course', $id, $record->uuid, null, $record, null,
-                \context_system::instance(), $actorid);
+            audit_writer::write(
+                'create',
+                'program_course',
+                $id,
+                $record->uuid,
+                null,
+                $record,
+                null,
+                \context_system::instance(),
+                $actorid
+            );
             $transaction->allow_commit();
             return $id;
         } catch (\Throwable $e) {
@@ -60,10 +92,16 @@ final class program_course_service extends base_service {
         }
     }
 
+    /**
+     * Submits the record for review.
+     */
     public static function submit_for_review(int $id, ?string $reason = null): void {
         self::set_status($id, workflow::DRAFT, workflow::NEEDS_REVIEW, 'submit_review', $reason, false);
     }
 
+    /**
+     * Approves the record.
+     */
     public static function approve(int $id, ?string $reason = null): void {
         global $DB;
         $actorid = self::require_approval_system('local/outcomemap:manageprograms');
@@ -82,8 +120,17 @@ final class program_course_service extends base_service {
         try {
             self::require_no_approved_overlap($before);
             $DB->update_record(self::TABLE, $after);
-            audit_writer::write('approve', 'program_course', $id, $after->uuid, $before, $after, $reason,
-                \context_system::instance(), $actorid);
+            audit_writer::write(
+                'approve',
+                'program_course',
+                $id,
+                $after->uuid,
+                $before,
+                $after,
+                $reason,
+                \context_system::instance(),
+                $actorid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -119,12 +166,30 @@ final class program_course_service extends base_service {
                 $after->status = workflow::RETIRED;
                 $after->timemodified = time();
                 $DB->update_record(self::TABLE, $after);
-                audit_writer::write('retire', 'program_course', $id, $before->uuid, $before, $after,
-                    $reason, $context, $actorid);
+                audit_writer::write(
+                    'retire',
+                    'program_course',
+                    $id,
+                    $before->uuid,
+                    $before,
+                    $after,
+                    $reason,
+                    $context,
+                    $actorid
+                );
             } else {
                 $DB->delete_records(self::TABLE, ['id' => $id]);
-                audit_writer::write('delete', 'program_course', $id, $before->uuid, $before, null,
-                    $reason, $context, $actorid);
+                audit_writer::write(
+                    'delete',
+                    'program_course',
+                    $id,
+                    $before->uuid,
+                    $before,
+                    null,
+                    $reason,
+                    $context,
+                    $actorid
+                );
             }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
@@ -203,8 +268,17 @@ final class program_course_service extends base_service {
         return $DB->get_records_sql($sql);
     }
 
-    private static function set_status(int $id, string $required, string $status, string $action,
-            ?string $reason, bool $approving): void {
+    /**
+     * Sets the record workflow status.
+     */
+    private static function set_status(
+        int $id,
+        string $required,
+        string $status,
+        string $action,
+        ?string $reason,
+        bool $approving
+    ): void {
         global $DB;
         $actorid = $approving
             ? self::require_approval_system('local/outcomemap:manageprograms')
@@ -219,8 +293,17 @@ final class program_course_service extends base_service {
         $transaction = $DB->start_delegated_transaction();
         try {
             $DB->update_record(self::TABLE, $after);
-            audit_writer::write($action, 'program_course', $id, $after->uuid, $before, $after, $reason,
-                \context_system::instance(), $actorid);
+            audit_writer::write(
+                $action,
+                'program_course',
+                $id,
+                $after->uuid,
+                $before,
+                $after,
+                $reason,
+                \context_system::instance(),
+                $actorid
+            );
             if ($status === workflow::NEEDS_REVIEW && !workflow::requires_independent_approval()) {
                 self::approve($id, $reason);
             }
@@ -230,10 +313,17 @@ final class program_course_service extends base_service {
         }
     }
 
+    /**
+     * Requires nonoverlapping approved effective dates.
+     */
     private static function require_no_approved_overlap(\stdClass $candidate): void {
         global $DB;
-        [$overlapsql, $params] = effective_dates::overlap_sql('', (int) $candidate->effectivefrom,
-            $candidate->effectiveto === null ? null : (int) $candidate->effectiveto, 'pc');
+        [$overlapsql, $params] = effective_dates::overlap_sql(
+            '',
+            (int) $candidate->effectivefrom,
+            $candidate->effectiveto === null ? null : (int) $candidate->effectiveto,
+            'pc'
+        );
         $params += [
             'programid' => $candidate->programid,
             'courseid' => $candidate->courseid,

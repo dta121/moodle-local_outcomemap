@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\local\service;
 
@@ -106,8 +114,7 @@ final class aggregate_service {
         $records = array_values($records);
         usort($records, static fn(\stdClass $a, \stdClass $b): int =>
             [(int) $a->cinstid, (int) $a->itemverid, (int) $a->userid, (string) $a->uuid]
-            <=> [(int) $b->cinstid, (int) $b->itemverid, (int) $b->userid, (string) $b->uuid]
-        );
+            <=> [(int) $b->cinstid, (int) $b->itemverid, (int) $b->userid, (string) $b->uuid]);
         return $records;
     }
 

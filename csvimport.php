@@ -1,10 +1,32 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 use local_outcomemap\form\csv_commit_form;
 use local_outcomemap\form\csv_import_form;
 use local_outcomemap\local\service\foundation_import_service;
 
+// phpcs:ignore moodle.Files.MoodleInternal.MoodleInternalGlobalState -- Portable bootstrap path.
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     // Windows junctions resolve __DIR__ to the repository target rather than
@@ -73,7 +95,6 @@ if ($data = $form->get_data()) {
         throw $e;
     }
 }
-
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('csvimport_heading', 'local_outcomemap'));
 if ($preview === null) {
@@ -81,16 +102,21 @@ if ($preview === null) {
     echo $OUTPUT->heading(get_string('downloadtemplate', 'local_outcomemap'), 3);
     $links = [];
     foreach (foundation_import_service::ENTITIES as $templateentity) {
-        $links[] = html_writer::link(new moodle_url($url, ['action' => 'template', 'entity' => $templateentity]),
-            get_string('entity_' . $templateentity, 'local_outcomemap'));
+        $links[] = html_writer::link(
+            new moodle_url($url, ['action' => 'template', 'entity' => $templateentity]),
+            get_string('entity_' . $templateentity, 'local_outcomemap')
+        );
     }
     echo html_writer::alist($links);
 } else {
     echo $OUTPUT->heading(get_string('importpreview', 'local_outcomemap'), 3);
     $table = new html_table();
     $table->caption = get_string('importpreview', 'local_outcomemap');
-    $table->head = array_merge([get_string('rownumber', 'local_outcomemap')],
-        foundation_import_service::HEADERS[$entity], [get_string('validation', 'local_outcomemap')]);
+    $table->head = array_merge(
+        [get_string('rownumber', 'local_outcomemap')],
+        foundation_import_service::HEADERS[$entity],
+        [get_string('validation', 'local_outcomemap')]
+    );
     foreach ($preview->rows as $row) {
         $cells = [(int) $row->number];
         foreach (foundation_import_service::HEADERS[$entity] as $header) {

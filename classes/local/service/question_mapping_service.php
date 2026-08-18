@@ -46,10 +46,14 @@ use local_outcomemap\local\workflow;
  * affected effective segment. No default weight is ever inferred.
  */
 final class question_mapping_service extends base_service {
-    /** Mapping table name. */
+    /**
+     * Mapping table name.
+     */
     private const TABLE = 'local_outcomemap_qmap';
 
-    /** Supported mapping roles. */
+    /**
+     * Supported mapping roles.
+     */
     public const ROLES = content_mapping_service::ROLES;
 
     /**
@@ -339,8 +343,10 @@ final class question_mapping_service extends base_service {
             throw new validation_exception('invalidtransition', 'status', $before->status . ':needs_review');
         }
         $batch = [$before];
-        if (!workflow::requires_independent_approval()
-                && $before->role === content_mapping_service::ROLE_ASSESSES) {
+        if (
+            !workflow::requires_independent_approval()
+                && $before->role === content_mapping_service::ROLE_ASSESSES
+        ) {
             $batch = array_values($DB->get_records(self::TABLE, [
                 'questionversionid' => $before->questionversionid,
                 'role' => content_mapping_service::ROLE_ASSESSES,
@@ -435,11 +441,16 @@ final class question_mapping_service extends base_service {
                 $batch = [];
                 foreach ($restrictedids as $restrictedid) {
                     $record = self::get_required(self::TABLE, (int) $restrictedid, 'question_mapping');
-                    if ($record->status !== workflow::NEEDS_REVIEW
+                    if (
+                        $record->status !== workflow::NEEDS_REVIEW
                             || (int) $record->questionversionid !== (int) $candidate->questionversionid
-                            || $record->role !== content_mapping_service::ROLE_ASSESSES) {
-                        throw new validation_exception('invalidtransition', 'status',
-                            $record->status . ':approved_batch');
+                            || $record->role !== content_mapping_service::ROLE_ASSESSES
+                    ) {
+                        throw new validation_exception(
+                            'invalidtransition',
+                            'status',
+                            $record->status . ':approved_batch'
+                        );
                     }
                     $batch[] = $record;
                 }
@@ -627,7 +638,9 @@ final class question_mapping_service extends base_service {
         }
     }
 
-    /** Resolve and validate the exact source and eligible copy set. */
+    /**
+     * Resolve and validate the exact source and eligible copy set.
+     */
     private static function prepare_copy_to_version(
         int $targetquestionversionid,
         ?int $sourcequestionversionid
@@ -666,8 +679,10 @@ final class question_mapping_service extends base_service {
             ];
         }
         $source = reset($sources);
-        if ($sourcequestionversionid !== null
-                && (int) $sourcequestionversionid !== (int) $source->id) {
+        if (
+            $sourcequestionversionid !== null
+                && (int) $sourcequestionversionid !== (int) $source->id
+        ) {
             throw new validation_exception(
                 'questionversionmismatch',
                 'sourcequestionversionid',
@@ -863,118 +878,118 @@ final class question_mapping_service extends base_service {
         try {
             $transaction = $DB->start_delegated_transaction();
             try {
-            $prepared = self::prepare_bulk($questionids, $operation);
-            if (!$prepared->valid) {
-                throw new validation_exception(
-                    'bulkpreviewinvalid',
-                    'operation',
-                    implode('; ', self::bulk_error_messages($prepared))
-                );
-            }
-            if ($previewtoken === '' || !hash_equals($prepared->previewtoken, $previewtoken)) {
-                throw new validation_exception('bulkpreviewstale', 'previewtoken');
-            }
+                $prepared = self::prepare_bulk($questionids, $operation);
+                if (!$prepared->valid) {
+                    throw new validation_exception(
+                        'bulkpreviewinvalid',
+                        'operation',
+                        implode('; ', self::bulk_error_messages($prepared))
+                    );
+                }
+                if ($previewtoken === '' || !hash_equals($prepared->previewtoken, $previewtoken)) {
+                    throw new validation_exception('bulkpreviewstale', 'previewtoken');
+                }
 
-            $affected = 0;
-            $now = time();
-            foreach ($prepared->_changes as $change) {
-                $context = \context::instance_by_id((int) $change->contextid);
-                if ($prepared->action === 'add') {
-                    $after = clone $change->after;
-                    $after->mappinguuid = uuid::generate();
-                    $after->createdby = (int) $prepared->actorid;
-                    $id = $DB->insert_record(self::TABLE, $after);
-                    $after->id = $id;
-                    audit_writer::write(
-                        'create',
-                        'question_mapping',
-                        $id,
-                        $after->mappinguuid,
-                        null,
-                        $after,
-                        $prepared->reason ?? $after->notes,
-                        $context,
-                        (int) $prepared->actorid
-                    );
-                } else if ($prepared->action === 'change_role') {
-                    $after = clone $change->after;
-                    $after->timemodified = $now;
-                    $DB->update_record(self::TABLE, $after);
-                    audit_writer::write(
-                        'update',
-                        'question_mapping',
-                        (int) $after->id,
-                        $after->mappinguuid,
-                        $change->before,
-                        $after,
-                        $prepared->reason,
-                        $context,
-                        (int) $prepared->actorid
-                    );
-                } else if ($prepared->action === 'delete_drafts') {
-                    $before = $change->before;
-                    $DB->delete_records(self::TABLE, ['id' => $before->id]);
-                    audit_writer::write(
-                        'delete',
-                        'question_mapping',
-                        (int) $before->id,
-                        $before->mappinguuid,
-                        $before,
-                        null,
-                        $prepared->reason,
-                        $context,
-                        (int) $prepared->actorid
-                    );
-                } else if ($prepared->action === 'submit_drafts') {
-                    $before = $change->before;
-                    $submitted = clone $before;
-                    $submitted->status = workflow::NEEDS_REVIEW;
-                    $submitted->timemodified = $now;
-                    $DB->update_record(self::TABLE, $submitted);
-                    audit_writer::write(
-                        'submit_review',
-                        'question_mapping',
-                        (int) $before->id,
-                        $before->mappinguuid,
-                        $before,
-                        $submitted,
-                        $prepared->reason,
-                        $context,
-                        (int) $prepared->actorid
-                    );
-                    if (!workflow::requires_independent_approval()) {
-                        $approved = clone $submitted;
-                        $approved->status = workflow::APPROVED;
-                        $approved->approvedby = (int) $prepared->actorid;
-                        $approved->approvedat = $now;
-                        $DB->update_record(self::TABLE, $approved);
+                $affected = 0;
+                $now = time();
+                foreach ($prepared->_changes as $change) {
+                    $context = \context::instance_by_id((int) $change->contextid);
+                    if ($prepared->action === 'add') {
+                        $after = clone $change->after;
+                        $after->mappinguuid = uuid::generate();
+                        $after->createdby = (int) $prepared->actorid;
+                        $id = $DB->insert_record(self::TABLE, $after);
+                        $after->id = $id;
                         audit_writer::write(
-                            'approve',
+                            'create',
                             'question_mapping',
-                            (int) $before->id,
-                            $before->mappinguuid,
-                            $submitted,
-                            $approved,
+                            $id,
+                            $after->mappinguuid,
+                            null,
+                            $after,
+                            $prepared->reason ?? $after->notes,
+                            $context,
+                            (int) $prepared->actorid
+                        );
+                    } else if ($prepared->action === 'change_role') {
+                        $after = clone $change->after;
+                        $after->timemodified = $now;
+                        $DB->update_record(self::TABLE, $after);
+                        audit_writer::write(
+                            'update',
+                            'question_mapping',
+                            (int) $after->id,
+                            $after->mappinguuid,
+                            $change->before,
+                            $after,
                             $prepared->reason,
                             $context,
                             (int) $prepared->actorid
                         );
+                    } else if ($prepared->action === 'delete_drafts') {
+                        $before = $change->before;
+                        $DB->delete_records(self::TABLE, ['id' => $before->id]);
+                        audit_writer::write(
+                            'delete',
+                            'question_mapping',
+                            (int) $before->id,
+                            $before->mappinguuid,
+                            $before,
+                            null,
+                            $prepared->reason,
+                            $context,
+                            (int) $prepared->actorid
+                        );
+                    } else if ($prepared->action === 'submit_drafts') {
+                        $before = $change->before;
+                        $submitted = clone $before;
+                        $submitted->status = workflow::NEEDS_REVIEW;
+                        $submitted->timemodified = $now;
+                        $DB->update_record(self::TABLE, $submitted);
+                        audit_writer::write(
+                            'submit_review',
+                            'question_mapping',
+                            (int) $before->id,
+                            $before->mappinguuid,
+                            $before,
+                            $submitted,
+                            $prepared->reason,
+                            $context,
+                            (int) $prepared->actorid
+                        );
+                        if (!workflow::requires_independent_approval()) {
+                            $approved = clone $submitted;
+                            $approved->status = workflow::APPROVED;
+                            $approved->approvedby = (int) $prepared->actorid;
+                            $approved->approvedat = $now;
+                            $DB->update_record(self::TABLE, $approved);
+                            audit_writer::write(
+                                'approve',
+                                'question_mapping',
+                                (int) $before->id,
+                                $before->mappinguuid,
+                                $submitted,
+                                $approved,
+                                $prepared->reason,
+                                $context,
+                                (int) $prepared->actorid
+                            );
+                        }
+                    }
+                    $affected++;
+                }
+
+                if ($prepared->action === 'submit_drafts' && !workflow::requires_independent_approval()) {
+                    foreach ($prepared->_assessedquestionversions as $questionversionid) {
+                        calculation_service::mark_stale_for_question_version((int) $questionversionid);
                     }
                 }
-                $affected++;
-            }
-
-            if ($prepared->action === 'submit_drafts' && !workflow::requires_independent_approval()) {
-                foreach ($prepared->_assessedquestionversions as $questionversionid) {
-                    calculation_service::mark_stale_for_question_version((int) $questionversionid);
-                }
-            }
-            $transaction->allow_commit();
-            return (object) [
+                $transaction->allow_commit();
+                return (object) [
                 'operation' => $prepared->action,
                 'questioncount' => count($prepared->questions),
                 'affected' => $affected,
-            ];
+                ];
             } catch (\Throwable $e) {
                 self::rollback($transaction, $e);
             }
@@ -1326,7 +1341,9 @@ final class question_mapping_service extends base_service {
         return $preview;
     }
 
-    /** Build a validated add candidate using already bulk-loaded core data. */
+    /**
+     * Build a validated add candidate using already bulk-loaded core data.
+     */
     private static function bulk_new_record(
         \stdClass $question,
         \stdClass $outcome,
@@ -1356,28 +1373,36 @@ final class question_mapping_service extends base_service {
             'approvedat' => null,
         ];
         effective_dates::validate($record->effectivefrom, null);
-        if ((int) $record->effectivefrom < (int) $outcome->effectivefrom
-                || ($outcome->effectiveto !== null && (int) $record->effectivefrom >= (int) $outcome->effectiveto)) {
+        if (
+            (int) $record->effectivefrom < (int) $outcome->effectivefrom
+                || ($outcome->effectiveto !== null && (int) $record->effectivefrom >= (int) $outcome->effectiveto)
+        ) {
             throw new validation_exception('mappingoutsideoutcomeversion', 'effectivefrom');
         }
         return $record;
     }
 
-    /** Validate a selected draft using its already bulk-loaded outcome fields. */
+    /**
+     * Validate a selected draft using its already bulk-loaded outcome fields.
+     */
     private static function bulk_validate_loaded_record(\stdClass $record): void {
         if ($record->outcomeversionstatus !== workflow::APPROVED) {
             throw new validation_exception('outcomeversionnotapproved', 'itemverid', $record->itemverid);
         }
-        if ((int) $record->effectivefrom < (int) $record->outcomeeffectivefrom
+        if (
+            (int) $record->effectivefrom < (int) $record->outcomeeffectivefrom
                 || ($record->outcomeeffectiveto !== null
                     && ($record->effectiveto === null
-                        || (int) $record->effectiveto > (int) $record->outcomeeffectiveto))) {
+                        || (int) $record->effectiveto > (int) $record->outcomeeffectiveto))
+        ) {
             throw new validation_exception('mappingoutsideoutcomeversion', 'effectivefrom');
         }
         self::validate_role_weight($record->role, $record->weight);
     }
 
-    /** Return the public subset of one draft for bulk selection. */
+    /**
+     * Return the public subset of one draft for bulk selection.
+     */
     private static function bulk_mapping_summary(\stdClass $record): \stdClass {
         return (object) [
             'id' => (int) $record->id,
@@ -1388,7 +1413,9 @@ final class question_mapping_service extends base_service {
         ];
     }
 
-    /** Calculate an exact assessed total after applying in-memory changes. */
+    /**
+     * Calculate an exact assessed total after applying in-memory changes.
+     */
     private static function bulk_hypothetical_assessed_total(
         array $records,
         array $changes,
@@ -1447,8 +1474,10 @@ final class question_mapping_service extends base_service {
         foreach ($boundaries as $point) {
             $touchespoint = false;
             foreach ($touchedranges as $record) {
-                if ((int) $record->effectivefrom <= $point
-                        && ($record->effectiveto === null || (int) $record->effectiveto > $point)) {
+                if (
+                    (int) $record->effectivefrom <= $point
+                        && ($record->effectiveto === null || (int) $record->effectiveto > $point)
+                ) {
                     $touchespoint = true;
                     break;
                 }
@@ -1459,8 +1488,10 @@ final class question_mapping_service extends base_service {
             $total = decimal::ZERO;
             $missing = false;
             foreach ($assessed as $record) {
-                if ((int) $record->effectivefrom <= $point
-                        && ($record->effectiveto === null || (int) $record->effectiveto > $point)) {
+                if (
+                    (int) $record->effectivefrom <= $point
+                        && ($record->effectiveto === null || (int) $record->effectiveto > $point)
+                ) {
                     if ($record->weight === null) {
                         $missing = true;
                     } else {
@@ -1478,7 +1509,9 @@ final class question_mapping_service extends base_service {
         return [decimal::ONE, false];
     }
 
-    /** Validate that role changes do not create a duplicate draft/current scope. */
+    /**
+     * Validate that role changes do not create a duplicate draft/current scope.
+     */
     private static function bulk_validate_changed_scope(array $records, array $changes, array &$questions): void {
         $changed = [];
         foreach ($changes as $change) {
@@ -1491,9 +1524,11 @@ final class question_mapping_service extends base_service {
                     continue;
                 }
                 $other = $changed[(int) $record->id] ?? $record;
-                if ((int) $other->questionversionid === (int) $candidate->questionversionid
+                if (
+                    (int) $other->questionversionid === (int) $candidate->questionversionid
                         && (int) $other->itemverid === (int) $candidate->itemverid
-                        && $other->role === $candidate->role) {
+                        && $other->role === $candidate->role
+                ) {
                     $questions[(int) $candidate->questionid]->errors[] = get_string(
                         'duplicatemapping',
                         'local_outcomemap'
@@ -1504,7 +1539,9 @@ final class question_mapping_service extends base_service {
         }
     }
 
-    /** Validate duplicate scopes and immutable history before direct finalization. */
+    /**
+     * Validate duplicate scopes and immutable history before direct finalization.
+     */
     private static function bulk_validate_finalization(array $records, array $changes, array &$questions): void {
         $final = [];
         foreach ($changes as $change) {
@@ -1517,14 +1554,18 @@ final class question_mapping_service extends base_service {
                     continue;
                 }
                 $other = $final[(int) $record->id] ?? $record;
-                if ($other->status !== workflow::APPROVED
-                        || !self::bulk_ranges_overlap($candidate, $other)) {
+                if (
+                    $other->status !== workflow::APPROVED
+                        || !self::bulk_ranges_overlap($candidate, $other)
+                ) {
                     continue;
                 }
-                if ($other->mappinguuid === $candidate->mappinguuid
+                if (
+                    $other->mappinguuid === $candidate->mappinguuid
                         || ((int) $other->questionversionid === (int) $candidate->questionversionid
                             && (int) $other->itemverid === (int) $candidate->itemverid
-                            && $other->role === $candidate->role)) {
+                            && $other->role === $candidate->role)
+                ) {
                     $questions[(int) $candidate->questionid]->errors[] = get_string(
                         'duplicatemapping',
                         'local_outcomemap'
@@ -1535,13 +1576,17 @@ final class question_mapping_service extends base_service {
         }
     }
 
-    /** Whether two effective ranges overlap. */
+    /**
+     * Whether two effective ranges overlap.
+     */
     private static function bulk_ranges_overlap(\stdClass $a, \stdClass $b): bool {
         return ($a->effectiveto === null || (int) $b->effectivefrom < (int) $a->effectiveto)
             && ($b->effectiveto === null || (int) $a->effectivefrom < (int) $b->effectiveto);
     }
 
-    /** Bind a preview token to request and current mapping state. */
+    /**
+     * Bind a preview token to request and current mapping state.
+     */
     private static function bulk_preview_token(array $questionids, array $operation, array $records): string {
         $state = [];
         foreach ($records as $record) {
@@ -1564,7 +1609,9 @@ final class question_mapping_service extends base_service {
         return hash_hmac('sha256', $payload, get_site_identifier() . ':' . sesskey());
     }
 
-    /** Flatten structured preview errors for a commit exception. */
+    /**
+     * Flatten structured preview errors for a commit exception.
+     */
     private static function bulk_error_messages(\stdClass $preview): array {
         $messages = $preview->errors;
         foreach ($preview->questions as $question) {
@@ -1636,11 +1683,8 @@ final class question_mapping_service extends base_service {
         if ($itemversion->status !== workflow::APPROVED) {
             throw new validation_exception('outcomeversionnotapproved', 'itemverid', $record->itemverid);
         }
-        outcome_search::require_visible_version(
-            context_resolver::for_question_version((int) $record->questionversionid),
-            $itemversion->uuid,
-            (int) $record->effectivefrom
-        );
+        $context = context_resolver::for_question_version((int) $record->questionversionid);
+        outcome_search::require_visible_version($context, $itemversion->uuid, (int) $record->effectivefrom);
         if (
             (int) $record->effectivefrom < (int) $itemversion->effectivefrom
                 || ($itemversion->effectiveto !== null
@@ -1834,8 +1878,12 @@ final class question_mapping_service extends base_service {
         global $CFG, $DB;
         require_once($CFG->libdir . '/questionlib.php');
         if (!question_has_capability_on($questionid, $capability)) {
-            $questionversionid = (int) $DB->get_field('question_versions', 'id',
-                ['questionid' => $questionid], MUST_EXIST);
+            $questionversionid = (int) $DB->get_field(
+                'question_versions',
+                'id',
+                ['questionid' => $questionid],
+                MUST_EXIST
+            );
             throw new \required_capability_exception(
                 context_resolver::for_question_version($questionversionid),
                 'moodle/question:' . $capability . 'all',
@@ -1845,7 +1893,9 @@ final class question_mapping_service extends base_service {
         }
     }
 
-    /** Prevent scalar mutations from racing an explicit prior-version copy. */
+    /**
+     * Prevent scalar mutations from racing an explicit prior-version copy.
+     */
     private static function require_no_existing_copied_scope(\stdClass $candidate): void {
         global $DB;
         $params = [

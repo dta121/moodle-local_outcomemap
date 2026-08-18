@@ -27,19 +27,27 @@ namespace local_outcomemap\local\service;
 use local_outcomemap\local\workflow;
 
 /**
- * Builds course coverage projections from bulk-loaded mapping records.
+ * * Builds course coverage projections from bulk-loaded mapping records.
  */
 final class coverage_service extends base_service {
-    /** Taught and assessed by mapped content. */
+    /**
+     * Taught and assessed by mapped content.
+     */
     public const STATUS_FULL = 'full';
 
-    /** Assessed, but no teaching content is mapped. */
+    /**
+     * Assessed, but no teaching content is mapped.
+     */
     public const STATUS_ASSESSED_ONLY = 'assessedonly';
 
-    /** Taught, but no assessing content is mapped. */
+    /**
+     * Taught, but no assessing content is mapped.
+     */
     public const STATUS_TAUGHT = 'taught';
 
-    /** No content mapped at all. */
+    /**
+     * No content mapped at all.
+     */
     public const STATUS_NONE = 'none';
 
     /**

@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Site administration navigation for local_outcomemap.
@@ -21,8 +29,10 @@ defined('MOODLE_INTERNAL') || die();
 // than buried under Local plugins. The third argument inserts the category
 // immediately before Competencies, which core registers directly after
 // Analytics; if that sibling is ever absent the category is simply appended.
-$ADMIN->add('root', new admin_category('local_outcomemap',
-    get_string('pluginname', 'local_outcomemap')), 'competencies');
+$ADMIN->add('root', new admin_category(
+    'local_outcomemap',
+    get_string('pluginname', 'local_outcomemap')
+), 'competencies');
 
 $pages = [
     'local_outcomemap_dashboard' => ['dashboard', 'viewdefinitions'],
@@ -60,8 +70,10 @@ foreach ($pages + $hidden as $pageid => [$script, $capability]) {
 }
 
 if ($hassiteconfig) {
-    $settings = new admin_settingpage('local_outcomemap_settings',
-        get_string('nav_settings', 'local_outcomemap'));
+    $settings = new admin_settingpage(
+        'local_outcomemap_settings',
+        get_string('nav_settings', 'local_outcomemap')
+    );
     $settings->add(new admin_setting_configcheckbox(
         'local_outcomemap/requireapproval',
         get_string('requireapproval', 'local_outcomemap'),

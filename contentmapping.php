@@ -27,6 +27,7 @@ use local_outcomemap\local\service\content_mapping_service;
 use local_outcomemap\local\service\coverage_service;
 use local_outcomemap\local\workflow;
 
+// phpcs:ignore moodle.Files.MoodleInternal.MoodleInternalGlobalState -- Portable bootstrap path.
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     // Windows junctions resolve __DIR__ to the repository target rather than
@@ -302,8 +303,10 @@ foreach ($modinfo->get_section_info_all() as $section) {
         if ($records) {
             $mappeditems++;
         }
-        if ($needle !== ''
-                && core_text::strpos(core_text::strtolower($cm->get_formatted_name()), $needle) === false) {
+        if (
+            $needle !== ''
+                && core_text::strpos(core_text::strtolower($cm->get_formatted_name()), $needle) === false
+        ) {
             continue;
         }
         if ($contentfilter === 'unmapped' && $records) {
@@ -374,7 +377,7 @@ echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'cf', 'value
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'expand', 'value' => $expandall ? 1 : 0]);
 echo html_writer::start_div('lom-map-layout');
 
-// ---------------------------------------------------------------- left panel.
+// Left panel.
 echo html_writer::start_div('lom-map-content');
 $chips = '';
 foreach (['all', 'unmapped', 'assessments'] as $key) {
@@ -495,7 +498,7 @@ if (!$tree) {
 }
 echo html_writer::end_div();
 
-// --------------------------------------------------------------- right panel.
+// Right panel.
 echo html_writer::start_div('lom-map-apply');
 if (!$canapply) {
     echo html_writer::div(

@@ -33,7 +33,7 @@ use local_outcomemap\local\uuid;
  */
 final class subject_key_service_test extends \advanced_testcase {
     /**
-     * Subject keys work on a site that has no legacy site secret at all.
+     * * Subject keys work on a site that has no legacy site secret at all.
      */
     public function test_references_issue_without_legacy_site_secret(): void {
         global $CFG;
@@ -60,7 +60,7 @@ final class subject_key_service_test extends \advanced_testcase {
     }
 
     /**
-     * Erasure still de-links the subject when no legacy site secret exists.
+     * * Erasure still de-links the subject when no legacy site secret exists.
      */
     public function test_forget_delinks_without_legacy_site_secret(): void {
         global $CFG;
@@ -115,7 +115,7 @@ final class subject_key_service_test extends \advanced_testcase {
     }
 
     /**
-     * A stored plugin secret is never silently replaced on later calls.
+     * * A stored plugin secret is never silently replaced on later calls.
      */
     public function test_secret_is_generated_once_and_reused(): void {
         global $CFG;

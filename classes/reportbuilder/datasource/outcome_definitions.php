@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\reportbuilder\datasource;
 
@@ -46,7 +54,7 @@ final class outcome_definitions extends secured_datasource {
     }
 
     /**
-     * Build the source at one row per outcome version.
+     * * Build the source at one row per outcome version.
      */
     protected function initialise_source(): void {
         $entity = new report_record(
@@ -75,71 +83,196 @@ final class outcome_definitions extends secured_datasource {
                             AND {$framework}.ownertype = 'catalog_course'");
 
         $entity
-            ->define_column('recordid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$version}.id"])
-            ->define_column('uuid', new lang_string('uuid', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$version}.uuid"])
-            ->define_column('outcomeversionid',
+            ->define_column(
+                'recordid',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$version}.id"]
+            )
+            ->define_column(
+                'uuid',
+                new lang_string('uuid', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$version}.uuid"]
+            )
+            ->define_column(
+                'outcomeversionid',
                 new lang_string('reportcolumn_outcomeversionid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$version}.id"])
-            ->define_column('outcomecode', new lang_string('reportcolumn_code', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$item}.code"])
-            ->define_column('version', new lang_string('version', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$version}.version"])
-            ->define_column('statement', new lang_string('statement', 'local_outcomemap'),
-                column::TYPE_LONGTEXT, ["{$version}.statement"])
-            ->define_column('shortstatement', new lang_string('shortstatement', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$version}.shortstatement"])
-            ->define_column('bloomlevel', new lang_string('bloomlevel', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$version}.bloomlevel"])
-            ->define_column('status', new lang_string('status', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$version}.status"])
-            ->define_column('effectivefrom', new lang_string('effectivefrom', 'local_outcomemap'),
-                column::TYPE_TIMESTAMP, ["{$version}.effectivefrom"], true, [format::class, 'userdate'])
-            ->define_column('effectiveto', new lang_string('effectiveto', 'local_outcomemap'),
-                column::TYPE_TIMESTAMP, ["{$version}.effectiveto"], true, [format::class, 'userdate'])
-            ->define_column('frameworkcode', new lang_string('framework', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$framework}.code"])
-            ->define_column('frameworkname', new lang_string('name', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$framework}.name"])
-            ->define_column('ownertype', new lang_string('ownertype', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$framework}.ownertype"])
-            ->define_column('programid', new lang_string('reportcolumn_programid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$program}.id"])
-            ->define_column('programcode', new lang_string('program', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$program}.code"])
-            ->define_column('programname', new lang_string('name', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$program}.name"])
-            ->define_column('catalogcourseid',
+                column::TYPE_INTEGER,
+                ["{$version}.id"]
+            )
+            ->define_column(
+                'outcomecode',
+                new lang_string('reportcolumn_code', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$item}.code"]
+            )
+            ->define_column(
+                'version',
+                new lang_string('version', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$version}.version"]
+            )
+            ->define_column(
+                'statement',
+                new lang_string('statement', 'local_outcomemap'),
+                column::TYPE_LONGTEXT,
+                ["{$version}.statement"]
+            )
+            ->define_column(
+                'shortstatement',
+                new lang_string('shortstatement', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$version}.shortstatement"]
+            )
+            ->define_column(
+                'bloomlevel',
+                new lang_string('bloomlevel', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$version}.bloomlevel"]
+            )
+            ->define_column(
+                'status',
+                new lang_string('status', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$version}.status"]
+            )
+            ->define_column(
+                'effectivefrom',
+                new lang_string('effectivefrom', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP,
+                ["{$version}.effectivefrom"],
+                true,
+                [format::class, 'userdate']
+            )
+            ->define_column(
+                'effectiveto',
+                new lang_string('effectiveto', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP,
+                ["{$version}.effectiveto"],
+                true,
+                [format::class, 'userdate']
+            )
+            ->define_column(
+                'frameworkcode',
+                new lang_string('framework', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$framework}.code"]
+            )
+            ->define_column(
+                'frameworkname',
+                new lang_string('name', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$framework}.name"]
+            )
+            ->define_column(
+                'ownertype',
+                new lang_string('ownertype', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$framework}.ownertype"]
+            )
+            ->define_column(
+                'programid',
+                new lang_string('reportcolumn_programid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$program}.id"]
+            )
+            ->define_column(
+                'programcode',
+                new lang_string('program', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$program}.code"]
+            )
+            ->define_column(
+                'programname',
+                new lang_string('name', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$program}.name"]
+            )
+            ->define_column(
+                'catalogcourseid',
                 new lang_string('reportcolumn_catalogcourseid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$catalogcourse}.id"])
-            ->define_column('catalogcoursecode', new lang_string('catalogcourse', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$catalogcourse}.code"])
-            ->define_column('catalogcoursename', new lang_string('name', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$catalogcourse}.name"])
-            ->define_column('timecreated', new lang_string('reportcolumn_timecreated', 'local_outcomemap'),
-                column::TYPE_TIMESTAMP, ["{$version}.timecreated"], true, [format::class, 'userdate'])
-            ->define_filter('programid', new lang_string('program', 'local_outcomemap'),
-                number::class, "{$program}.id")
-            ->define_filter('catalogcourseid', new lang_string('catalogcourse', 'local_outcomemap'),
-                number::class, "{$catalogcourse}.id")
-            ->define_filter('outcomeversionid', new lang_string('outcomeversion', 'local_outcomemap'),
-                number::class, "{$version}.id")
-            ->define_filter('outcomecode', new lang_string('outcome', 'local_outcomemap'),
-                text::class, "{$item}.code")
-            ->define_filter('status', new lang_string('status', 'local_outcomemap'),
-                select::class, "{$version}.status", filter_options::workflow_states())
-            ->define_filter('ownertype', new lang_string('ownertype', 'local_outcomemap'),
-                select::class, "{$framework}.ownertype", filter_options::owner_types())
-            ->define_filter('effectivefrom', new lang_string('effectivefrom', 'local_outcomemap'),
-                date::class, "{$version}.effectivefrom")
-            ->define_filter('effectiveto', new lang_string('effectiveto', 'local_outcomemap'),
-                date::class, "{$version}.effectiveto");
+                column::TYPE_INTEGER,
+                ["{$catalogcourse}.id"]
+            )
+            ->define_column(
+                'catalogcoursecode',
+                new lang_string('catalogcourse', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$catalogcourse}.code"]
+            )
+            ->define_column(
+                'catalogcoursename',
+                new lang_string('name', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$catalogcourse}.name"]
+            )
+            ->define_column(
+                'timecreated',
+                new lang_string('reportcolumn_timecreated', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP,
+                ["{$version}.timecreated"],
+                true,
+                [format::class, 'userdate']
+            )
+            ->define_filter(
+                'programid',
+                new lang_string('program', 'local_outcomemap'),
+                number::class,
+                "{$program}.id"
+            )
+            ->define_filter(
+                'catalogcourseid',
+                new lang_string('catalogcourse', 'local_outcomemap'),
+                number::class,
+                "{$catalogcourse}.id"
+            )
+            ->define_filter(
+                'outcomeversionid',
+                new lang_string('outcomeversion', 'local_outcomemap'),
+                number::class,
+                "{$version}.id"
+            )
+            ->define_filter(
+                'outcomecode',
+                new lang_string('outcome', 'local_outcomemap'),
+                text::class,
+                "{$item}.code"
+            )
+            ->define_filter(
+                'status',
+                new lang_string('status', 'local_outcomemap'),
+                select::class,
+                "{$version}.status",
+                filter_options::workflow_states()
+            )
+            ->define_filter(
+                'ownertype',
+                new lang_string('ownertype', 'local_outcomemap'),
+                select::class,
+                "{$framework}.ownertype",
+                filter_options::owner_types()
+            )
+            ->define_filter(
+                'effectivefrom',
+                new lang_string('effectivefrom', 'local_outcomemap'),
+                date::class,
+                "{$version}.effectivefrom"
+            )
+            ->define_filter(
+                'effectiveto',
+                new lang_string('effectiveto', 'local_outcomemap'),
+                date::class,
+                "{$version}.effectiveto"
+            );
 
         $this->register_entity($entity, 'local_outcomemap_itemver');
     }
 
-    /** @return string[] */
+    /**
+     * Returns the default report columns.
+     * @return string[]
+     */
     public function get_default_columns(): array {
         return [
             'outcomemap:programcode',
@@ -153,7 +286,10 @@ final class outcome_definitions extends secured_datasource {
         ];
     }
 
-    /** @return string[] */
+    /**
+     * Returns the default report filters.
+     * @return string[]
+     */
     public function get_default_filters(): array {
         return [
             'outcomemap:programid',
@@ -164,7 +300,10 @@ final class outcome_definitions extends secured_datasource {
         ];
     }
 
-    /** @return int[] */
+    /**
+     * Returns the default column sorting.
+     * @return int[]
+     */
     public function get_default_column_sorting(): array {
         return [
             'outcomemap:outcomecode' => SORT_ASC,

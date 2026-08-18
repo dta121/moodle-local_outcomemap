@@ -1,5 +1,26 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 namespace local_outcomemap;
 
@@ -14,9 +35,13 @@ use local_outcomemap\local\service\program_service;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
-/** Tests for Milestone 1 definition, version, and multi-program services. */
+/**
+ * Tests for Milestone 1 definition, version, and multi-program services.
+ */
 final class foundation_service_test extends \advanced_testcase {
-    /** Create a user with explicit system approval/read capabilities. */
+    /**
+     * Create a user with explicit system approval/read capabilities.
+     */
     private function create_approver(): \stdClass {
         $user = $this->getDataGenerator()->create_user();
         $roleid = create_role('Outcome approver', 'outcomeapprover', 'Test approval role');
@@ -59,15 +84,23 @@ final class foundation_service_test extends \advanced_testcase {
             'statement' => $statement,
             'effectivefrom' => 1704067200,
         ]);
-        $versionid = (int) $DB->get_field('local_outcomemap_itemver', 'id',
-            ['itemid' => $itemid, 'version' => 1], MUST_EXIST);
+        $versionid = (int) $DB->get_field(
+            'local_outcomemap_itemver',
+            'id',
+            ['itemid' => $itemid, 'version' => 1],
+            MUST_EXIST
+        );
         outcome_service::submit_for_review($versionid);
         $this->setUser($approver);
         outcome_service::approve($versionid);
         $this->setAdminUser();
 
-        $this->assertNull($DB->get_field('local_outcomemap_itemver', 'shortstatement',
-            ['id' => $versionid], MUST_EXIST), 'The label starts unset.');
+        $this->assertNull($DB->get_field(
+            'local_outcomemap_itemver',
+            'shortstatement',
+            ['id' => $versionid],
+            MUST_EXIST
+        ), 'The label starts unset.');
 
         $corrected = outcome_service::correct_shortstatement(
             [$versionid => "Marketing's role in the economy"],
@@ -87,7 +120,9 @@ final class foundation_service_test extends \advanced_testcase {
 
         // Idempotent: re-applying the same label writes nothing.
         $this->assertSame(0, outcome_service::correct_shortstatement(
-            [$versionid => "Marketing's role in the economy"], 'Re-run.'));
+            [$versionid => "Marketing's role in the economy"],
+            'Re-run.'
+        ));
 
         // A reason is mandatory, because this amends an approved record.
         try {
@@ -111,7 +146,9 @@ final class foundation_service_test extends \advanced_testcase {
         }
     }
 
-    /** Framework and outcome approval preserves immutable historical versions. */
+    /**
+     * Framework and outcome approval preserves immutable historical versions.
+     */
     public function test_outcome_approval_and_effective_versions(): void {
         global $DB;
         $this->resetAfterTest(true);
@@ -171,8 +208,11 @@ final class foundation_service_test extends \advanced_testcase {
         $this->assertSame($stored2->uuid, $results[0]->versionuuid);
     }
 
-    /** One catalog course can belong to multiple programs without text parsing. */
+    /**
+     * One catalog course can belong to multiple programs without text parsing.
+     */
     public function test_catalog_course_can_belong_to_multiple_programs(): void {
+
         global $DB;
         $this->resetAfterTest(true);
         $this->setAdminUser();
@@ -195,13 +235,15 @@ final class foundation_service_test extends \advanced_testcase {
         program_course_service::approve($second);
 
         $this->assertEquals(2, $DB->count_records('local_outcomemap_progcourse', [
-            'courseid' => $course,
-            'status' => workflow::APPROVED,
+            'courseid' => $course, 'status' => workflow::APPROVED,
         ]));
     }
 
-    /** Context scoping includes every confirmed catalog association for a Moodle course. */
+    /**
+     * Context scoping includes every confirmed catalog association for a Moodle course.
+     */
     public function test_outcome_search_includes_all_confirmed_course_instances(): void {
+
         global $DB;
         $this->resetAfterTest(true);
         $this->setAdminUser();
@@ -213,9 +255,7 @@ final class foundation_service_test extends \advanced_testcase {
         ];
         foreach ($catalogids as $index => $catalogid) {
             $cinstid = course_instance_service::create([
-                'courseid' => $catalogid,
-                'moodlecourseid' => $moodlecourse->id,
-                'periodcode' => '2026-MULTI-' . $index,
+                'courseid' => $catalogid, 'moodlecourseid' => $moodlecourse->id, 'periodcode' => '2026-MULTI-' . $index,
             ]);
             course_instance_service::submit_for_review($cinstid);
             $this->setUser($approver);
@@ -256,8 +296,9 @@ final class foundation_service_test extends \advanced_testcase {
         $results = outcome_search::search(\context_course::instance((int) $moodlecourse->id), '', time(), 20);
         $this->assertEqualsCanonicalizing($versionuuids, array_column($results, 'versionuuid'));
     }
-
-    /** Program type and credential values are explicit, validated, and backward compatible. */
+    /**
+     * Program type and credential values are explicit, validated, and backward compatible.
+     */
     public function test_program_type_and_credential_are_governed(): void {
         global $DB;
         $this->resetAfterTest(true);

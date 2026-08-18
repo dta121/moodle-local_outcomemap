@@ -97,7 +97,7 @@ final class upgrade_test extends \advanced_testcase {
     }
 
     /**
-     * Drops tables introduced after the foundation milestone, in dependency-safe order.
+     * * Drops tables introduced after the foundation milestone, in dependency-safe order.
      */
     private function remove_post_foundation_schema(): void {
         global $DB;
@@ -139,7 +139,7 @@ final class upgrade_test extends \advanced_testcase {
     }
 
     /**
-     * Asserts that the live plugin schema matches install.xml.
+     * * Asserts that the live plugin schema matches install.xml.
      */
     private function assert_schema_matches_install_xml(): void {
         global $CFG, $DB;
@@ -159,7 +159,7 @@ final class upgrade_test extends \advanced_testcase {
     }
 
     /**
-     * Reconstructs every post-foundation milestone from the oldest supported schema.
+     * * Reconstructs every post-foundation milestone from the oldest supported schema.
      */
     public function test_upgrade_from_foundation_schema_matches_fresh_install(): void {
         $this->resetAfterTest(true);
@@ -170,7 +170,7 @@ final class upgrade_test extends \advanced_testcase {
     }
 
     /**
-     * Confirms an interrupted upgrade can resume when schema changes preceded a savepoint.
+     * * Confirms an interrupted upgrade can resume when schema changes preceded a savepoint.
      */
     public function test_upgrade_resumes_when_schema_is_ahead_of_saved_version(): void {
         global $DB;
@@ -193,7 +193,7 @@ final class upgrade_test extends \advanced_testcase {
     }
 
     /**
-     * Creates the privacy-key schema when upgrading from the prior release.
+     * * Creates the privacy-key schema when upgrading from the prior release.
      */
     public function test_privacy_key_upgrade_step_creates_complete_schema(): void {
         global $DB;

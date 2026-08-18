@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Site-administration policy management page.
@@ -20,6 +28,7 @@ use local_outcomemap\local\service\suppression_service;
 use local_outcomemap\local\workflow;
 use local_outcomemap\output\policies_page;
 
+// phpcs:ignore moodle.Files.MoodleInternal.MoodleInternalGlobalState -- Portable bootstrap path.
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     // Windows junctions resolve __DIR__ to the repository target rather than
@@ -251,10 +260,16 @@ function local_outcomemap_policy_config_summary(stdClass $record): string {
     }
     if ($record->policytype === policy_service::TYPE_ACCREDITATION) {
         return implode('; ', [
-            get_string('achievementminpercent_value', 'local_outcomemap',
-                $record->config['achievementminpercent'] ?? ''),
-            get_string('benchmarkpercent_value', 'local_outcomemap',
-                $record->config['benchmarkpercent'] ?? ''),
+            get_string(
+                'achievementminpercent_value',
+                'local_outcomemap',
+                $record->config['achievementminpercent'] ?? ''
+            ),
+            get_string(
+                'benchmarkpercent_value',
+                'local_outcomemap',
+                $record->config['benchmarkpercent'] ?? ''
+            ),
             get_string('minimumcohortsize_value', 'local_outcomemap', $record->config['mincohortsize'] ?? ''),
             get_string('population_' . ($record->config['populationsource'] ?? ''), 'local_outcomemap'),
             get_string('retention_' . ($record->config['retentionbasis'] ?? ''), 'local_outcomemap'),
@@ -266,12 +281,18 @@ function local_outcomemap_policy_config_summary(stdClass $record): string {
         get_string('minimumdistinctitems_value', 'local_outcomemap', $record->config['minitems'] ?? 1),
     ];
     if (isset($record->config['minweightedpossible'])) {
-        $summary[] = get_string('minimumweightedpossible_value', 'local_outcomemap',
-            $record->config['minweightedpossible']);
+        $summary[] = get_string(
+            'minimumweightedpossible_value',
+            'local_outcomemap',
+            $record->config['minweightedpossible']
+        );
     }
     $summary[] = get_string('displayprecision_value', 'local_outcomemap', $record->config['displayscale'] ?? 1);
-    $summary[] = get_string('manualgrading_value', 'local_outcomemap',
-        !empty($record->config['requiremanualgrading']) ? get_string('yes') : get_string('no'));
+    $summary[] = get_string(
+        'manualgrading_value',
+        'local_outcomemap',
+        !empty($record->config['requiremanualgrading']) ? get_string('yes') : get_string('no')
+    );
     $summary[] = get_string('performancebandcount', 'local_outcomemap', count($record->bands));
     return implode('; ', $summary);
 }

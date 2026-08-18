@@ -42,7 +42,9 @@ use local_outcomemap\local\workflow;
  * authoritative checks stay in {@see question_mapping_service}.
  */
 final class question_browser_service extends base_service {
-    /** Maximum question versions resolved for one page. */
+    /**
+     * Maximum question versions resolved for one page.
+     */
     private const MAX_VERSIONS = 1000;
 
     /**
@@ -194,10 +196,12 @@ final class question_browser_service extends base_service {
             }
             foreach ($versions as $versionid) {
                 foreach ($mappings[$versionid] ?? [] as $mapping) {
-                    if ($mapping->role !== content_mapping_service::ROLE_ASSESSES
+                    if (
+                        $mapping->role !== content_mapping_service::ROLE_ASSESSES
                             || $mapping->status !== workflow::APPROVED
                             || (int) $mapping->effectivefrom > $at
-                            || ($mapping->effectiveto !== null && (int) $mapping->effectiveto <= $at)) {
+                            || ($mapping->effectiveto !== null && (int) $mapping->effectiveto <= $at)
+                    ) {
                         continue;
                     }
                     $itemverid = (int) $mapping->itemverid;

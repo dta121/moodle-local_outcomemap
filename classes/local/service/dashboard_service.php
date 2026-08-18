@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\local\service;
 
@@ -26,13 +34,19 @@ use local_outcomemap\local\workflow;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class dashboard_service extends base_service {
-    /** Share of in-scope outcomes that must be fully covered to call a program report-ready. */
+    /**
+     * Share of in-scope outcomes that must be fully covered to call a program report-ready.
+     */
     public const READY_THRESHOLD = 90;
 
-    /** Grouped governance changes shown in the activity feed. */
+    /**
+     * Grouped governance changes shown in the activity feed.
+     */
     private const ACTIVITY_LIMIT = 6;
 
-    /** Audit rows the feed will read before it stops grouping. */
+    /**
+     * Audit rows the feed will read before it stops grouping.
+     */
     private const ACTIVITY_SCAN_LIMIT = 2000;
 
     /**
@@ -292,10 +306,12 @@ final class dashboard_service extends base_service {
             $delivery['nocontent'] = count($delivery['nocontent']);
             $delivery['notassessed'] = count($delivery['notassessed']);
             $delivery['total'] = $delivery['nocontent'] + $delivery['notassessed'];
-            if ($worst === null
+            if (
+                $worst === null
                     || $delivery['total'] > $worst['total']
                     || ($delivery['total'] === $worst['total']
-                        && $delivery['coursecode'] < $worst['coursecode'])) {
+                        && $delivery['coursecode'] < $worst['coursecode'])
+            ) {
                 $worst = $delivery;
             }
         }

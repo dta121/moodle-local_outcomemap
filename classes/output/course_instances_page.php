@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Course instances page model.
@@ -32,13 +40,19 @@ use templatable;
  * right now. The page shows both in one badge so neither has to be inferred.
  */
 final class course_instances_page implements renderable, templatable {
-    /** @var \stdClass[] Associations with their catalog and Moodle course facts. */
+    /**
+     * @var \stdClass[] Associations with their catalog and Moodle course facts.
+     */
     private array $instances;
 
-    /** @var string Catalog course code the page opens filtered to, if any. */
+    /**
+     * @var string Catalog course code the page opens filtered to, if any.
+     */
     private string $catalogcode;
 
-    /** @var int Reference time for delivery-window comparisons. */
+    /**
+     * @var int Reference time for delivery-window comparisons.
+     */
     private int $now;
 
     /**
@@ -53,7 +67,9 @@ final class course_instances_page implements renderable, templatable {
         $this->now = $now ?? time();
     }
 
-    /** Export the template context. */
+    /**
+     * Export the template context.
+     */
     public function export_for_template(renderer_base $output): array {
         $context = \context_system::instance();
         $canmanage = has_capability('local/outcomemap:managecatalogcourses', $context);

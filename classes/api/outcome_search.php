@@ -5,6 +5,22 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 namespace local_outcomemap\api;
 
@@ -12,9 +28,13 @@ use local_outcomemap\local\dto\outcome;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
-/** Public context-scoped search service for approved effective outcomes. */
+/**
+ * Public context-scoped search service for approved effective outcomes.
+ */
 final class outcome_search {
-    /** 1.1 adds {@see count()} and the optional search offset. */
+    /**
+     * 1.1 adds {@see count()} and the optional search offset.
+     */
     public const API_VERSION = '1.1';
 
     /**
@@ -53,8 +73,13 @@ final class outcome_search {
      * @param int $offset Records to skip, for callers paging a larger set.
      * @return outcome[]
      */
-    public static function search(\context $context, string $query = '', ?int $effectiveat = null,
-            int $limit = 50, int $offset = 0): array {
+    public static function search(
+        \context $context,
+        string $query = '',
+        ?int $effectiveat = null,
+        int $limit = 50,
+        int $offset = 0
+    ): array {
         global $DB;
         require_capability('local/outcomemap:viewdefinitions', $context);
         $effectiveat = $effectiveat ?? time();
@@ -172,7 +197,9 @@ final class outcome_search {
         return [$where, $params];
     }
 
-    /** Add owner scoping for non-system contexts. */
+    /**
+     * Add owner scoping for non-system contexts.
+     */
     private static function add_context_scope(\context $context, int $effectiveat, array &$where, array &$params): void {
         global $DB;
         if ($context->contextlevel === CONTEXT_SYSTEM) {
@@ -185,38 +212,36 @@ final class outcome_search {
         } else {
             throw new validation_exception('invalidfield', 'context', 'course or system context required');
         }
-        $catalogids = $DB->get_fieldset_select('local_outcomemap_cinst', 'courseid',
-            'moodlecourseid = :moodlecourseid AND status = :status AND confirmed = :confirmed', [
-            'moodlecourseid' => $moodlecourseid,
-            'status' => workflow::APPROVED,
-            'confirmed' => 1,
-        ]);
+        $catalogids = $DB->get_fieldset_select(
+            'local_outcomemap_cinst',
+            'courseid',
+            'moodlecourseid = :moodlecourseid AND status = :status AND confirmed = :confirmed',
+            [
+                'moodlecourseid' => $moodlecourseid,
+                'status' => workflow::APPROVED,
+                'confirmed' => 1,
+            ]
+        );
         $catalogids = array_values(array_unique(array_map('intval', $catalogids)));
         $scope = ['f.ownertype = :institution'];
         $params['institution'] = 'institution';
         if ($catalogids) {
             $params['catalogtype'] = 'catalog_course';
-            [$courseinsql, $courseparams] = $DB->get_in_or_equal(
-                $catalogids,
-                SQL_PARAMS_NAMED,
-                'catalogcourse'
-            );
+            [$courseinsql, $courseparams] = $DB->get_in_or_equal($catalogids, SQL_PARAMS_NAMED, 'catalogcourse');
             $params += $courseparams;
             $scope[] = '(f.ownertype = :catalogtype AND f.ownerid ' . $courseinsql . ')';
             $sql = 'SELECT programid FROM {local_outcomemap_progcourse}
                      WHERE courseid ' . $courseinsql . ' AND status = :membershipstatus
                        AND effectivefrom <= :at1 AND (effectiveto IS NULL OR effectiveto > :at2)';
             $programids = $DB->get_fieldset_sql($sql, $courseparams + [
-                'membershipstatus' => workflow::APPROVED,
-                'at1' => $effectiveat,
-                'at2' => $effectiveat,
+                'membershipstatus' => workflow::APPROVED, 'at1' => $effectiveat, 'at2' => $effectiveat,
             ]);
             $programids = array_values(array_unique(array_map('intval', $programids)));
             if ($programids) {
                 [$insql, $inparams] = $DB->get_in_or_equal($programids, SQL_PARAMS_NAMED, 'program');
                 $params['programtype'] = 'program';
-                $params += $inparams;
-                $scope[] = '(f.ownertype = :programtype AND f.ownerid ' . $insql . ')';
+                            $params += $inparams;
+                            $scope[] = '(f.ownertype = :programtype AND f.ownerid ' . $insql . ')';
             }
         }
         $where[] = '(' . implode(' OR ', $scope) . ')';

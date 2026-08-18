@@ -192,8 +192,11 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         $table->add_field('approvedat', XMLDB_TYPE_INTEGER, '10');
         $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
         $table->add_key('policyversion_uq', XMLDB_KEY_UNIQUE, ['policyuuid', 'version']);
-        $table->add_index('typescopestatus_ix', XMLDB_INDEX_NOTUNIQUE,
-            ['policytype', 'scopetype', 'scopeid', 'status']);
+        $table->add_index(
+            'typescopestatus_ix',
+            XMLDB_INDEX_NOTUNIQUE,
+            ['policytype', 'scopetype', 'scopeid', 'status']
+        );
         $table->add_index('effectivefrom_ix', XMLDB_INDEX_NOTUNIQUE, ['effectivefrom']);
         $table->add_index('effectiveto_ix', XMLDB_INDEX_NOTUNIQUE, ['effectiveto']);
         if (!$dbman->table_exists($table)) {
@@ -306,8 +309,11 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         $table->add_key('superseded_fk', XMLDB_KEY_FOREIGN, ['supersededby'], 'local_outcomemap_result', ['id']);
         $table->add_key('uuid_uq', XMLDB_KEY_UNIQUE, ['uuid']);
         $table->add_key('resultkeyversion_uq', XMLDB_KEY_UNIQUE, ['resultkey', 'version']);
-        $table->add_index('usercinstitemstate_ix', XMLDB_INDEX_NOTUNIQUE,
-            ['userid', 'cinstid', 'itemverid', 'state']);
+        $table->add_index(
+            'usercinstitemstate_ix',
+            XMLDB_INDEX_NOTUNIQUE,
+            ['userid', 'cinstid', 'itemverid', 'state']
+        );
         $table->add_index('scope_ix', XMLDB_INDEX_NOTUNIQUE, ['scopetype', 'scopeid', 'periodcode']);
         $table->add_index('inputhash_ix', XMLDB_INDEX_NOTUNIQUE, ['inputhash']);
         $table->add_index('lineagehash_ix', XMLDB_INDEX_NOTUNIQUE, ['lineagehash']);
@@ -322,14 +328,30 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
     if ($oldversion < 2026072502) {
         $table = new xmldb_table('local_outcomemap_remed');
 
-        $field = new xmldb_field('purpose', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null,
-            'review', 'targettype');
+        $field = new xmldb_field(
+            'purpose',
+            XMLDB_TYPE_CHAR,
+            '20',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            'review',
+            'targettype'
+        );
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        $field = new xmldb_field('sortorder', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null,
-            '0', 'priority');
+        $field = new xmldb_field(
+            'sortorder',
+            XMLDB_TYPE_INTEGER,
+            '10',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            '0',
+            'priority'
+        );
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -363,14 +385,30 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
     if ($oldversion < 2026072508) {
         $table = new xmldb_table('local_outcomemap_program');
 
-        $field = new xmldb_field('programtype', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null,
-            'graduate', 'externalid');
+        $field = new xmldb_field(
+            'programtype',
+            XMLDB_TYPE_CHAR,
+            '20',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            'graduate',
+            'externalid'
+        );
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        $field = new xmldb_field('credential', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null,
-            'degree', 'programtype');
+        $field = new xmldb_field(
+            'credential',
+            XMLDB_TYPE_CHAR,
+            '20',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            'degree',
+            'programtype'
+        );
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -416,8 +454,11 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         $table->add_key('program_fk', XMLDB_KEY_FOREIGN, ['programid'], 'local_outcomemap_program', ['id']);
         $table->add_key('policy_fk', XMLDB_KEY_FOREIGN, ['policyid'], 'local_outcomemap_policy', ['id']);
         $table->add_key('uuidversion_uq', XMLDB_KEY_UNIQUE, ['snapshotuuid', 'version']);
-        $table->add_index('programperiodstatus_ix', XMLDB_INDEX_NOTUNIQUE,
-            ['programid', 'periodcode', 'status']);
+        $table->add_index(
+            'programperiodstatus_ix',
+            XMLDB_INDEX_NOTUNIQUE,
+            ['programid', 'periodcode', 'status']
+        );
         $table->add_index('cohortid_ix', XMLDB_INDEX_NOTUNIQUE, ['cohortid']);
         $table->add_index('approvedat_ix', XMLDB_INDEX_NOTUNIQUE, ['approvedat']);
         if (!$dbman->table_exists($table)) {
@@ -449,8 +490,11 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         $table->add_key('cinst_fk', XMLDB_KEY_FOREIGN, ['cinstid'], 'local_outcomemap_cinst', ['id']);
         $table->add_key('itemver_fk', XMLDB_KEY_FOREIGN, ['itemverid'], 'local_outcomemap_itemver', ['id']);
         $table->add_key('item_uq', XMLDB_KEY_UNIQUE, ['snapshotid', 'itemtype', 'stablekey']);
-        $table->add_index('snapshottypeorder_ix', XMLDB_INDEX_NOTUNIQUE,
-            ['snapshotid', 'itemtype', 'sortorder']);
+        $table->add_index(
+            'snapshottypeorder_ix',
+            XMLDB_INDEX_NOTUNIQUE,
+            ['snapshotid', 'itemtype', 'sortorder']
+        );
         $table->add_index('subjectref_ix', XMLDB_INDEX_NOTUNIQUE, ['subjectref']);
         $table->add_index('sourceuuid_ix', XMLDB_INDEX_NOTUNIQUE, ['sourceuuid']);
         $table->add_index('itemversuppressed_ix', XMLDB_INDEX_NOTUNIQUE, ['itemverid', 'suppressed']);
@@ -472,14 +516,27 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         $table->add_field('occurredat', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
         $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
         $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
-        $table->add_key('remediation_fk', XMLDB_KEY_FOREIGN,
-            ['remediationid'], 'local_outcomemap_remed', ['id']);
-        $table->add_key('result_fk', XMLDB_KEY_FOREIGN,
-            ['resultid'], 'local_outcomemap_result', ['id']);
+        $table->add_key(
+            'remediation_fk',
+            XMLDB_KEY_FOREIGN,
+            ['remediationid'],
+            'local_outcomemap_remed',
+            ['id']
+        );
+        $table->add_key(
+            'result_fk',
+            XMLDB_KEY_FOREIGN,
+            ['resultid'],
+            'local_outcomemap_result',
+            ['id']
+        );
         $table->add_key('eventuuid_uq', XMLDB_KEY_UNIQUE, ['eventuuid']);
         $table->add_index('useroccurred_ix', XMLDB_INDEX_NOTUNIQUE, ['userid', 'occurredat']);
-        $table->add_index('remedevent_ix', XMLDB_INDEX_NOTUNIQUE,
-            ['remediationid', 'eventtype', 'occurredat']);
+        $table->add_index(
+            'remedevent_ix',
+            XMLDB_INDEX_NOTUNIQUE,
+            ['remediationid', 'eventtype', 'occurredat']
+        );
         $table->add_index('resultevent_ix', XMLDB_INDEX_NOTUNIQUE, ['resultid', 'eventtype']);
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
@@ -583,14 +640,30 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
     if ($oldversion < 2026072702) {
         $table = new xmldb_table('local_outcomemap_qmap');
 
-        $field = new xmldb_field('sourceqmapid', XMLDB_TYPE_INTEGER, '10', null, null, null,
-            null, 'questionid');
+        $field = new xmldb_field(
+            'sourceqmapid',
+            XMLDB_TYPE_INTEGER,
+            '10',
+            null,
+            null,
+            null,
+            null,
+            'questionid'
+        );
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        $field = new xmldb_field('sourcequestionversionid', XMLDB_TYPE_INTEGER, '10', null, null, null,
-            null, 'sourceqmapid');
+        $field = new xmldb_field(
+            'sourcequestionversionid',
+            XMLDB_TYPE_INTEGER,
+            '10',
+            null,
+            null,
+            null,
+            null,
+            'sourceqmapid'
+        );
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -600,8 +673,13 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         // Guard on that index alone: find_key_name() reports a match here even
         // when the index has not been created, which skipped the add entirely
         // and left the upgraded schema short of install.xml.
-        $key = new xmldb_key('sourceqmap_fk', XMLDB_KEY_FOREIGN,
-            ['sourceqmapid'], 'local_outcomemap_qmap', ['id']);
+        $key = new xmldb_key(
+            'sourceqmap_fk',
+            XMLDB_KEY_FOREIGN,
+            ['sourceqmapid'],
+            'local_outcomemap_qmap',
+            ['id']
+        );
         $keyindex = new xmldb_index('sourceqmap_fk', XMLDB_INDEX_NOTUNIQUE, ['sourceqmapid']);
         if (!$dbman->index_exists($table, $keyindex)) {
             $dbman->add_key($table, $key);
@@ -621,8 +699,10 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         // Seed from the legacy value while it is still present so every marker
         // already issued keeps hashing to the same value; erased markers retain
         // no user ID and could never be recomputed under a different secret.
-        if (get_config('local_outcomemap', 'privacysubjectsecret') === false
-                && !empty($CFG->passwordsaltmain)) {
+        if (
+            get_config('local_outcomemap', 'privacysubjectsecret') === false
+                && !empty($CFG->passwordsaltmain)
+        ) {
             set_config('privacysubjectsecret', (string) $CFG->passwordsaltmain, 'local_outcomemap');
         }
 
@@ -639,18 +719,66 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         // them, and a frozen snapshot is never recalculated.
         $table = new xmldb_table('local_outcomemap_snapitem');
         $fields = [
-            new xmldb_field('assessedcount', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0',
-                'subjectcount'),
-            new xmldb_field('metcount', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0',
-                'assessedcount'),
-            new xmldb_field('attainmentpercent', XMLDB_TYPE_NUMBER, '20, 10', null, null, null, null,
-                'metcount'),
-            new xmldb_field('criterionpercent', XMLDB_TYPE_NUMBER, '20, 10', null, null, null, null,
-                'attainmentpercent'),
-            new xmldb_field('benchmarkpercent', XMLDB_TYPE_NUMBER, '20, 10', null, null, null, null,
-                'criterionpercent'),
-            new xmldb_field('benchmarkmet', XMLDB_TYPE_INTEGER, '1', null, null, null, null,
-                'benchmarkpercent'),
+            new xmldb_field(
+                'assessedcount',
+                XMLDB_TYPE_INTEGER,
+                '10',
+                null,
+                XMLDB_NOTNULL,
+                null,
+                '0',
+                'subjectcount'
+            ),
+            new xmldb_field(
+                'metcount',
+                XMLDB_TYPE_INTEGER,
+                '10',
+                null,
+                XMLDB_NOTNULL,
+                null,
+                '0',
+                'assessedcount'
+            ),
+            new xmldb_field(
+                'attainmentpercent',
+                XMLDB_TYPE_NUMBER,
+                '20, 10',
+                null,
+                null,
+                null,
+                null,
+                'metcount'
+            ),
+            new xmldb_field(
+                'criterionpercent',
+                XMLDB_TYPE_NUMBER,
+                '20, 10',
+                null,
+                null,
+                null,
+                null,
+                'attainmentpercent'
+            ),
+            new xmldb_field(
+                'benchmarkpercent',
+                XMLDB_TYPE_NUMBER,
+                '20, 10',
+                null,
+                null,
+                null,
+                null,
+                'criterionpercent'
+            ),
+            new xmldb_field(
+                'benchmarkmet',
+                XMLDB_TYPE_INTEGER,
+                '1',
+                null,
+                null,
+                null,
+                null,
+                'benchmarkpercent'
+            ),
         ];
         foreach ($fields as $field) {
             if (!$dbman->field_exists($table, $field)) {
@@ -669,8 +797,11 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         // Carrying suppressed in the index makes that count index-only, which
         // measured 0.1s on the same capture.
         $table = new xmldb_table('local_outcomemap_snapitem');
-        $index = new xmldb_index('snapshottypesuppressed_ix', XMLDB_INDEX_NOTUNIQUE,
-            ['snapshotid', 'itemtype', 'suppressed']);
+        $index = new xmldb_index(
+            'snapshottypesuppressed_ix',
+            XMLDB_INDEX_NOTUNIQUE,
+            ['snapshotid', 'itemtype', 'suppressed']
+        );
         if (!$dbman->index_exists($table, $index)) {
             $dbman->add_index($table, $index);
         }

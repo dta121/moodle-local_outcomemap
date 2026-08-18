@@ -40,31 +40,63 @@ use local_outcomemap\local\workflow;
  * denominators, percentages, bands, hashes, and lineage.
  */
 final class calculation_service extends base_service {
-    /** Algorithm identifier per ADR 0003. */
+    /**
+     * Algorithm identifier per ADR 0003.
+     */
     public const ALGO_VERSION = 'outcomemap-v1';
 
-    /** Direct evidence type. */
+    /**
+     * Direct evidence type.
+     */
     public const TYPE_DIRECT = 'direct';
 
-    /** Inherited (propagated) evidence type. */
+    /**
+     * Inherited (propagated) evidence type.
+     */
     public const TYPE_INHERITED = 'inherited';
 
-    /** Graded evidence state. */
+    /**
+     * Graded evidence state.
+     */
     public const GRADING_GRADED = 'graded';
 
-    /** Evidence awaiting (manual) grading. */
+    /**
+     * Evidence awaiting (manual) grading.
+     */
     public const GRADING_PENDING = 'pending';
 
-    /** Result states. */
+    /**
+     * Result states.
+     */
     public const STATE_NOT_ASSESSED = 'not_assessed';
+    /**
+     * Result state identifier.
+     */
     public const STATE_INSUFFICIENT = 'insufficient_evidence';
+    /**
+     * Result state identifier.
+     */
     public const STATE_PENDING = 'calculation_pending';
+    /**
+     * Result state identifier.
+     */
     public const STATE_CALCULATED = 'calculated';
+    /**
+     * Result state identifier.
+     */
     public const STATE_SUPERSEDED = 'superseded';
 
-    /** Result scopes delivered by this milestone. */
+    /**
+     * Result scopes delivered by this milestone.
+     */
     public const SCOPE_QUIZ_ATTEMPT = 'quiz_attempt';
+    /**
+     * Result scope identifier.
+     */
     public const SCOPE_ASSESSMENT = 'assessment';
+    /**
+     * Result scope identifier.
+     */
     public const SCOPE_COURSE = 'course';
 
     /**
@@ -85,8 +117,12 @@ final class calculation_service extends base_service {
         }
         $quiz = $DB->get_record('quiz', ['id' => $attempt->quiz], '*', MUST_EXIST);
         $cm = get_coursemodule_from_instance('quiz', $quiz->id, $quiz->course, false, MUST_EXIST);
-        return self::recalculate_user_assessment((int) $quiz->course, (int) $cm->id, (int) $attempt->userid,
-            $correlationid);
+        return self::recalculate_user_assessment(
+            (int) $quiz->course,
+            (int) $cm->id,
+            (int) $attempt->userid,
+            $correlationid
+        );
     }
 
     /**
@@ -123,33 +159,62 @@ final class calculation_service extends base_service {
             $evidencebyattempt = [];
             foreach ($selected as $attempt) {
                 $evidencebyattempt[(int) $attempt->id] = self::ingest_attempt_evidence(
-                    $cinst, $attempt, $cmid, $selection, $correlationid);
+                    $cinst,
+                    $attempt,
+                    $cmid,
+                    $selection,
+                    $correlationid
+                );
             }
             // Attempt-scope results for each selected attempt.
             foreach ($evidencebyattempt as $attemptid => $evidence) {
                 $summary = self::merge(
                     $summary,
-                    self::persist_scope_results($cinst, $userid, self::SCOPE_QUIZ_ATTEMPT, $attemptid,
-                        $evidence, $calculation, $correlationid)
+                    self::persist_scope_results(
+                        $cinst,
+                        $userid,
+                        self::SCOPE_QUIZ_ATTEMPT,
+                        $attemptid,
+                        $evidence,
+                        $calculation,
+                        $correlationid
+                    )
                 );
             }
             // Assessment-scope result over the selected attempt set.
             $assessmentevidence = array_merge(...array_values($evidencebyattempt + [[]]));
             $summary = self::merge(
                 $summary,
-                self::persist_scope_results($cinst, $userid, self::SCOPE_ASSESSMENT, $cmid,
-                    $assessmentevidence, $calculation, $correlationid)
+                self::persist_scope_results(
+                    $cinst,
+                    $userid,
+                    self::SCOPE_ASSESSMENT,
+                    $cmid,
+                    $assessmentevidence,
+                    $calculation,
+                    $correlationid
+                )
             );
             // Course-to-date scope across every mapped assessment in the
             // instance, governed by the policy resolved at course level.
             $coursecalculation = policy_service::resolve(
-                policy_service::TYPE_CALCULATION, (int) $cinst->id, null);
+                policy_service::TYPE_CALCULATION,
+                (int) $cinst->id,
+                null
+            );
             if ($coursecalculation !== null) {
                 $courseevidence = self::collect_course_evidence($cinst, $userid);
                 $summary = self::merge(
                     $summary,
-                    self::persist_scope_results($cinst, $userid, self::SCOPE_COURSE, (int) $cinst->id,
-                        $courseevidence, $coursecalculation, $correlationid)
+                    self::persist_scope_results(
+                        $cinst,
+                        $userid,
+                        self::SCOPE_COURSE,
+                        (int) $cinst->id,
+                        $courseevidence,
+                        $coursecalculation,
+                        $correlationid
+                    )
                 );
             }
         }
@@ -277,8 +342,11 @@ final class calculation_service extends base_service {
     ): array {
         global $DB;
         $at = (int) ($attempt->timefinish ?: $attempt->timemodified);
-        $questionattempts = $DB->get_records('question_attempts',
-            ['questionusageid' => $attempt->uniqueid], 'slot ASC');
+        $questionattempts = $DB->get_records(
+            'question_attempts',
+            ['questionusageid' => $attempt->uniqueid],
+            'slot ASC'
+        );
         $active = [];
         foreach ($questionattempts as $qa) {
             $questionversion = $DB->get_record('question_versions', ['questionid' => $qa->questionid]);
@@ -312,16 +380,45 @@ final class calculation_service extends base_service {
             // deliberate mapping set for this question attempt.
             $directrows = [];
             foreach ($mappings as $mapping) {
-                $direct = self::store_evidence($cinst, $attempt, $cmid, $qa, $questionversion, $mapping,
-                    $selection, $fraction, $maxmark, $gradedstep, $at, null, null, decimal::ONE, $correlationid);
+                $direct = self::store_evidence(
+                    $cinst,
+                    $attempt,
+                    $cmid,
+                    $qa,
+                    $questionversion,
+                    $mapping,
+                    $selection,
+                    $fraction,
+                    $maxmark,
+                    $gradedstep,
+                    $at,
+                    null,
+                    null,
+                    decimal::ONE,
+                    $correlationid
+                );
                 $directrows[] = [$mapping, $direct];
                 $active[] = $direct;
             }
             foreach ($directrows as [$mapping, $direct]) {
                 foreach (self::propagation_targets((int) $mapping->itemverid, $at) as $target) {
-                    $inherited = self::store_evidence($cinst, $attempt, $cmid, $qa, $questionversion, $mapping,
-                        $selection, $fraction, $maxmark, $gradedstep, $at, $direct, $target,
-                        $target->cumulativeweight, $correlationid);
+                    $inherited = self::store_evidence(
+                        $cinst,
+                        $attempt,
+                        $cmid,
+                        $qa,
+                        $questionversion,
+                        $mapping,
+                        $selection,
+                        $fraction,
+                        $maxmark,
+                        $gradedstep,
+                        $at,
+                        $direct,
+                        $target,
+                        $target->cumulativeweight,
+                        $correlationid
+                    );
                     if ($inherited !== null) {
                         $active[] = $inherited;
                     }
@@ -422,10 +519,13 @@ final class calculation_service extends base_service {
         if ($source !== null) {
             $lineageuuid = $source->lineageuuid;
         } else {
-            $lineageuuid = $DB->get_field_select('local_outcomemap_evidence', 'lineageuuid',
+            $lineageuuid = $DB->get_field_select(
+                'local_outcomemap_evidence',
+                'lineageuuid',
                 'questionattemptid = :qaid AND mappingid = :mappingid AND evidencetype = :type',
                 ['qaid' => $qa->id, 'mappingid' => $mapping->id, 'type' => self::TYPE_DIRECT],
-                IGNORE_MULTIPLE) ?: uuid::generate();
+                IGNORE_MULTIPLE
+            ) ?: uuid::generate();
         }
         $now = time();
         $record = (object) [
@@ -486,8 +586,18 @@ final class calculation_service extends base_service {
             $previous = $DB->get_records_select('local_outcomemap_evidence', $select, $params);
             foreach ($previous as $old) {
                 $DB->set_field('local_outcomemap_evidence', 'supersededby', $id, ['id' => $old->id]);
-                audit_writer::write('supersede', 'evidence', (int) $old->id, $old->uuid, $old, $record,
-                    null, \context_course::instance((int) $cinst->moodlecourseid), null, $correlationid);
+                audit_writer::write(
+                    'supersede',
+                    'evidence',
+                    (int) $old->id,
+                    $old->uuid,
+                    $old,
+                    $record,
+                    null,
+                    \context_course::instance((int) $cinst->moodlecourseid),
+                    null,
+                    $correlationid
+                );
             }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
@@ -603,8 +713,16 @@ final class calculation_service extends base_service {
             $byoutcome[(int) $row->itemverid][] = $row;
         }
         foreach ($byoutcome as $itemverid => $rows) {
-            $changed = self::persist_result($cinst, $userid, $scopetype, $scopeid, $itemverid, $rows,
-                $calculation, $correlationid);
+            $changed = self::persist_result(
+                $cinst,
+                $userid,
+                $scopetype,
+                $scopeid,
+                $itemverid,
+                $rows,
+                $calculation,
+                $correlationid
+            );
             $summary[$changed ? 'results' : 'unchanged']++;
         }
         return $summary;
@@ -757,8 +875,18 @@ final class calculation_service extends base_service {
                     'timemodified' => $now,
                 ]);
             }
-            audit_writer::write('calculate', 'result', $id, $record->uuid, $current, $record,
-                null, \context_course::instance((int) $cinst->moodlecourseid), null, $correlationid);
+            audit_writer::write(
+                'calculate',
+                'result',
+                $id,
+                $record->uuid,
+                $current,
+                $record,
+                null,
+                \context_course::instance((int) $cinst->moodlecourseid),
+                null,
+                $correlationid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -791,7 +919,8 @@ final class calculation_service extends base_service {
                 continue;
             }
             [$insql, $params] = $DB->get_in_or_equal(array_map(
-                static fn(\stdClass $attempt): int => (int) $attempt->id, $selected
+                static fn(\stdClass $attempt): int => (int) $attempt->id,
+                $selected
             ), SQL_PARAMS_NAMED, 'att');
             $params += ['cinstid' => $cinst->id, 'userid' => $userid, 'cmid' => $cmid];
             $rows = $DB->get_records_select(

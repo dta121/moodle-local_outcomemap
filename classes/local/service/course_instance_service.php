@@ -5,6 +5,22 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 namespace local_outcomemap\local\service;
 
@@ -14,8 +30,13 @@ use local_outcomemap\local\uuid;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
-/** Transactional service for Moodle course-instance associations. */
+/**
+ * Transactional service for Moodle course-instance associations.
+ */
 final class course_instance_service extends base_service {
+    /**
+     * Database table name.
+     */
     private const TABLE = 'local_outcomemap_cinst';
 
     /**
@@ -33,7 +54,7 @@ final class course_instance_service extends base_service {
     public static function create_confirmed(array $data): int {
         $id = self::create($data);
         if (!workflow::requires_independent_approval()) {
-            // submit_for_review() confirms in the same transaction when
+            // The submit_for_review() call confirms in the same transaction when
             // independent approval is off.
             self::submit_for_review($id);
         }
@@ -123,15 +144,26 @@ final class course_instance_service extends base_service {
         $transaction = $DB->start_delegated_transaction();
         try {
             $DB->delete_records(self::TABLE, ['id' => $id]);
-            audit_writer::write('delete', 'course_instance', $id, $before->uuid, $before, null, $reason,
-                $context, $actorid);
+            audit_writer::write(
+                'delete',
+                'course_instance',
+                $id,
+                $before->uuid,
+                $before,
+                null,
+                $reason,
+                $context,
+                $actorid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
         }
     }
 
-    /** Create an unconfirmed draft course-instance association. */
+    /**
+     * Create an unconfirmed draft course-instance association.
+     */
     public static function create(array $data): int {
         global $DB;
         $actorid = self::require_system('local/outcomemap:managecatalogcourses');
@@ -168,8 +200,17 @@ final class course_instance_service extends base_service {
         try {
             $id = $DB->insert_record(self::TABLE, $record);
             $record->id = $id;
-            audit_writer::write('create', 'course_instance', $id, $record->uuid, null, $record, null,
-                \context_course::instance($moodlecourseid), $actorid);
+            audit_writer::write(
+                'create',
+                'course_instance',
+                $id,
+                $record->uuid,
+                null,
+                $record,
+                null,
+                \context_course::instance($moodlecourseid),
+                $actorid
+            );
             $transaction->allow_commit();
             return $id;
         } catch (\Throwable $e) {
@@ -177,7 +218,9 @@ final class course_instance_service extends base_service {
         }
     }
 
-    /** Submit an association for independent confirmation. */
+    /**
+     * Submit an association for independent confirmation.
+     */
     public static function submit_for_review(int $id, ?string $reason = null): void {
         global $DB;
         $actorid = self::require_system('local/outcomemap:managecatalogcourses');
@@ -192,8 +235,17 @@ final class course_instance_service extends base_service {
         $transaction = $DB->start_delegated_transaction();
         try {
             $DB->update_record(self::TABLE, $after);
-            audit_writer::write('submit_review', 'course_instance', $id, $after->uuid, $before, $after, $reason,
-                \context_course::instance($after->moodlecourseid), $actorid);
+            audit_writer::write(
+                'submit_review',
+                'course_instance',
+                $id,
+                $after->uuid,
+                $before,
+                $after,
+                $reason,
+                \context_course::instance($after->moodlecourseid),
+                $actorid
+            );
             if (!workflow::requires_independent_approval()) {
                 self::confirm($id, $reason);
             }
@@ -203,14 +255,18 @@ final class course_instance_service extends base_service {
         }
     }
 
-    /** Confirm an association in its authoritative course context. */
+    /**
+     * Confirm an association in its authoritative course context.
+     */
     public static function confirm(int $id, ?string $reason = null): void {
         global $DB, $USER;
         $before = self::get_required(self::TABLE, $id, 'course_instance');
         $context = \context_course::instance($before->moodlecourseid);
         if (workflow::requires_independent_approval()) {
-            if (!has_capability('local/outcomemap:approve', $context)
-                    && !has_capability('local/outcomemap:managecatalogcourses', \context_system::instance())) {
+            if (
+                !has_capability('local/outcomemap:approve', $context)
+                    && !has_capability('local/outcomemap:managecatalogcourses', \context_system::instance())
+            ) {
                 require_capability('local/outcomemap:approve', $context);
             }
             $actorid = (int) $USER->id;
@@ -234,8 +290,17 @@ final class course_instance_service extends base_service {
         $transaction = $DB->start_delegated_transaction();
         try {
             $DB->update_record(self::TABLE, $after);
-            audit_writer::write('confirm', 'course_instance', $id, $after->uuid, $before, $after, $reason,
-                $context, $actorid);
+            audit_writer::write(
+                'confirm',
+                'course_instance',
+                $id,
+                $after->uuid,
+                $before,
+                $after,
+                $reason,
+                $context,
+                $actorid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -279,8 +344,11 @@ final class course_instance_service extends base_service {
         foreach ($ids as $id) {
             $record = self::get_required(self::TABLE, $id, 'course_instance');
             if ($record->status !== workflow::APPROVED || (int) $record->confirmed !== 1) {
-                throw new validation_exception('invalidtransition', 'status',
-                    $record->status . ':correct_periodcode');
+                throw new validation_exception(
+                    'invalidtransition',
+                    'status',
+                    $record->status . ':correct_periodcode'
+                );
             }
             $records[$id] = $record;
         }
@@ -292,10 +360,13 @@ final class course_instance_service extends base_service {
                 }
                 // One Moodle course may hold only one association per period, so a
                 // move that would collide has to fail before anything is written.
-                $clash = $DB->get_record_select(self::TABLE,
+                $clash = $DB->get_record_select(
+                    self::TABLE,
                     'moodlecourseid = :cid AND periodcode = :period AND id <> :id',
                     ['cid' => $before->moodlecourseid, 'period' => $periodcode, 'id' => $id],
-                    'id', IGNORE_MULTIPLE);
+                    'id',
+                    IGNORE_MULTIPLE
+                );
                 if ($clash) {
                     throw new validation_exception('courseinstanceexists', 'periodcode', $periodcode);
                 }
@@ -304,9 +375,17 @@ final class course_instance_service extends base_service {
                 $after->modifiedby = $actorid;
                 $after->timemodified = time();
                 $DB->update_record(self::TABLE, $after);
-                audit_writer::write('correct_periodcode', 'course_instance', $id, $after->uuid,
-                    $before, $after, $reason,
-                    \context_course::instance($after->moodlecourseid), $actorid);
+                audit_writer::write(
+                    'correct_periodcode',
+                    'course_instance',
+                    $id,
+                    $after->uuid,
+                    $before,
+                    $after,
+                    $reason,
+                    \context_course::instance($after->moodlecourseid),
+                    $actorid
+                );
             }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
@@ -315,6 +394,9 @@ final class course_instance_service extends base_service {
         return count($records);
     }
 
+    /**
+     * Lists all records.
+     */
     public static function list_all(): array {
         global $DB;
         self::require_system('local/outcomemap:viewdefinitions');

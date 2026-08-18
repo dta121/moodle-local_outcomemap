@@ -5,12 +5,30 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 namespace local_outcomemap\form;
 
 use local_outcomemap\local\service\framework_service;
 
-/** Framework editor. */
+/**
+ * Framework editor.
+ */
 final class framework_form extends \moodleform {
     /**
      * Code suffix suggested per owner type.
@@ -24,6 +42,9 @@ final class framework_form extends \moodleform {
         framework_service::OWNER_COURSE => '-CLO',
     ];
 
+    /**
+     * Defines the form fields.
+     */
     public function definition(): void {
         $mform = $this->_form;
         $fixedowner = $this->fixedowner();
@@ -50,14 +71,27 @@ final class framework_form extends \moodleform {
             $mform->setType('ownerid', PARAM_INT);
             // A static element is rendered as it stands, so the code is escaped here;
             // the pickers get theirs escaped for them as option labels.
-            $mform->addElement('static', 'ownerfixed', get_string('owner', 'local_outcomemap'),
-                s($fixedowner->code) . ' — ' . format_string($fixedowner->name));
-            $mform->addElement('static', 'ownerfixednote', '',
-                get_string('frameworkownerfixed_' . $fixedowner->ownertype, 'local_outcomemap'));
-            $mform->setDefault('code',
-                $fixedowner->code . (self::CODE_SUFFIX[$fixedowner->ownertype] ?? ''));
-            $mform->setDefault('name', get_string('frameworkdefaultname_' . $fixedowner->ownertype,
-                'local_outcomemap', $fixedowner->code));
+            $mform->addElement(
+                'static',
+                'ownerfixed',
+                get_string('owner', 'local_outcomemap'),
+                s($fixedowner->code) . ' — ' . format_string($fixedowner->name)
+            );
+            $mform->addElement(
+                'static',
+                'ownerfixednote',
+                '',
+                get_string('frameworkownerfixed_' . $fixedowner->ownertype, 'local_outcomemap')
+            );
+            $mform->setDefault(
+                'code',
+                $fixedowner->code . (self::CODE_SUFFIX[$fixedowner->ownertype] ?? '')
+            );
+            $mform->setDefault('name', get_string(
+                'frameworkdefaultname_' . $fixedowner->ownertype,
+                'local_outcomemap',
+                $fixedowner->code
+            ));
             $this->add_action_buttons();
             return;
         }
@@ -74,20 +108,32 @@ final class framework_form extends \moodleform {
         // with nothing on screen to say what a valid value would have looked
         // like. One picker per owner type, because the two draw from different
         // tables and only the one the owner type selects is ever submitted.
-        $mform->addElement('autocomplete', 'ownerprogramid', get_string('owner', 'local_outcomemap'),
-            $this->owners('local_outcomemap_program'));
+        $mform->addElement(
+            'autocomplete',
+            'ownerprogramid',
+            get_string('owner', 'local_outcomemap'),
+            $this->owners('local_outcomemap_program')
+        );
         $mform->setType('ownerprogramid', PARAM_INT);
         $mform->hideIf('ownerprogramid', 'ownertype', 'neq', framework_service::OWNER_PROGRAM);
-        $mform->addElement('autocomplete', 'ownercourseid', get_string('owner', 'local_outcomemap'),
-            $this->owners('local_outcomemap_course'));
+        $mform->addElement(
+            'autocomplete',
+            'ownercourseid',
+            get_string('owner', 'local_outcomemap'),
+            $this->owners('local_outcomemap_course')
+        );
         $mform->setType('ownercourseid', PARAM_INT);
         $mform->hideIf('ownercourseid', 'ownertype', 'neq', framework_service::OWNER_COURSE);
 
         if (!empty($this->_customdata['identitylocked'])) {
             // The framework is approved, so its code and owner are settled; the
             // service ignores them for an approved framework in any case.
-            $mform->addElement('static', 'identitynote', '',
-                get_string('hier_frameworkidentitylocked', 'local_outcomemap'));
+            $mform->addElement(
+                'static',
+                'identitynote',
+                '',
+                get_string('hier_frameworkidentitylocked', 'local_outcomemap')
+            );
             $mform->hardFreeze(['code', 'ownertype', 'ownerprogramid', 'ownercourseid']);
         }
         $this->add_action_buttons();

@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\task;
 
@@ -23,7 +31,9 @@ use local_outcomemap\local\workflow;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class reconcile_evidence extends \core\task\scheduled_task {
-    /** Maximum recalculation tuples per run. */
+    /**
+     * Maximum recalculation tuples per run.
+     */
     private const BATCH = 200;
 
     /**
@@ -109,7 +119,10 @@ class reconcile_evidence extends \core\task\scheduled_task {
         foreach (array_slice($tuples, 0, self::BATCH) as $tuple) {
             try {
                 calculation_service::recalculate_user_assessment(
-                    (int) $tuple->courseid, (int) $tuple->cmid, (int) $tuple->userid);
+                    (int) $tuple->courseid,
+                    (int) $tuple->cmid,
+                    (int) $tuple->userid
+                );
                 $processed++;
             } catch (\Throwable $e) {
                 // Errors never erase prior valid results; surface and continue.

@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap;
 
@@ -28,6 +36,7 @@ final class policy_service_test extends \advanced_testcase {
      * @return \stdClass Reviewer user.
      */
     private function create_reviewer(): \stdClass {
+
         global $DB;
         $user = $this->getDataGenerator()->create_user();
         $managerroleid = (int) $DB->get_field('role', 'id', ['shortname' => 'manager'], MUST_EXIST);
@@ -35,8 +44,11 @@ final class policy_service_test extends \advanced_testcase {
         return $user;
     }
 
-    /** Policy details are not exposed through the service without policy-management authority. */
+    /**
+     * Policy details are not exposed through the service without policy-management authority.
+     */
     public function test_get_requires_policy_management_capability(): void {
+
         $this->resetAfterTest(true);
         $this->setAdminUser();
         $id = policy_service::create([
@@ -50,9 +62,8 @@ final class policy_service_test extends \advanced_testcase {
         $this->expectException(\required_capability_exception::class);
         policy_service::get($id);
     }
-
     /**
-     * Tests create, read, update, list, and delete for a draft policy.
+     * * Tests create, read, update, list, and delete for a draft policy.
      */
     public function test_draft_crud_replaces_bands_and_is_audited(): void {
         global $DB;
@@ -148,7 +159,7 @@ final class policy_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that submitted policies are immutable and approved versions fork safely.
+     * * Tests that submitted policies are immutable and approved versions fork safely.
      */
     public function test_submitted_policy_is_immutable_and_new_version_keeps_identity(): void {
         global $DB;
@@ -200,12 +211,14 @@ final class policy_service_test extends \advanced_testcase {
         $this->assertSame(policy_service::SCOPE_INSTITUTION, $second->scopetype);
         $this->assertNull($second->scopeid);
         $this->assertSame(policy_service::METHOD_HIGHEST_GRADED, $second->config['method']);
-        $this->assertSame(workflow::DRAFT,
-            $DB->get_field('local_outcomemap_policy', 'status', ['id' => $versionid]));
+        $this->assertSame(
+            workflow::DRAFT,
+            $DB->get_field('local_outcomemap_policy', 'status', ['id' => $versionid])
+        );
     }
 
     /**
-     * Tests duplicate codes and touching inclusive band boundaries.
+     * * Tests duplicate codes and touching inclusive band boundaries.
      */
     public function test_band_validation_rejects_ambiguous_ranges(): void {
         $this->resetAfterTest(true);
@@ -250,7 +263,7 @@ final class policy_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests typed validation and normalization for every release mode.
+     * * Tests typed validation and normalization for every release mode.
      */
     public function test_release_policy_config_supports_all_governed_modes(): void {
         $this->resetAfterTest(true);
@@ -275,11 +288,13 @@ final class policy_service_test extends \advanced_testcase {
             $this->assertSame([], $policy->bands, $mode);
         }
 
-        foreach ([
+        foreach (
+            [
             ['mode' => 'unknown'],
             ['mode' => policy_service::RELEASE_SCHEDULED],
             ['mode' => policy_service::RELEASE_SCHEDULED, 'releaseat' => 0],
-        ] as $config) {
+            ] as $config
+        ) {
             try {
                 policy_service::create([
                     'policytype' => policy_service::TYPE_RELEASE,
@@ -296,7 +311,7 @@ final class policy_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests set-based release resolution precedence and explicit no-default behavior.
+     * * Tests set-based release resolution precedence and explicit no-default behavior.
      */
     public function test_resolve_many_uses_scope_precedence_and_returns_null_without_policy(): void {
         $this->resetAfterTest(true);
@@ -333,7 +348,7 @@ final class policy_service_test extends \advanced_testcase {
             $this->assertNull($policy);
         }
 
-        $approve = function(array $data) use ($reviewer): int {
+        $approve = function (array $data) use ($reviewer): int {
             $this->setAdminUser();
             $id = policy_service::create($data);
             policy_service::submit_for_review($id);
@@ -375,7 +390,7 @@ final class policy_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that manual release is a separate, irreversible, audited action.
+     * * Tests that manual release is a separate, irreversible, audited action.
      */
     public function test_manual_release_requires_explicit_action_and_is_idempotent(): void {
         global $DB;

@@ -56,7 +56,7 @@ final class catalog_course_service_test extends \advanced_testcase {
     }
 
     /**
-     * Outcome counts split course level from unit level by the ULO convention.
+     * * Outcome counts split course level from unit level by the ULO convention.
      */
     public function test_summary_splits_course_and_unit_outcome_counts(): void {
         $this->resetAfterTest(true);
@@ -72,12 +72,15 @@ final class catalog_course_service_test extends \advanced_testcase {
         $row = $summary[$catalogid];
         $this->assertSame(2, (int) $row->frameworkcount);
         $this->assertSame(3, (int) $row->courseoutcomecount);
-        $this->assertSame(5, (int) $row->unitoutcomecount,
-            'A framework whose code ends in ULO holds unit-level outcomes.');
+        $this->assertSame(
+            5,
+            (int) $row->unitoutcomecount,
+            'A framework whose code ends in ULO holds unit-level outcomes.'
+        );
     }
 
     /**
-     * Associations are counted, with the confirmed ones reported separately.
+     * * Associations are counted, with the confirmed ones reported separately.
      */
     public function test_summary_counts_course_instances_and_confirmations(): void {
         $this->resetAfterTest(true);

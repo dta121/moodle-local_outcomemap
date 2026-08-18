@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Program-level attainment export for the student information system.
@@ -326,10 +334,12 @@ final class attainment_export_service {
         $states = [];
         foreach ($rowsbycourse as $row) {
             $states[(string) $row['state']] = true;
-            if ($row['state'] !== calculation_service::STATE_CALCULATED
+            if (
+                $row['state'] !== calculation_service::STATE_CALCULATED
                     || $row['percentage'] === null
                     || $row['weightedearned'] === null
-                    || $row['weightedpossible'] === null) {
+                    || $row['weightedpossible'] === null
+            ) {
                 continue;
             }
             $numerator = decimal::add($numerator, decimal::canonical($row['weightedearned'], 'weightedearned'));

@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Student outcome-results template context.
@@ -30,30 +38,42 @@ use local_outcomemap\local\service\student_result_service;
  * so nothing here asserts more than the data supports.
  */
 final class student_results implements \renderable, \templatable {
-    /** Number of "start here" cards the page will show. */
+    /**
+     * Number of "start here" cards the page will show.
+     */
     private const MAX_ACTIONS = 3;
 
-    /** Number of names listed before a group summary says "and more". */
+    /**
+     * Number of names listed before a group summary says "and more".
+     */
     private const MAX_NAMES = 4;
 
-    /** Result states that mean a figure exists but the learner cannot see it yet. */
+    /**
+     * Result states that mean a figure exists but the learner cannot see it yet.
+     */
     private const STATES_AWAITING = [
         student_result_service::STATE_NOT_RELEASED,
         student_result_service::STATE_STALE,
         calculation_service::STATE_PENDING,
     ];
 
-    /** @var array Learner-safe report data. */
+    /**
+     * @var array Learner-safe report data.
+     */
     private array $report;
 
-    /** @var string|null Percentage at which an outcome counts as demonstrated. */
+    /**
+     * @var string|null Percentage at which an outcome counts as demonstrated.
+     */
     private ?string $expected;
 
-    /** @var string|null Percentage at which an outcome counts as exceeded. */
+    /**
+     * @var string|null Percentage at which an outcome counts as exceeded.
+     */
     private ?string $strong;
 
     /**
-     * @param array $report Learner-safe report data.
+     * * @param array $report Learner-safe report data.
      */
     public function __construct(array $report) {
         $this->report = $report;
@@ -750,9 +770,11 @@ final class student_results implements \renderable, \templatable {
             }
             $others = 0;
             foreach ($this->report['rows'] as $candidate) {
-                if ($candidate['tier'] === student_result_service::TIER_COURSE
+                if (
+                    $candidate['tier'] === student_result_service::TIER_COURSE
                         && $candidate['itemid'] !== $row['itemid']
-                        && in_array($programme['itemid'], $candidate['parentitemids'], true)) {
+                        && in_array($programme['itemid'], $candidate['parentitemids'], true)
+                ) {
                     $others++;
                 }
             }
@@ -876,8 +898,10 @@ final class student_results implements \renderable, \templatable {
             return 'below';
         }
         $strong = $row['strongpercent'] ?? $this->strong;
-        if ($strong !== null && decimal::cmp($strong, $expected) > 0
-                && decimal::cmp($row['percentage'], $strong) >= 0) {
+        if (
+            $strong !== null && decimal::cmp($strong, $expected) > 0
+                && decimal::cmp($row['percentage'], $strong) >= 0
+        ) {
             return 'strong';
         }
         return 'ontrack';
@@ -1021,16 +1045,22 @@ final class student_results implements \renderable, \templatable {
         ];
         if ($this->expected !== null) {
             $items[] = [
-                'term' => get_string('sr_glossary_mark_term', 'local_outcomemap',
-                    $this->percent($this->expected)),
+                'term' => get_string(
+                    'sr_glossary_mark_term',
+                    'local_outcomemap',
+                    $this->percent($this->expected)
+                ),
                 'definition' => get_string('sr_glossary_mark_def', 'local_outcomemap'),
             ];
         }
         if ($this->strong !== null) {
             $items[] = [
                 'term' => get_string('sr_glossary_strong_term', 'local_outcomemap'),
-                'definition' => get_string('sr_glossary_strong_def', 'local_outcomemap',
-                    $this->percent($this->strong)),
+                'definition' => get_string(
+                    'sr_glossary_strong_def',
+                    'local_outcomemap',
+                    $this->percent($this->strong)
+                ),
             ];
         }
         $items[] = [

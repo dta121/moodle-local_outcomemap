@@ -36,7 +36,9 @@ use local_outcomemap\local\workflow;
 final class question_mapping_service_test extends \advanced_testcase {
     use \local_outcomemap\tests\moodle_compat_trait;
 
-    /** @var int Outcome effective start shared across fixtures. */
+    /**
+     * @var int Outcome effective start shared across fixtures.
+     */
     private const EFFECTIVEFROM = 1704067200;
 
     /**
@@ -60,6 +62,7 @@ final class question_mapping_service_test extends \advanced_testcase {
      * @return int[] Approved outcome-version IDs keyed by outcome code.
      */
     private function create_outcomes(\stdClass $reviewer, array $codes): array {
+
         global $DB;
         $this->setAdminUser();
         $frameworkid = framework_service::create([
@@ -93,13 +96,15 @@ final class question_mapping_service_test extends \advanced_testcase {
         return $itemverids;
     }
 
-    /** Create an approved outcome owned by an unrelated catalog course. */
+    /**
+     * Create an approved outcome owned by an unrelated catalog course.
+     */
     private function create_unrelated_catalog_outcome(\stdClass $reviewer): \stdClass {
+
         global $DB;
         $this->setAdminUser();
         $catalogid = catalog_course_service::create([
-            'code' => 'UNRELATED' . random_string(4),
-            'name' => 'Unrelated catalog course',
+            'code' => 'UNRELATED' . random_string(4), 'name' => 'Unrelated catalog course',
         ]);
         $frameworkid = framework_service::create([
             'code' => 'UNRELATEDFW' . random_string(4),
@@ -124,7 +129,6 @@ final class question_mapping_service_test extends \advanced_testcase {
         $this->setAdminUser();
         return $DB->get_record('local_outcomemap_itemver', ['id' => $itemverid], '*', MUST_EXIST);
     }
-
     /**
      * Creates a question in a course-context question bank category.
      *
@@ -140,7 +144,7 @@ final class question_mapping_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests draft rules: assessed weight required, no weight on other roles, question binding.
+     * * Tests draft rules: assessed weight required, no weight on other roles, question binding.
      */
     public function test_draft_weight_rules_and_provenance(): void {
         global $DB;
@@ -206,7 +210,7 @@ final class question_mapping_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that assessed sets approve together and must total exactly one.
+     * * Tests that assessed sets approve together and must total exactly one.
      */
     public function test_assessed_set_approval_requires_exact_total(): void {
         global $DB;
@@ -264,17 +268,21 @@ final class question_mapping_service_test extends \advanced_testcase {
         $this->setUser($reviewer);
         question_mapping_service::approve($first, 'Blueprint approved');
         foreach ([$first, $second, $third] as $id) {
-            $this->assertSame(workflow::APPROVED,
-                $DB->get_field('local_outcomemap_qmap', 'status', ['id' => $id]));
+            $this->assertSame(
+                workflow::APPROVED,
+                $DB->get_field('local_outcomemap_qmap', 'status', ['id' => $id])
+            );
         }
-        $report = question_mapping_service::validate_assessed_weights((int) $question->versionid,
-            self::EFFECTIVEFROM);
+        $report = question_mapping_service::validate_assessed_weights(
+            (int) $question->versionid,
+            self::EFFECTIVEFROM
+        );
         $this->assertSame('1.0000000000', $report->approvedtotal);
         $this->assertTrue($report->approvedvalid);
     }
 
     /**
-     * Tests alignment-only approval and duplicate-scope rejection.
+     * * Tests alignment-only approval and duplicate-scope rejection.
      */
     public function test_alignment_only_approval_and_duplicate_scope(): void {
         global $DB;
@@ -293,8 +301,10 @@ final class question_mapping_service_test extends \advanced_testcase {
         question_mapping_service::submit_for_review($alignment);
         $this->setUser($reviewer);
         question_mapping_service::approve($alignment);
-        $this->assertSame(workflow::APPROVED,
-            $DB->get_field('local_outcomemap_qmap', 'status', ['id' => $alignment]));
+        $this->assertSame(
+            workflow::APPROVED,
+            $DB->get_field('local_outcomemap_qmap', 'status', ['id' => $alignment])
+        );
 
         // A second mapping of the same question version, outcome version, and
         // role under a different mapping UUID must be rejected at approval.
@@ -316,7 +326,7 @@ final class question_mapping_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests explicit copy-to-version and the automatic observer copy.
+     * * Tests explicit copy-to-version and the automatic observer copy.
      */
     public function test_copy_to_version_and_observer(): void {
         global $DB;
@@ -367,8 +377,11 @@ final class question_mapping_service_test extends \advanced_testcase {
             $this->assertSame(workflow::DRAFT, $copy->status);
             $this->assertSame(1, (int) $copy->version);
             $this->assertSame((int) $newversion->id, (int) $copy->questionid);
-            $this->assertFalse($DB->record_exists_select('local_outcomemap_qmap',
-                'mappinguuid = :uuid AND id <> :id', ['uuid' => $copy->mappinguuid, 'id' => $copy->id]));
+            $this->assertFalse($DB->record_exists_select(
+                'local_outcomemap_qmap',
+                'mappinguuid = :uuid AND id <> :id',
+                ['uuid' => $copy->mappinguuid, 'id' => $copy->id]
+            ));
         }
         $dtos = question_mappings::get_for_question_versions([(int) $newversion->versionid]);
         $copiedto = $dtos[(int) $newversion->versionid][0];
@@ -382,8 +395,10 @@ final class question_mapping_service_test extends \advanced_testcase {
         $this->assertSame(2, $afterpreview->duplicatecount);
 
         // Source mappings stay approved on the old version for historical attempts.
-        $this->assertSame(workflow::APPROVED,
-            $DB->get_field('local_outcomemap_qmap', 'status', ['id' => $assessed]));
+        $this->assertSame(
+            workflow::APPROVED,
+            $DB->get_field('local_outcomemap_qmap', 'status', ['id' => $assessed])
+        );
 
         // The copy is idempotent.
         $this->assertSame([], question_mapping_service::copy_to_version((int) $newversion->versionid));
@@ -431,7 +446,7 @@ final class question_mapping_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests bulk retrieval, DTO conversion, and capability filtering.
+     * * Tests bulk retrieval, DTO conversion, and capability filtering.
      */
     public function test_bulk_get_and_capability_filtering(): void {
         global $DB;
@@ -449,10 +464,20 @@ final class question_mapping_service_test extends \advanced_testcase {
             'effectivefrom' => self::EFFECTIVEFROM,
         ]);
         // The companion-facing facade addresses outcomes by stable UUID.
-        $clo2uuid = $DB->get_field('local_outcomemap_itemver', 'uuid',
-            ['id' => $itemverids['CLO2']], MUST_EXIST);
-        question_mappings::create_draft((int) $question->versionid, $clo2uuid, 'alignment_only',
-            null, null, self::EFFECTIVEFROM);
+        $clo2uuid = $DB->get_field(
+            'local_outcomemap_itemver',
+            'uuid',
+            ['id' => $itemverids['CLO2']],
+            MUST_EXIST
+        );
+        question_mappings::create_draft(
+            (int) $question->versionid,
+            $clo2uuid,
+            'alignment_only',
+            null,
+            null,
+            self::EFFECTIVEFROM
+        );
 
         $grouped = question_mappings::get_for_question_versions([
             (int) $question->versionid,
@@ -481,7 +506,7 @@ final class question_mapping_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests the assessed-weight validation report used by the qbank filter.
+     * * Tests the assessed-weight validation report used by the qbank filter.
      */
     public function test_validate_assessed_weights_report(): void {
         $this->resetAfterTest(true);
@@ -520,7 +545,7 @@ final class question_mapping_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests bulk preview, explicit weights, stale protection, and every mutation.
+     * * Tests bulk preview, explicit weights, stale protection, and every mutation.
      */
     public function test_bulk_preview_and_atomic_operations(): void {
         global $DB;
@@ -619,7 +644,7 @@ final class question_mapping_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests approval-disabled bulk finalization across future effective segments.
+     * * Tests approval-disabled bulk finalization across future effective segments.
      */
     public function test_bulk_finalization_validates_future_effective_segment(): void {
         global $DB;
@@ -667,9 +692,10 @@ final class question_mapping_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests mutation APIs repeat local and Moodle question capability checks.
+     * * Tests mutation APIs repeat local and Moodle question capability checks.
      */
     public function test_public_mutations_denied_without_mapping_capabilities(): void {
+
         global $DB;
         $this->resetAfterTest(true);
         set_config('autocopyquestionmappings', 0, 'local_outcomemap');
@@ -780,15 +806,17 @@ final class question_mapping_service_test extends \advanced_testcase {
         ]));
     }
 
-    /** Stable UUID mutation APIs cannot bypass the question context's outcome scope. */
+    /**
+     * Stable UUID mutation APIs cannot bypass the question context's outcome scope.
+     */
     public function test_public_create_rejects_outcome_outside_question_context(): void {
+
         global $DB;
         $this->resetAfterTest(true);
         $this->setAdminUser();
         $reviewer = $this->create_reviewer();
         $outcomeversion = $this->create_unrelated_catalog_outcome($reviewer);
         $question = $this->create_question();
-
         try {
             question_mappings::create_draft(
                 (int) $question->versionid,
@@ -806,9 +834,8 @@ final class question_mapping_service_test extends \advanced_testcase {
             'questionversionid' => $question->versionid,
         ]));
     }
-
     /**
-     * Tests exact decimal addition used for weight totals.
+     * * Tests exact decimal addition used for weight totals.
      */
     public function test_decimal_addition_is_exact(): void {
         $this->assertSame('1.0000000000', decimal::add('0.9999999999', '0.0000000001'));
@@ -821,7 +848,7 @@ final class question_mapping_service_test extends \advanced_testcase {
     }
 
     /**
-     * Autosubmit finalizes a sole assessed mapping without a manual submit step.
+     * * Autosubmit finalizes a sole assessed mapping without a manual submit step.
      */
     public function test_autosubmit_finalizes_a_single_assessed_mapping(): void {
         $this->resetAfterTest(true);
@@ -867,19 +894,30 @@ final class question_mapping_service_test extends \advanced_testcase {
         $this->assertSame(workflow::APPROVED, $before->status);
 
         $backdated = self::EFFECTIVEFROM - (86400 * 365);
-        $this->assertSame(1, question_mapping_service::correct_effectivefrom([$id], $backdated,
-            'Authored for an existing course; the mapping described the exam all along.'));
+        $this->assertSame(1, question_mapping_service::correct_effectivefrom(
+            [$id],
+            $backdated,
+            'Authored for an existing course; the mapping described the exam all along.'
+        ));
 
         $after = question_mapping_service::get($id);
-        $this->assertSame($backdated, (int) $after->effectivefrom,
-            'The corrected start must be stored.');
-        $this->assertSame((int) $before->version, (int) $after->version,
-            'A correction is not a new decision, so the version does not move.');
+        $this->assertSame(
+            $backdated,
+            (int) $after->effectivefrom,
+            'The corrected start must be stored.'
+        );
+        $this->assertSame(
+            (int) $before->version,
+            (int) $after->version,
+            'A correction is not a new decision, so the version does not move.'
+        );
         $this->assertSame($before->mappinguuid, $after->mappinguuid);
         $this->assertSame(workflow::APPROVED, $after->status);
 
-        $audit = $DB->get_records('local_outcomemap_audit',
-            ['objecttype' => 'question_mapping', 'action' => 'correct_effectivefrom']);
+        $audit = $DB->get_records(
+            'local_outcomemap_audit',
+            ['objecttype' => 'question_mapping', 'action' => 'correct_effectivefrom']
+        );
         $this->assertCount(1, $audit, 'The correction must be audited.');
         $event = reset($audit);
         $this->assertStringContainsString('existing course', (string) $event->reason);
@@ -952,19 +990,27 @@ final class question_mapping_service_test extends \advanced_testcase {
         } catch (validation_exception $e) {
             $this->assertSame('assessedweighttotalinvalid', $e->errorcode);
         }
-        $this->assertSame(self::EFFECTIVEFROM,
+        $this->assertSame(
+            self::EFFECTIVEFROM,
             (int) question_mapping_service::get($ids[0])->effectivefrom,
-            'The rejected correction must not have been committed.');
+            'The rejected correction must not have been committed.'
+        );
 
         // The whole set moves together.
-        $this->assertSame(4, question_mapping_service::correct_effectivefrom($ids, $backdated,
-            'The exam measured all four outcomes from the start.'));
+        $this->assertSame(4, question_mapping_service::correct_effectivefrom(
+            $ids,
+            $backdated,
+            'The exam measured all four outcomes from the start.'
+        ));
         foreach ($ids as $id) {
             $this->assertSame($backdated, (int) question_mapping_service::get($id)->effectivefrom);
         }
         $report = question_mapping_service::validate_assessed_weights($question->versionid, $backdated);
-        $this->assertSame(decimal::ONE, $report->approvedtotal,
-            'The four corrected rows must total 1.0 at the corrected start.');
+        $this->assertSame(
+            decimal::ONE,
+            $report->approvedtotal,
+            'The four corrected rows must total 1.0 at the corrected start.'
+        );
         $this->assertTrue($report->approvedvalid);
     }
 
@@ -1014,7 +1060,7 @@ final class question_mapping_service_test extends \advanced_testcase {
     }
 
     /**
-     * Autosubmit stays off by default and never touches copied mappings.
+     * * Autosubmit stays off by default and never touches copied mappings.
      */
     public function test_autosubmit_is_opt_in_and_skips_copies(): void {
         $this->resetAfterTest(true);

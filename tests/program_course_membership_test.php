@@ -32,19 +32,29 @@ use local_outcomemap\output\curriculum_page;
  * @covers     \local_outcomemap\local\service\program_course_service
  */
 final class program_course_membership_test extends \advanced_testcase {
-    /** @var int Fixed reference time. */
+    /**
+     * @var int Fixed reference time.
+     */
     private const NOW = 1785110400;
 
-    /** @var int The program a course was meant to be in. */
+    /**
+     * @var int The program a course was meant to be in.
+     */
     private int $mei;
 
-    /** @var int The program it was attached to by mistake. */
+    /**
+     * @var int The program it was attached to by mistake.
+     */
     private int $mba;
 
-    /** @var int The catalog course. */
+    /**
+     * @var int The catalog course.
+     */
     private int $courseid;
 
-    /** @var int The mistaken membership. */
+    /**
+     * @var int The mistaken membership.
+     */
     private int $membershipid;
 
     protected function setUp(): void {
@@ -74,18 +84,24 @@ final class program_course_membership_test extends \advanced_testcase {
     }
 
     /**
-     * A draft membership governed nothing, so removing it deletes the row.
+     * * A draft membership governed nothing, so removing it deletes the row.
      */
     public function test_remove_deletes_a_draft_membership(): void {
         global $DB;
 
         program_course_service::remove($this->membershipid, 'Attached to the wrong program.');
 
-        $this->assertFalse($DB->record_exists('local_outcomemap_progcourse', ['id' => $this->membershipid]),
-            'A draft membership never took effect, so removing it must delete it.');
-        $this->assertTrue($DB->record_exists('local_outcomemap_audit',
-            ['objecttype' => 'program_course', 'action' => 'delete']),
-            'The deletion must be recorded in the audit history.');
+        $this->assertFalse(
+            $DB->record_exists('local_outcomemap_progcourse', ['id' => $this->membershipid]),
+            'A draft membership never took effect, so removing it must delete it.'
+        );
+        $this->assertTrue(
+            $DB->record_exists(
+                'local_outcomemap_audit',
+                ['objecttype' => 'program_course', 'action' => 'delete']
+            ),
+            'The deletion must be recorded in the audit history.'
+        );
     }
 
     /**
@@ -95,20 +111,26 @@ final class program_course_membership_test extends \advanced_testcase {
     public function test_remove_retires_an_approved_membership(): void {
         global $DB;
         program_course_service::submit_for_review($this->membershipid);
-        $this->assertSame(workflow::APPROVED,
-            $DB->get_field('local_outcomemap_progcourse', 'status', ['id' => $this->membershipid]));
+        $this->assertSame(
+            workflow::APPROVED,
+            $DB->get_field('local_outcomemap_progcourse', 'status', ['id' => $this->membershipid])
+        );
 
         program_course_service::remove($this->membershipid, 'Wrong program.');
 
-        $this->assertSame(workflow::RETIRED,
+        $this->assertSame(
+            workflow::RETIRED,
             $DB->get_field('local_outcomemap_progcourse', 'status', ['id' => $this->membershipid]),
-            'An approved membership must survive as history rather than be deleted.');
-        $this->assertTrue($DB->record_exists('local_outcomemap_audit',
-            ['objecttype' => 'program_course', 'action' => 'retire']));
+            'An approved membership must survive as history rather than be deleted.'
+        );
+        $this->assertTrue($DB->record_exists(
+            'local_outcomemap_audit',
+            ['objecttype' => 'program_course', 'action' => 'retire']
+        ));
     }
 
     /**
-     * Moving relocates the course and keeps the effective dates it already had.
+     * * Moving relocates the course and keeps the effective dates it already had.
      */
     public function test_move_relocates_the_course(): void {
         global $DB;
@@ -116,19 +138,27 @@ final class program_course_membership_test extends \advanced_testcase {
 
         $newid = program_course_service::move($this->membershipid, $this->mei, 'Belongs in MEI.');
 
-        $this->assertFalse($DB->record_exists('local_outcomemap_progcourse', ['id' => $this->membershipid]),
-            'The mistaken draft membership must be gone.');
+        $this->assertFalse(
+            $DB->record_exists('local_outcomemap_progcourse', ['id' => $this->membershipid]),
+            'The mistaken draft membership must be gone.'
+        );
         $new = $DB->get_record('local_outcomemap_progcourse', ['id' => $newid], '*', MUST_EXIST);
         $this->assertSame($this->mei, (int) $new->programid);
         $this->assertSame($this->courseid, (int) $new->courseid);
-        $this->assertSame(workflow::DRAFT, $new->status,
-            'Which program teaches a course is governed, so the new membership starts as a draft.');
-        $this->assertSame((int) $before->effectivefrom, (int) $new->effectivefrom,
-            'The effective dates the reader set must carry across the move.');
+        $this->assertSame(
+            workflow::DRAFT,
+            $new->status,
+            'Which program teaches a course is governed, so the new membership starts as a draft.'
+        );
+        $this->assertSame(
+            (int) $before->effectivefrom,
+            (int) $new->effectivefrom,
+            'The effective dates the reader set must carry across the move.'
+        );
     }
 
     /**
-     * Moving an approved membership retires it rather than losing the record.
+     * * Moving an approved membership retires it rather than losing the record.
      */
     public function test_move_retires_an_approved_membership(): void {
         global $DB;
@@ -136,14 +166,18 @@ final class program_course_membership_test extends \advanced_testcase {
 
         $newid = program_course_service::move($this->membershipid, $this->mei);
 
-        $this->assertSame(workflow::RETIRED,
-            $DB->get_field('local_outcomemap_progcourse', 'status', ['id' => $this->membershipid]));
-        $this->assertSame($this->mei,
-            (int) $DB->get_field('local_outcomemap_progcourse', 'programid', ['id' => $newid]));
+        $this->assertSame(
+            workflow::RETIRED,
+            $DB->get_field('local_outcomemap_progcourse', 'status', ['id' => $this->membershipid])
+        );
+        $this->assertSame(
+            $this->mei,
+            (int) $DB->get_field('local_outcomemap_progcourse', 'programid', ['id' => $newid])
+        );
     }
 
     /**
-     * Moving a course into the program it is already in is rejected.
+     * * Moving a course into the program it is already in is rejected.
      */
     public function test_move_rejects_the_same_program(): void {
         $this->expectException(validation_exception::class);
@@ -166,7 +200,7 @@ final class program_course_membership_test extends \advanced_testcase {
     }
 
     /**
-     * A failed move leaves the original membership exactly as it was.
+     * * A failed move leaves the original membership exactly as it was.
      */
     public function test_failed_move_leaves_the_original_alone(): void {
         global $DB;
@@ -178,13 +212,16 @@ final class program_course_membership_test extends \advanced_testcase {
             $this->fail('Moving into a program that does not exist must be rejected.');
         } catch (validation_exception $e) {
             $after = $DB->get_record('local_outcomemap_progcourse', ['id' => $this->membershipid]);
-            $this->assertEquals($before, $after,
-                'A rejected move must not have touched the membership.');
+            $this->assertEquals(
+                $before,
+                $after,
+                'A rejected move must not have touched the membership.'
+            );
         }
     }
 
     /**
-     * After a move the curriculum page reads the course under its new program only.
+     * * After a move the curriculum page reads the course under its new program only.
      */
     public function test_curriculum_page_follows_the_move(): void {
         global $PAGE;
@@ -194,14 +231,20 @@ final class program_course_membership_test extends \advanced_testcase {
         $mba = (new curriculum_page($this->mba, self::NOW))->export_for_template($renderer);
         $mei = (new curriculum_page($this->mei, self::NOW))->export_for_template($renderer);
 
-        $this->assertSame([], array_column($mba['courses'], 'code'),
-            'The course must no longer be listed under the program it left.');
-        $this->assertSame(['MEI603'], array_column($mei['courses'], 'code'),
-            'The course must be listed under the program it moved into.');
+        $this->assertSame(
+            [],
+            array_column($mba['courses'], 'code'),
+            'The course must no longer be listed under the program it left.'
+        );
+        $this->assertSame(
+            ['MEI603'],
+            array_column($mei['courses'], 'code'),
+            'The course must be listed under the program it moved into.'
+        );
     }
 
     /**
-     * Every non-retired membership offers the two corrections to a manager.
+     * * Every non-retired membership offers the two corrections to a manager.
      */
     public function test_curriculum_page_offers_move_and_remove(): void {
         global $PAGE;
@@ -212,8 +255,10 @@ final class program_course_membership_test extends \advanced_testcase {
         $this->assertTrue($card['canmovemembership']);
         $this->assertStringContainsString('action=movemembership', $card['membershipmoveurl']);
         $this->assertStringContainsString('action=removemembership', $card['membershipremoveurl']);
-        $this->assertSame(get_string('membershipremoveaction', 'local_outcomemap'),
+        $this->assertSame(
+            get_string('membershipremoveaction', 'local_outcomemap'),
             $card['membershipremovelabel'],
-            'A draft membership is removed outright, so the action says so.');
+            'A draft membership is removed outright, so the action says so.'
+        );
     }
 }

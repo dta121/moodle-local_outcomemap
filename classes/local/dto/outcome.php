@@ -5,24 +5,99 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 namespace local_outcomemap\local\dto;
 
-/** Immutable companion-safe representation of an approved outcome version. */
+/**
+ * Immutable companion-safe representation of an approved outcome version.
+ */
 final class outcome implements \JsonSerializable {
+    /**
+     * Stable outcome UUID.
+     *
+     * @var string
+     */
     public readonly string $uuid;
+    /**
+     * Stable outcome code.
+     *
+     * @var string
+     */
     public readonly string $code;
+    /**
+     * Stable framework UUID.
+     *
+     * @var string
+     */
     public readonly string $frameworkuuid;
+    /**
+     * Framework code.
+     *
+     * @var string
+     */
     public readonly string $frameworkcode;
+    /**
+     * Stable outcome-version UUID.
+     *
+     * @var string
+     */
     public readonly string $versionuuid;
+    /**
+     * Outcome version number.
+     *
+     * @var int
+     */
     public readonly int $version;
+    /**
+     * Outcome statement.
+     *
+     * @var string
+     */
     public readonly string $statement;
+    /**
+     * Optional short outcome statement.
+     *
+     * @var string|null
+     */
     public readonly ?string $shortstatement;
+    /**
+     * Optional Bloom taxonomy level.
+     *
+     * @var string|null
+     */
     public readonly ?string $bloomlevel;
+    /**
+     * Effective-from timestamp.
+     *
+     * @var int
+     */
     public readonly int $effectivefrom;
+    /**
+     * Optional effective-to timestamp.
+     *
+     * @var int|null
+     */
     public readonly ?int $effectiveto;
 
-    /** Constructor. */
+    /**
+     * Constructor.
+     */
     public function __construct(
         string $uuid,
         string $code,
@@ -49,7 +124,9 @@ final class outcome implements \JsonSerializable {
         $this->effectiveto = $effectiveto;
     }
 
-    /** Return a stable serialization without internal database IDs. */
+    /**
+     * Return a stable serialization without internal database IDs.
+     */
     public function jsonSerialize(): array {
         return get_object_vars($this);
     }

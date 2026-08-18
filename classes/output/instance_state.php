@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Shared presentation of a course-instance's governance and delivery state.
@@ -28,19 +36,29 @@ use local_outcomemap\local\workflow;
  * about the same association, so the rule lives here rather than in each page.
  */
 final class instance_state {
-    /** Association is finalized and inside its delivery window. */
+    /**
+     * Association is finalized and inside its delivery window.
+     */
     public const PHASE_ACTIVE = 'active';
 
-    /** Association is finalized but its Moodle course has ended. */
+    /**
+     * Association is finalized but its Moodle course has ended.
+     */
     public const PHASE_ENDED = 'ended';
 
-    /** Association is finalized and its Moodle course has not started. */
+    /**
+     * Association is finalized and its Moodle course has not started.
+     */
     public const PHASE_UPCOMING = 'upcoming';
 
-    /** Association has not been confirmed and cannot govern anything yet. */
+    /**
+     * Association has not been confirmed and cannot govern anything yet.
+     */
     public const PHASE_DRAFT = 'draft';
 
-    /** Association is retired. */
+    /**
+     * Association is retired.
+     */
     public const PHASE_RETIRED = 'retired';
 
     /**
@@ -141,7 +159,10 @@ final class instance_state {
         if ($count === 0) {
             return get_string('instances_enrolled_none', 'local_outcomemap');
         }
-        return get_string($count === 1 ? 'instances_enrolled_one' : 'instances_enrolled',
-            'local_outcomemap', $count);
+        return get_string(
+            $count === 1 ? 'instances_enrolled_one' : 'instances_enrolled',
+            'local_outcomemap',
+            $count
+        );
     }
 }

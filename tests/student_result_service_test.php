@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap;
 
@@ -42,13 +50,19 @@ use mod_quiz\quiz_settings;
 final class student_result_service_test extends \advanced_testcase {
     use \local_outcomemap\tests\moodle_compat_trait;
 
-    /** Governance effective start. */
+    /**
+     * Governance effective start.
+     */
     private const EFFECTIVEFROM = 1704067200;
 
-    /** Governed scheduled release time. */
+    /**
+     * Governed scheduled release time.
+     */
     private const RELEASEAT = 1800000000;
 
-    /** @var \stdClass Independent reviewer. */
+    /**
+     * @var \stdClass Independent reviewer.
+     */
     private $reviewer;
 
     /**
@@ -100,7 +114,7 @@ final class student_result_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests real quiz calculation, aggregate release, historical versions, access filtering, and DTO safety.
+     * * Tests real quiz calculation, aggregate release, historical versions, access filtering, and DTO safety.
      */
     public function test_report_releases_only_safe_current_clo_data_and_accessible_remediation(): void {
         global $DB;
@@ -335,14 +349,16 @@ final class student_result_service_test extends \advanced_testcase {
         $this->assertArrayNotHasKey('lineagejson', $row);
         $this->assertArrayNotHasKey('questiontext', $row);
         $encodedreport = json_encode($released);
-        foreach ([
+        foreach (
+            [
             'M5_PROTECTED_QUESTION_7f1',
             'M5_PROTECTED_RESPONSE_7f1',
             'M5_PROTECTED_CORRECTNESS_7f1',
             'M5_PROTECTED_ANSWER_KEY_7f1',
             'Restricted Unit 4.4',
             'Unapproved review item',
-        ] as $protected) {
+            ] as $protected
+        ) {
             $this->assertStringNotContainsString($protected, $encodedreport);
         }
 
@@ -384,11 +400,13 @@ final class student_result_service_test extends \advanced_testcase {
         $this->assertSame($evidencecount, $DB->count_records('local_outcomemap_evidence'));
         $this->assertSame($resultcount, $DB->count_records('local_outcomemap_result'));
 
-        foreach ([
+        foreach (
+            [
             [$visibleremediationid, (int) $courseresult->id + 999999],
             [$hiddenremediationid, (int) $courseresult->id],
             [$visibleremediationid + 999999, (int) $courseresult->id],
-        ] as [$recommendationid, $resultid]) {
+            ] as [$recommendationid, $resultid]
+        ) {
             try {
                 remediation_engagement_service::record_open($recommendationid, $resultid);
                 $this->fail('Forged or inaccessible remediation engagement must fail closed.');
@@ -441,8 +459,12 @@ final class student_result_service_test extends \advanced_testcase {
             'itemverid' => $itemverid,
         ]);
         $DB->set_field('local_outcomemap_itemver', 'effectiveto', self::RELEASEAT + 1, ['id' => $itemverid]);
-        $DB->set_field('local_outcomemap_policy', 'effectiveto', self::RELEASEAT + 1,
-            ['id' => $calculationpolicyid]);
+        $DB->set_field(
+            'local_outcomemap_policy',
+            'effectiveto',
+            self::RELEASEAT + 1,
+            ['id' => $calculationpolicyid]
+        );
         $now = time();
         $DB->insert_record('local_outcomemap_itemver', (object) [
             'uuid' => uuid::generate(),
@@ -502,10 +524,18 @@ final class student_result_service_test extends \advanced_testcase {
 
         // Course-owned outcome: visible before and after the change.
         $courseitemid = $this->create_outcome_in(
-            framework_service::OWNER_COURSE, $catalogid, 'CLOFW' . $suffix, 'C1');
+            framework_service::OWNER_COURSE,
+            $catalogid,
+            'CLOFW' . $suffix,
+            'C1'
+        );
         // The framework code suffix is what marks a framework as unit level.
         $unititemid = $withhierarchy ? $this->create_outcome_in(
-            framework_service::OWNER_COURSE, $catalogid, 'FW' . $suffix . 'ULO', 'U1') : null;
+            framework_service::OWNER_COURSE,
+            $catalogid,
+            'FW' . $suffix . 'ULO',
+            'U1'
+        ) : null;
 
         // Through the service so programme type and credential normalise correctly.
         $programid = program_service::create([
@@ -528,7 +558,11 @@ final class student_result_service_test extends \advanced_testcase {
             ]);
         }
         $programitemid = $this->create_outcome_in(
-            framework_service::OWNER_PROGRAM, $programid, 'PLOFW' . $suffix, 'P1');
+            framework_service::OWNER_PROGRAM,
+            $programid,
+            'PLOFW' . $suffix,
+            'P1'
+        );
 
         if ($withhierarchy) {
             $this->approve_relation($unititemid, $courseitemid, relation_service::ALIGNS_TO);
@@ -622,18 +656,30 @@ final class student_result_service_test extends \advanced_testcase {
             $rows[$row['code']] = $row;
         }
 
-        $this->assertSame(student_result_service::TIER_COURSE, $rows['C1']['tier'],
-            'A course-owned framework whose code does not end in ULO holds course outcomes.');
-        $this->assertSame(student_result_service::TIER_UNIT, $rows['U1']['tier'],
-            'A course-owned framework whose code ends in ULO holds unit outcomes.');
-        $this->assertSame(student_result_service::TIER_PROGRAM, $rows['P1']['tier'],
-            'A programme-owned framework holds programme outcomes.');
+        $this->assertSame(
+            student_result_service::TIER_COURSE,
+            $rows['C1']['tier'],
+            'A course-owned framework whose code does not end in ULO holds course outcomes.'
+        );
+        $this->assertSame(
+            student_result_service::TIER_UNIT,
+            $rows['U1']['tier'],
+            'A course-owned framework whose code ends in ULO holds unit outcomes.'
+        );
+        $this->assertSame(
+            student_result_service::TIER_PROGRAM,
+            $rows['P1']['tier'],
+            'A programme-owned framework holds programme outcomes.'
+        );
 
         // U1 aligns to C1, and C1 contributes to P1.
         $this->assertSame([$rows['C1']['itemid']], $rows['U1']['parentitemids']);
         $this->assertSame([$rows['P1']['itemid']], $rows['C1']['parentitemids']);
-        $this->assertSame([], $rows['P1']['parentitemids'],
-            'Nothing in this report sits above the programme outcome.');
+        $this->assertSame(
+            [],
+            $rows['P1']['parentitemids'],
+            'Nothing in this report sits above the programme outcome.'
+        );
     }
 
     /**
@@ -684,7 +730,7 @@ final class student_result_service_test extends \advanced_testcase {
     }
 
     /**
-     * Without programme membership the report stays limited to the catalog course.
+     * * Without programme membership the report stays limited to the catalog course.
      */
     public function test_report_excludes_programme_outcomes_without_membership(): void {
         $this->resetAfterTest(true);
@@ -694,7 +740,10 @@ final class student_result_service_test extends \advanced_testcase {
         $report = student_result_service::get_own_report((int) $course->id);
         $codes = array_column($report['rows'], 'code');
         $this->assertContains('C1', $codes);
-        $this->assertNotContains('P1', $codes,
-            'A programme the course does not belong to must not leak into the learner report.');
+        $this->assertNotContains(
+            'P1',
+            $codes,
+            'A programme the course does not belong to must not leak into the learner report.'
+        );
     }
 }

@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap;
 
@@ -39,7 +47,9 @@ use local_outcomemap\output\snapshots_page;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class accreditation_reporting_test extends \advanced_testcase {
-    /** @var \stdClass Independent manager reviewer. */
+    /**
+     * @var \stdClass Independent manager reviewer.
+     */
     private $reviewer;
 
     /**
@@ -358,7 +368,7 @@ final class accreditation_reporting_test extends \advanced_testcase {
     }
 
     /**
-     * Test denominator-weighted aggregation and explicit suppression.
+     * * Test denominator-weighted aggregation and explicit suppression.
      */
     public function test_aggregate_sums_components_once_and_applies_suppression(): void {
         $this->resetAfterTest(true);
@@ -421,7 +431,7 @@ final class accreditation_reporting_test extends \advanced_testcase {
     }
 
     /**
-     * Test the attainment rate is a separate statistic from the pooled score.
+     * * Test the attainment rate is a separate statistic from the pooled score.
      */
     public function test_attainment_rate_counts_learners_not_marks(): void {
         $this->resetAfterTest(true);
@@ -442,18 +452,23 @@ final class accreditation_reporting_test extends \advanced_testcase {
 
         $aggregates = aggregate_service::aggregate($results, $policy);
         $aggregate = $aggregates['program'][0];
-        $this->assertSame('67.5000000000', $aggregate['percentage'],
-            'The pooled score divides summed marks, not learners.');
+        $this->assertSame(
+            '67.5000000000',
+            $aggregate['percentage'],
+            'The pooled score divides summed marks, not learners.'
+        );
         $this->assertSame(4, $aggregate['assessedcount']);
         $this->assertSame(2, $aggregate['metcount']);
         $this->assertSame(2, $aggregate['notmetcount']);
         $this->assertSame('50.0000000000', $aggregate['attainmentpercent']);
-        $this->assertFalse($aggregate['benchmarkmet'],
-            'Half the learners met the criterion, short of the 70% benchmark.');
+        $this->assertFalse(
+            $aggregate['benchmarkmet'],
+            'Half the learners met the criterion, short of the 70% benchmark.'
+        );
     }
 
     /**
-     * Test a program row pools each learner's own evidence before judging them.
+     * * Test a program row pools each learner's own evidence before judging them.
      */
     public function test_program_attainment_judges_each_learner_once(): void {
         $this->resetAfterTest(true);
@@ -481,15 +496,24 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $policy = $this->aggregate_policy('70', '70');
 
         $aggregates = aggregate_service::aggregate($results, $policy);
-        $this->assertCount(2, $aggregates['course'],
-            'Each course instance keeps its own row.');
+        $this->assertCount(
+            2,
+            $aggregates['course'],
+            'Each course instance keeps its own row.'
+        );
         $this->assertCount(1, $aggregates['program']);
         $program = $aggregates['program'][0];
         $this->assertSame(1, $program['subjectcount']);
-        $this->assertSame(1, $program['assessedcount'],
-            'One learner contributing two results counts once.');
-        $this->assertSame(1, $program['metcount'],
-            'Pooled 14/20 is exactly 70%, and the criterion is inclusive.');
+        $this->assertSame(
+            1,
+            $program['assessedcount'],
+            'One learner contributing two results counts once.'
+        );
+        $this->assertSame(
+            1,
+            $program['metcount'],
+            'Pooled 14/20 is exactly 70%, and the criterion is inclusive.'
+        );
         $this->assertSame('100.0000000000', $program['attainmentpercent']);
         $this->assertTrue($program['benchmarkmet']);
 
@@ -497,13 +521,16 @@ final class accreditation_reporting_test extends \advanced_testcase {
         foreach ($aggregates['course'] as $row) {
             $bycinst[(int) $row['cinstid']] = $row;
         }
-        $this->assertSame(0, $bycinst[7]['metcount'],
-            'Judged on that course instance alone the learner falls short.');
+        $this->assertSame(
+            0,
+            $bycinst[7]['metcount'],
+            'Judged on that course instance alone the learner falls short.'
+        );
         $this->assertSame(1, $bycinst[8]['metcount']);
     }
 
     /**
-     * Test a rate is not calculable when no learner has a calculated result.
+     * * Test a rate is not calculable when no learner has a calculated result.
      */
     public function test_attainment_rate_absent_without_calculated_results(): void {
         $this->resetAfterTest(true);
@@ -521,12 +548,14 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $this->assertSame(0, $aggregate['assessedcount']);
         $this->assertSame(0, $aggregate['metcount']);
         $this->assertNull($aggregate['attainmentpercent']);
-        $this->assertNull($aggregate['benchmarkmet'],
-            'An uncalculable rate must not read as a failed benchmark.');
+        $this->assertNull(
+            $aggregate['benchmarkmet'],
+            'An uncalculable rate must not read as a failed benchmark.'
+        );
     }
 
     /**
-     * Test an accreditation policy without a stated criterion is rejected.
+     * * Test an accreditation policy without a stated criterion is rejected.
      */
     public function test_accreditation_policy_requires_criterion_and_benchmark(): void {
         $this->resetAfterTest(true);
@@ -563,7 +592,7 @@ final class accreditation_reporting_test extends \advanced_testcase {
     }
 
     /**
-     * Test a snapshot frozen before the attainment columns still verifies.
+     * * Test a snapshot frozen before the attainment columns still verifies.
      */
     public function test_verification_accepts_index_without_attainment_columns(): void {
         global $DB;
@@ -600,8 +629,12 @@ final class accreditation_reporting_test extends \advanced_testcase {
             ]);
             $hashes[] = ['key' => (string) $item->stablekey, 'hash' => hash('sha256', $payloadjson)];
         }
-        $DB->set_field('local_outcomemap_snapshot', 'payloadhash',
-            hash('sha256', canonical_json::encode($hashes)), ['id' => $snapshotid]);
+        $DB->set_field(
+            'local_outcomemap_snapshot',
+            'payloadhash',
+            hash('sha256', canonical_json::encode($hashes)),
+            ['id' => $snapshotid]
+        );
 
         $snapshot = snapshot_service::get($snapshotid);
         $items = snapshot_service::items($snapshotid);
@@ -677,7 +710,7 @@ final class accreditation_reporting_test extends \advanced_testcase {
     }
 
     /**
-     * Test an authorized snapshot creator may finalize when independent approval is disabled.
+     * * Test an authorized snapshot creator may finalize when independent approval is disabled.
      */
     public function test_snapshot_creator_can_freeze_when_independent_approval_disabled(): void {
         global $USER;
@@ -707,7 +740,7 @@ final class accreditation_reporting_test extends \advanced_testcase {
     }
 
     /**
-     * Test a snapshot version is withdrawable only from the end of its lineage.
+     * * Test a snapshot version is withdrawable only from the end of its lineage.
      */
     public function test_snapshot_deletion_removes_captured_rows_from_the_newest_version_only(): void {
         global $DB, $PAGE;
@@ -777,7 +810,7 @@ final class accreditation_reporting_test extends \advanced_testcase {
     }
 
     /**
-     * Test independent freeze, immutable corrections, redaction, hashes, and export reconstruction.
+     * * Test independent freeze, immutable corrections, redaction, hashes, and export reconstruction.
      */
     public function test_snapshot_versions_are_immutable_and_exports_are_reconstructable(): void {
         global $DB;
@@ -824,8 +857,10 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $this->assertSame(program_service::CREDENTIAL_CERTIFICATE, $programpayload['credential']);
         $this->assertSame('local_outcomemap-accreditation-export-v1', $packagev1['schema']);
         $this->assertSame('standard', $packagev1['mode']);
-        foreach (['snapshotuuid', 'version', 'policyid', 'pluginversion', 'algoversion',
-            'payloadhash', 'manifesthash', 'itemcount'] as $manifestfield) {
+        foreach (
+            ['snapshotuuid', 'version', 'policyid', 'pluginversion', 'algoversion',
+            'payloadhash', 'manifesthash', 'itemcount'] as $manifestfield
+        ) {
             $this->assertArrayHasKey($manifestfield, $packagev1['manifest']);
         }
         $this->assertSame((string) $snapshotv1->manifesthash, $packagev1['manifest']['manifesthash']);
@@ -847,14 +882,16 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $this->assertSame('25.5000000000', $numerator);
         $this->assertSame('30.0000000000', $denominator);
         $this->assertSame('85.0000000000', $reconstructed);
-        foreach ([
+        foreach (
+            [
             snapshot_service::ITEM_OUTCOME_VERSION,
             snapshot_service::ITEM_POLICY_VERSION,
             snapshot_service::ITEM_MAPPING_VERSION,
             snapshot_service::ITEM_RESULT,
             snapshot_service::ITEM_COURSE_AGGREGATE,
             snapshot_service::ITEM_PROGRAM_AGGREGATE,
-        ] as $requiredtype) {
+            ] as $requiredtype
+        ) {
             $this->assertContains($requiredtype, $types);
         }
         $this->assertNotContains(snapshot_service::ITEM_POPULATION, $types);
@@ -885,8 +922,11 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $DB->set_field('local_outcomemap_result', 'percentage', '0.0000000000', [
             'id' => $fixture['resultids'][0],
         ]);
-        $this->assertSame($jsonv1, accreditation_export_service::json($snapshotid),
-            'A frozen export must not change when live results change.');
+        $this->assertSame(
+            $jsonv1,
+            accreditation_export_service::json($snapshotid),
+            'A frozen export must not change when live results change.'
+        );
 
         $this->insert_policy(
             policy_service::TYPE_ACCREDITATION,
@@ -1043,8 +1083,11 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $this->assertTrue($context['isfrozen']);
 
         $this->assertTrue($context['hasoutcomes']);
-        $this->assertCount(1, $context['outcomes'],
-            'The fixture captures outcomes from exactly one framework.');
+        $this->assertCount(
+            1,
+            $context['outcomes'],
+            'The fixture captures outcomes from exactly one framework.'
+        );
         $group = $context['outcomes'][0];
         $this->assertSame('M6-PLO', $group['framework']);
         $this->assertCount(1, $group['rows']);
@@ -1055,8 +1098,11 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $this->assertSame('2', $row['learners']);
         $this->assertSame('2', $row['results']);
         $this->assertSame('85.0%', $row['percent']);
-        $this->assertSame(['M6-COURSE'], $row['evidence'],
-            'The evidence chips name the catalog courses whose aggregates fed the outcome.');
+        $this->assertSame(
+            ['M6-COURSE'],
+            $row['evidence'],
+            'The evidence chips name the catalog courses whose aggregates fed the outcome.'
+        );
 
         // Learner counts cannot be summed across outcomes, so the aggregate line
         // reports the snapshot's own population and the weighted percentage.
@@ -1074,7 +1120,7 @@ final class accreditation_reporting_test extends \advanced_testcase {
     }
 
     /**
-     * The report judges each subject once per course against the frozen criterion.
+     * * The report judges each subject once per course against the frozen criterion.
      */
     public function test_snapshot_report_reports_course_progress(): void {
         $this->resetAfterTest(true);
@@ -1082,8 +1128,10 @@ final class accreditation_reporting_test extends \advanced_testcase {
 
         // Both fixture learners score 85% against a 70% criterion.
         $this->assertTrue($context['progress']['known']);
-        $this->assertSame(['passed' => 2, 'failed' => 0, 'unjudged' => 0],
-            $context['progress']['counts']);
+        $this->assertSame(
+            ['passed' => 2, 'failed' => 0, 'unjudged' => 0],
+            $context['progress']['counts']
+        );
         $values = array_column($context['progress']['tiles'], 'value', 'label');
         $this->assertSame('2', $values[get_string('snapreport_progress_passedall', 'local_outcomemap')]);
         $this->assertSame('0', $values[get_string('snapreport_progress_failedany', 'local_outcomemap')]);
@@ -1106,19 +1154,30 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $this->resetAfterTest(true);
         [, $snapshotid] = $this->frozen_report();
 
-        $failing = (new snapshot_report($snapshotid, snapshot_report::GROUP_FRAMEWORK,
-            snapshot_report::SUBJECTS_FAILEDANY))->export_for_template($PAGE->get_renderer('core'));
+        $failing = (new snapshot_report(
+            $snapshotid,
+            snapshot_report::GROUP_FRAMEWORK,
+            snapshot_report::SUBJECTS_FAILEDANY
+        ))->export_for_template($PAGE->get_renderer('core'));
         $this->assertTrue($failing['controls']['filtered']);
         $row = $failing['outcomes'][0]['rows'][0];
-        $this->assertSame('0', $row['learners'],
-            'No fixture subject failed a course, so the filtered table reports none.');
+        $this->assertSame(
+            '0',
+            $row['learners'],
+            'No fixture subject failed a course, so the filtered table reports none.'
+        );
         $this->assertFalse($row['benchmarkmet']);
-        $this->assertFalse($row['benchmarkmissed'],
-            'A recomputed rate was never judged against the benchmark, so no verdict is claimed.');
+        $this->assertFalse(
+            $row['benchmarkmissed'],
+            'A recomputed rate was never judged against the benchmark, so no verdict is claimed.'
+        );
 
         // The unfiltered view is untouched and still carries the governed figures.
-        $all = (new snapshot_report($snapshotid, snapshot_report::GROUP_FRAMEWORK,
-            snapshot_report::SUBJECTS_PASSEDALL))->export_for_template($PAGE->get_renderer('core'));
+        $all = (new snapshot_report(
+            $snapshotid,
+            snapshot_report::GROUP_FRAMEWORK,
+            snapshot_report::SUBJECTS_PASSEDALL
+        ))->export_for_template($PAGE->get_renderer('core'));
         $this->assertSame('2', $all['outcomes'][0]['rows'][0]['learners']);
         $this->assertSame('85.0%', $all['outcomes'][0]['rows'][0]['percent']);
     }
@@ -1151,8 +1210,11 @@ final class accreditation_reporting_test extends \advanced_testcase {
 
         foreach ([snapshot_report::GROUP_COURSE, snapshot_report::GROUP_PROGRAM] as $group) {
             $context = $render($group);
-            $this->assertSame(['M6-TOP.TOP1'], array_column($context['outcomes'], 'framework'),
-                'The row must be reported under the outcome it is approved to support.');
+            $this->assertSame(
+                ['M6-TOP.TOP1'],
+                array_column($context['outcomes'], 'framework'),
+                'The row must be reported under the outcome it is approved to support.'
+            );
             $this->assertSame('PLO1', $context['outcomes'][0]['rows'][0]['code']);
             // Regrouping only moves rows, so the aggregate line must not change.
             $this->assertSame($framework['totals']['percent'], $context['totals']['percent']);
@@ -1192,10 +1254,15 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $after = (new snapshot_report($snapshotid, snapshot_report::GROUP_PROGRAM))
             ->export_for_template($PAGE->get_renderer('core'));
         $this->assertSame(['M6-TOP.TOP1'], array_column($after['outcomes'], 'framework'));
-        $this->assertTrue($after['controls']['liverollup'],
-            'A grouping read from outside the capture must be declared as such.');
-        $this->assertSame($before['totals']['percent'], $after['totals']['percent'],
-            'Only the grouping comes from outside the frozen rows; the figures do not.');
+        $this->assertTrue(
+            $after['controls']['liverollup'],
+            'A grouping read from outside the capture must be declared as such.'
+        );
+        $this->assertSame(
+            $before['totals']['percent'],
+            $after['totals']['percent'],
+            'Only the grouping comes from outside the frozen rows; the figures do not.'
+        );
 
         // The framework view never leaves the capture, so it makes no such claim.
         $framework = (new snapshot_report($snapshotid, snapshot_report::GROUP_FRAMEWORK))
@@ -1215,8 +1282,12 @@ final class accreditation_reporting_test extends \advanced_testcase {
     private function align_fixture_outcome(int $outcomeversionid, int $courseinstanceid): void {
         global $DB;
         $now = time();
-        $sourceitemid = (int) $DB->get_field('local_outcomemap_itemver', 'itemid',
-            ['id' => $outcomeversionid], MUST_EXIST);
+        $sourceitemid = (int) $DB->get_field(
+            'local_outcomemap_itemver',
+            'itemid',
+            ['id' => $outcomeversionid],
+            MUST_EXIST
+        );
         $frameworkid = (int) $DB->insert_record('local_outcomemap_fw', (object) [
             'uuid' => uuid::generate(), 'code' => 'M6-TOP', 'name' => 'M6 top level',
             'description' => null, 'ownertype' => framework_service::OWNER_INSTITUTION,
@@ -1237,12 +1308,16 @@ final class accreditation_reporting_test extends \advanced_testcase {
             'approvedby' => $this->reviewer->id, 'timecreated' => $now,
             'timemodified' => $now, 'approvedat' => $now,
         ]);
-        $DB->set_field('local_outcomemap_evidence', 'relationpathjson',
-            canonical_json::encode([$relationid]), ['cinstid' => $courseinstanceid]);
+        $DB->set_field(
+            'local_outcomemap_evidence',
+            'relationpathjson',
+            canonical_json::encode([$relationid]),
+            ['cinstid' => $courseinstanceid]
+        );
     }
 
     /**
-     * A suppressed aggregate withholds its figures rather than printing them.
+     * * A suppressed aggregate withholds its figures rather than printing them.
      */
     public function test_snapshot_report_withholds_suppressed_figures(): void {
         $this->resetAfterTest(true);
@@ -1252,14 +1327,16 @@ final class accreditation_reporting_test extends \advanced_testcase {
 
         $row = $context['outcomes'][0]['rows'][0];
         $this->assertTrue($row['suppressed']);
-        $this->assertFalse($row['hasbar'],
-            'A suppressed row must not draw an attainment bar.');
+        $this->assertFalse(
+            $row['hasbar'],
+            'A suppressed row must not draw an attainment bar.'
+        );
         $suppressionline = implode(' ', array_column($context['methods'], 'value'));
         $this->assertStringContainsString('suppressed', $suppressionline);
     }
 
     /**
-     * Exports stay closed until the snapshot is frozen, and freezing is offered.
+     * * Exports stay closed until the snapshot is frozen, and freezing is offered.
      */
     public function test_snapshot_report_gates_exports_until_frozen(): void {
         global $PAGE;
@@ -1279,8 +1356,10 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $context = $report->export_for_template($PAGE->get_renderer('core'));
 
         $this->assertFalse($context['isfrozen']);
-        $this->assertFalse($context['exports']['canexport'],
-            'An unfrozen capture must not offer an accreditation export.');
+        $this->assertFalse(
+            $context['exports']['canexport'],
+            'An unfrozen capture must not offer an accreditation export.'
+        );
         $this->assertTrue($context['exports']['notfrozen']);
         $this->assertTrue($context['canfreeze']);
         $this->assertFalse($context['cancorrect']);

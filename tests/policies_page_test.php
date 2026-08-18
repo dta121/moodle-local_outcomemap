@@ -29,7 +29,9 @@ use local_outcomemap\output\policies_page;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class policies_page_test extends \advanced_testcase {
-    /** @var int Fixed reference time; policies below start well before it. */
+    /**
+     * @var int Fixed reference time; policies below start well before it.
+     */
     private const NOW = 1785110400;
 
     /**
@@ -41,8 +43,12 @@ final class policies_page_test extends \advanced_testcase {
      * @param array $config Typed configuration.
      * @return int Policy id.
      */
-    private function policy(string $type, string $scopetype, ?int $scopeid = null,
-            array $config = []): int {
+    private function policy(
+        string $type,
+        string $scopetype,
+        ?int $scopeid = null,
+        array $config = []
+    ): int {
         $defaults = [
             policy_service::TYPE_ATTEMPT_SELECTION => ['method' => policy_service::METHOD_LATEST_COMPLETED],
             policy_service::TYPE_CALCULATION => [
@@ -106,12 +112,14 @@ final class policies_page_test extends \advanced_testcase {
 
         $calculation = $groups[get_string('policytype_calculation', 'local_outcomemap')];
         $this->assertFalse($calculation['hasrows']);
-        $this->assertTrue($calculation['badgewarn'],
-            'A decision nobody has settled must be flagged, not omitted.');
+        $this->assertTrue(
+            $calculation['badgewarn'],
+            'A decision nobody has settled must be flagged, not omitted.'
+        );
     }
 
     /**
-     * The gap callout counts only the decisions with no institution default.
+     * * The gap callout counts only the decisions with no institution default.
      */
     public function test_gap_callout_counts_missing_institution_defaults(): void {
         $this->resetAfterTest(true);
@@ -127,7 +135,9 @@ final class policies_page_test extends \advanced_testcase {
         $context = $this->export();
         $this->assertSame(2, $context['gapcount']);
         $this->assertStringContainsString(
-            get_string('policytype_release', 'local_outcomemap'), $context['gapline']);
+            get_string('policytype_release', 'local_outcomemap'),
+            $context['gapline']
+        );
     }
 
     /**
@@ -151,11 +161,17 @@ final class policies_page_test extends \advanced_testcase {
         $program = get_string('policyscope_program', 'local_outcomemap');
         $instance = get_string('policyscope_course_instance', 'local_outcomemap');
         $this->assertStringContainsString($instance, $calculation);
-        $this->assertStringNotContainsString($program, $calculation,
-            'Calculation is never resolved through a program.');
+        $this->assertStringNotContainsString(
+            $program,
+            $calculation,
+            'Calculation is never resolved through a program.'
+        );
         $this->assertStringContainsString($program, $accreditation);
-        $this->assertStringNotContainsString($instance, $accreditation,
-            'Accreditation is never resolved through a course instance.');
+        $this->assertStringNotContainsString(
+            $instance,
+            $accreditation,
+            'Accreditation is never resolved through a course instance.'
+        );
     }
 
     /**
@@ -185,12 +201,14 @@ final class policies_page_test extends \advanced_testcase {
         // The same scope is the correct one for accreditation.
         $this->policy(policy_service::TYPE_ACCREDITATION, policy_service::SCOPE_PROGRAM, $programid);
         $groups = array_column($this->export()['groups'], null, 'title');
-        $this->assertCount(1,
-            $groups[get_string('policytype_accreditation', 'local_outcomemap')]['rows']);
+        $this->assertCount(
+            1,
+            $groups[get_string('policytype_accreditation', 'local_outcomemap')]['rows']
+        );
     }
 
     /**
-     * Courses that no in-force policy reaches are named for each decision.
+     * * Courses that no in-force policy reaches are named for each decision.
      */
     public function test_uncovered_catalog_courses_are_named(): void {
         $this->resetAfterTest(true);
@@ -205,12 +223,15 @@ final class policies_page_test extends \advanced_testcase {
 
         $this->assertTrue($calculation['hasuncovered']);
         $this->assertStringContainsString('MBA699', $calculation['uncoveredline']);
-        $this->assertStringNotContainsString('MBA601', $calculation['uncoveredline'],
-            'A course with its own in-force policy is covered.');
+        $this->assertStringNotContainsString(
+            'MBA601',
+            $calculation['uncoveredline'],
+            'A course with its own in-force policy is covered.'
+        );
     }
 
     /**
-     * An institution default covers everything, so nothing is left uncovered.
+     * * An institution default covers everything, so nothing is left uncovered.
      */
     public function test_institution_default_leaves_nothing_uncovered(): void {
         $this->resetAfterTest(true);
@@ -224,7 +245,7 @@ final class policies_page_test extends \advanced_testcase {
     }
 
     /**
-     * The scope grouping reports how much of the estate each scope settles.
+     * * The scope grouping reports how much of the estate each scope settles.
      */
     public function test_scope_view_reports_what_each_scope_settles(): void {
         $this->resetAfterTest(true);
@@ -241,11 +262,13 @@ final class policies_page_test extends \advanced_testcase {
         $this->assertTrue($group['badgewarn']);
         $this->assertStringContainsString('2', $group['badge']);
         $this->assertStringContainsString(
-            get_string('policytype_release', 'local_outcomemap'), $group['uncoveredline']);
+            get_string('policytype_release', 'local_outcomemap'),
+            $group['uncoveredline']
+        );
     }
 
     /**
-     * A version outside its effective range is not treated as in force.
+     * * A version outside its effective range is not treated as in force.
      */
     public function test_future_version_is_not_in_force(): void {
         $this->resetAfterTest(true);
@@ -264,8 +287,10 @@ final class policies_page_test extends \advanced_testcase {
         $groups = array_column($context['groups'], null, 'title');
         $calculation = $groups[get_string('policytype_calculation', 'local_outcomemap')];
 
-        $this->assertTrue($calculation['badgewarn'],
-            'A version that has not started yet is not the institution default.');
+        $this->assertTrue(
+            $calculation['badgewarn'],
+            'A version that has not started yet is not the institution default.'
+        );
         $this->assertSame('ended', $calculation['rows'][0]['statusclass']);
     }
 }

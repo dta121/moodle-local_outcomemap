@@ -5,6 +5,22 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 namespace local_outcomemap\local\service;
 
@@ -14,11 +30,18 @@ use local_outcomemap\local\uuid;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
-/** Transactional service for stable catalog courses. */
+/**
+ * Transactional service for stable catalog courses.
+ */
 final class catalog_course_service extends base_service {
+    /**
+     * Database table name.
+     */
     private const TABLE = 'local_outcomemap_course';
 
-    /** Create a draft catalog course. */
+    /**
+     * Create a draft catalog course.
+     */
     public static function create(array $data): int {
         global $DB;
         $actorid = self::require_system('local/outcomemap:managecatalogcourses');
@@ -40,8 +63,17 @@ final class catalog_course_service extends base_service {
         try {
             $id = $DB->insert_record(self::TABLE, $record);
             $record->id = $id;
-            audit_writer::write('create', 'catalog_course', $id, $record->uuid, null, $record, null,
-                \context_system::instance(), $actorid);
+            audit_writer::write(
+                'create',
+                'catalog_course',
+                $id,
+                $record->uuid,
+                null,
+                $record,
+                null,
+                \context_system::instance(),
+                $actorid
+            );
             $transaction->allow_commit();
             return $id;
         } catch (\Throwable $e) {
@@ -49,7 +81,9 @@ final class catalog_course_service extends base_service {
         }
     }
 
-    /** Update a draft catalog course. */
+    /**
+     * Update a draft catalog course.
+     */
     public static function update(int $id, array $data): void {
         global $DB;
         $actorid = self::require_system('local/outcomemap:managecatalogcourses');
@@ -68,27 +102,59 @@ final class catalog_course_service extends base_service {
         $transaction = $DB->start_delegated_transaction();
         try {
             $DB->update_record(self::TABLE, $after);
-            audit_writer::write('update', 'catalog_course', $id, $after->uuid, $before, $after,
-                $data['reason'] ?? null, \context_system::instance(), $actorid);
+            audit_writer::write(
+                'update',
+                'catalog_course',
+                $id,
+                $after->uuid,
+                $before,
+                $after,
+                $data['reason'] ?? null,
+                \context_system::instance(),
+                $actorid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
         }
     }
 
+    /**
+     * Submits the record for review.
+     */
     public static function submit_for_review(int $id, ?string $reason = null): void {
-        self::change_status($id, workflow::DRAFT, workflow::NEEDS_REVIEW, 'submit_review', $reason,
-            'local/outcomemap:managecatalogcourses', false);
+        self::change_status(
+            $id,
+            workflow::DRAFT,
+            workflow::NEEDS_REVIEW,
+            'submit_review',
+            $reason,
+            'local/outcomemap:managecatalogcourses',
+            false
+        );
     }
 
+    /**
+     * Approves the record.
+     */
     public static function approve(int $id, ?string $reason = null): void {
         $capability = workflow::requires_independent_approval()
             ? 'local/outcomemap:approve'
             : 'local/outcomemap:managecatalogcourses';
-        self::change_status($id, workflow::NEEDS_REVIEW, workflow::APPROVED, 'approve', $reason,
-            $capability, true);
+        self::change_status(
+            $id,
+            workflow::NEEDS_REVIEW,
+            workflow::APPROVED,
+            'approve',
+            $reason,
+            $capability,
+            true
+        );
     }
 
+    /**
+     * Retires the record.
+     */
     public static function retire(int $id, string $reason): void {
         global $DB;
         $actorid = self::require_system('local/outcomemap:managecatalogcourses');
@@ -103,14 +169,26 @@ final class catalog_course_service extends base_service {
         $transaction = $DB->start_delegated_transaction();
         try {
             $DB->update_record(self::TABLE, $after);
-            audit_writer::write('retire', 'catalog_course', $id, $after->uuid, $before, $after, $reason,
-                \context_system::instance(), $actorid);
+            audit_writer::write(
+                'retire',
+                'catalog_course',
+                $id,
+                $after->uuid,
+                $before,
+                $after,
+                $reason,
+                \context_system::instance(),
+                $actorid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
         }
     }
 
+    /**
+     * Lists all records.
+     */
     public static function list_all(): array {
         global $DB;
         self::require_system('local/outcomemap:viewdefinitions');
@@ -185,8 +263,18 @@ final class catalog_course_service extends base_service {
         return $courses;
     }
 
-    private static function change_status(int $id, string $required, string $status, string $action,
-            ?string $reason, string $capability, bool $separateapprover): void {
+    /**
+     * Changes the record workflow status.
+     */
+    private static function change_status(
+        int $id,
+        string $required,
+        string $status,
+        string $action,
+        ?string $reason,
+        string $capability,
+        bool $separateapprover
+    ): void {
         global $DB;
         $actorid = self::require_system($capability);
         $before = self::get_required(self::TABLE, $id, 'catalog_course');
@@ -203,8 +291,17 @@ final class catalog_course_service extends base_service {
         $transaction = $DB->start_delegated_transaction();
         try {
             $DB->update_record(self::TABLE, $after);
-            audit_writer::write($action, 'catalog_course', $id, $after->uuid, $before, $after, $reason,
-                \context_system::instance(), $actorid);
+            audit_writer::write(
+                $action,
+                'catalog_course',
+                $id,
+                $after->uuid,
+                $before,
+                $after,
+                $reason,
+                \context_system::instance(),
+                $actorid
+            );
             if ($status === workflow::NEEDS_REVIEW && !workflow::requires_independent_approval()) {
                 self::approve($id, $reason);
             }
@@ -214,14 +311,27 @@ final class catalog_course_service extends base_service {
         }
     }
 
+    /**
+     * Requires unique record identifiers.
+     */
     private static function require_unique(string $uuidvalue, string $code, int $excludeid = 0): void {
         global $DB;
-        if ($DB->record_exists_select(self::TABLE, 'uuid = :uuid AND id <> :id',
-                ['uuid' => $uuidvalue, 'id' => $excludeid])) {
+        if (
+            $DB->record_exists_select(
+                self::TABLE,
+                'uuid = :uuid AND id <> :id',
+                ['uuid' => $uuidvalue, 'id' => $excludeid]
+            )
+        ) {
             throw new validation_exception('duplicateuuid', 'uuid', $uuidvalue);
         }
-        if ($DB->record_exists_select(self::TABLE, 'code = :code AND id <> :id',
-                ['code' => $code, 'id' => $excludeid])) {
+        if (
+            $DB->record_exists_select(
+                self::TABLE,
+                'code = :code AND id <> :id',
+                ['code' => $code, 'id' => $excludeid]
+            )
+        ) {
             throw new validation_exception('duplicatecode', 'code', $code);
         }
     }

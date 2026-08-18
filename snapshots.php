@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Accreditation snapshot management and independent freeze workflow.
@@ -19,6 +27,7 @@ use local_outcomemap\local\service\snapshot_service;
 use local_outcomemap\output\snapshot_report;
 use local_outcomemap\output\snapshots_page;
 
+// phpcs:ignore moodle.Files.MoodleInternal.MoodleInternalGlobalState -- Portable bootstrap path.
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     $configpath = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . '/config.php';
@@ -70,8 +79,11 @@ if ($action === 'delete' && $id) {
             get_string('confirmdeletesnapshot', 'local_outcomemap', (object) [
                 'program' => s($snapshot->programcode),
                 'period' => s($snapshot->periodcode),
-                'version' => get_string('snapreport_shortversion', 'local_outcomemap',
-                    (int) $snapshot->version),
+                'version' => get_string(
+                    'snapreport_shortversion',
+                    'local_outcomemap',
+                    (int) $snapshot->version
+                ),
                 'rows' => number_format((int) $snapshot->itemcount),
             ]),
             new moodle_url($url, [
@@ -128,8 +140,10 @@ if (in_array($action, ['add', 'correct'], true)) {
         ]);
     }
     echo $OUTPUT->header();
-    echo $OUTPUT->heading(get_string($previous === null ? 'createsnapshot' : 'correctsnapshot',
-        'local_outcomemap'));
+    echo $OUTPUT->heading(get_string(
+        $previous === null ? 'createsnapshot' : 'correctsnapshot',
+        'local_outcomemap'
+    ));
     $form->display();
     echo $OUTPUT->footer();
     exit;
@@ -146,8 +160,10 @@ if ($action === 'view' && $id) {
         optional_param('subjects', snapshot_report::SUBJECTS_ALL, PARAM_ALPHA)
     );
     echo $OUTPUT->header();
-    echo $OUTPUT->render_from_template('local_outcomemap/snapshot_report',
-        $report->export_for_template($OUTPUT));
+    echo $OUTPUT->render_from_template(
+        'local_outcomemap/snapshot_report',
+        $report->export_for_template($OUTPUT)
+    );
     echo $OUTPUT->footer();
     exit;
 }

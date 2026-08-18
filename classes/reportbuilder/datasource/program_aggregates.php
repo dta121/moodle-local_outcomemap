@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\reportbuilder\datasource;
 
@@ -32,17 +40,25 @@ use local_outcomemap\reportbuilder\local\secured_datasource;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class program_aggregates extends secured_datasource {
-    /** @return string */
+    /**
+     * Returns the report source name.
+     * @return string
+     */
     public static function get_name(): string {
         return get_string('report_source_program_aggregates', 'local_outcomemap');
     }
 
-    /** @return string[] */
+    /**
+     * Returns the capabilities required to access the source.
+     * @return string[]
+     */
     protected static function get_required_capabilities(): array {
         return ['local/outcomemap:exportaccreditation'];
     }
 
-    /** Build the source. */
+    /**
+     * Build the source.
+     */
     protected function initialise_source(): void {
         $entity = new report_record(
             [
@@ -123,128 +139,347 @@ final class program_aggregates extends secured_datasource {
         $benchmarkmet = "CASE WHEN {$item}.suppressed = 1 THEN NULL ELSE {$item}.benchmarkmet END";
 
         $entity
-            ->define_column('recordid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$item}.id"])
-            ->define_column('snapshotuuid', new lang_string('snapshotuuid', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$snapshot}.snapshotuuid"])
-            ->define_column('snapshotversion', new lang_string('snapshotversion', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$snapshot}.version"])
-            ->define_column('programid', new lang_string('reportcolumn_programid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$snapshot}.programid"])
-            ->define_column('programcode', new lang_string('program', 'local_outcomemap'),
-                column::TYPE_TEXT, [
+            ->define_column(
+                'recordid',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$item}.id"]
+            )
+            ->define_column(
+                'snapshotuuid',
+                new lang_string('snapshotuuid', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$snapshot}.snapshotuuid"]
+            )
+            ->define_column(
+                'snapshotversion',
+                new lang_string('snapshotversion', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$snapshot}.version"]
+            )
+            ->define_column(
+                'programid',
+                new lang_string('reportcolumn_programid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$snapshot}.programid"]
+            )
+            ->define_column(
+                'programcode',
+                new lang_string('program', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                [
                     'payloadjson' => "{$programcapture}.payloadjson",
                     'payloadfield' => "'code'",
                     'fallback' => "{$program}.code",
-                ], false, [format::class, 'snapshot_payload_value'])
-            ->define_column('programname', new lang_string('name', 'local_outcomemap'),
-                column::TYPE_TEXT, [
+                ],
+                false,
+                [format::class, 'snapshot_payload_value']
+            )
+            ->define_column(
+                'programname',
+                new lang_string('name', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                [
                     'payloadjson' => "{$programcapture}.payloadjson",
                     'payloadfield' => "'name'",
                     'fallback' => "{$program}.name",
-                ], false, [format::class, 'snapshot_payload_value'])
-            ->define_column('periodcode', new lang_string('reportcolumn_periodcode', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$snapshot}.periodcode"])
-            ->define_column('cohortid', new lang_string('reportcolumn_cohortid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$snapshot}.cohortid"])
-            ->define_column('cohortname', new lang_string('cohort', 'local_outcomemap'),
-                column::TYPE_TEXT, [
+                ],
+                false,
+                [format::class, 'snapshot_payload_value']
+            )
+            ->define_column(
+                'periodcode',
+                new lang_string('reportcolumn_periodcode', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$snapshot}.periodcode"]
+            )
+            ->define_column(
+                'cohortid',
+                new lang_string('reportcolumn_cohortid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$snapshot}.cohortid"]
+            )
+            ->define_column(
+                'cohortname',
+                new lang_string('cohort', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                [
                     'payloadjson' => "{$cohortcapture}.payloadjson",
                     'payloadfield' => "'name'",
                     'fallback' => "{$cohort}.name",
-                ], false, [format::class, 'snapshot_payload_value'])
-            ->define_column('outcomeversionid',
+                ],
+                false,
+                [format::class, 'snapshot_payload_value']
+            )
+            ->define_column(
+                'outcomeversionid',
                 new lang_string('reportcolumn_outcomeversionid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$item}.itemverid"])
-            ->define_column('outcomecode', new lang_string('outcome', 'local_outcomemap'),
-                column::TYPE_TEXT, [
+                column::TYPE_INTEGER,
+                ["{$item}.itemverid"]
+            )
+            ->define_column(
+                'outcomecode',
+                new lang_string('outcome', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                [
                     'payloadjson' => "{$outcomecapture}.payloadjson",
                     'payloadfield' => "'code'",
                     'fallback' => "{$outcome}.code",
-                ], false, [format::class, 'snapshot_payload_value'])
-            ->define_column('outcomestatement', new lang_string('statement', 'local_outcomemap'),
-                column::TYPE_LONGTEXT, [
+                ],
+                false,
+                [format::class, 'snapshot_payload_value']
+            )
+            ->define_column(
+                'outcomestatement',
+                new lang_string('statement', 'local_outcomemap'),
+                column::TYPE_LONGTEXT,
+                [
                     'payloadjson' => "{$outcomecapture}.payloadjson",
                     'payloadfield' => "'statement'",
                     'fallback' => "{$outcomeversion}.statement",
-                ], false, [format::class, 'snapshot_payload_value'])
-            ->define_column('frameworkcode', new lang_string('framework', 'local_outcomemap'),
-                column::TYPE_TEXT, [
+                ],
+                false,
+                [format::class, 'snapshot_payload_value']
+            )
+            ->define_column(
+                'frameworkcode',
+                new lang_string('framework', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                [
                     'payloadjson' => "{$outcomecapture}.payloadjson",
                     'payloadfield' => "'frameworkcode'",
                     'fallback' => "{$framework}.code",
-                ], false, [format::class, 'snapshot_payload_value'])
-            ->define_column('state', new lang_string('reportcolumn_state', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$item}.state"])
-            ->define_column('subjectcount', new lang_string('reportcolumn_subjectcount', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$item}.subjectcount"])
-            ->define_column('suppressed', new lang_string('reportcolumn_suppressed', 'local_outcomemap'),
-                column::TYPE_BOOLEAN, ["{$item}.suppressed"], true, [report_format::class, 'boolean_as_text'])
-            ->define_column('numerator', new lang_string('reportcolumn_numerator', 'local_outcomemap'),
-                column::TYPE_TEXT, ['numerator' => $numerator], true, null, [], true)
-            ->define_column('denominator', new lang_string('weightedpossiblepoints', 'local_outcomemap'),
-                column::TYPE_TEXT, ['denominator' => $denominator], true, null, [], true)
-            ->define_column('percentage', new lang_string('reportcolumn_percentage', 'local_outcomemap'),
-                column::TYPE_TEXT, ['percentage' => $percentage], true, null, [], true)
-            ->define_column('criterionpercent', new lang_string('achievementminpercent', 'local_outcomemap'),
-                column::TYPE_TEXT, ['criterionpercent' => "{$item}.criterionpercent"], true, null, [], true)
-            ->define_column('benchmarkpercent', new lang_string('benchmarkpercent', 'local_outcomemap'),
-                column::TYPE_TEXT, ['benchmarkpercent' => "{$item}.benchmarkpercent"], true, null, [], true)
-            ->define_column('assessedcount', new lang_string('reportcolumn_assessedcount', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['assessedcount' => $assessedcount])
-            ->define_column('metcount', new lang_string('reportcolumn_metcount', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['metcount' => $metcount])
-            ->define_column('attainmentpercent', new lang_string('attainmentrate', 'local_outcomemap'),
-                column::TYPE_TEXT, ['attainmentpercent' => $attainment], true, null, [], true)
-            ->define_column('benchmarkmet', new lang_string('benchmarkmet', 'local_outcomemap'),
-                column::TYPE_BOOLEAN, ['benchmarkmet' => $benchmarkmet], true,
-                [report_format::class, 'boolean_as_text'])
-            ->define_column('populationcount', new lang_string('populationcount', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$snapshot}.populationcount"])
-            ->define_column('suppressionthreshold',
+                ],
+                false,
+                [format::class, 'snapshot_payload_value']
+            )
+            ->define_column(
+                'state',
+                new lang_string('reportcolumn_state', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$item}.state"]
+            )
+            ->define_column(
+                'subjectcount',
+                new lang_string('reportcolumn_subjectcount', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$item}.subjectcount"]
+            )
+            ->define_column(
+                'suppressed',
+                new lang_string('reportcolumn_suppressed', 'local_outcomemap'),
+                column::TYPE_BOOLEAN,
+                ["{$item}.suppressed"],
+                true,
+                [report_format::class, 'boolean_as_text']
+            )
+            ->define_column(
+                'numerator',
+                new lang_string('reportcolumn_numerator', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['numerator' => $numerator],
+                true,
+                null,
+                [],
+                true
+            )
+            ->define_column(
+                'denominator',
+                new lang_string('weightedpossiblepoints', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['denominator' => $denominator],
+                true,
+                null,
+                [],
+                true
+            )
+            ->define_column(
+                'percentage',
+                new lang_string('reportcolumn_percentage', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['percentage' => $percentage],
+                true,
+                null,
+                [],
+                true
+            )
+            ->define_column(
+                'criterionpercent',
+                new lang_string('achievementminpercent', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['criterionpercent' => "{$item}.criterionpercent"],
+                true,
+                null,
+                [],
+                true
+            )
+            ->define_column(
+                'benchmarkpercent',
+                new lang_string('benchmarkpercent', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['benchmarkpercent' => "{$item}.benchmarkpercent"],
+                true,
+                null,
+                [],
+                true
+            )
+            ->define_column(
+                'assessedcount',
+                new lang_string('reportcolumn_assessedcount', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ['assessedcount' => $assessedcount]
+            )
+            ->define_column(
+                'metcount',
+                new lang_string('reportcolumn_metcount', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ['metcount' => $metcount]
+            )
+            ->define_column(
+                'attainmentpercent',
+                new lang_string('attainmentrate', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['attainmentpercent' => $attainment],
+                true,
+                null,
+                [],
+                true
+            )
+            ->define_column(
+                'benchmarkmet',
+                new lang_string('benchmarkmet', 'local_outcomemap'),
+                column::TYPE_BOOLEAN,
+                ['benchmarkmet' => $benchmarkmet],
+                true,
+                [report_format::class, 'boolean_as_text']
+            )
+            ->define_column(
+                'populationcount',
+                new lang_string('populationcount', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$snapshot}.populationcount"]
+            )
+            ->define_column(
+                'suppressionthreshold',
                 new lang_string('suppressionthreshold', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$snapshot}.suppressionthreshold"])
-            ->define_column('populationat', new lang_string('populationat', 'local_outcomemap'),
-                column::TYPE_TIMESTAMP, ["{$snapshot}.populationat"], true, [report_format::class, 'userdate'])
-            ->define_column('policyid', new lang_string('policy', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$snapshot}.policyid"])
-            ->define_column('policy', new lang_string('policy', 'local_outcomemap'),
-                column::TYPE_TEXT, [
+                column::TYPE_INTEGER,
+                ["{$snapshot}.suppressionthreshold"]
+            )
+            ->define_column(
+                'populationat',
+                new lang_string('populationat', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP,
+                ["{$snapshot}.populationat"],
+                true,
+                [report_format::class, 'userdate']
+            )
+            ->define_column(
+                'policyid',
+                new lang_string('policy', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$snapshot}.policyid"]
+            )
+            ->define_column(
+                'policy',
+                new lang_string('policy', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                [
                     'payloadjson' => "{$policycapture}.payloadjson",
                     'payloadfield' => "'name'",
                     'fallback' => "{$policy}.name",
-                ], false, [format::class, 'snapshot_payload_value'])
-            ->define_column('pluginversion', new lang_string('version', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$snapshot}.pluginversion"])
-            ->define_column('algoversion', new lang_string('aggregationmethod', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$snapshot}.algoversion"])
-            ->define_column('payloadhash', new lang_string('payloadhash', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$item}.payloadhash"])
-            ->define_column('manifesthash', new lang_string('manifesthash', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$snapshot}.manifesthash"])
-            ->define_column('approvedat', new lang_string('approvedat', 'local_outcomemap'),
-                column::TYPE_TIMESTAMP, ["{$snapshot}.approvedat"], true, [report_format::class, 'userdate'])
-            ->define_filter('programid', new lang_string('program', 'local_outcomemap'),
-                number::class, "{$snapshot}.programid")
-            ->define_filter('periodcode', new lang_string('periodcode', 'local_outcomemap'),
-                text::class, "{$snapshot}.periodcode")
-            ->define_filter('cohortid', new lang_string('cohort', 'local_outcomemap'),
-                number::class, "{$snapshot}.cohortid")
-            ->define_filter('outcomeversionid', new lang_string('outcomeversion', 'local_outcomemap'),
-                number::class, "{$item}.itemverid")
-            ->define_filter('policyid', new lang_string('policy', 'local_outcomemap'),
-                number::class, "{$snapshot}.policyid")
-            ->define_filter('state', new lang_string('reportcolumn_state', 'local_outcomemap'),
-                select::class, "{$item}.state", filter_options::aggregate_states())
-            ->define_filter('percentage', new lang_string('reportcolumn_percentage', 'local_outcomemap'),
-                number::class, $percentage)
-            ->define_filter('attainmentpercent', new lang_string('attainmentrate', 'local_outcomemap'),
-                number::class, $attainment);
+                ],
+                false,
+                [format::class, 'snapshot_payload_value']
+            )
+            ->define_column(
+                'pluginversion',
+                new lang_string('version', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$snapshot}.pluginversion"]
+            )
+            ->define_column(
+                'algoversion',
+                new lang_string('aggregationmethod', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$snapshot}.algoversion"]
+            )
+            ->define_column(
+                'payloadhash',
+                new lang_string('payloadhash', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$item}.payloadhash"]
+            )
+            ->define_column(
+                'manifesthash',
+                new lang_string('manifesthash', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$snapshot}.manifesthash"]
+            )
+            ->define_column(
+                'approvedat',
+                new lang_string('approvedat', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP,
+                ["{$snapshot}.approvedat"],
+                true,
+                [report_format::class, 'userdate']
+            )
+            ->define_filter(
+                'programid',
+                new lang_string('program', 'local_outcomemap'),
+                number::class,
+                "{$snapshot}.programid"
+            )
+            ->define_filter(
+                'periodcode',
+                new lang_string('periodcode', 'local_outcomemap'),
+                text::class,
+                "{$snapshot}.periodcode"
+            )
+            ->define_filter(
+                'cohortid',
+                new lang_string('cohort', 'local_outcomemap'),
+                number::class,
+                "{$snapshot}.cohortid"
+            )
+            ->define_filter(
+                'outcomeversionid',
+                new lang_string('outcomeversion', 'local_outcomemap'),
+                number::class,
+                "{$item}.itemverid"
+            )
+            ->define_filter(
+                'policyid',
+                new lang_string('policy', 'local_outcomemap'),
+                number::class,
+                "{$snapshot}.policyid"
+            )
+            ->define_filter(
+                'state',
+                new lang_string('reportcolumn_state', 'local_outcomemap'),
+                select::class,
+                "{$item}.state",
+                filter_options::aggregate_states()
+            )
+            ->define_filter(
+                'percentage',
+                new lang_string('reportcolumn_percentage', 'local_outcomemap'),
+                number::class,
+                $percentage
+            )
+            ->define_filter(
+                'attainmentpercent',
+                new lang_string('attainmentrate', 'local_outcomemap'),
+                number::class,
+                $attainment
+            );
 
         $this->register_entity($entity, 'local_outcomemap_snapitem');
     }
 
-    /** @return string[] */
+    /**
+     * Returns the default report columns.
+     * @return string[]
+     */
     public function get_default_columns(): array {
         return [
             'outcomemap:programcode',
@@ -262,7 +497,10 @@ final class program_aggregates extends secured_datasource {
         ];
     }
 
-    /** @return string[] */
+    /**
+     * Returns the default report filters.
+     * @return string[]
+     */
     public function get_default_filters(): array {
         return [
             'outcomemap:programid',

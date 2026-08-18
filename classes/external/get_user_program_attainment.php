@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\external;
 
@@ -32,7 +40,6 @@ use local_outcomemap\local\service\attainment_export_service;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class get_user_program_attainment extends external_api {
-
     /**
      * Parameter definition.
      *
@@ -87,8 +94,13 @@ class get_user_program_attainment extends external_api {
      * @return external_single_structure
      */
     public static function execute_returns(): external_single_structure {
-        $decimal = static fn(string $description): external_value =>
-            new external_value(PARAM_RAW, $description . ' (canonical scale-10 decimal string)', VALUE_REQUIRED, null, NULL_ALLOWED);
+        $decimal = static fn(string $description): external_value => new external_value(
+            PARAM_RAW,
+            $description . ' (canonical scale-10 decimal string)',
+            VALUE_REQUIRED,
+            null,
+            NULL_ALLOWED
+        );
         return new external_single_structure([
             'generatedat' => new external_value(PARAM_INT, 'Evaluation timestamp'),
             'algoversion' => new external_value(PARAM_RAW, 'Calculation algorithm version the figures carry'),
@@ -102,16 +114,23 @@ class get_user_program_attainment extends external_api {
                     'code' => new external_value(PARAM_RAW, 'Outcome code, e.g. PLO1'),
                     'statement' => new external_value(PARAM_RAW, 'Current effective outcome statement'),
                     'shortstatement' => new external_value(PARAM_RAW, 'Short form of the statement'),
-                    'state' => new external_value(PARAM_ALPHAEXT,
-                        'calculated, insufficient_evidence, calculation_pending, stale, not_released, or not_assessed'),
+                    'state' => new external_value(
+                        PARAM_ALPHAEXT,
+                        'calculated, insufficient_evidence, calculation_pending, stale, not_released, or not_assessed'
+                    ),
                     'percentage' => $decimal('Pooled attainment percentage; null unless state is calculated'),
                     'coursesassessed' => new external_value(PARAM_INT, 'Catalog courses contributing released evidence'),
                     'coursestotal' => new external_value(PARAM_INT, 'Catalog courses the program currently promises'),
                     'gradeditems' => new external_value(PARAM_INT, 'Distinct graded items across contributing courses'),
                     'expectedpercent' => $decimal('Expected threshold from the judging policies\' band ladder'),
                     'strongpercent' => $decimal('Strong threshold from the judging policies\' band ladder'),
-                    'timecalculated' => new external_value(PARAM_INT, 'Most recent contributing calculation time',
-                        VALUE_REQUIRED, null, NULL_ALLOWED),
+                    'timecalculated' => new external_value(
+                        PARAM_INT,
+                        'Most recent contributing calculation time',
+                        VALUE_REQUIRED,
+                        null,
+                        NULL_ALLOWED
+                    ),
                 ])),
             ])),
         ]);

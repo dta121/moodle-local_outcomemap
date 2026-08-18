@@ -35,16 +35,24 @@ use local_outcomemap\local\workflow;
  * report and a learner's own page can never disagree.
  */
 final class course_attainment_service extends base_service {
-    /** Measured, and most assessed learners sit above the lowest band. */
+    /**
+     * Measured, and most assessed learners sit above the lowest band.
+     */
     public const STATE_ATTAINED = 'attained';
 
-    /** Measured, and at least half of the assessed learners sit in the lowest band. */
+    /**
+     * Measured, and at least half of the assessed learners sit in the lowest band.
+     */
     public const STATE_ATTENTION = 'attention';
 
-    /** Assessing content is mapped, but no result has been stored yet. */
+    /**
+     * Assessing content is mapped, but no result has been stored yet.
+     */
     public const STATE_PENDING = 'pending';
 
-    /** No assessing content is mapped, so no result can ever be stored. */
+    /**
+     * No assessing content is mapped, so no result can ever be stored.
+     */
     public const STATE_UNASSESSED = 'unassessed';
 
     /**
@@ -355,7 +363,9 @@ final class course_attainment_service extends base_service {
             'rows' => array_values($rows),
             'learners' => count($learners),
             'periodcodes' => array_values(array_unique(array_map(
-                static fn($i) => $i->periodcode, $instances))),
+                static fn($i) => $i->periodcode,
+                $instances
+            ))),
             'hasinstance' => true,
             'hasalignmentpaths' => $hasalignmentpaths,
             'outcomes' => count($rows),
@@ -499,8 +509,10 @@ final class course_attainment_service extends base_service {
         $itemverids = [];
         foreach (coverage_service::matrix($courseid) as $itemverid => $row) {
             $status = coverage_service::row_status($row);
-            if ($status === coverage_service::STATUS_FULL
-                    || $status === coverage_service::STATUS_ASSESSED_ONLY) {
+            if (
+                $status === coverage_service::STATUS_FULL
+                    || $status === coverage_service::STATUS_ASSESSED_ONLY
+            ) {
                 $itemverids[] = (int) $itemverid;
             }
         }
@@ -609,7 +621,7 @@ final class course_attainment_service extends base_service {
         }
 
         $walk = static function (int $current, array $path, array $seen, bool $propagates, int $depth)
-                use (&$walk, $edges): array {
+ use (&$walk, $edges): array {
             if ($depth >= 20) {
                 return $path ? [(object) ['targets' => $path, 'propagates' => $propagates]] : [];
             }

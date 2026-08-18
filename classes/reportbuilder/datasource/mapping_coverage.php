@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\reportbuilder\datasource;
 
@@ -36,12 +44,18 @@ use local_outcomemap\reportbuilder\local\secured_datasource;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class mapping_coverage extends secured_datasource {
-    /** @return string */
+    /**
+     * Returns the report source name.
+     * @return string
+     */
     public static function get_name(): string {
         return get_string('report_source_mapping_coverage', 'local_outcomemap');
     }
 
-    /** @return string[] */
+    /**
+     * Returns the capabilities required to access the source.
+     * @return string[]
+     */
     protected static function get_required_capabilities(): array {
         return ['local/outcomemap:viewdefinitions'];
     }
@@ -76,12 +90,17 @@ final class mapping_coverage extends secured_datasource {
         return array_values($allowedcourseids);
     }
 
-    /** @return bool */
+    /**
+     * Checks whether the current user can view the scoped source.
+     * @return bool
+     */
     protected static function can_view_scoped(): bool {
         return self::allowed_course_ids() !== [];
     }
 
-    /** Build the source. */
+    /**
+     * Build the source.
+     */
     protected function initialise_source(): void {
         $entity = new report_record(
             [
@@ -202,92 +221,275 @@ final class mapping_coverage extends secured_datasource {
         $sectionmappingcount = "COALESCE({$sectioncoverage}.mappingcount, 0)";
 
         $entity
-            ->define_column('recordid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$version}.id"])
-            ->define_column('programid', new lang_string('reportcolumn_programid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$program}.id"])
-            ->define_column('programcode', new lang_string('program', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$program}.code"])
-            ->define_column('programname', new lang_string('name', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$program}.name"])
-            ->define_column('membershipstatus', new lang_string('status', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$membership}.status"])
-            ->define_column('membershipeffectivefrom', new lang_string('effectivefrom', 'local_outcomemap'),
-                column::TYPE_TIMESTAMP, ["{$membership}.effectivefrom"], true, [format::class, 'userdate'])
-            ->define_column('membershipeffectiveto', new lang_string('effectiveto', 'local_outcomemap'),
-                column::TYPE_TIMESTAMP, ["{$membership}.effectiveto"], true, [format::class, 'userdate'])
-            ->define_column('catalogcourseid',
+            ->define_column(
+                'recordid',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$version}.id"]
+            )
+            ->define_column(
+                'programid',
+                new lang_string('reportcolumn_programid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$program}.id"]
+            )
+            ->define_column(
+                'programcode',
+                new lang_string('program', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$program}.code"]
+            )
+            ->define_column(
+                'programname',
+                new lang_string('name', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$program}.name"]
+            )
+            ->define_column(
+                'membershipstatus',
+                new lang_string('status', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$membership}.status"]
+            )
+            ->define_column(
+                'membershipeffectivefrom',
+                new lang_string('effectivefrom', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP,
+                ["{$membership}.effectivefrom"],
+                true,
+                [format::class, 'userdate']
+            )
+            ->define_column(
+                'membershipeffectiveto',
+                new lang_string('effectiveto', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP,
+                ["{$membership}.effectiveto"],
+                true,
+                [format::class, 'userdate']
+            )
+            ->define_column(
+                'catalogcourseid',
                 new lang_string('reportcolumn_catalogcourseid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$catalogcourse}.id"])
-            ->define_column('catalogcoursecode', new lang_string('catalogcourse', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$catalogcourse}.code"])
-            ->define_column('catalogcoursename', new lang_string('name', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$catalogcourse}.name"])
-            ->define_column('moodlecourseid',
+                column::TYPE_INTEGER,
+                ["{$catalogcourse}.id"]
+            )
+            ->define_column(
+                'catalogcoursecode',
+                new lang_string('catalogcourse', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$catalogcourse}.code"]
+            )
+            ->define_column(
+                'catalogcoursename',
+                new lang_string('name', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$catalogcourse}.name"]
+            )
+            ->define_column(
+                'moodlecourseid',
                 new lang_string('reportcolumn_moodlecourseid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$moodlecourse}.id"])
-            ->define_column('moodlecoursename', new lang_string('moodlecourse', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$moodlecourse}.fullname"])
-            ->define_column('periodcode', new lang_string('reportcolumn_periodcode', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$courseinstance}.periodcode"])
-            ->define_column('outcomeversionid',
+                column::TYPE_INTEGER,
+                ["{$moodlecourse}.id"]
+            )
+            ->define_column(
+                'moodlecoursename',
+                new lang_string('moodlecourse', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$moodlecourse}.fullname"]
+            )
+            ->define_column(
+                'periodcode',
+                new lang_string('reportcolumn_periodcode', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$courseinstance}.periodcode"]
+            )
+            ->define_column(
+                'outcomeversionid',
                 new lang_string('reportcolumn_outcomeversionid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$version}.id"])
-            ->define_column('outcomecode', new lang_string('outcome', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$item}.code"])
-            ->define_column('outcomestatement', new lang_string('statement', 'local_outcomemap'),
-                column::TYPE_LONGTEXT, ["{$version}.statement"])
-            ->define_column('outcomeversion', new lang_string('version', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$version}.version"])
-            ->define_column('outcomestatus', new lang_string('status', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$version}.status"])
-            ->define_column('outcomeeffectivefrom', new lang_string('effectivefrom', 'local_outcomemap'),
-                column::TYPE_TIMESTAMP, ["{$version}.effectivefrom"], true, [format::class, 'userdate'])
-            ->define_column('outcomeeffectiveto', new lang_string('effectiveto', 'local_outcomemap'),
-                column::TYPE_TIMESTAMP, ["{$version}.effectiveto"], true, [format::class, 'userdate'])
-            ->define_column('relationid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$relation}.id"])
-            ->define_column('targetoutcomecode', new lang_string('targetoutcome', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$relation}.targetcode"])
-            ->define_column('relationtype', new lang_string('relationtype', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$relation}.type"])
-            ->define_column('relationversion', new lang_string('version', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$relation}.version"])
-            ->define_column('relationstatus', new lang_string('status', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$relation}.status"])
-            ->define_column('relationeffectivefrom', new lang_string('effectivefrom', 'local_outcomemap'),
-                column::TYPE_TIMESTAMP, ["{$relation}.effectivefrom"], true, [format::class, 'userdate'])
-            ->define_column('relationeffectiveto', new lang_string('effectiveto', 'local_outcomemap'),
-                column::TYPE_TIMESTAMP, ["{$relation}.effectiveto"], true, [format::class, 'userdate'])
-            ->define_column('relationweight', new lang_string('weight', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$relation}.weight"], true, null, [], true)
-            ->define_column('modulemappingcount', new lang_string('coursemodules', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['modulemappingcount' => $modulemappingcount], true, null, [], true)
-            ->define_column('sectionmappingcount', new lang_string('coursesections', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['sectionmappingcount' => $sectionmappingcount], true, null, [], true)
-            ->define_filter('programid', new lang_string('program', 'local_outcomemap'),
-                number::class, "{$program}.id")
-            ->define_filter('catalogcourseid', new lang_string('catalogcourse', 'local_outcomemap'),
-                number::class, "{$catalogcourse}.id")
-            ->define_filter('moodlecourseid', new lang_string('moodlecourse', 'local_outcomemap'),
-                course_selector::class, "{$moodlecourse}.id")
-            ->define_filter('periodcode', new lang_string('periodcode', 'local_outcomemap'),
-                text::class, "{$courseinstance}.periodcode")
-            ->define_filter('outcomeversionid', new lang_string('outcomeversion', 'local_outcomemap'),
-                number::class, "{$version}.id")
-            ->define_filter('outcomecode', new lang_string('outcome', 'local_outcomemap'),
-                text::class, "{$item}.code")
-            ->define_filter('membershipstatus', new lang_string('status', 'local_outcomemap'),
-                select::class, "{$membership}.status", filter_options::workflow_states())
-            ->define_filter('relationtype', new lang_string('relationtype', 'local_outcomemap'),
-                select::class, "{$relation}.type", filter_options::relation_types())
-            ->define_filter('relationstatus', new lang_string('status', 'local_outcomemap'),
-                select::class, "{$relation}.status", filter_options::workflow_states());
+                column::TYPE_INTEGER,
+                ["{$version}.id"]
+            )
+            ->define_column(
+                'outcomecode',
+                new lang_string('outcome', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$item}.code"]
+            )
+            ->define_column(
+                'outcomestatement',
+                new lang_string('statement', 'local_outcomemap'),
+                column::TYPE_LONGTEXT,
+                ["{$version}.statement"]
+            )
+            ->define_column(
+                'outcomeversion',
+                new lang_string('version', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$version}.version"]
+            )
+            ->define_column(
+                'outcomestatus',
+                new lang_string('status', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$version}.status"]
+            )
+            ->define_column(
+                'outcomeeffectivefrom',
+                new lang_string('effectivefrom', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP,
+                ["{$version}.effectivefrom"],
+                true,
+                [format::class, 'userdate']
+            )
+            ->define_column(
+                'outcomeeffectiveto',
+                new lang_string('effectiveto', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP,
+                ["{$version}.effectiveto"],
+                true,
+                [format::class, 'userdate']
+            )
+            ->define_column(
+                'relationid',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$relation}.id"]
+            )
+            ->define_column(
+                'targetoutcomecode',
+                new lang_string('targetoutcome', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$relation}.targetcode"]
+            )
+            ->define_column(
+                'relationtype',
+                new lang_string('relationtype', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$relation}.type"]
+            )
+            ->define_column(
+                'relationversion',
+                new lang_string('version', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$relation}.version"]
+            )
+            ->define_column(
+                'relationstatus',
+                new lang_string('status', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$relation}.status"]
+            )
+            ->define_column(
+                'relationeffectivefrom',
+                new lang_string('effectivefrom', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP,
+                ["{$relation}.effectivefrom"],
+                true,
+                [format::class, 'userdate']
+            )
+            ->define_column(
+                'relationeffectiveto',
+                new lang_string('effectiveto', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP,
+                ["{$relation}.effectiveto"],
+                true,
+                [format::class, 'userdate']
+            )
+            ->define_column(
+                'relationweight',
+                new lang_string('weight', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$relation}.weight"],
+                true,
+                null,
+                [],
+                true
+            )
+            ->define_column(
+                'modulemappingcount',
+                new lang_string('coursemodules', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ['modulemappingcount' => $modulemappingcount],
+                true,
+                null,
+                [],
+                true
+            )
+            ->define_column(
+                'sectionmappingcount',
+                new lang_string('coursesections', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ['sectionmappingcount' => $sectionmappingcount],
+                true,
+                null,
+                [],
+                true
+            )
+            ->define_filter(
+                'programid',
+                new lang_string('program', 'local_outcomemap'),
+                number::class,
+                "{$program}.id"
+            )
+            ->define_filter(
+                'catalogcourseid',
+                new lang_string('catalogcourse', 'local_outcomemap'),
+                number::class,
+                "{$catalogcourse}.id"
+            )
+            ->define_filter(
+                'moodlecourseid',
+                new lang_string('moodlecourse', 'local_outcomemap'),
+                course_selector::class,
+                "{$moodlecourse}.id"
+            )
+            ->define_filter(
+                'periodcode',
+                new lang_string('periodcode', 'local_outcomemap'),
+                text::class,
+                "{$courseinstance}.periodcode"
+            )
+            ->define_filter(
+                'outcomeversionid',
+                new lang_string('outcomeversion', 'local_outcomemap'),
+                number::class,
+                "{$version}.id"
+            )
+            ->define_filter(
+                'outcomecode',
+                new lang_string('outcome', 'local_outcomemap'),
+                text::class,
+                "{$item}.code"
+            )
+            ->define_filter(
+                'membershipstatus',
+                new lang_string('status', 'local_outcomemap'),
+                select::class,
+                "{$membership}.status",
+                filter_options::workflow_states()
+            )
+            ->define_filter(
+                'relationtype',
+                new lang_string('relationtype', 'local_outcomemap'),
+                select::class,
+                "{$relation}.type",
+                filter_options::relation_types()
+            )
+            ->define_filter(
+                'relationstatus',
+                new lang_string('status', 'local_outcomemap'),
+                select::class,
+                "{$relation}.status",
+                filter_options::workflow_states()
+            );
 
         $this->register_entity($entity, 'local_outcomemap_itemver');
     }
 
-    /** @return string[] */
+    /**
+     * Returns the default report columns.
+     * @return string[]
+     */
     public function get_default_columns(): array {
         return [
             'outcomemap:programcode',
@@ -303,7 +505,10 @@ final class mapping_coverage extends secured_datasource {
         ];
     }
 
-    /** @return string[] */
+    /**
+     * Returns the default report filters.
+     * @return string[]
+     */
     public function get_default_filters(): array {
         return [
             'outcomemap:programid',

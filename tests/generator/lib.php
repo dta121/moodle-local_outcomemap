@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 use local_outcomemap\local\service\content_mapping_service;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\uuid;

@@ -33,7 +33,9 @@ use local_outcomemap\local\workflow;
 final class question_browser_service_test extends \advanced_testcase {
     use \local_outcomemap\tests\moodle_compat_trait;
 
-    /** @var int Outcome effective start shared across fixtures. */
+    /**
+     * @var int Outcome effective start shared across fixtures.
+     */
     private const EFFECTIVEFROM = 1704067200;
 
     /**
@@ -110,7 +112,7 @@ final class question_browser_service_test extends \advanced_testcase {
     }
 
     /**
-     * The quiz list reports slot counts and mapping coverage per quiz.
+     * * The quiz list reports slot counts and mapping coverage per quiz.
      */
     public function test_quizzes_reports_mapping_coverage(): void {
         $this->resetAfterTest(true);
@@ -149,7 +151,7 @@ final class question_browser_service_test extends \advanced_testcase {
     }
 
     /**
-     * Assessment coverage groups approved question mappings by quiz and outcome.
+     * * Assessment coverage groups approved question mappings by quiz and outcome.
      */
     public function test_assessment_coverage_groups_mapped_questions(): void {
         $this->resetAfterTest(true);
@@ -187,7 +189,7 @@ final class question_browser_service_test extends \advanced_testcase {
     }
 
     /**
-     * The quiz detail resolves each slot to its exact question version and mappings.
+     * * The quiz detail resolves each slot to its exact question version and mappings.
      */
     public function test_quiz_detail_resolves_versions_and_mappings(): void {
         $this->resetAfterTest(true);
@@ -223,7 +225,7 @@ final class question_browser_service_test extends \advanced_testcase {
     }
 
     /**
-     * A random slot lists the pool a draw could select from, so it can be mapped.
+     * * A random slot lists the pool a draw could select from, so it can be mapped.
      */
     public function test_quiz_detail_expands_random_slot_pool(): void {
         $this->resetAfterTest(true);
@@ -297,7 +299,7 @@ final class question_browser_service_test extends \advanced_testcase {
     }
 
     /**
-     * A teacher without the mapping capability sees questions but cannot edit them.
+     * * A teacher without the mapping capability sees questions but cannot edit them.
      */
     public function test_quiz_detail_reports_read_only_for_unprivileged_user(): void {
         global $DB;
@@ -326,7 +328,7 @@ final class question_browser_service_test extends \advanced_testcase {
     }
 
     /**
-     * A course module from another course is rejected rather than silently browsed.
+     * * A course module from another course is rejected rather than silently browsed.
      */
     public function test_quiz_detail_rejects_foreign_module(): void {
         $this->resetAfterTest(true);

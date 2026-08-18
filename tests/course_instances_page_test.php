@@ -28,7 +28,9 @@ use local_outcomemap\output\course_instances_page;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class course_instances_page_test extends \advanced_testcase {
-    /** @var int Fixed reference time used for every delivery-window assertion. */
+    /**
+     * @var int Fixed reference time used for every delivery-window assertion.
+     */
     private const NOW = 1785110400;
 
     /**
@@ -41,8 +43,13 @@ final class course_instances_page_test extends \advanced_testcase {
      * @param bool $confirm Whether to finalize the association.
      * @return int Association ID.
      */
-    private function associate(int $catalogid, string $periodcode, int $startdate, int $enddate,
-            bool $confirm = true): int {
+    private function associate(
+        int $catalogid,
+        string $periodcode,
+        int $startdate,
+        int $enddate,
+        bool $confirm = true
+    ): int {
         $course = $this->getDataGenerator()->create_course([
             'startdate' => $startdate,
             'enddate' => $enddate,
@@ -77,7 +84,7 @@ final class course_instances_page_test extends \advanced_testcase {
     }
 
     /**
-     * Each association reports its governance state and its delivery phase.
+     * * Each association reports its governance state and its delivery phase.
      */
     public function test_export_classifies_the_delivery_phase_of_each_association(): void {
         $this->resetAfterTest(true);
@@ -98,8 +105,11 @@ final class course_instances_page_test extends \advanced_testcase {
         $this->assertSame('active', $rows['2026-SP']['stateclass']);
         $this->assertSame('ended', $rows['2025-FA']['phase']);
         $this->assertSame('upcoming', $rows['2027-SP']['phase']);
-        $this->assertSame('ended', $rows['2027-SP']['stateclass'],
-            'A finalized association outside its window must not read as active.');
+        $this->assertSame(
+            'ended',
+            $rows['2027-SP']['stateclass'],
+            'A finalized association outside its window must not read as active.'
+        );
         $this->assertSame('draft', $rows['2027-FA']['phase']);
 
         $this->assertTrue($context['hasdrafts']);
@@ -114,7 +124,7 @@ final class course_instances_page_test extends \advanced_testcase {
     }
 
     /**
-     * A confirmed association offers the course pages; an unconfirmed one does not.
+     * * A confirmed association offers the course pages; an unconfirmed one does not.
      */
     public function test_export_offers_course_pages_only_once_confirmed(): void {
         $this->resetAfterTest(true);
@@ -129,16 +139,21 @@ final class course_instances_page_test extends \advanced_testcase {
 
         $this->assertArrayHasKey('coverageurl', $rows['2026-SP']);
         $this->assertArrayHasKey('mappingurl', $rows['2026-SP']);
-        $this->assertFalse($rows['2026-SP']['cansubmit'],
-            'A finalized association has nothing left to submit.');
+        $this->assertFalse(
+            $rows['2026-SP']['cansubmit'],
+            'A finalized association has nothing left to submit.'
+        );
 
-        $this->assertArrayNotHasKey('coverageurl', $rows['2027-FA'],
-            'An unconfirmed association cannot govern mappings, so it must not link to them.');
+        $this->assertArrayNotHasKey(
+            'coverageurl',
+            $rows['2027-FA'],
+            'An unconfirmed association cannot govern mappings, so it must not link to them.'
+        );
         $this->assertTrue($rows['2027-FA']['cansubmit']);
     }
 
     /**
-     * The catalog code a reader arrived with prefills the search box.
+     * * The catalog code a reader arrived with prefills the search box.
      */
     public function test_export_prefills_the_search_with_the_requested_catalog_code(): void {
         $this->resetAfterTest(true);
@@ -149,7 +164,7 @@ final class course_instances_page_test extends \advanced_testcase {
     }
 
     /**
-     * With nothing associated the page says so rather than showing empty groups.
+     * * With nothing associated the page says so rather than showing empty groups.
      */
     public function test_export_reports_an_empty_catalog(): void {
         $this->resetAfterTest(true);

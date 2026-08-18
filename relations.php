@@ -1,5 +1,26 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 use local_outcomemap\form\relation_form;
 use local_outcomemap\local\csv_safety;
@@ -8,6 +29,7 @@ use local_outcomemap\local\workflow;
 use local_outcomemap\output\outcomes_hierarchy;
 use local_outcomemap\output\relations_page;
 
+// phpcs:ignore moodle.Files.MoodleInternal.MoodleInternalGlobalState -- Portable bootstrap path.
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     // Windows junctions resolve __DIR__ to the repository target rather than
@@ -75,9 +97,11 @@ if (in_array($action, ['add', 'edit', 'newversion'], true)) {
             $record->effectiveto = null;
         }
         $form->set_data($record);
-    } else if ($action === 'add' && !$form->is_submitted()
+    } else if (
+        $action === 'add' && !$form->is_submitted()
             && $sourceitemid && $targetitemid
-            && in_array($relationtype, relation_service::TYPES, true)) {
+            && in_array($relationtype, relation_service::TYPES, true)
+    ) {
         $form->set_data((object) [
             'sourceitemid' => $sourceitemid,
             'targetitemid' => $targetitemid,

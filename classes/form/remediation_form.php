@@ -27,7 +27,7 @@ use local_outcomemap\local\service\remediation_service;
  */
 final class remediation_form extends \moodleform {
     /**
-     * Defines the form elements.
+     * * Defines the form elements.
      */
     public function definition(): void {
         $mform = $this->_form;
@@ -46,8 +46,12 @@ final class remediation_form extends \moodleform {
             $options['outcomes']
         );
         $mform->addRule('itemverid', null, 'required');
-        $mform->addElement('autocomplete', 'bandid', get_string('performanceband', 'local_outcomemap'),
-            [0 => get_string('anyperformanceband', 'local_outcomemap')] + $options['bands']);
+        $mform->addElement(
+            'autocomplete',
+            'bandid',
+            get_string('performanceband', 'local_outcomemap'),
+            [0 => get_string('anyperformanceband', 'local_outcomemap')] + $options['bands']
+        );
         $purposes = [
             remediation_service::PURPOSE_REVIEW => get_string('remediationpurpose_review', 'local_outcomemap'),
             remediation_service::PURPOSE_PRACTICE => get_string('remediationpurpose_practice', 'local_outcomemap'),

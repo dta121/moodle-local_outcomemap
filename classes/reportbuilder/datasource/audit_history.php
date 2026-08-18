@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\reportbuilder\datasource;
 
@@ -42,12 +50,18 @@ use local_outcomemap\reportbuilder\local\secured_datasource;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class audit_history extends secured_datasource {
-    /** @return string */
+    /**
+     * Returns the report source name.
+     * @return string
+     */
     public static function get_name(): string {
         return get_string('report_source_audit_history', 'local_outcomemap');
     }
 
-    /** @return string[] */
+    /**
+     * Returns the capabilities required to access the source.
+     * @return string[]
+     */
     protected static function get_required_capabilities(): array {
         return [
             'local/outcomemap:exportaccreditation',
@@ -56,7 +70,9 @@ final class audit_history extends secured_datasource {
         ];
     }
 
-    /** Build the source. */
+    /**
+     * Build the source.
+     */
     protected function initialise_source(): void {
         $entity = new report_record(
             [
@@ -376,22 +392,54 @@ final class audit_history extends secured_datasource {
         $policystatus = "COALESCE({$policy}.status, {$lineagepolicy}.status)";
 
         $entity
-            ->define_column('recordid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$audit}.id"])
-            ->define_column('eventuuid', new lang_string('uuid', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$audit}.eventuuid"])
-            ->define_column('action', new lang_string('actions', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$audit}.action"])
-            ->define_column('objecttype', new lang_string('objecttype', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$audit}.objecttype"])
-            ->define_column('objectid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$audit}.objectid"])
-            ->define_column('objectuuid', new lang_string('uuid', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$audit}.objectuuid"])
-            ->define_column('correlationid', new lang_string('externalid', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$audit}.correlationid"])
-            ->define_column('actorid', new lang_string('createdby', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$actor}.id"])
+            ->define_column(
+                'recordid',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$audit}.id"]
+            )
+            ->define_column(
+                'eventuuid',
+                new lang_string('uuid', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$audit}.eventuuid"]
+            )
+            ->define_column(
+                'action',
+                new lang_string('actions', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$audit}.action"]
+            )
+            ->define_column(
+                'objecttype',
+                new lang_string('objecttype', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$audit}.objecttype"]
+            )
+            ->define_column(
+                'objectid',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$audit}.objectid"]
+            )
+            ->define_column(
+                'objectuuid',
+                new lang_string('uuid', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$audit}.objectuuid"]
+            )
+            ->define_column(
+                'correlationid',
+                new lang_string('externalid', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$audit}.correlationid"]
+            )
+            ->define_column(
+                'actorid',
+                new lang_string('createdby', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$actor}.id"]
+            )
             ->define_column('actorname', new lang_string('fullnameuser'), column::TYPE_TEXT, [
                 'firstname' => "{$actor}.firstname",
                 'lastname' => "{$actor}.lastname",
@@ -400,190 +448,548 @@ final class audit_history extends secured_datasource {
                 'middlename' => "{$actor}.middlename",
                 'alternatename' => "{$actor}.alternatename",
             ], true, [format::class, 'user_fullname'], ['lastname', 'firstname'])
-            ->define_column('contextid', new lang_string('category'),
-                column::TYPE_INTEGER, ["{$context}.id"])
-            ->define_column('contextlevel', new lang_string('context', 'role'),
-                column::TYPE_INTEGER, ["{$context}.contextlevel"])
-            ->define_column('contextinstanceid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$context}.instanceid"])
-            ->define_column('reason', new lang_string('reason', 'local_outcomemap'),
-                column::TYPE_LONGTEXT, ["{$audit}.reason"])
-            ->define_column('beforejson', new lang_string('reportcolumn_beforejson', 'local_outcomemap'),
-                column::TYPE_LONGTEXT, ["{$audit}.beforejson"], false)
-            ->define_column('afterjson', new lang_string('reportcolumn_afterjson', 'local_outcomemap'),
-                column::TYPE_LONGTEXT, ["{$audit}.afterjson"], false)
-            ->define_column('mappingtype', new lang_string('reportcolumn_recordtype', 'local_outcomemap'),
-                column::TYPE_TEXT, ['mappingtype' => $mappingtype])
-            ->define_column('mappingversion', new lang_string('version', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['mappingversion' => $mappingversion])
-            ->define_column('mappingrole', new lang_string('mappingrole', 'local_outcomemap'),
-                column::TYPE_TEXT, ['mappingrole' => $mappingrole])
-            ->define_column('relationtype', new lang_string('relationtype', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$relation}.type"])
-            ->define_column('remediationpurpose', new lang_string('remediationpurpose', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$remediation}.purpose"])
-            ->define_column('evidenceuuid', new lang_string('uuid', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$evidence}.uuid"])
-            ->define_column('evidencelineageuuid', new lang_string('uuid', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$evidence}.lineageuuid"])
-            ->define_column('evidencetype', new lang_string('reportcolumn_recordtype', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$evidence}.evidencetype"])
-            ->define_column('evidencestate', new lang_string('reportcolumn_state', 'local_outcomemap'),
-                column::TYPE_TEXT, ['evidencestate' => $evidencestate])
-            ->define_column('evidenceuserid', new lang_string('user'),
-                column::TYPE_INTEGER, ["{$evidence}.userid"])
-            ->define_column('evidencesourceid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$evidence}.sourceevidenceid"])
-            ->define_column('evidencesupersededby', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$evidence}.supersededby"])
-            ->define_column('questionversionid', new lang_string('question_version', 'question'),
-                column::TYPE_INTEGER, ['questionversionid' => $questionversionid])
-            ->define_column('questionid', new lang_string('question'),
-                column::TYPE_INTEGER, ['questionid' => $questionid])
-            ->define_column('policyid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['policyid' => $policyid])
-            ->define_column('policyuuid', new lang_string('uuid', 'local_outcomemap'),
-                column::TYPE_TEXT, ['policyuuid' => $policyuuid])
-            ->define_column('policyversion', new lang_string('version', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['policyversion' => $policyversion])
-            ->define_column('policyname', new lang_string('policy', 'local_outcomemap'),
-                column::TYPE_TEXT, ['policyname' => $policyname])
-            ->define_column('policytype', new lang_string('policytype', 'local_outcomemap'),
-                column::TYPE_TEXT, ['policytype' => $policytype])
-            ->define_column('policyscope', new lang_string('policyscope', 'local_outcomemap'),
-                column::TYPE_TEXT, ['policyscope' => $policyscope])
-            ->define_column('policyscopeid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['policyscopeid' => $policyscopeid])
-            ->define_column('policyconfighash', new lang_string('payloadhash', 'local_outcomemap'),
-                column::TYPE_TEXT, ['policyconfighash' => $policyconfighash])
-            ->define_column('policystatus', new lang_string('status', 'local_outcomemap'),
-                column::TYPE_TEXT, ['policystatus' => $policystatus])
-            ->define_column('programid', new lang_string('reportcolumn_programid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['programid' => $programid])
-            ->define_column('programcode', new lang_string('program', 'local_outcomemap'),
-                column::TYPE_TEXT, ['programcode' => $programcode])
-            ->define_column('catalogcourseid',
+            ->define_column(
+                'contextid',
+                new lang_string('category'),
+                column::TYPE_INTEGER,
+                ["{$context}.id"]
+            )
+            ->define_column(
+                'contextlevel',
+                new lang_string('context', 'role'),
+                column::TYPE_INTEGER,
+                ["{$context}.contextlevel"]
+            )
+            ->define_column(
+                'contextinstanceid',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$context}.instanceid"]
+            )
+            ->define_column(
+                'reason',
+                new lang_string('reason', 'local_outcomemap'),
+                column::TYPE_LONGTEXT,
+                ["{$audit}.reason"]
+            )
+            ->define_column(
+                'beforejson',
+                new lang_string('reportcolumn_beforejson', 'local_outcomemap'),
+                column::TYPE_LONGTEXT,
+                ["{$audit}.beforejson"],
+                false
+            )
+            ->define_column(
+                'afterjson',
+                new lang_string('reportcolumn_afterjson', 'local_outcomemap'),
+                column::TYPE_LONGTEXT,
+                ["{$audit}.afterjson"],
+                false
+            )
+            ->define_column(
+                'mappingtype',
+                new lang_string('reportcolumn_recordtype', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['mappingtype' => $mappingtype]
+            )
+            ->define_column(
+                'mappingversion',
+                new lang_string('version', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ['mappingversion' => $mappingversion]
+            )
+            ->define_column(
+                'mappingrole',
+                new lang_string('mappingrole', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['mappingrole' => $mappingrole]
+            )
+            ->define_column(
+                'relationtype',
+                new lang_string('relationtype', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$relation}.type"]
+            )
+            ->define_column(
+                'remediationpurpose',
+                new lang_string('remediationpurpose', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$remediation}.purpose"]
+            )
+            ->define_column(
+                'evidenceuuid',
+                new lang_string('uuid', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$evidence}.uuid"]
+            )
+            ->define_column(
+                'evidencelineageuuid',
+                new lang_string('uuid', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$evidence}.lineageuuid"]
+            )
+            ->define_column(
+                'evidencetype',
+                new lang_string('reportcolumn_recordtype', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$evidence}.evidencetype"]
+            )
+            ->define_column(
+                'evidencestate',
+                new lang_string('reportcolumn_state', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['evidencestate' => $evidencestate]
+            )
+            ->define_column(
+                'evidenceuserid',
+                new lang_string('user'),
+                column::TYPE_INTEGER,
+                ["{$evidence}.userid"]
+            )
+            ->define_column(
+                'evidencesourceid',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$evidence}.sourceevidenceid"]
+            )
+            ->define_column(
+                'evidencesupersededby',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$evidence}.supersededby"]
+            )
+            ->define_column(
+                'questionversionid',
+                new lang_string('question_version', 'question'),
+                column::TYPE_INTEGER,
+                ['questionversionid' => $questionversionid]
+            )
+            ->define_column(
+                'questionid',
+                new lang_string('question'),
+                column::TYPE_INTEGER,
+                ['questionid' => $questionid]
+            )
+            ->define_column(
+                'policyid',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ['policyid' => $policyid]
+            )
+            ->define_column(
+                'policyuuid',
+                new lang_string('uuid', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['policyuuid' => $policyuuid]
+            )
+            ->define_column(
+                'policyversion',
+                new lang_string('version', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ['policyversion' => $policyversion]
+            )
+            ->define_column(
+                'policyname',
+                new lang_string('policy', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['policyname' => $policyname]
+            )
+            ->define_column(
+                'policytype',
+                new lang_string('policytype', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['policytype' => $policytype]
+            )
+            ->define_column(
+                'policyscope',
+                new lang_string('policyscope', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['policyscope' => $policyscope]
+            )
+            ->define_column(
+                'policyscopeid',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ['policyscopeid' => $policyscopeid]
+            )
+            ->define_column(
+                'policyconfighash',
+                new lang_string('payloadhash', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['policyconfighash' => $policyconfighash]
+            )
+            ->define_column(
+                'policystatus',
+                new lang_string('status', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['policystatus' => $policystatus]
+            )
+            ->define_column(
+                'programid',
+                new lang_string('reportcolumn_programid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ['programid' => $programid]
+            )
+            ->define_column(
+                'programcode',
+                new lang_string('program', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['programcode' => $programcode]
+            )
+            ->define_column(
+                'catalogcourseid',
                 new lang_string('reportcolumn_catalogcourseid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['catalogcourseid' => $catalogcourseid])
-            ->define_column('catalogcoursecode', new lang_string('catalogcourse', 'local_outcomemap'),
-                column::TYPE_TEXT, ['catalogcoursecode' => $catalogcoursecode])
-            ->define_column('moodlecourseid',
+                column::TYPE_INTEGER,
+                ['catalogcourseid' => $catalogcourseid]
+            )
+            ->define_column(
+                'catalogcoursecode',
+                new lang_string('catalogcourse', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['catalogcoursecode' => $catalogcoursecode]
+            )
+            ->define_column(
+                'moodlecourseid',
                 new lang_string('reportcolumn_moodlecourseid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$moodlecourse}.id"])
-            ->define_column('moodlecoursename', new lang_string('moodlecourse', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$moodlecourse}.fullname"])
-            ->define_column('periodcode', new lang_string('periodcode', 'local_outcomemap'),
-                column::TYPE_TEXT, ['periodcode' => $periodcode])
-            ->define_column('assessmentid',
+                column::TYPE_INTEGER,
+                ["{$moodlecourse}.id"]
+            )
+            ->define_column(
+                'moodlecoursename',
+                new lang_string('moodlecourse', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$moodlecourse}.fullname"]
+            )
+            ->define_column(
+                'periodcode',
+                new lang_string('periodcode', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['periodcode' => $periodcode]
+            )
+            ->define_column(
+                'assessmentid',
                 new lang_string('reportcolumn_assessmentid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['assessmentid' => $assessmentid])
-            ->define_column('assessmentname', new lang_string('assessment', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$quiz}.name"])
-            ->define_column('cohortid', new lang_string('reportcolumn_cohortid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$cohort}.id"])
-            ->define_column('cohortname', new lang_string('cohort', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$cohort}.name"])
-            ->define_column('outcomeversionid',
+                column::TYPE_INTEGER,
+                ['assessmentid' => $assessmentid]
+            )
+            ->define_column(
+                'assessmentname',
+                new lang_string('assessment', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$quiz}.name"]
+            )
+            ->define_column(
+                'cohortid',
+                new lang_string('reportcolumn_cohortid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$cohort}.id"]
+            )
+            ->define_column(
+                'cohortname',
+                new lang_string('cohort', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$cohort}.name"]
+            )
+            ->define_column(
+                'outcomeversionid',
                 new lang_string('reportcolumn_outcomeversionid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$outcomeversion}.id"])
-            ->define_column('outcomecode', new lang_string('outcome', 'local_outcomemap'),
-                column::TYPE_TEXT, ['outcomecode' => $outcomecode])
-            ->define_column('targetoutcomecode', new lang_string('targetoutcome', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$relationtarget}.code"])
-            ->define_column('state', new lang_string('reportcolumn_state', 'local_outcomemap'),
-                column::TYPE_TEXT, ['state' => $state])
-            ->define_column('band', new lang_string('reportcolumn_band', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$band}.code"])
-            ->define_column('resultversion', new lang_string('version', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$result}.version"])
-            ->define_column('resultscope', new lang_string('policyscope', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$result}.scopetype"])
-            ->define_column('resultpercentage', new lang_string('reportcolumn_percentage', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$result}.percentage"], true, null, [], true)
-            ->define_column('inputhash', new lang_string('reportcolumn_inputhash', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$result}.inputhash"])
-            ->define_column('lineagehash', new lang_string('reportcolumn_lineagehash', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$result}.lineagehash"])
-            ->define_column('snapshotuuid', new lang_string('snapshotuuid', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$snapshot}.snapshotuuid"])
-            ->define_column('snapshotversion', new lang_string('snapshotversion', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$snapshot}.version"])
-            ->define_column('snapshotpayloadhash', new lang_string('payloadhash', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$snapshot}.payloadhash"])
-            ->define_column('snapshotmanifesthash', new lang_string('manifesthash', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$snapshot}.manifesthash"])
-            ->define_column('timecreated', new lang_string('reportcolumn_timecreated', 'local_outcomemap'),
-                column::TYPE_TIMESTAMP, ["{$audit}.timecreated"], true,
-                [report_format::class, 'userdate'])
-            ->define_filter('action', new lang_string('actions', 'local_outcomemap'),
-                text::class, "{$audit}.action")
-            ->define_filter('objecttype', new lang_string('objecttype', 'local_outcomemap'),
-                text::class, "{$audit}.objecttype")
-            ->define_filter('objectid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                number::class, "{$audit}.objectid")
-            ->define_filter('actorid', new lang_string('createdby', 'local_outcomemap'),
-                number::class, "{$audit}.actorid")
-            ->define_filter('correlationid', new lang_string('externalid', 'local_outcomemap'),
-                text::class, "{$audit}.correlationid")
-            ->define_filter('mappingtype', new lang_string('reportcolumn_recordtype', 'local_outcomemap'),
-                text::class, $mappingtype)
-            ->define_filter('mappingrole', new lang_string('mappingrole', 'local_outcomemap'),
-                select::class, $mappingrole, filter_options::mapping_roles())
-            ->define_filter('relationtype', new lang_string('relationtype', 'local_outcomemap'),
-                select::class, "{$relation}.type", filter_options::relation_types())
-            ->define_filter('evidencetype', new lang_string('reportcolumn_recordtype', 'local_outcomemap'),
-                text::class, "{$evidence}.evidencetype")
-            ->define_filter('evidencestate', new lang_string('reportcolumn_state', 'local_outcomemap'),
-                text::class, $evidencestate)
-            ->define_filter('evidencelineageuuid', new lang_string('uuid', 'local_outcomemap'),
-                text::class, "{$evidence}.lineageuuid")
-            ->define_filter('evidenceuserid', new lang_string('user'),
-                number::class, "{$evidence}.userid")
-            ->define_filter('policyid', new lang_string('policy', 'local_outcomemap'),
-                number::class, $policyid)
-            ->define_filter('policyuuid', new lang_string('uuid', 'local_outcomemap'),
-                text::class, $policyuuid)
-            ->define_filter('policyversion', new lang_string('version', 'local_outcomemap'),
-                number::class, $policyversion)
-            ->define_filter('policytype', new lang_string('policytype', 'local_outcomemap'),
-                text::class, $policytype)
-            ->define_filter('policyscope', new lang_string('policyscope', 'local_outcomemap'),
-                text::class, $policyscope)
-            ->define_filter('policystatus', new lang_string('status', 'local_outcomemap'),
-                select::class, $policystatus, filter_options::workflow_states())
-            ->define_filter('programid', new lang_string('program', 'local_outcomemap'),
-                number::class, $programid)
-            ->define_filter('catalogcourseid', new lang_string('catalogcourse', 'local_outcomemap'),
-                number::class, $catalogcourseid)
-            ->define_filter('moodlecourseid', new lang_string('moodlecourse', 'local_outcomemap'),
-                course_selector::class, "{$moodlecourse}.id")
-            ->define_filter('periodcode', new lang_string('periodcode', 'local_outcomemap'),
-                text::class, $periodcode)
-            ->define_filter('assessmentid', new lang_string('assessment', 'local_outcomemap'),
-                number::class, $assessmentid)
-            ->define_filter('cohortid', new lang_string('cohort', 'local_outcomemap'),
-                cohort_filter::class, "{$cohort}.id")
-            ->define_filter('questionversionid', new lang_string('question_version', 'question'),
-                number::class, $questionversionid)
-            ->define_filter('outcomeversionid', new lang_string('outcomeversion', 'local_outcomemap'),
-                number::class, "{$outcomeversion}.id")
-            ->define_filter('outcomecode', new lang_string('outcome', 'local_outcomemap'),
-                text::class, $outcomecode)
-            ->define_filter('state', new lang_string('reportcolumn_state', 'local_outcomemap'),
-                text::class, $state)
-            ->define_filter('band', new lang_string('performanceband', 'local_outcomemap'),
-                text::class, "{$band}.code")
-            ->define_filter('resultscope', new lang_string('policyscope', 'local_outcomemap'),
-                select::class, "{$result}.scopetype", filter_options::result_scopes())
-            ->define_filter('snapshotuuid', new lang_string('snapshotuuid', 'local_outcomemap'),
-                text::class, "{$snapshot}.snapshotuuid")
-            ->define_filter('timecreated', new lang_string('reportcolumn_timecreated', 'local_outcomemap'),
-                date::class, "{$audit}.timecreated");
+                column::TYPE_INTEGER,
+                ["{$outcomeversion}.id"]
+            )
+            ->define_column(
+                'outcomecode',
+                new lang_string('outcome', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['outcomecode' => $outcomecode]
+            )
+            ->define_column(
+                'targetoutcomecode',
+                new lang_string('targetoutcome', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$relationtarget}.code"]
+            )
+            ->define_column(
+                'state',
+                new lang_string('reportcolumn_state', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['state' => $state]
+            )
+            ->define_column(
+                'band',
+                new lang_string('reportcolumn_band', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$band}.code"]
+            )
+            ->define_column(
+                'resultversion',
+                new lang_string('version', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$result}.version"]
+            )
+            ->define_column(
+                'resultscope',
+                new lang_string('policyscope', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$result}.scopetype"]
+            )
+            ->define_column(
+                'resultpercentage',
+                new lang_string('reportcolumn_percentage', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$result}.percentage"],
+                true,
+                null,
+                [],
+                true
+            )
+            ->define_column(
+                'inputhash',
+                new lang_string('reportcolumn_inputhash', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$result}.inputhash"]
+            )
+            ->define_column(
+                'lineagehash',
+                new lang_string('reportcolumn_lineagehash', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$result}.lineagehash"]
+            )
+            ->define_column(
+                'snapshotuuid',
+                new lang_string('snapshotuuid', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$snapshot}.snapshotuuid"]
+            )
+            ->define_column(
+                'snapshotversion',
+                new lang_string('snapshotversion', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$snapshot}.version"]
+            )
+            ->define_column(
+                'snapshotpayloadhash',
+                new lang_string('payloadhash', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$snapshot}.payloadhash"]
+            )
+            ->define_column(
+                'snapshotmanifesthash',
+                new lang_string('manifesthash', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$snapshot}.manifesthash"]
+            )
+            ->define_column(
+                'timecreated',
+                new lang_string('reportcolumn_timecreated', 'local_outcomemap'),
+                column::TYPE_TIMESTAMP,
+                ["{$audit}.timecreated"],
+                true,
+                [report_format::class, 'userdate']
+            )
+            ->define_filter(
+                'action',
+                new lang_string('actions', 'local_outcomemap'),
+                text::class,
+                "{$audit}.action"
+            )
+            ->define_filter(
+                'objecttype',
+                new lang_string('objecttype', 'local_outcomemap'),
+                text::class,
+                "{$audit}.objecttype"
+            )
+            ->define_filter(
+                'objectid',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                number::class,
+                "{$audit}.objectid"
+            )
+            ->define_filter(
+                'actorid',
+                new lang_string('createdby', 'local_outcomemap'),
+                number::class,
+                "{$audit}.actorid"
+            )
+            ->define_filter(
+                'correlationid',
+                new lang_string('externalid', 'local_outcomemap'),
+                text::class,
+                "{$audit}.correlationid"
+            )
+            ->define_filter(
+                'mappingtype',
+                new lang_string('reportcolumn_recordtype', 'local_outcomemap'),
+                text::class,
+                $mappingtype
+            )
+            ->define_filter(
+                'mappingrole',
+                new lang_string('mappingrole', 'local_outcomemap'),
+                select::class,
+                $mappingrole,
+                filter_options::mapping_roles()
+            )
+            ->define_filter(
+                'relationtype',
+                new lang_string('relationtype', 'local_outcomemap'),
+                select::class,
+                "{$relation}.type",
+                filter_options::relation_types()
+            )
+            ->define_filter(
+                'evidencetype',
+                new lang_string('reportcolumn_recordtype', 'local_outcomemap'),
+                text::class,
+                "{$evidence}.evidencetype"
+            )
+            ->define_filter(
+                'evidencestate',
+                new lang_string('reportcolumn_state', 'local_outcomemap'),
+                text::class,
+                $evidencestate
+            )
+            ->define_filter(
+                'evidencelineageuuid',
+                new lang_string('uuid', 'local_outcomemap'),
+                text::class,
+                "{$evidence}.lineageuuid"
+            )
+            ->define_filter(
+                'evidenceuserid',
+                new lang_string('user'),
+                number::class,
+                "{$evidence}.userid"
+            )
+            ->define_filter(
+                'policyid',
+                new lang_string('policy', 'local_outcomemap'),
+                number::class,
+                $policyid
+            )
+            ->define_filter(
+                'policyuuid',
+                new lang_string('uuid', 'local_outcomemap'),
+                text::class,
+                $policyuuid
+            )
+            ->define_filter(
+                'policyversion',
+                new lang_string('version', 'local_outcomemap'),
+                number::class,
+                $policyversion
+            )
+            ->define_filter(
+                'policytype',
+                new lang_string('policytype', 'local_outcomemap'),
+                text::class,
+                $policytype
+            )
+            ->define_filter(
+                'policyscope',
+                new lang_string('policyscope', 'local_outcomemap'),
+                text::class,
+                $policyscope
+            )
+            ->define_filter(
+                'policystatus',
+                new lang_string('status', 'local_outcomemap'),
+                select::class,
+                $policystatus,
+                filter_options::workflow_states()
+            )
+            ->define_filter(
+                'programid',
+                new lang_string('program', 'local_outcomemap'),
+                number::class,
+                $programid
+            )
+            ->define_filter(
+                'catalogcourseid',
+                new lang_string('catalogcourse', 'local_outcomemap'),
+                number::class,
+                $catalogcourseid
+            )
+            ->define_filter(
+                'moodlecourseid',
+                new lang_string('moodlecourse', 'local_outcomemap'),
+                course_selector::class,
+                "{$moodlecourse}.id"
+            )
+            ->define_filter(
+                'periodcode',
+                new lang_string('periodcode', 'local_outcomemap'),
+                text::class,
+                $periodcode
+            )
+            ->define_filter(
+                'assessmentid',
+                new lang_string('assessment', 'local_outcomemap'),
+                number::class,
+                $assessmentid
+            )
+            ->define_filter(
+                'cohortid',
+                new lang_string('cohort', 'local_outcomemap'),
+                cohort_filter::class,
+                "{$cohort}.id"
+            )
+            ->define_filter(
+                'questionversionid',
+                new lang_string('question_version', 'question'),
+                number::class,
+                $questionversionid
+            )
+            ->define_filter(
+                'outcomeversionid',
+                new lang_string('outcomeversion', 'local_outcomemap'),
+                number::class,
+                "{$outcomeversion}.id"
+            )
+            ->define_filter(
+                'outcomecode',
+                new lang_string('outcome', 'local_outcomemap'),
+                text::class,
+                $outcomecode
+            )
+            ->define_filter(
+                'state',
+                new lang_string('reportcolumn_state', 'local_outcomemap'),
+                text::class,
+                $state
+            )
+            ->define_filter(
+                'band',
+                new lang_string('performanceband', 'local_outcomemap'),
+                text::class,
+                "{$band}.code"
+            )
+            ->define_filter(
+                'resultscope',
+                new lang_string('policyscope', 'local_outcomemap'),
+                select::class,
+                "{$result}.scopetype",
+                filter_options::result_scopes()
+            )
+            ->define_filter(
+                'snapshotuuid',
+                new lang_string('snapshotuuid', 'local_outcomemap'),
+                text::class,
+                "{$snapshot}.snapshotuuid"
+            )
+            ->define_filter(
+                'timecreated',
+                new lang_string('reportcolumn_timecreated', 'local_outcomemap'),
+                date::class,
+                "{$audit}.timecreated"
+            );
 
         $this->register_entity($entity, 'local_outcomemap_audit');
     }
 
-    /** @return string[] */
+    /**
+     * Returns the default report columns.
+     * @return string[]
+     */
     public function get_default_columns(): array {
         return [
             'outcomemap:timecreated',
@@ -606,7 +1012,10 @@ final class audit_history extends secured_datasource {
         ];
     }
 
-    /** @return string[] */
+    /**
+     * Returns the default report filters.
+     * @return string[]
+     */
     public function get_default_filters(): array {
         return [
             'outcomemap:action',
@@ -632,7 +1041,10 @@ final class audit_history extends secured_datasource {
         ];
     }
 
-    /** @return int[] */
+    /**
+     * Returns the default column sorting.
+     * @return int[]
+     */
     public function get_default_column_sorting(): array {
         return ['outcomemap:timecreated' => SORT_DESC];
     }

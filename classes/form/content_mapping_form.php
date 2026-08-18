@@ -27,7 +27,7 @@ use local_outcomemap\local\service\content_mapping_service;
  */
 final class content_mapping_form extends \moodleform {
     /**
-     * Defines the form elements.
+     * * Defines the form elements.
      */
     public function definition(): void {
         $mform = $this->_form;

@@ -27,7 +27,7 @@ use local_outcomemap\local\csv_safety;
  */
 final class csv_safety_test extends \basic_testcase {
     /**
-     * Tests that formula-shaped cells are neutralized.
+     * * Tests that formula-shaped cells are neutralized.
      */
     public function test_formula_cells_are_neutralized(): void {
         $this->assertSame("'=HYPERLINK(\"http://evil\")", csv_safety::cell('=HYPERLINK("http://evil")'));
@@ -41,7 +41,7 @@ final class csv_safety_test extends \basic_testcase {
     }
 
     /**
-     * Tests that ordinary values pass through byte-identical.
+     * * Tests that ordinary values pass through byte-identical.
      */
     public function test_ordinary_cells_are_unchanged(): void {
         $this->assertSame('', csv_safety::cell(''));
@@ -56,7 +56,7 @@ final class csv_safety_test extends \basic_testcase {
     }
 
     /**
-     * Tests that row guarding touches string cells only.
+     * * Tests that row guarding touches string cells only.
      */
     public function test_row_guards_strings_and_leaves_numbers(): void {
         $row = ['=evil', 12, 0.5, null, 'safe', '-3'];

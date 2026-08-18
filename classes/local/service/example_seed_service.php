@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\local\service;
 
@@ -38,10 +46,14 @@ final class example_seed_service extends base_service {
      */
     public const EXAMPLE_MIN_COHORT_SIZE = 5;
 
-    /** Achievement criterion of a seeded example accreditation policy. */
+    /**
+     * Achievement criterion of a seeded example accreditation policy.
+     */
     public const EXAMPLE_ACHIEVEMENT_MIN_PERCENT = '70';
 
-    /** Aggregate benchmark of a seeded example accreditation policy. */
+    /**
+     * Aggregate benchmark of a seeded example accreditation policy.
+     */
     public const EXAMPLE_BENCHMARK_PERCENT = '70';
 
     /**
@@ -224,8 +236,11 @@ final class example_seed_service extends base_service {
               ORDER BY COUNT(DISTINCT r.userid) DESC, p.id ASC, ci.periodcode ASC";
         $candidates = $DB->get_records_sql($sql, $params, 0, 1);
         if (!$candidates) {
-            throw new validation_exception('exampleseed_nosnapshotdata', 'periodcode',
-                (string) $periodcode);
+            throw new validation_exception(
+                'exampleseed_nosnapshotdata',
+                'periodcode',
+                (string) $periodcode
+            );
         }
         $candidate = reset($candidates);
         return [(int) $candidate->programid, (string) $candidate->periodcode];

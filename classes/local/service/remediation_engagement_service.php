@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\local\service;
 
@@ -24,13 +32,19 @@ use local_outcomemap\local\validation_exception;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class remediation_engagement_service extends base_service {
-    /** Engagement event table. */
+    /**
+     * Engagement event table.
+     */
     private const TABLE = 'local_outcomemap_remed_event';
 
-    /** The learner explicitly opened the recommendation target. */
+    /**
+     * The learner explicitly opened the recommendation target.
+     */
     public const EVENT_OPENED = 'opened';
 
-    /** Supported explicit event types. */
+    /**
+     * Supported explicit event types.
+     */
     public const EVENTS = [self::EVENT_OPENED];
 
     /**
@@ -65,8 +79,10 @@ final class remediation_engagement_service extends base_service {
         $report = student_result_service::get_own_report((int) $recommendation->moodlecourseid);
         foreach ($report['rows'] as $row) {
             foreach ($row['remediation'] as $item) {
-                if ((int) ($item['recommendationid'] ?? 0) !== $recommendationid
-                        || (int) ($item['resultid'] ?? 0) !== $resultid) {
+                if (
+                    (int) ($item['recommendationid'] ?? 0) !== $recommendationid
+                        || (int) ($item['resultid'] ?? 0) !== $resultid
+                ) {
                     continue;
                 }
                 $candidate = clean_param(trim((string) ($item['targeturl'] ?? '')), PARAM_URL);

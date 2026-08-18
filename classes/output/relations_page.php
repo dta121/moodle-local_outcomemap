@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Outcome relations page model.
@@ -33,13 +41,19 @@ use templatable;
  * its own.
  */
 final class relations_page implements renderable, templatable {
-    /** @var \stdClass[] All relation versions with endpoint details. */
+    /**
+     * @var \stdClass[] All relation versions with endpoint details.
+     */
     private array $relations;
 
-    /** @var \stdClass[] Latest version of each outcome, keyed by stable item id. */
+    /**
+     * @var \stdClass[] Latest version of each outcome, keyed by stable item id.
+     */
     private array $outcomes = [];
 
-    /** Load relation and outcome read models once. */
+    /**
+     * Load relation and outcome read models once.
+     */
     public function __construct() {
         $this->relations = relation_service::list_detailed();
         $latest = [];
@@ -62,7 +76,9 @@ final class relations_page implements renderable, templatable {
         }
     }
 
-    /** Return a safe CSS suffix for a workflow status. */
+    /**
+     * Return a safe CSS suffix for a workflow status.
+     */
     private function status_class(string $status): string {
         return match ($status) {
             workflow::APPROVED => 'approved',
@@ -73,7 +89,9 @@ final class relations_page implements renderable, templatable {
         };
     }
 
-    /** Return actions available for one relation version. */
+    /**
+     * Return actions available for one relation version.
+     */
     private function actions(\stdClass $relation, bool $canmanage, moodle_url $baseurl): array {
         if (!$canmanage) {
             return [];
@@ -109,9 +127,17 @@ final class relations_page implements renderable, templatable {
         return [];
     }
 
-    /** Build one matrix cell for a source/target pair. */
-    private function matrix_cell(?\stdClass $relation, \stdClass $source, \stdClass $target,
-            string $type, bool $canmanage, moodle_url $baseurl): array {
+    /**
+     * Build one matrix cell for a source/target pair.
+     */
+    private function matrix_cell(
+        ?\stdClass $relation,
+        \stdClass $source,
+        \stdClass $target,
+        string $type,
+        bool $canmanage,
+        moodle_url $baseurl
+    ): array {
         $sourcelabel = $source->frameworkcode . '.' . $source->code;
         $targetlabel = $target->frameworkcode . '.' . $target->code;
         if ($relation) {
@@ -145,7 +171,9 @@ final class relations_page implements renderable, templatable {
         ];
     }
 
-    /** Export the template context. */
+    /**
+     * Export the template context.
+     */
     public function export_for_template(renderer_base $output): array {
         $canmanage = has_capability('local/outcomemap:manageframeworks', \context_system::instance());
         $baseurl = new moodle_url('/local/outcomemap/relations.php');
@@ -187,10 +215,12 @@ final class relations_page implements renderable, templatable {
             $latestbypair = [];
             foreach ($rawgroup['relations'] as $relation) {
                 $pairkey = (int) $relation->sourceitemid . ':' . (int) $relation->targetitemid;
-                if (!isset($latestbypair[$pairkey])
+                if (
+                    !isset($latestbypair[$pairkey])
                         || (int) $relation->version > (int) $latestbypair[$pairkey]->version
                         || ((int) $relation->version === (int) $latestbypair[$pairkey]->version
-                            && (int) $relation->timemodified > (int) $latestbypair[$pairkey]->timemodified)) {
+                            && (int) $relation->timemodified > (int) $latestbypair[$pairkey]->timemodified)
+                ) {
                     $latestbypair[$pairkey] = $relation;
                 }
             }
@@ -211,8 +241,14 @@ final class relations_page implements renderable, templatable {
                 foreach ($targetoutcomes as $target) {
                     $pairkey = (int) $source->itemid . ':' . (int) $target->itemid;
                     $relation = $latestbypair[$pairkey] ?? null;
-                    $cells[] = $this->matrix_cell($relation, $source, $target,
-                        $rawgroup['type'], $canmanage, $baseurl);
+                    $cells[] = $this->matrix_cell(
+                        $relation,
+                        $source,
+                        $target,
+                        $rawgroup['type'],
+                        $canmanage,
+                        $baseurl
+                    );
                     if ($relation) {
                         $searchparts[] = $target->frameworkcode;
                         $searchparts[] = $target->code;
@@ -238,8 +274,11 @@ final class relations_page implements renderable, templatable {
                     'source' => $rawgroup['sourceframework'],
                     'target' => $rawgroup['targetframework'],
                 ]),
-                'subtitle' => get_string('relations_group_subtitle', 'local_outcomemap',
-                    get_string('relation_' . $rawgroup['type'], 'local_outcomemap')),
+                'subtitle' => get_string(
+                    'relations_group_subtitle',
+                    'local_outcomemap',
+                    get_string('relation_' . $rawgroup['type'], 'local_outcomemap')
+                ),
                 'countline' => get_string(
                     count($rawgroup['relations']) === 1 ? 'relations_count_one' : 'relations_count',
                     'local_outcomemap',
@@ -255,16 +294,20 @@ final class relations_page implements renderable, templatable {
         $latestbyuuid = [];
         $statuscounts = [workflow::DRAFT => 0, workflow::NEEDS_REVIEW => 0];
         foreach ($this->relations as $relation) {
-            if (!isset($latestbyuuid[$relation->relationuuid])
-                    || (int) $relation->version > (int) $latestbyuuid[$relation->relationuuid]->version) {
+            if (
+                !isset($latestbyuuid[$relation->relationuuid])
+                    || (int) $relation->version > (int) $latestbyuuid[$relation->relationuuid]->version
+            ) {
                 $latestbyuuid[$relation->relationuuid] = $relation;
             }
             if (isset($statuscounts[$relation->status])) {
                 $statuscounts[$relation->status]++;
             }
         }
-        $activecount = count(array_filter($latestbyuuid,
-            static fn($relation) => $relation->status !== workflow::RETIRED));
+        $activecount = count(array_filter(
+            $latestbyuuid,
+            static fn($relation) => $relation->status !== workflow::RETIRED
+        ));
 
         return [
             'canmanage' => $canmanage,
@@ -280,11 +323,14 @@ final class relations_page implements renderable, templatable {
                 'versions' => count($this->relations),
                 'review' => $statuscounts[workflow::NEEDS_REVIEW],
                 'draft' => $statuscounts[workflow::DRAFT],
-            ]),
+                ]
+            ),
         ];
     }
 
-    /** Return rows for the relation CSV export. */
+    /**
+     * Return rows for the relation CSV export.
+     */
     public function csv_rows(): array {
         $rows = [[
             get_string('sourceoutcome', 'local_outcomemap'),

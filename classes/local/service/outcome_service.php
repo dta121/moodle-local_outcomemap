@@ -5,6 +5,22 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 namespace local_outcomemap\local\service;
 
@@ -15,12 +31,22 @@ use local_outcomemap\local\uuid;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
-/** Transactional service for stable outcomes and effective-dated versions. */
+/**
+ * Transactional service for stable outcomes and effective-dated versions.
+ */
 final class outcome_service extends base_service {
+    /**
+     * Database table name.
+     */
     private const ITEM_TABLE = 'local_outcomemap_item';
+    /**
+     * Database table name.
+     */
     private const VERSION_TABLE = 'local_outcomemap_itemver';
 
-    /** Create a stable outcome and its initial draft version. */
+    /**
+     * Create a stable outcome and its initial draft version.
+     */
     public static function create(array $data): int {
         global $DB;
         $actorid = self::require_system('local/outcomemap:manageframeworks');
@@ -69,10 +95,30 @@ final class outcome_service extends base_service {
             $versionid = $DB->insert_record(self::VERSION_TABLE, $version);
             $version->id = $versionid;
             $context = \context_system::instance();
-            audit_writer::write('create', 'outcome', $itemid, $item->uuid, null, $item, null,
-                $context, $actorid, $correlationid);
-            audit_writer::write('create', 'outcome_version', $versionid, $version->uuid, null, $version,
-                $version->changereason, $context, $actorid, $correlationid);
+            audit_writer::write(
+                'create',
+                'outcome',
+                $itemid,
+                $item->uuid,
+                null,
+                $item,
+                null,
+                $context,
+                $actorid,
+                $correlationid
+            );
+            audit_writer::write(
+                'create',
+                'outcome_version',
+                $versionid,
+                $version->uuid,
+                null,
+                $version,
+                $version->changereason,
+                $context,
+                $actorid,
+                $correlationid
+            );
             $transaction->allow_commit();
             return $itemid;
         } catch (\Throwable $e) {
@@ -80,7 +126,9 @@ final class outcome_service extends base_service {
         }
     }
 
-    /** Update a draft version and, for an initial draft, its stable code. */
+    /**
+     * Update a draft version and, for an initial draft, its stable code.
+     */
     public static function update_draft(int $versionid, array $data): void {
         global $DB;
         $actorid = self::require_system('local/outcomemap:manageframeworks');
@@ -92,48 +140,75 @@ final class outcome_service extends base_service {
         $afteritem = clone $beforeitem;
         if ($beforeitem->status === workflow::DRAFT && array_key_exists('code', $data)) {
             $afteritem->code = input::required_text($data['code'], 'code', 100);
-            if ($DB->record_exists_select(self::ITEM_TABLE,
-                    'frameworkid = :frameworkid AND code = :code AND id <> :id', [
+            if (
+                $DB->record_exists_select(
+                    self::ITEM_TABLE,
+                    'frameworkid = :frameworkid AND code = :code AND id <> :id',
+                    [
                         'frameworkid' => $afteritem->frameworkid,
                         'code' => $afteritem->code,
                         'id' => $afteritem->id,
-                    ])) {
+                    ]
+                )
+            ) {
                 throw new validation_exception('duplicatecode', 'code', $afteritem->code);
             }
         }
         $afterversion = clone $beforeversion;
         $afterversion->statement = self::required_statement($data['statement'] ?? $beforeversion->statement);
         $afterversion->shortstatement = input::optional_text(
-            $data['shortstatement'] ?? $beforeversion->shortstatement, 'shortstatement', 255);
+            $data['shortstatement'] ?? $beforeversion->shortstatement,
+            'shortstatement',
+            255
+        );
         $afterversion->bloomlevel = input::optional_text(
-            $data['bloomlevel'] ?? $beforeversion->bloomlevel, 'bloomlevel', 50);
+            $data['bloomlevel'] ?? $beforeversion->bloomlevel,
+            'bloomlevel',
+            50
+        );
         $afterversion->effectivefrom = input::positive_int(
-            $data['effectivefrom'] ?? $beforeversion->effectivefrom, 'effectivefrom');
+            $data['effectivefrom'] ?? $beforeversion->effectivefrom,
+            'effectivefrom'
+        );
         $afterversion->effectiveto = input::optional_timestamp(
             array_key_exists('effectiveto', $data) ? $data['effectiveto'] : $beforeversion->effectiveto,
-            'effectiveto');
+            'effectiveto'
+        );
         $afterversion->changereason = input::optional_multiline(
-            $data['changereason'] ?? $beforeversion->changereason);
+            $data['changereason'] ?? $beforeversion->changereason
+        );
         $afterversion->timemodified = time();
         $afteritem->timemodified = $afterversion->timemodified;
-        effective_dates::validate((int) $afterversion->effectivefrom,
-            $afterversion->effectiveto === null ? null : (int) $afterversion->effectiveto);
+        effective_dates::validate(
+            (int) $afterversion->effectivefrom,
+            $afterversion->effectiveto === null ? null : (int) $afterversion->effectiveto
+        );
         $transaction = $DB->start_delegated_transaction();
         try {
             if ($afteritem != $beforeitem) {
                 $DB->update_record(self::ITEM_TABLE, $afteritem);
             }
             $DB->update_record(self::VERSION_TABLE, $afterversion);
-            audit_writer::write('update', 'outcome_version', $versionid, $afterversion->uuid,
-                $beforeversion, $afterversion, $data['changereason'] ?? null,
-                \context_system::instance(), $actorid);
+            audit_writer::write(
+                'update',
+                'outcome_version',
+                $versionid,
+                $afterversion->uuid,
+                $beforeversion,
+                $afterversion,
+                $data['changereason'] ?? null,
+                \context_system::instance(),
+                $actorid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
         }
     }
 
-    /** Create the next draft version of an existing stable outcome. */
+    /**
+     * Create the next draft version of an existing stable outcome.
+     */
     public static function create_version(int $itemid, array $data): int {
         global $DB;
         $actorid = self::require_system('local/outcomemap:manageframeworks');
@@ -145,7 +220,9 @@ final class outcome_service extends base_service {
         $to = input::optional_timestamp($data['effectiveto'] ?? null, 'effectiveto');
         effective_dates::validate($from, $to);
         $maxversion = (int) $DB->get_field_sql(
-            'SELECT MAX(version) FROM {local_outcomemap_itemver} WHERE itemid = :itemid', ['itemid' => $itemid]);
+            'SELECT MAX(version) FROM {local_outcomemap_itemver} WHERE itemid = :itemid',
+            ['itemid' => $itemid]
+        );
         $now = time();
         $record = (object) [
             'uuid' => uuid::normalize_or_generate($data['versionuuid'] ?? null),
@@ -171,8 +248,17 @@ final class outcome_service extends base_service {
         try {
             $id = $DB->insert_record(self::VERSION_TABLE, $record);
             $record->id = $id;
-            audit_writer::write('create_version', 'outcome_version', $id, $record->uuid, null, $record,
-                $record->changereason, \context_system::instance(), $actorid);
+            audit_writer::write(
+                'create_version',
+                'outcome_version',
+                $id,
+                $record->uuid,
+                null,
+                $record,
+                $record->changereason,
+                \context_system::instance(),
+                $actorid
+            );
             $transaction->allow_commit();
             return $id;
         } catch (\Throwable $e) {
@@ -180,7 +266,9 @@ final class outcome_service extends base_service {
         }
     }
 
-    /** Submit an outcome version for independent review. */
+    /**
+     * Submit an outcome version for independent review.
+     */
     public static function submit_for_review(int $versionid, ?string $reason = null): void {
         global $DB;
         $actorid = self::require_system('local/outcomemap:manageframeworks');
@@ -203,8 +291,17 @@ final class outcome_service extends base_service {
             if ($afteritem != $item) {
                 $DB->update_record(self::ITEM_TABLE, $afteritem);
             }
-            audit_writer::write('submit_review', 'outcome_version', $versionid, $afterversion->uuid,
-                $beforeversion, $afterversion, $reason, \context_system::instance(), $actorid);
+            audit_writer::write(
+                'submit_review',
+                'outcome_version',
+                $versionid,
+                $afterversion->uuid,
+                $beforeversion,
+                $afterversion,
+                $reason,
+                \context_system::instance(),
+                $actorid
+            );
             if (!workflow::requires_independent_approval()) {
                 self::approve($versionid, $reason);
             }
@@ -214,7 +311,9 @@ final class outcome_service extends base_service {
         }
     }
 
-    /** Approve an outcome version after rechecking dates and framework state. */
+    /**
+     * Approve an outcome version after rechecking dates and framework state.
+     */
     public static function approve(int $versionid, ?string $reason = null): void {
         global $DB;
         $actorid = self::require_approval_system('local/outcomemap:manageframeworks');
@@ -246,15 +345,26 @@ final class outcome_service extends base_service {
             if ($afteritem != $item) {
                 $DB->update_record(self::ITEM_TABLE, $afteritem);
             }
-            audit_writer::write('approve', 'outcome_version', $versionid, $afterversion->uuid,
-                $beforeversion, $afterversion, $reason, \context_system::instance(), $actorid);
+            audit_writer::write(
+                'approve',
+                'outcome_version',
+                $versionid,
+                $afterversion->uuid,
+                $beforeversion,
+                $afterversion,
+                $reason,
+                \context_system::instance(),
+                $actorid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
         }
     }
 
-    /** Return outcomes and all versions for administration. */
+    /**
+     * Return outcomes and all versions for administration.
+     */
     /**
      * Move approved outcome versions onto an earlier start date.
      *
@@ -291,11 +401,16 @@ final class outcome_service extends base_service {
         foreach ($versionids as $id) {
             $version = self::get_required(self::VERSION_TABLE, $id, 'outcome_version');
             if ($version->status !== workflow::APPROVED) {
-                throw new validation_exception('invalidtransition', 'status',
-                    $version->status . ':correct_effectivefrom');
+                throw new validation_exception(
+                    'invalidtransition',
+                    'status',
+                    $version->status . ':correct_effectivefrom'
+                );
             }
-            effective_dates::validate($effectivefrom,
-                $version->effectiveto === null ? null : (int) $version->effectiveto);
+            effective_dates::validate(
+                $effectivefrom,
+                $version->effectiveto === null ? null : (int) $version->effectiveto
+            );
             // A lineage with more than one version cannot have one start moved in
             // isolation without overlapping the version beside it.
             if ($DB->count_records(self::VERSION_TABLE, ['itemid' => $version->itemid]) > 1) {
@@ -314,8 +429,17 @@ final class outcome_service extends base_service {
                 $after->effectivefrom = $effectivefrom;
                 $after->timemodified = time();
                 $DB->update_record(self::VERSION_TABLE, $after);
-                audit_writer::write('correct_effectivefrom', 'outcome_version', $id, $after->uuid,
-                    $before, $after, $reason, \context_system::instance(), $actorid);
+                audit_writer::write(
+                    'correct_effectivefrom',
+                    'outcome_version',
+                    $id,
+                    $after->uuid,
+                    $before,
+                    $after,
+                    $reason,
+                    \context_system::instance(),
+                    $actorid
+                );
                 $corrected++;
             }
             $transaction->allow_commit();
@@ -365,8 +489,11 @@ final class outcome_service extends base_service {
             }
             $version = self::get_required(self::VERSION_TABLE, $versionid, 'outcome_version');
             if ($version->status !== workflow::APPROVED) {
-                throw new validation_exception('invalidtransition', 'status',
-                    $version->status . ':correct_shortstatement');
+                throw new validation_exception(
+                    'invalidtransition',
+                    'status',
+                    $version->status . ':correct_shortstatement'
+                );
             }
             $normalized[$versionid] = [
                 'before' => $version,
@@ -388,8 +515,17 @@ final class outcome_service extends base_service {
                 $after->shortstatement = $change['label'];
                 $after->timemodified = time();
                 $DB->update_record(self::VERSION_TABLE, $after);
-                audit_writer::write('correct_shortstatement', 'outcome_version', $versionid,
-                    $after->uuid, $before, $after, $reason, \context_system::instance(), $actorid);
+                audit_writer::write(
+                    'correct_shortstatement',
+                    'outcome_version',
+                    $versionid,
+                    $after->uuid,
+                    $before,
+                    $after,
+                    $reason,
+                    \context_system::instance(),
+                    $actorid
+                );
                 $corrected++;
             }
             $transaction->allow_commit();
@@ -399,6 +535,9 @@ final class outcome_service extends base_service {
         return $corrected;
     }
 
+    /**
+     * Lists all records.
+     */
     public static function list_all(): array {
         global $DB;
         self::require_system('local/outcomemap:viewdefinitions');
@@ -413,6 +552,9 @@ final class outcome_service extends base_service {
         return $DB->get_records_sql($sql);
     }
 
+    /**
+     * Normalises the required outcome statement.
+     */
     private static function required_statement($value): string {
         $value = clean_param((string) $value, PARAM_TEXT);
         if ($value === '') {
@@ -421,18 +563,30 @@ final class outcome_service extends base_service {
         return $value;
     }
 
+    /**
+     * Requires a unique outcome UUID.
+     */
     private static function require_unique_uuid(string $itemuuid, string $versionuuid): void {
         global $DB;
-        if ($DB->record_exists(self::ITEM_TABLE, ['uuid' => $itemuuid])
-                || $DB->record_exists(self::VERSION_TABLE, ['uuid' => $versionuuid])) {
+        if (
+            $DB->record_exists(self::ITEM_TABLE, ['uuid' => $itemuuid])
+                || $DB->record_exists(self::VERSION_TABLE, ['uuid' => $versionuuid])
+        ) {
             throw new validation_exception('duplicateuuid', 'uuid');
         }
     }
 
+    /**
+     * Requires nonoverlapping approved effective dates.
+     */
     private static function require_no_approved_overlap(\stdClass $candidate): void {
         global $DB;
-        [$overlapsql, $params] = effective_dates::overlap_sql('', (int) $candidate->effectivefrom,
-            $candidate->effectiveto === null ? null : (int) $candidate->effectiveto, 'iv');
+        [$overlapsql, $params] = effective_dates::overlap_sql(
+            '',
+            (int) $candidate->effectivefrom,
+            $candidate->effectiveto === null ? null : (int) $candidate->effectiveto,
+            'iv'
+        );
         $params += [
             'itemid' => $candidate->itemid,
             'status' => workflow::APPROVED,

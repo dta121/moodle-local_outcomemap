@@ -66,8 +66,12 @@ final class outcomes_alignment_test extends \advanced_testcase {
             'statement' => 'Statement for ' . $code,
             'effectivefrom' => 1704067200,
         ]);
-        $versionid = (int) $DB->get_field('local_outcomemap_itemver', 'id',
-            ['itemid' => $itemid], MUST_EXIST);
+        $versionid = (int) $DB->get_field(
+            'local_outcomemap_itemver',
+            'id',
+            ['itemid' => $itemid],
+            MUST_EXIST
+        );
         // A relation may only join approved outcomes, so the version is carried
         // through the submission boundary before it can be aligned.
         outcome_service::submit_for_review($versionid);
@@ -110,7 +114,7 @@ final class outcomes_alignment_test extends \advanced_testcase {
     }
 
     /**
-     * The three views are offered, and only the matrix is reached by link.
+     * * The three views are offered, and only the matrix is reached by link.
      */
     public function test_view_tabs_offer_the_matrix_as_a_separate_render(): void {
         $this->resetAfterTest(true);
@@ -121,16 +125,20 @@ final class outcomes_alignment_test extends \advanced_testcase {
         $tabs = array_column($context['viewtabs'], null, 'id');
         $this->assertSame(['program', 'course', 'matrix'], array_keys($tabs));
         $this->assertTrue($tabs['program']['active']);
-        $this->assertTrue($tabs['program']['isbutton'],
-            'The two hierarchy views are both in the page and switch in the browser.');
+        $this->assertTrue(
+            $tabs['program']['isbutton'],
+            'The two hierarchy views are both in the page and switch in the browser.'
+        );
         $this->assertTrue($tabs['course']['isbutton']);
-        $this->assertTrue($tabs['matrix']['islink'],
-            'The matrix is its own render, so it is reached by link.');
+        $this->assertTrue(
+            $tabs['matrix']['islink'],
+            'The matrix is its own render, so it is reached by link.'
+        );
         $this->assertFalse($context['ismatrix']);
     }
 
     /**
-     * Asking for the course view opens on it rather than defaulting to program.
+     * * Asking for the course view opens on it rather than defaulting to program.
      */
     public function test_requested_view_is_the_active_one(): void {
         $this->resetAfterTest(true);
@@ -144,7 +152,7 @@ final class outcomes_alignment_test extends \advanced_testcase {
     }
 
     /**
-     * An unknown view falls back to the hierarchy rather than erroring.
+     * * An unknown view falls back to the hierarchy rather than erroring.
      */
     public function test_unknown_view_falls_back_to_program(): void {
         $this->resetAfterTest(true);
@@ -168,8 +176,10 @@ final class outcomes_alignment_test extends \advanced_testcase {
         $this->build_alignment();
 
         $hierarchy = $this->export('program');
-        $this->assertNull($hierarchy['alignment'],
-            'The hierarchy views must not pay for the alignment grid.');
+        $this->assertNull(
+            $hierarchy['alignment'],
+            'The hierarchy views must not pay for the alignment grid.'
+        );
         $this->assertNotSame([], $hierarchy['programcards']);
 
         $matrix = $this->export(outcomes_hierarchy::VIEW_MATRIX);
@@ -177,14 +187,17 @@ final class outcomes_alignment_test extends \advanced_testcase {
         $this->assertIsArray($matrix['alignment']);
         $this->assertTrue($matrix['alignment']['hasrelations']);
         $this->assertNotSame([], $matrix['alignment']['groups']);
-        $this->assertSame([], $matrix['programcards'],
-            'The grid stands alone; the hierarchy cards are not rendered under it.');
+        $this->assertSame(
+            [],
+            $matrix['programcards'],
+            'The grid stands alone; the hierarchy cards are not rendered under it.'
+        );
         $this->assertSame([], $matrix['coursecards']);
         $this->assertSame([], $matrix['pickers']);
     }
 
     /**
-     * Both exports are offered from the one toolbar.
+     * * Both exports are offered from the one toolbar.
      */
     public function test_both_csv_exports_are_offered(): void {
         $this->resetAfterTest(true);
@@ -241,12 +254,18 @@ final class outcomes_alignment_test extends \advanced_testcase {
         $program = json_encode($this->export('program')['programcards']);
         $this->assertStringContainsString('INST-FW', $program);
         $this->assertStringContainsString('MBA-PLO', $program);
-        $this->assertStringNotContainsString('MBA601-CLO', $program,
-            'A catalog-course framework is read under its course, not the program lens.');
+        $this->assertStringNotContainsString(
+            'MBA601-CLO',
+            $program,
+            'A catalog-course framework is read under its course, not the program lens.'
+        );
 
         $course = json_encode($this->export('course')['coursecards']);
-        $this->assertStringContainsString('MBA601-CLO', $course,
-            'A course framework holding no outcomes must still appear under its course.');
+        $this->assertStringContainsString(
+            'MBA601-CLO',
+            $course,
+            'A course framework holding no outcomes must still appear under its course.'
+        );
     }
 
     /**
@@ -268,8 +287,10 @@ final class outcomes_alignment_test extends \advanced_testcase {
             'ownertype' => framework_service::OWNER_INSTITUTION,
         ]);
         framework_service::submit_for_review($frameworkid);
-        $this->assertSame(workflow::APPROVED,
-            $DB->get_field('local_outcomemap_fw', 'status', ['id' => $frameworkid]));
+        $this->assertSame(
+            workflow::APPROVED,
+            $DB->get_field('local_outcomemap_fw', 'status', ['id' => $frameworkid])
+        );
 
         framework_service::update($frameworkid, [
             'name' => 'Reworded name',
@@ -289,7 +310,7 @@ final class outcomes_alignment_test extends \advanced_testcase {
     }
 
     /**
-     * A draft framework is still fully editable, code and owner included.
+     * * A draft framework is still fully editable, code and owner included.
      */
     public function test_draft_framework_remains_fully_editable(): void {
         global $DB;
@@ -314,7 +335,7 @@ final class outcomes_alignment_test extends \advanced_testcase {
     }
 
     /**
-     * The stats line counts alignments alongside the outcomes.
+     * * The stats line counts alignments alongside the outcomes.
      */
     public function test_stats_line_counts_alignments(): void {
         $this->resetAfterTest(true);

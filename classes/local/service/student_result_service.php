@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Learner-safe outcome-result report service.
@@ -21,22 +29,32 @@ use local_outcomemap\local\feature;
 use local_outcomemap\local\workflow;
 
 /**
- * Builds the current learner's released CLO report from authoritative results.
+ * * Builds the current learner's released CLO report from authoritative results.
  */
 final class student_result_service {
-    /** Synthetic state used when a governed result has not been released. */
+    /**
+     * Synthetic state used when a governed result has not been released.
+     */
     public const STATE_NOT_RELEASED = 'not_released';
 
-    /** Read-time state used instead of exposing stale calculated values. */
+    /**
+     * Read-time state used instead of exposing stale calculated values.
+     */
     public const STATE_STALE = 'stale';
 
-    /** Programme-level outcome, reached from this course by alignment. */
+    /**
+     * Programme-level outcome, reached from this course by alignment.
+     */
     public const TIER_PROGRAM = 'program';
 
-    /** Course-level outcome — the skills the course itself promises. */
+    /**
+     * Course-level outcome — the skills the course itself promises.
+     */
     public const TIER_COURSE = 'course';
 
-    /** Unit-level outcome, a step within one course-level outcome. */
+    /**
+     * Unit-level outcome, a step within one course-level outcome.
+     */
     public const TIER_UNIT = 'unit';
 
     /**
@@ -121,7 +139,10 @@ final class student_result_service {
         ];
         if ($programids) {
             [$programsql, $programparams] = $DB->get_in_or_equal(
-                array_map('intval', $programids), SQL_PARAMS_NAMED, 'ploprog');
+                array_map('intval', $programids),
+                SQL_PARAMS_NAMED,
+                'ploprog'
+            );
             $ownerclauses[] = "(f.ownertype = :programowner AND f.ownerid $programsql)";
             $outcomeparams += $programparams + ['programowner' => framework_service::OWNER_PROGRAM];
         }
@@ -187,7 +208,10 @@ final class student_result_service {
         $programresultclause = '';
         if ($programids) {
             [$progresultsql, $progresultparams] = $DB->get_in_or_equal(
-                array_map('intval', $programids), SQL_PARAMS_NAMED, 'plores');
+                array_map('intval', $programids),
+                SQL_PARAMS_NAMED,
+                'plores'
+            );
             $programresultclause = "OR (f.ownertype = :programresultowner AND f.ownerid {$progresultsql})";
             $resultparams += $progresultparams + ['programresultowner' => framework_service::OWNER_PROGRAM];
         }
@@ -249,7 +273,7 @@ final class student_result_service {
             return ['courseid' => $courseid, 'generatedat' => $at,
                 'expectedpercent' => null, 'strongpercent' => null, 'rows' => []];
         }
-        uasort($relevant, static function(\stdClass $left, \stdClass $right): int {
+        uasort($relevant, static function (\stdClass $left, \stdClass $right): int {
             return [$left->code, $left->periodcode, $left->cinstid, $left->itemid]
                 <=> [$right->code, $right->periodcode, $right->cinstid, $right->itemid];
         });
@@ -330,21 +354,25 @@ final class student_result_service {
                     continue;
                 }
                 $evidence = $evidencebyuuid[$uuid];
-                if ((int) $evidence->cinstid !== (int) $outcome->cinstid
+                if (
+                    (int) $evidence->cinstid !== (int) $outcome->cinstid
                         || (int) $evidence->userid !== $userid
                         || $result === null
                         || (int) $evidence->itemverid !== (int) $result->itemverid
                         || $evidence->supersededby !== null
                         || (int) $evidence->assessmentcmid < 1
                         || (int) $evidence->quizattemptid < 1
-                        || (int) $evidence->questionusageid < 1) {
+                        || (int) $evidence->questionusageid < 1
+                ) {
                     $lineagecomplete[$key] = false;
                     continue;
                 }
                 $cmid = (int) $evidence->assessmentcmid;
                 $attemptid = (int) $evidence->quizattemptid;
-                if ($result->scopetype === calculation_service::SCOPE_ASSESSMENT
-                        && $cmid !== (int) $result->scopeid) {
+                if (
+                    $result->scopetype === calculation_service::SCOPE_ASSESSMENT
+                        && $cmid !== (int) $result->scopeid
+                ) {
                     $lineagecomplete[$key] = false;
                     continue;
                 }
@@ -382,13 +410,15 @@ final class student_result_service {
                 }
                 foreach ($scope['attemptidsbycm'][$cmid] ?? [] as $attemptid) {
                     $usageids = $scope['usageidsbyattempt'][$attemptid] ?? [];
-                    if (!isset($attempts[$attemptid])
+                    if (
+                        !isset($attempts[$attemptid])
                             || (int) $attempts[$attemptid]->userid !== $userid
                             || (int) $attempts[$attemptid]->quiz !== (int) $cms[$cmid]->instance
                             || $attempts[$attemptid]->state !== 'finished'
                             || !empty($attempts[$attemptid]->preview)
                             || count($usageids) !== 1
-                            || !isset($usageids[(int) $attempts[$attemptid]->uniqueid])) {
+                            || !isset($usageids[(int) $attempts[$attemptid]->uniqueid])
+                    ) {
                         $scopes[$key]['lineagecomplete'] = false;
                     }
                 }
@@ -625,7 +655,7 @@ final class student_result_service {
             if ($sourceid === $targetid) {
                 continue;
             }
-            // aligns_to and contributes_to commonly mirror each other, so the
+            // The aligns_to and contributes_to relationships commonly mirror each other, so the
             // parent list is a set rather than one entry per edge.
             $map[$sourceid][$targetid] = $targetid;
         }
@@ -762,8 +792,10 @@ final class student_result_service {
             $cinstid = (int) ($request['cinstid'] ?? 0);
             $itemverid = (int) ($request['itemverid'] ?? 0);
             $resultid = (int) ($request['resultid'] ?? 0);
-            if ($cinstid < 1 || $itemverid < 1 || !array_key_exists('percentage', $request)
-                    || $request['percentage'] === null) {
+            if (
+                $cinstid < 1 || $itemverid < 1 || !array_key_exists('percentage', $request)
+                    || $request['percentage'] === null
+            ) {
                 continue;
             }
             $normalized[$key] = [
@@ -818,12 +850,16 @@ final class student_result_service {
                 if ($record->bandid !== null && (int) $record->bandid !== $request['bandid']) {
                     continue;
                 }
-                if ($record->minpercent !== null
-                        && decimal::cmp($request['percentage'], (string) $record->minpercent) < 0) {
+                if (
+                    $record->minpercent !== null
+                        && decimal::cmp($request['percentage'], (string) $record->minpercent) < 0
+                ) {
                     continue;
                 }
-                if ($record->maxpercent !== null
-                        && decimal::cmp($request['percentage'], (string) $record->maxpercent) > 0) {
+                if (
+                    $record->maxpercent !== null
+                        && decimal::cmp($request['percentage'], (string) $record->maxpercent) > 0
+                ) {
                     continue;
                 }
 
@@ -890,7 +926,7 @@ final class student_result_service {
      * @return \stdClass|null Preferred result.
      */
     private static function preferred_result(array $results): ?\stdClass {
-        usort($results, static function(\stdClass $left, \stdClass $right): int {
+        usort($results, static function (\stdClass $left, \stdClass $right): int {
             $leftcourse = $left->scopetype === calculation_service::SCOPE_COURSE ? 1 : 0;
             $rightcourse = $right->scopetype === calculation_service::SCOPE_COURSE ? 1 : 0;
             return [$rightcourse, (int) $right->timecalculated, (int) $right->id]

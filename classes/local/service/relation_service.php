@@ -5,6 +5,22 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 namespace local_outcomemap\local\service;
 
@@ -16,14 +32,37 @@ use local_outcomemap\local\uuid;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
-/** Transactional service for versioned directed outcome relationships. */
+/**
+ * Transactional service for versioned directed outcome relationships.
+ */
 final class relation_service extends base_service {
+    /**
+     * Database table name.
+     */
     private const TABLE = 'local_outcomemap_rel';
+    /**
+     * Value for is child of.
+     */
     public const IS_CHILD_OF = 'is_child_of';
+    /**
+     * Value for aligns to.
+     */
     public const ALIGNS_TO = 'aligns_to';
+    /**
+     * Value for contributes to.
+     */
     public const CONTRIBUTES_TO = 'contributes_to';
+    /**
+     * Value for replaced by.
+     */
     public const REPLACED_BY = 'replaced_by';
+    /**
+     * Value for related to.
+     */
     public const RELATED_TO = 'related_to';
+    /**
+     * Value for types.
+     */
     public const TYPES = [
         self::IS_CHILD_OF,
         self::ALIGNS_TO,
@@ -31,15 +70,22 @@ final class relation_service extends base_service {
         self::REPLACED_BY,
         self::RELATED_TO,
     ];
+    /**
+     * Value for acyclic types.
+     */
     private const ACYCLIC_TYPES = [self::IS_CHILD_OF, self::CONTRIBUTES_TO];
 
-    /** Create a version-one draft relation. */
+    /**
+     * Create a version-one draft relation.
+     */
     public static function create(array $data): int {
         $record = self::build_record($data, uuid::normalize_or_generate($data['relationuuid'] ?? null), 1);
         return self::insert($record, 'create');
     }
 
-    /** Create the next draft version of an approved relation identity. */
+    /**
+     * Create the next draft version of an approved relation identity.
+     */
     public static function create_version(int $relationid, array $data): int {
         global $DB;
         self::require_system('local/outcomemap:manageframeworks');
@@ -49,7 +95,8 @@ final class relation_service extends base_service {
         }
         $maxversion = (int) $DB->get_field_sql(
             'SELECT MAX(version) FROM {local_outcomemap_rel} WHERE relationuuid = :uuid',
-            ['uuid' => $previous->relationuuid]);
+            ['uuid' => $previous->relationuuid]
+        );
         $data['sourceitemid'] = $previous->sourceitemid;
         $data['targetitemid'] = $previous->targetitemid;
         $data['type'] = $previous->type;
@@ -57,7 +104,9 @@ final class relation_service extends base_service {
         return self::insert($record, 'create_version');
     }
 
-    /** Update a draft relation version. */
+    /**
+     * Update a draft relation version.
+     */
     public static function update_draft(int $id, array $data): void {
         global $DB;
         $actorid = self::require_system('local/outcomemap:manageframeworks');
@@ -74,15 +123,26 @@ final class relation_service extends base_service {
         $transaction = $DB->start_delegated_transaction();
         try {
             $DB->update_record(self::TABLE, $after);
-            audit_writer::write('update', 'relation', $id, $after->relationuuid, $before, $after,
-                $data['reason'] ?? null, \context_system::instance(), $actorid);
+            audit_writer::write(
+                'update',
+                'relation',
+                $id,
+                $after->relationuuid,
+                $before,
+                $after,
+                $data['reason'] ?? null,
+                \context_system::instance(),
+                $actorid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
         }
     }
 
-    /** Submit a relation version for review. */
+    /**
+     * Submit a relation version for review.
+     */
     public static function submit_for_review(int $id, ?string $reason = null): void {
         global $DB;
         $actorid = self::require_system('local/outcomemap:manageframeworks');
@@ -96,8 +156,17 @@ final class relation_service extends base_service {
         $transaction = $DB->start_delegated_transaction();
         try {
             $DB->update_record(self::TABLE, $after);
-            audit_writer::write('submit_review', 'relation', $id, $after->relationuuid, $before, $after,
-                $reason, \context_system::instance(), $actorid);
+            audit_writer::write(
+                'submit_review',
+                'relation',
+                $id,
+                $after->relationuuid,
+                $before,
+                $after,
+                $reason,
+                \context_system::instance(),
+                $actorid
+            );
             if (!workflow::requires_independent_approval()) {
                 self::approve($id, $reason);
             }
@@ -107,7 +176,9 @@ final class relation_service extends base_service {
         }
     }
 
-    /** Approve a relation after effective-range and graph-cycle validation. */
+    /**
+     * Approve a relation after effective-range and graph-cycle validation.
+     */
     public static function approve(int $id, ?string $reason = null): void {
         global $DB;
         $actorid = self::require_approval_system('local/outcomemap:manageframeworks');
@@ -129,15 +200,26 @@ final class relation_service extends base_service {
             self::require_no_approved_overlap($before);
             self::require_acyclic($before);
             $DB->update_record(self::TABLE, $after);
-            audit_writer::write('approve', 'relation', $id, $after->relationuuid, $before, $after,
-                $reason, \context_system::instance(), $actorid);
+            audit_writer::write(
+                'approve',
+                'relation',
+                $id,
+                $after->relationuuid,
+                $before,
+                $after,
+                $reason,
+                \context_system::instance(),
+                $actorid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
         }
     }
 
-    /** Return all relationship versions with display codes. */
+    /**
+     * Return all relationship versions with display codes.
+     */
     public static function list_all(): array {
         global $DB;
         self::require_system('local/outcomemap:viewdefinitions');
@@ -194,9 +276,17 @@ final class relation_service extends base_service {
         return $DB->get_records_sql($sql);
     }
 
-    /** Validate whether a candidate edge would be acyclic. */
-    public static function validate_acyclic(int $sourceitemid, int $targetitemid, string $type,
-            int $effectivefrom, ?int $effectiveto, int $excludeid = 0): bool {
+    /**
+     * Validate whether a candidate edge would be acyclic.
+     */
+    public static function validate_acyclic(
+        int $sourceitemid,
+        int $targetitemid,
+        string $type,
+        int $effectivefrom,
+        ?int $effectiveto,
+        int $excludeid = 0
+    ): bool {
         $candidate = (object) [
             'id' => $excludeid,
             'sourceitemid' => $sourceitemid,
@@ -216,6 +306,9 @@ final class relation_service extends base_service {
         }
     }
 
+    /**
+     * Builds a validated database record.
+     */
     private static function build_record(array $data, string $relationuuid, int $version): \stdClass {
         $sourceitemid = input::positive_int($data['sourceitemid'] ?? 0, 'sourceitemid');
         $targetitemid = input::positive_int($data['targetitemid'] ?? 0, 'targetitemid');
@@ -263,6 +356,9 @@ final class relation_service extends base_service {
         ];
     }
 
+    /**
+     * Inserts a validated record.
+     */
     private static function insert(\stdClass $record, string $action): int {
         global $DB;
         $actorid = self::require_system('local/outcomemap:manageframeworks');
@@ -271,8 +367,17 @@ final class relation_service extends base_service {
         try {
             $id = $DB->insert_record(self::TABLE, $record);
             $record->id = $id;
-            audit_writer::write($action, 'relation', $id, $record->relationuuid, null, $record,
-                $record->notes, \context_system::instance(), $actorid);
+            audit_writer::write(
+                $action,
+                'relation',
+                $id,
+                $record->relationuuid,
+                null,
+                $record,
+                $record->notes,
+                \context_system::instance(),
+                $actorid
+            );
             $transaction->allow_commit();
             return $id;
         } catch (\Throwable $e) {
@@ -280,6 +385,9 @@ final class relation_service extends base_service {
         }
     }
 
+    /**
+     * Handles the require approved outcomes operation.
+     */
     private static function require_approved_outcomes(\stdClass $candidate): void {
         $source = self::get_required('local_outcomemap_item', (int) $candidate->sourceitemid, 'source_outcome');
         $target = self::get_required('local_outcomemap_item', (int) $candidate->targetitemid, 'target_outcome');
@@ -288,10 +396,17 @@ final class relation_service extends base_service {
         }
     }
 
+    /**
+     * Requires nonoverlapping approved effective dates.
+     */
     private static function require_no_approved_overlap(\stdClass $candidate): void {
         global $DB;
-        [$overlapsql, $params] = effective_dates::overlap_sql('', (int) $candidate->effectivefrom,
-            $candidate->effectiveto === null ? null : (int) $candidate->effectiveto, 'rel');
+        [$overlapsql, $params] = effective_dates::overlap_sql(
+            '',
+            (int) $candidate->effectivefrom,
+            $candidate->effectiveto === null ? null : (int) $candidate->effectiveto,
+            'rel'
+        );
         $params += [
             'uuid' => $candidate->relationuuid,
             'status' => workflow::APPROVED,
@@ -303,14 +418,21 @@ final class relation_service extends base_service {
         }
     }
 
+    /**
+     * Handles the require acyclic operation.
+     */
     private static function require_acyclic(\stdClass $candidate): void {
         global $DB;
         if (!in_array($candidate->type, self::ACYCLIC_TYPES, true)) {
             return;
         }
         [$insql, $typeparams] = $DB->get_in_or_equal(self::ACYCLIC_TYPES, SQL_PARAMS_NAMED, 'rtype');
-        [$overlapsql, $dateparams] = effective_dates::overlap_sql('', (int) $candidate->effectivefrom,
-            $candidate->effectiveto === null ? null : (int) $candidate->effectiveto, 'graph');
+        [$overlapsql, $dateparams] = effective_dates::overlap_sql(
+            '',
+            (int) $candidate->effectivefrom,
+            $candidate->effectiveto === null ? null : (int) $candidate->effectiveto,
+            'graph'
+        );
         $select = 'status = :status AND type ' . $insql . ' AND id <> :excludeid AND ' . $overlapsql;
         $params = ['status' => workflow::APPROVED, 'excludeid' => (int) ($candidate->id ?? 0)]
             + $typeparams + $dateparams;

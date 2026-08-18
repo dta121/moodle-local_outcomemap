@@ -5,11 +5,32 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 namespace local_outcomemap\form;
 
-/** Outcome and outcome-version editor. */
+/**
+ * Outcome and outcome-version editor.
+ */
 final class outcome_form extends \moodleform {
+    /**
+     * Defines the form fields.
+     */
     public function definition(): void {
         global $DB;
         $mform = $this->_form;
@@ -26,12 +47,22 @@ final class outcome_form extends \moodleform {
         $mform->addElement('textarea', 'statement', get_string('statement', 'local_outcomemap'), ['rows' => 4, 'cols' => 70]);
         $mform->setType('statement', PARAM_TEXT);
         $mform->addRule('statement', null, 'required');
-        $mform->addElement('text', 'shortstatement', get_string('shortstatement', 'local_outcomemap'), ['maxlength' => 255, 'size' => 60]);
+        $mform->addElement(
+            'text',
+            'shortstatement',
+            get_string('shortstatement', 'local_outcomemap'),
+            ['maxlength' => 255, 'size' => 60]
+        );
         $mform->setType('shortstatement', PARAM_TEXT);
         $mform->addElement('text', 'bloomlevel', get_string('bloomlevel', 'local_outcomemap'), ['maxlength' => 50]);
         $mform->setType('bloomlevel', PARAM_TEXT);
         $mform->addElement('date_time_selector', 'effectivefrom', get_string('effectivefrom', 'local_outcomemap'));
-        $mform->addElement('date_time_selector', 'effectiveto', get_string('effectiveto', 'local_outcomemap'), ['optional' => true]);
+        $mform->addElement(
+            'date_time_selector',
+            'effectiveto',
+            get_string('effectiveto', 'local_outcomemap'),
+            ['optional' => true]
+        );
         $mform->setDefault('effectivefrom', time());
         $mform->addElement('textarea', 'changereason', get_string('changereason', 'local_outcomemap'), ['rows' => 3, 'cols' => 70]);
         $mform->setType('changereason', PARAM_TEXT);

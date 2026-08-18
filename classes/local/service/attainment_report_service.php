@@ -52,43 +52,69 @@ use local_outcomemap\local\workflow;
  * disagree.
  */
 final class attainment_report_service extends base_service {
-    /** Every learner holding a stored result. */
+    /**
+     * Every learner holding a stored result.
+     */
     public const COHORT_ALL = 'all';
 
-    /** Learners who completed the Moodle course. */
+    /**
+     * Learners who completed the Moodle course.
+     */
     public const COHORT_COMPLETED = 'completed';
 
-    /** Learners who did not complete the Moodle course. */
+    /**
+     * Learners who did not complete the Moodle course.
+     */
     public const COHORT_NOTCOMPLETED = 'notcompleted';
 
-    /** Selectable cohorts, in display order. */
+    /**
+     * Selectable cohorts, in display order.
+     */
     public const COHORTS = [self::COHORT_ALL, self::COHORT_COMPLETED, self::COHORT_NOTCOMPLETED];
 
-    /** Teaching view: diagnostic flags on, thin results shown with their sample size. */
+    /**
+     * Teaching view: diagnostic flags on, thin results shown with their sample size.
+     */
     public const LENS_EDUCATOR = 'educator';
 
-    /** Program view: findings framed as risk to a program-level claim. */
+    /**
+     * Program view: findings framed as risk to a program-level claim.
+     */
     public const LENS_PROGRAM = 'program';
 
-    /** Submission view: the governing suppression floor is enforced, not annotated. */
+    /**
+     * Submission view: the governing suppression floor is enforced, not annotated.
+     */
     public const LENS_ACCREDITATION = 'accreditation';
 
-    /** Selectable lenses, in display order. */
+    /**
+     * Selectable lenses, in display order.
+     */
     public const LENSES = [self::LENS_EDUCATOR, self::LENS_PROGRAM, self::LENS_ACCREDITATION];
 
-    /** Headline cards and the level rollup. */
+    /**
+     * Headline cards and the level rollup.
+     */
     public const VIEW_SUMMARY = 'summary';
 
-    /** Every outcome, top down, one level inside another. */
+    /**
+     * Every outcome, top down, one level inside another.
+     */
     public const VIEW_LEDGER = 'ledger';
 
-    /** One column per level, with an alignment trace. */
+    /**
+     * One column per level, with an alignment trace.
+     */
     public const VIEW_MAP = 'map';
 
-    /** The top level across every course in the program that claims it. */
+    /**
+     * The top level across every course in the program that claims it.
+     */
     public const VIEW_ROLLUP = 'rollup';
 
-    /** Selectable views, in display order. */
+    /**
+     * Selectable views, in display order.
+     */
     public const VIEWS = [self::VIEW_SUMMARY, self::VIEW_LEDGER, self::VIEW_MAP, self::VIEW_ROLLUP];
 
     /**
@@ -100,13 +126,19 @@ final class attainment_report_service extends base_service {
      */
     public const ALIKE_SPREAD = 8.0;
 
-    /** Longest alignment chain walked when deriving levels. */
+    /**
+     * Longest alignment chain walked when deriving levels.
+     */
     private const MAX_DEPTH = 10;
 
-    /** Priority findings carried onto the page. */
+    /**
+     * Priority findings carried onto the page.
+     */
     private const MAX_PRIORITIES = 5;
 
-    /** Places any one kind of finding may take before another kind is offered one. */
+    /**
+     * Places any one kind of finding may take before another kind is offered one.
+     */
     private const MAX_PER_FINDING = 2;
 
     /**
@@ -118,8 +150,12 @@ final class attainment_report_service extends base_service {
      * @param int|null $at Evaluation timestamp; defaults to now.
      * @return \stdClass The whole page model.
      */
-    public static function report(int $courseid, string $cohort = self::COHORT_ALL,
-            string $lens = self::LENS_EDUCATOR, ?int $at = null): \stdClass {
+    public static function report(
+        int $courseid,
+        string $cohort = self::COHORT_ALL,
+        string $lens = self::LENS_EDUCATOR,
+        ?int $at = null
+    ): \stdClass {
         global $DB;
         $context = \context_course::instance($courseid, MUST_EXIST);
         // Cohort attainment is other people's results, so this is the all-results
@@ -163,7 +199,9 @@ final class attainment_report_service extends base_service {
             'hasinstance' => true,
             'courseid' => $courseid,
             'periodcodes' => array_values(array_unique(array_map(
-                static fn(\stdClass $i): string => (string) $i->periodcode, $instances))),
+                static fn(\stdClass $i): string => (string) $i->periodcode,
+                $instances
+            ))),
             'program' => $program,
             'policy' => $policy,
             'cohort' => $cohort,
@@ -201,7 +239,9 @@ final class attainment_report_service extends base_service {
     private static function program_of(array $instances, int $at): ?\stdClass {
         global $DB;
         $catalogids = array_values(array_unique(array_map(
-            static fn(\stdClass $i): int => (int) $i->courseid, $instances)));
+            static fn(\stdClass $i): int => (int) $i->courseid,
+            $instances
+        )));
         [$insql, $params] = $DB->get_in_or_equal($catalogids, SQL_PARAMS_NAMED, 'cc');
         $params += ['pcstatus' => workflow::APPROVED, 'pstatus' => workflow::APPROVED,
             'at1' => $at, 'at2' => $at];
@@ -318,8 +358,10 @@ final class attainment_report_service extends base_service {
         $none = (object) ['rule' => null, 'value' => null, 'completed' => []];
 
         $course = get_course($courseid);
-        if (!empty($CFG->enablecompletion) && !empty($course->enablecompletion)
-                && $DB->record_exists('course_completion_criteria', ['course' => $courseid])) {
+        if (
+            !empty($CFG->enablecompletion) && !empty($course->enablecompletion)
+                && $DB->record_exists('course_completion_criteria', ['course' => $courseid])
+        ) {
             $userids = $DB->get_fieldset_select(
                 'course_completions',
                 'userid',
@@ -433,8 +475,12 @@ final class attainment_report_service extends base_service {
      * @param int $at Effective timestamp.
      * @return array<int,\stdClass> Nodes keyed by stable outcome item ID.
      */
-    private static function build_nodes(int $courseid, array $records, array $instances,
-            int $at): array {
+    private static function build_nodes(
+        int $courseid,
+        array $records,
+        array $instances,
+        int $at
+    ): array {
         global $DB;
         $itemids = [];
         foreach ($records as $record) {
@@ -544,7 +590,9 @@ final class attainment_report_service extends base_service {
     private static function course_scope_items(array $instances, int $at): array {
         global $DB;
         $catalogids = array_values(array_unique(array_map(
-            static fn(\stdClass $i): int => (int) $i->courseid, $instances)));
+            static fn(\stdClass $i): int => (int) $i->courseid,
+            $instances
+        )));
         [$insql, $params] = $DB->get_in_or_equal($catalogids, SQL_PARAMS_NAMED, 'cc');
         $params += [
             'ownertype' => framework_service::OWNER_COURSE,
@@ -651,8 +699,12 @@ final class attainment_report_service extends base_service {
      * @param \stdClass $split Completion split.
      * @return void
      */
-    private static function score_nodes(array $nodes, array $records, \stdClass $policy,
-            \stdClass $split): void {
+    private static function score_nodes(
+        array $nodes,
+        array $records,
+        \stdClass $policy,
+        \stdClass $split
+    ): void {
         $bounds = self::band_bounds($records);
         $buckets = [];
         foreach ($records as $record) {
@@ -701,13 +753,15 @@ final class attainment_report_service extends base_service {
         }
         [$insql, $params] = $DB->get_in_or_equal(array_keys($policyids), SQL_PARAMS_NAMED, 'pol');
         $bounds = [];
-        foreach ($DB->get_records_sql(
-            "SELECT policyid, MIN(sortorder) AS lowestorder, MAX(sortorder) AS highestorder
+        foreach (
+            $DB->get_records_sql(
+                "SELECT policyid, MIN(sortorder) AS lowestorder, MAX(sortorder) AS highestorder
                FROM {local_outcomemap_band}
               WHERE policyid $insql
            GROUP BY policyid",
-            $params
-        ) as $record) {
+                $params
+            ) as $record
+        ) {
             $bounds[(int) $record->policyid] = [
                 'lowest' => (int) $record->lowestorder,
                 'highest' => (int) $record->highestorder,
@@ -1012,7 +1066,7 @@ final class attainment_report_service extends base_service {
         // should not exist.
         $resolved = [];
         $covered = static function (int $itemid, array $visiting)
-                use (&$covered, $nodes, $direct, &$resolved): bool {
+ use (&$covered, $nodes, $direct, &$resolved): bool {
             if (isset($resolved[$itemid])) {
                 return $resolved[$itemid];
             }
@@ -1049,8 +1103,12 @@ final class attainment_report_service extends base_service {
      * @param string $cohort Cohort key.
      * @return \stdClass Unassessed outcomes, thin outcomes, and whole empty levels.
      */
-    private static function build_gaps(array $nodes, array $tiers, \stdClass $policy,
-            string $cohort): \stdClass {
+    private static function build_gaps(
+        array $nodes,
+        array $tiers,
+        \stdClass $policy,
+        string $cohort
+    ): \stdClass {
         $unassessed = [];
         $thin = [];
         $leaves = 0;
@@ -1070,8 +1128,10 @@ final class attainment_report_service extends base_service {
             // below already names it where it matters.
             if (!$overall->graded && !$node->children && $node->assessedcontent === false) {
                 $unassessed[] = $node;
-            } else if ($policy->floor !== null && $stats->graded > 0
-                    && $stats->graded < $policy->floor) {
+            } else if (
+                $policy->floor !== null && $stats->graded > 0
+                    && $stats->graded < $policy->floor
+            ) {
                 $thin[] = $node;
             }
         }
@@ -1135,8 +1195,10 @@ final class attainment_report_service extends base_service {
             $notdone = $node->stats[self::COHORT_NOTCOMPLETED];
             $istop = $node->tier === 0;
 
-            if ($policy->target !== null && $all->metpct !== null
-                    && $all->metpct + 0.05 < $policy->target) {
+            if (
+                $policy->target !== null && $all->metpct !== null
+                    && $all->metpct + 0.05 < $policy->target
+            ) {
                 $behind = count(array_filter(
                     $node->children,
                     static fn(int $id): bool => isset($report->nodes[$id])
@@ -1154,8 +1216,10 @@ final class attainment_report_service extends base_service {
                 ]);
             }
 
-            if ($policy->floor !== null && $all->graded > 0 && $all->graded < $policy->floor
-                    && $all->metpct !== null) {
+            if (
+                $policy->floor !== null && $all->graded > 0 && $all->graded < $policy->floor
+                    && $all->metpct !== null
+            ) {
                 $tier = $report->tiers[$node->tier]->stats[$cohort]->metpct;
                 if ($tier !== null && $all->metpct > $tier) {
                     $add('thinflattering', $node, 40 + ($all->metpct - $tier) / 2, [
@@ -1186,8 +1250,10 @@ final class attainment_report_service extends base_service {
                 }
             }
 
-            if ($splitready && $policy->target !== null && $done->metpct !== null
-                    && $done->judged > 0 && $done->metpct + 0.05 < $policy->target) {
+            if (
+                $splitready && $policy->target !== null && $done->metpct !== null
+                    && $done->judged > 0 && $done->metpct + 0.05 < $policy->target
+            ) {
                 $add('completersshortfall', $node, 55 + ($policy->target - $done->metpct), [
                     'code' => $node->code,
                     'completed' => self::pct($done->metpct),

@@ -41,19 +41,29 @@ use local_outcomemap\local\workflow;
  * there.
  */
 final class policy_service extends base_service {
-    /** Attempt-selection policy type. */
+    /**
+     * Attempt-selection policy type.
+     */
     public const TYPE_ATTEMPT_SELECTION = 'attempt_selection';
 
-    /** Calculation (sufficiency, precision, and bands) policy type. */
+    /**
+     * Calculation (sufficiency, precision, and bands) policy type.
+     */
     public const TYPE_CALCULATION = 'calculation';
 
-    /** Student feedback-release policy type. */
+    /**
+     * Student feedback-release policy type.
+     */
     public const TYPE_RELEASE = 'release';
 
-    /** Accreditation aggregation and suppression policy type. */
+    /**
+     * Accreditation aggregation and suppression policy type.
+     */
     public const TYPE_ACCREDITATION = 'accreditation';
 
-    /** Supported policy types. */
+    /**
+     * Supported policy types.
+     */
     public const TYPES = [
         self::TYPE_ATTEMPT_SELECTION,
         self::TYPE_CALCULATION,
@@ -61,22 +71,34 @@ final class policy_service extends base_service {
         self::TYPE_ACCREDITATION,
     ];
 
-    /** Release after every contributing quiz attempt is fully graded. */
+    /**
+     * Release after every contributing quiz attempt is fully graded.
+     */
     public const RELEASE_FULLY_GRADED = 'fully_graded';
 
-    /** Release when every contributing Moodle quiz grade is visible. */
+    /**
+     * Release when every contributing Moodle quiz grade is visible.
+     */
     public const RELEASE_GRADE_VISIBLE = 'grade_visible';
 
-    /** Release when every contributing quiz has closed for the learner. */
+    /**
+     * Release when every contributing quiz has closed for the learner.
+     */
     public const RELEASE_QUIZ_CLOSED = 'quiz_closed';
 
-    /** Release at a governed instructor-selected timestamp. */
+    /**
+     * Release at a governed instructor-selected timestamp.
+     */
     public const RELEASE_SCHEDULED = 'scheduled';
 
-    /** Release after a separate authorized and audited manual action. */
+    /**
+     * Release after a separate authorized and audited manual action.
+     */
     public const RELEASE_MANUAL = 'manual';
 
-    /** Supported feedback-release modes. */
+    /**
+     * Supported feedback-release modes.
+     */
     public const RELEASE_MODES = [
         self::RELEASE_FULLY_GRADED,
         self::RELEASE_GRADE_VISIBLE,
@@ -85,22 +107,34 @@ final class policy_service extends base_service {
         self::RELEASE_MANUAL,
     ];
 
-    /** Institution scope. */
+    /**
+     * Institution scope.
+     */
     public const SCOPE_INSTITUTION = 'institution';
 
-    /** Program scope, used by governed accreditation policies. */
+    /**
+     * Program scope, used by governed accreditation policies.
+     */
     public const SCOPE_PROGRAM = 'program';
 
-    /** Catalog-course scope. */
+    /**
+     * Catalog-course scope.
+     */
     public const SCOPE_CATALOG_COURSE = 'catalog_course';
 
-    /** Course-instance scope. */
+    /**
+     * Course-instance scope.
+     */
     public const SCOPE_COURSE_INSTANCE = 'course_instance';
 
-    /** Assessment (course-module) scope. */
+    /**
+     * Assessment (course-module) scope.
+     */
     public const SCOPE_ASSESSMENT = 'assessment';
 
-    /** Calculation and release scope precedence from most to least specific. */
+    /**
+     * Calculation and release scope precedence from most to least specific.
+     */
     public const SCOPE_PRECEDENCE = [
         self::SCOPE_ASSESSMENT,
         self::SCOPE_COURSE_INSTANCE,
@@ -108,7 +142,9 @@ final class policy_service extends base_service {
         self::SCOPE_INSTITUTION,
     ];
 
-    /** Every supported policy scope. */
+    /**
+     * Every supported policy scope.
+     */
     public const SCOPES = [
         self::SCOPE_ASSESSMENT,
         self::SCOPE_COURSE_INSTANCE,
@@ -117,22 +153,34 @@ final class policy_service extends base_service {
         self::SCOPE_INSTITUTION,
     ];
 
-    /** First completed attempt. */
+    /**
+     * First completed attempt.
+     */
     public const METHOD_FIRST_COMPLETED = 'first_completed';
 
-    /** Latest completed attempt. */
+    /**
+     * Latest completed attempt.
+     */
     public const METHOD_LATEST_COMPLETED = 'latest_completed';
 
-    /** Highest graded attempt. */
+    /**
+     * Highest graded attempt.
+     */
     public const METHOD_HIGHEST_GRADED = 'highest_graded';
 
-    /** Attempt selected by the quiz grade method. */
+    /**
+     * Attempt selected by the quiz grade method.
+     */
     public const METHOD_QUIZ_GRADE = 'quiz_grade';
 
-    /** All completed attempts. */
+    /**
+     * All completed attempts.
+     */
     public const METHOD_ALL_COMPLETED = 'all_completed';
 
-    /** Supported attempt-selection methods. */
+    /**
+     * Supported attempt-selection methods.
+     */
     public const METHODS = [
         self::METHOD_FIRST_COMPLETED,
         self::METHOD_LATEST_COMPLETED,
@@ -203,8 +251,17 @@ final class policy_service extends base_service {
                 $band->policyid = $id;
                 $DB->insert_record('local_outcomemap_band', $band);
             }
-            audit_writer::write('update', 'policy', $id, $after->policyuuid, $beforeaudit, $afteraudit,
-                $data['reason'] ?? null, self::policy_context($after), $actorid);
+            audit_writer::write(
+                'update',
+                'policy',
+                $id,
+                $after->policyuuid,
+                $beforeaudit,
+                $afteraudit,
+                $data['reason'] ?? null,
+                self::policy_context($after),
+                $actorid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -225,9 +282,11 @@ final class policy_service extends base_service {
         if ($before->status !== workflow::DRAFT) {
             throw new validation_exception('approvedimmutable', 'policy', $id);
         }
-        if ($DB->record_exists('local_outcomemap_evidence', ['policyid' => $id])
+        if (
+            $DB->record_exists('local_outcomemap_evidence', ['policyid' => $id])
                 || $DB->record_exists('local_outcomemap_result', ['policyid' => $id])
-                || $DB->record_exists('local_outcomemap_snapshot', ['policyid' => $id])) {
+                || $DB->record_exists('local_outcomemap_snapshot', ['policyid' => $id])
+        ) {
             throw new validation_exception('policyinuse', 'policy', $id);
         }
         $before->bands = self::get_bands($id);
@@ -235,8 +294,17 @@ final class policy_service extends base_service {
         try {
             $DB->delete_records('local_outcomemap_band', ['policyid' => $id]);
             $DB->delete_records('local_outcomemap_policy', ['id' => $id]);
-            audit_writer::write('delete', 'policy', $id, $before->policyuuid, $before, null,
-                $reason, self::policy_context($before), $actorid);
+            audit_writer::write(
+                'delete',
+                'policy',
+                $id,
+                $before->policyuuid,
+                $before,
+                null,
+                $reason,
+                self::policy_context($before),
+                $actorid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -292,8 +360,17 @@ final class policy_service extends base_service {
         $transaction = $DB->start_delegated_transaction();
         try {
             $DB->update_record('local_outcomemap_policy', $after);
-            audit_writer::write('submit_review', 'policy', $id, $after->policyuuid, $before, $after,
-                $reason, self::policy_context($after), $actorid);
+            audit_writer::write(
+                'submit_review',
+                'policy',
+                $id,
+                $after->policyuuid,
+                $before,
+                $after,
+                $reason,
+                self::policy_context($after),
+                $actorid
+            );
             if (!workflow::requires_independent_approval()) {
                 self::approve($id, $reason);
             }
@@ -337,17 +414,34 @@ final class policy_service extends base_service {
             $DB->update_record('local_outcomemap_policy', $after);
             // Nonfrozen results calculated under earlier versions of this
             // policy are now stale and queue for recalculation.
-            $previousids = $DB->get_fieldset_select('local_outcomemap_policy', 'id',
+            $previousids = $DB->get_fieldset_select(
+                'local_outcomemap_policy',
+                'id',
                 'policyuuid = :policyuuid AND id <> :id',
-                ['policyuuid' => $before->policyuuid, 'id' => $id]);
+                ['policyuuid' => $before->policyuuid, 'id' => $id]
+            );
             if ($previousids) {
                 [$insql, $params] = $DB->get_in_or_equal($previousids, SQL_PARAMS_NAMED, 'pol');
                 $params['frozen'] = 'frozen';
-                $DB->set_field_select('local_outcomemap_result', 'stale', 1,
-                    "policyid $insql AND state <> :frozen", $params);
+                $DB->set_field_select(
+                    'local_outcomemap_result',
+                    'stale',
+                    1,
+                    "policyid $insql AND state <> :frozen",
+                    $params
+                );
             }
-            audit_writer::write('approve', 'policy', $id, $after->policyuuid, $before, $after,
-                $reason, $context, $actorid);
+            audit_writer::write(
+                'approve',
+                'policy',
+                $id,
+                $after->policyuuid,
+                $before,
+                $after,
+                $reason,
+                $context,
+                $actorid
+            );
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
@@ -361,6 +455,7 @@ final class policy_service extends base_service {
      * @return \stdClass Policy record with config array and band rows.
      */
     public static function get(int $id): \stdClass {
+
         global $DB;
         $record = self::get_required('local_outcomemap_policy', $id, 'policy');
         require_capability('local/outcomemap:managepolicies', self::policy_context($record));
@@ -379,8 +474,11 @@ final class policy_service extends base_service {
      */
     public static function get_bands(int $policyid): array {
         global $DB;
-        return array_values($DB->get_records('local_outcomemap_band',
-            ['policyid' => $policyid], 'sortorder ASC'));
+        return array_values($DB->get_records(
+            'local_outcomemap_band',
+            ['policyid' => $policyid],
+            'sortorder ASC'
+        ));
     }
 
     /**
@@ -394,8 +492,11 @@ final class policy_service extends base_service {
     public static function list_all(): array {
         global $DB;
         require_capability('local/outcomemap:managepolicies', \context_system::instance());
-        $records = $DB->get_records('local_outcomemap_policy', null,
-            'policytype, name, policyuuid, version DESC, id DESC');
+        $records = $DB->get_records(
+            'local_outcomemap_policy',
+            null,
+            'policytype, name, policyuuid, version DESC, id DESC'
+        );
         foreach ($records as $record) {
             $record->config = json_decode($record->configjson, true) ?? [];
             $record->bands = [];
@@ -513,8 +614,13 @@ final class policy_service extends base_service {
         $courseids = [];
         $instances = [];
         if ($cinstids) {
-            $instances = $DB->get_records_list('local_outcomemap_cinst', 'id', array_values($cinstids), '',
-                'id, courseid');
+            $instances = $DB->get_records_list(
+                'local_outcomemap_cinst',
+                'id',
+                array_values($cinstids),
+                '',
+                'id, courseid'
+            );
             foreach ($instances as $instance) {
                 $courseids[(int) $instance->courseid] = (int) $instance->courseid;
             }
@@ -545,15 +651,23 @@ final class policy_service extends base_service {
         $select = 'policytype = :policytype AND status = :status
             AND effectivefrom <= :at1 AND (effectiveto IS NULL OR effectiveto > :at2)
             AND (' . implode(' OR ', $scopeconditions) . ')';
-        $records = $DB->get_records_select('local_outcomemap_policy', $select, $params,
-            'scopetype, scopeid, version DESC, id DESC');
+        $records = $DB->get_records_select(
+            'local_outcomemap_policy',
+            $select,
+            $params,
+            'scopetype, scopeid, version DESC, id DESC'
+        );
         foreach ($records as $record) {
             $record->config = json_decode($record->configjson, true) ?? [];
             $record->bands = [];
         }
         if ($records) {
-            $bands = $DB->get_records_list('local_outcomemap_band', 'policyid', array_keys($records),
-                'policyid, sortorder');
+            $bands = $DB->get_records_list(
+                'local_outcomemap_band',
+                'policyid',
+                array_keys($records),
+                'policyid, sortorder'
+            );
             foreach ($bands as $band) {
                 $records[(int) $band->policyid]->bands[] = $band;
             }
@@ -606,9 +720,11 @@ final class policy_service extends base_service {
             require_capability('moodle/course:update', $policycontext);
         }
         $config = json_decode($policy->configjson, true) ?? [];
-        if ($policy->status !== workflow::APPROVED
+        if (
+            $policy->status !== workflow::APPROVED
                 || $policy->policytype !== self::TYPE_RELEASE
-                || ($config['mode'] ?? null) !== self::RELEASE_MANUAL) {
+                || ($config['mode'] ?? null) !== self::RELEASE_MANUAL
+        ) {
             throw new validation_exception('invalidpolicyconfig', 'mode', $config['mode'] ?? '');
         }
         $existing = $DB->get_record('local_outcomemap_policyrel', ['policyid' => $policyid]);
@@ -746,8 +862,17 @@ final class policy_service extends base_service {
                 $band->policyid = $id;
                 $DB->insert_record('local_outcomemap_band', $band);
             }
-            audit_writer::write($action, 'policy', $id, $record->policyuuid, null, $record,
-                $reason, self::policy_context($record), $actorid);
+            audit_writer::write(
+                $action,
+                'policy',
+                $id,
+                $record->policyuuid,
+                null,
+                $record,
+                $reason,
+                self::policy_context($record),
+                $actorid
+            );
             $transaction->allow_commit();
             return $id;
         } catch (\Throwable $e) {
@@ -796,12 +921,16 @@ final class policy_service extends base_service {
         $normalized['minitems'] = (int) $minitems;
         if (isset($config['minweightedpossible']) && trim((string) $config['minweightedpossible']) !== '') {
             $normalized['minweightedpossible'] = decimal::require_canonical(
-                $config['minweightedpossible'], 'minweightedpossible');
+                $config['minweightedpossible'],
+                'minweightedpossible'
+            );
         }
         $normalized['requiremanualgrading'] = !empty($config['requiremanualgrading']);
         $displayscale = $config['displayscale'] ?? 1;
-        if (filter_var($displayscale, FILTER_VALIDATE_INT) === false
-                || (int) $displayscale < 0 || (int) $displayscale > decimal::SCALE) {
+        if (
+            filter_var($displayscale, FILTER_VALIDATE_INT) === false
+                || (int) $displayscale < 0 || (int) $displayscale > decimal::SCALE
+        ) {
             throw new validation_exception('invalidpolicyconfig', 'displayscale', $displayscale);
         }
         $normalized['displayscale'] = (int) $displayscale;
@@ -940,8 +1069,12 @@ final class policy_service extends base_service {
             return \context_module::instance((int) $record->scopeid, MUST_EXIST);
         }
         if ($record->scopetype === self::SCOPE_COURSE_INSTANCE) {
-            $moodlecourseid = $DB->get_field('local_outcomemap_cinst', 'moodlecourseid',
-                ['id' => $record->scopeid], MUST_EXIST);
+            $moodlecourseid = $DB->get_field(
+                'local_outcomemap_cinst',
+                'moodlecourseid',
+                ['id' => $record->scopeid],
+                MUST_EXIST
+            );
             return \context_course::instance((int) $moodlecourseid, MUST_EXIST);
         }
         return \context_system::instance();

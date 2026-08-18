@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\local\privacy;
 
@@ -29,7 +37,9 @@ use local_outcomemap\local\service\snapshot_service;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class user_data_service {
-    /** Component name used by the Privacy API. */
+    /**
+     * Component name used by the Privacy API.
+     */
     public const COMPONENT = 'local_outcomemap';
 
     /**
@@ -253,11 +263,13 @@ final class user_data_service {
                 return true;
             }
         }
-        if ($DB->record_exists_select(
-            'local_outcomemap_result',
-            'userid = :userid AND cinstid IS NULL',
-            ['userid' => $userid]
-        )) {
+        if (
+            $DB->record_exists_select(
+                'local_outcomemap_result',
+                'userid = :userid AND cinstid IS NULL',
+                ['userid' => $userid]
+            )
+        ) {
             return true;
         }
         return subject_key_service::has_record($userid) || (bool) self::snapshot_subjects($userid);
@@ -486,12 +498,14 @@ final class user_data_service {
             if ($table === 'local_outcomemap_snapshot' && $cinstids !== null) {
                 continue;
             }
-            if ($cinstids !== null && !in_array($table, [
+            if (
+                $cinstids !== null && !in_array($table, [
                 'local_outcomemap_cinst',
                 'local_outcomemap_cmmap',
                 'local_outcomemap_secmap',
                 'local_outcomemap_remed',
-            ], true)) {
+                ], true)
+            ) {
                 continue;
             }
             $conditions = [];
@@ -703,12 +717,14 @@ final class user_data_service {
             if ($table === 'local_outcomemap_snapshot') {
                 continue;
             }
-            if ($cinstids !== null && !in_array($table, [
+            if (
+                $cinstids !== null && !in_array($table, [
                 'local_outcomemap_cinst',
                 'local_outcomemap_cmmap',
                 'local_outcomemap_secmap',
                 'local_outcomemap_remed',
-            ], true)) {
+                ], true)
+            ) {
                 continue;
             }
             foreach ($fields as $field) {

@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\privacy;
 
@@ -54,7 +62,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     }
 
     /**
-     * The provider declares all direct and pseudonymous personal-data stores.
+     * * The provider declares all direct and pseudonymous personal-data stores.
      */
     public function test_metadata_declares_personal_data_tables(): void {
         $collection = provider::get_metadata(new collection('local_outcomemap'));
@@ -62,7 +70,8 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         foreach ($collection->get_collection() as $type) {
             $names[] = $type->get_name();
         }
-        foreach ([
+        foreach (
+            [
             'local_outcomemap_evidence',
             'local_outcomemap_result',
             'local_outcomemap_remed_event',
@@ -70,13 +79,14 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
             'local_outcomemap_privkey',
             'local_outcomemap_audit',
             'local_outcomemap_snapshot',
-        ] as $tablename) {
+            ] as $tablename
+        ) {
             $this->assertContains($tablename, $names);
         }
     }
 
     /**
-     * Export finds course/system data and deletion applies every retention rule.
+     * * Export finds course/system data and deletion applies every retention rule.
      */
     public function test_export_and_delete_user_data(): void {
         global $CFG, $DB;
@@ -226,7 +236,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     }
 
     /**
-     * Bulk context deletion removes only approved users and supports all users.
+     * * Bulk context deletion removes only approved users and supports all users.
      */
     public function test_bulk_and_context_deletion(): void {
         global $CFG, $DB;
@@ -262,7 +272,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     }
 
     /**
-     * System-context deletion blocks legacy references even without user rows.
+     * * System-context deletion blocks legacy references even without user rows.
      */
     public function test_system_context_deletion_blocks_all_legacy_resolution(): void {
         global $CFG;
@@ -288,7 +298,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     }
 
     /**
-     * Snapshot subject discovery uses a fixed query budget for one batch.
+     * * Snapshot subject discovery uses a fixed query budget for one batch.
      */
     public function test_snapshot_subject_discovery_query_count_is_bounded(): void {
         global $DB;
@@ -321,8 +331,11 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $queries = $DB->perf_get_queries() - $before;
 
         $this->assertCount(25, $matches);
-        $this->assertLessThanOrEqual(3, $queries,
-            'Snapshot discovery must use one snapshot query, one key query, and one bounded item query.');
+        $this->assertLessThanOrEqual(
+            3,
+            $queries,
+            'Snapshot discovery must use one snapshot query, one key query, and one bounded item query.'
+        );
     }
 
     /**
@@ -746,7 +759,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
             $item->id = $DB->insert_record('local_outcomemap_snapitem', $item);
             $items[] = $item;
         }
-        $hashes = array_map(static function(\stdClass $item): array {
+        $hashes = array_map(static function (\stdClass $item): array {
             return ['key' => (string) $item->stablekey, 'hash' => (string) $item->payloadhash];
         }, $items);
         $record->payloadhash = hash('sha256', canonical_json::encode($hashes));

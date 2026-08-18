@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\local\privacy;
 
@@ -27,13 +35,19 @@ use local_outcomemap\local\validation_exception;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class subject_key_service {
-    /** Pseudonymous key table. */
+    /**
+     * Pseudonymous key table.
+     */
     private const TABLE = 'local_outcomemap_privkey';
 
-    /** Namespaced marker that can never be a positive integer user marker. */
+    /**
+     * Namespaced marker that can never be a positive integer user marker.
+     */
     private const GLOBAL_LEGACY_ERASURE_MARKER = 'global-legacy-erasure';
 
-    /** Plugin config name holding the durable marker secret. */
+    /**
+     * Plugin config name holding the durable marker secret.
+     */
     private const SECRET_CONFIG_NAME = 'privacysubjectsecret';
 
     /**

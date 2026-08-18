@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap;
 
@@ -24,7 +32,9 @@ use local_outcomemap\output\student_results;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class student_results_page_test extends \advanced_testcase {
-    /** @var int Fixed generation time so the footnote is deterministic. */
+    /**
+     * @var int Fixed generation time so the footnote is deterministic.
+     */
     private const GENERATED_AT = 1785000000;
 
     /**
@@ -70,8 +80,11 @@ final class student_results_page_test extends \advanced_testcase {
      * @param string|null $strong Top boundary, or null.
      * @return array Report data.
      */
-    private function report(array $rows, ?string $expected = '70.0000000000',
-            ?string $strong = '85.0000000000'): array {
+    private function report(
+        array $rows,
+        ?string $expected = '70.0000000000',
+        ?string $strong = '85.0000000000'
+    ): array {
         return [
             'courseid' => 1,
             'generatedat' => self::GENERATED_AT,
@@ -90,15 +103,15 @@ final class student_results_page_test extends \advanced_testcase {
     private function render(array $report): array {
         global $PAGE;
         $PAGE->set_url('/local/outcomemap/results.php', ['courseid' => 1]);
-        // $OUTPUT is still the bootstrap renderer under PHPUnit, so ask the page
-        // for the real core renderer the page itself would use.
+        // The global $OUTPUT is still the bootstrap renderer under PHPUnit, so ask the page
+        // for the real core renderer that the page itself would use.
         $output = $PAGE->get_renderer('core');
         $context = (new student_results($report))->export_for_template($output);
         return [$context, $output->render_from_template('local_outcomemap/student_results', $context)];
     }
 
     /**
-     * A three-tier report renders every section and states the standing.
+     * * A three-tier report renders every section and states the standing.
      */
     public function test_page_reports_standing_across_all_three_tiers(): void {
         $this->resetAfterTest(true);
@@ -138,8 +151,11 @@ final class student_results_page_test extends \advanced_testcase {
 
         // Two of three course skills clear the mark, and only one exceeds it.
         $this->assertStringContainsString('on track in 2 of your 3 course skills', $context['hero']['title']);
-        $this->assertSame([1, 1, 1], array_column($context['standing']['lines'], 'count'),
-            'One skill should be strong, one comfortably past the mark, and one below it.');
+        $this->assertSame(
+            [1, 1, 1],
+            array_column($context['standing']['lines'], 'count'),
+            'One skill should be strong, one comfortably past the mark, and one below it.'
+        );
 
         // Only the course tier is listed as a skill; units belong inside one.
         $this->assertSame(['C1', 'C2', 'C3'], array_column($context['skills']['items'], 'code'));
@@ -187,8 +203,11 @@ final class student_results_page_test extends \advanced_testcase {
         $this->assertSame('Step 1', $card['step']);
         $this->assertStringContainsString('50.0%', $card['body']);
         $this->assertStringContainsString('Explain fair dealing', $card['body']);
-        $this->assertStringContainsString('only route', $card['body'],
-            'A gap that nothing else offsets should say so.');
+        $this->assertStringContainsString(
+            'only route',
+            $card['body'],
+            'A gap that nothing else offsets should say so.'
+        );
         $this->assertStringContainsString('Ethical and legal judgement', $card['body']);
         $this->assertSame('Unit 1 · Ethics in Sales', $card['links']['items'][0]['title']);
         $this->assertSame('Required', $card['links']['items'][0]['designation']);
@@ -247,8 +266,11 @@ final class student_results_page_test extends \advanced_testcase {
         // Both blank groups name the skill they sit under, not a bare code.
         $this->assertSame('Building a plan', $context['blanks']['cards'][0]['groups']);
         $statuses = array_column($context['skills']['items'][0]['units'], 'status');
-        $this->assertSame(['No graded work here yet', 'Result not published yet'], $statuses,
-            'An unmeasured outcome states its cause and is never rendered as a zero score.');
+        $this->assertSame(
+            ['No graded work here yet', 'Result not published yet'],
+            $statuses,
+            'An unmeasured outcome states its cause and is never rendered as a zero score.'
+        );
     }
 
     /**
@@ -271,8 +293,11 @@ final class student_results_page_test extends \advanced_testcase {
         $this->assertFalse($context['actions']['has']);
         $this->assertStringContainsString('no achievement bands set', $context['hero']['lede']);
         $this->assertNull($context['skills']['items'][0]['bar']['mark']);
-        $this->assertStringNotContainsString('lom-sr-bar-mark', $html,
-            'With no ladder there is no expected mark to draw on the bar.');
+        $this->assertStringNotContainsString(
+            'lom-sr-bar-mark',
+            $html,
+            'With no ladder there is no expected mark to draw on the bar.'
+        );
     }
 
     /**
@@ -291,8 +316,11 @@ final class student_results_page_test extends \advanced_testcase {
 
         $this->assertNull($context['strong']);
         $this->assertSame('ontrack', $context['skills']['items'][0]['tone']);
-        $this->assertSame(['ontrack', 'below'], array_column($context['standing']['lines'], 'tone'),
-            'With no strong boundary the tally collapses to on-track and below.');
+        $this->assertSame(
+            ['ontrack', 'below'],
+            array_column($context['standing']['lines'], 'tone'),
+            'With no strong boundary the tally collapses to on-track and below.'
+        );
         $this->assertSame([1, 0], array_column($context['standing']['lines'], 'count'));
     }
 
@@ -329,16 +357,23 @@ final class student_results_page_test extends \advanced_testcase {
 
         $labelled = $context['skills']['items'][0];
         $this->assertSame("Marketing's role in the economy", $labelled['name']);
-        $this->assertSame($long, $labelled['statement'],
-            'The normative wording travels with the label.');
+        $this->assertSame(
+            $long,
+            $labelled['statement'],
+            'The normative wording travels with the label.'
+        );
 
         $unlabelled = $context['skills']['items'][1];
         $this->assertSame($long, $unlabelled['name']);
-        $this->assertNull($unlabelled['statement'],
-            'An outcome with no separate label must not print its statement twice.');
+        $this->assertNull(
+            $unlabelled['statement'],
+            'An outcome with no separate label must not print its statement twice.'
+        );
 
-        $this->assertSame('Explain the role of ethical marketing activities',
-            $labelled['units'][0]['statement']);
+        $this->assertSame(
+            'Explain the role of ethical marketing activities',
+            $labelled['units'][0]['statement']
+        );
 
         // Exactly one supporting line carries this wording: 0a's. For 0b the
         // wording is the heading itself, so no supporting line is emitted.
@@ -348,8 +383,11 @@ final class student_results_page_test extends \advanced_testcase {
             $html,
             '<div class="lom-sr-statement">' . htmlspecialchars($long, ENT_QUOTES)
         );
-        $this->assertSame(1, $supporting,
-            'An outcome must never repeat its wording as its own supporting line.');
+        $this->assertSame(
+            1,
+            $supporting,
+            'An outcome must never repeat its wording as its own supporting line.'
+        );
     }
 
     /**
@@ -373,14 +411,24 @@ final class student_results_page_test extends \advanced_testcase {
         ], null, null));
 
         $this->assertFalse($context['hasthresholds'], 'No single ladder covers the whole report.');
-        $this->assertSame(['below', 'ontrack'], array_column($context['skills']['items'], 'tone'),
-            'Each row is judged against its own mark.');
-        $this->assertTrue($context['actions']['has'],
-            'The gap on C8 is still actionable even with no page-level ladder.');
-        $this->assertStringContainsString('70% mark', $context['actions']['cards'][0]['body'],
-            "The card names the row's own mark, not a page-level one.");
-        $this->assertTrue($context['filters']['has'],
-            'Tone-based filters stay meaningful under mixed policies.');
+        $this->assertSame(
+            ['below', 'ontrack'],
+            array_column($context['skills']['items'], 'tone'),
+            'Each row is judged against its own mark.'
+        );
+        $this->assertTrue(
+            $context['actions']['has'],
+            'The gap on C8 is still actionable even with no page-level ladder.'
+        );
+        $this->assertStringContainsString(
+            '70% mark',
+            $context['actions']['cards'][0]['body'],
+            "The card names the row's own mark, not a page-level one."
+        );
+        $this->assertTrue(
+            $context['filters']['has'],
+            'Tone-based filters stay meaningful under mixed policies.'
+        );
     }
 
     /**
@@ -409,8 +457,11 @@ final class student_results_page_test extends \advanced_testcase {
         $unit = $context['skills']['items'][0]['units'][0];
         $this->assertTrue($unit['links']['has']);
         $this->assertSame('Unit 6 · Logistics and delivery', $unit['links']['items'][0]['title']);
-        $this->assertStringContainsString('Unit 6 · Logistics and delivery', $html,
-            'The unit recommendation must reach the rendered page.');
+        $this->assertStringContainsString(
+            'Unit 6 · Logistics and delivery',
+            $html,
+            'The unit recommendation must reach the rendered page.'
+        );
     }
 
     /**
@@ -487,7 +538,7 @@ final class student_results_page_test extends \advanced_testcase {
     }
 
     /**
-     * With no rows at all the page says so instead of rendering empty furniture.
+     * * With no rows at all the page says so instead of rendering empty furniture.
      */
     public function test_an_empty_report_renders_the_empty_notice(): void {
         $this->resetAfterTest(true);

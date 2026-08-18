@@ -30,17 +30,42 @@ use local_outcomemap\local\validation_exception;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class question_mapping_filters {
+    /**
+     * Public API version.
+     */
     public const API_VERSION = '1.0';
+    /**
+     * Value for outcome.
+     */
     public const OUTCOME = 'outcome';
+    /**
+     * Value for role.
+     */
     public const ROLE = 'role';
+    /**
+     * Value for status.
+     */
     public const STATUS = 'status';
+    /**
+     * Value for mapped.
+     */
     public const MAPPED = 'mapped';
+    /**
+     * Value for invalid weight.
+     */
     public const INVALID_WEIGHT = 'invalid_weight';
+    /**
+     * Value for copied pending.
+     */
     public const COPIED_PENDING = 'copied_pending';
 
-    /** @var string[] Supported mapping roles. */
+    /**
+     * @var string[] Supported mapping roles.
+     */
     private const ROLES = ['teaches', 'practices', 'assesses', 'alignment_only', 'remediates'];
-    /** @var string[] Canonical workflow states. */
+    /**
+     * @var string[] Canonical workflow states.
+     */
     private const STATUSES = ['draft', 'needs_review', 'approved', 'retired'];
 
     /**
@@ -138,7 +163,9 @@ final class question_mapping_filters {
         ];
     }
 
-    /** Build the outcome/framework keyword predicate. */
+    /**
+     * Build the outcome/framework keyword predicate.
+     */
     private static function outcome(array $filter): array {
         global $DB;
         $values = [];
@@ -206,7 +233,9 @@ final class question_mapping_filters {
         return in_array($jointype, $allowed, true) ? $jointype : datafilter::JOINTYPE_ANY;
     }
 
-    /** Build role/status predicates where separate mappings may satisfy each selected value. */
+    /**
+     * Build role/status predicates where separate mappings may satisfy each selected value.
+     */
     private static function field_values(array $filter, string $field, array $allowed, string $prefix): array {
         $values = [];
         foreach ($filter['values'] ?? [] as $value) {
@@ -234,7 +263,9 @@ final class question_mapping_filters {
         return ['(' . implode($glue, $fragments) . ')', $params];
     }
 
-    /** Build a fixed yes/no condition around an EXISTS expression. */
+    /**
+     * Build a fixed yes/no condition around an EXISTS expression.
+     */
     private static function binary(array $filter, string $exists, array $params = []): array {
         $values = $filter['values'] ?? [];
         if ($values === []) {
@@ -243,14 +274,18 @@ final class question_mapping_filters {
         return [(int) reset($values) === 1 ? $exists : 'NOT ' . $exists, $params];
     }
 
-    /** Any non-retired mapping means the exact question version is mapped. */
+    /**
+     * Any non-retired mapping means the exact question version is mapped.
+     */
     private static function mapped_exists(): string {
         return "EXISTS (SELECT 1 FROM {local_outcomemap_qmap} qbomm
                          WHERE qbomm.questionversionid = qv.id
                            AND qbomm.status <> 'retired')";
     }
 
-    /** A copied mapping remains pending until explicitly finalized/approved. */
+    /**
+     * A copied mapping remains pending until explicitly finalized/approved.
+     */
     private static function copied_pending_exists(): string {
         return "EXISTS (SELECT 1 FROM {local_outcomemap_qmap} qbomm
                          WHERE qbomm.questionversionid = qv.id
@@ -258,7 +293,9 @@ final class question_mapping_filters {
                            AND qbomm.status IN ('draft', 'needs_review'))";
     }
 
-    /** Build the current effective assessed-total validity predicate. */
+    /**
+     * Build the current effective assessed-total validity predicate.
+     */
     private static function invalid_weight(array $filter): array {
         $now = time();
         $active = [];

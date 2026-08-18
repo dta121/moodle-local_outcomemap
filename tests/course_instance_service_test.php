@@ -50,7 +50,7 @@ final class course_instance_service_test extends \advanced_testcase {
     }
 
     /**
-     * With independent approval off, saving an association finalizes it outright.
+     * * With independent approval off, saving an association finalizes it outright.
      */
     public function test_create_confirmed_finalizes_without_a_second_step(): void {
         $this->resetAfterTest(true);
@@ -60,12 +60,15 @@ final class course_instance_service_test extends \advanced_testcase {
         [$id] = $this->create_association();
         $record = course_instance_service::get($id);
         $this->assertSame(workflow::APPROVED, $record->status);
-        $this->assertSame(1, (int) $record->confirmed,
-            'Saving should leave nothing further to click before the association governs data.');
+        $this->assertSame(
+            1,
+            (int) $record->confirmed,
+            'Saving should leave nothing further to click before the association governs data.'
+        );
     }
 
     /**
-     * With independent approval on, the association still waits for a reviewer.
+     * * With independent approval on, the association still waits for a reviewer.
      */
     public function test_create_confirmed_respects_independent_approval(): void {
         $this->resetAfterTest(true);
@@ -74,13 +77,16 @@ final class course_instance_service_test extends \advanced_testcase {
 
         [$id] = $this->create_association();
         $record = course_instance_service::get($id);
-        $this->assertSame(workflow::DRAFT, $record->status,
-            'A site requiring independent approval must not self-confirm.');
+        $this->assertSame(
+            workflow::DRAFT,
+            $record->status,
+            'A site requiring independent approval must not self-confirm.'
+        );
         $this->assertSame(0, (int) $record->confirmed);
     }
 
     /**
-     * A mistake with nothing depending on it can be removed outright.
+     * * A mistake with nothing depending on it can be removed outright.
      */
     public function test_delete_removes_an_unused_association(): void {
         global $DB;
@@ -91,12 +97,14 @@ final class course_instance_service_test extends \advanced_testcase {
         [$id] = $this->create_association();
         $this->assertSame([], course_instance_service::deletion_blockers($id));
         course_instance_service::delete($id);
-        $this->assertFalse($DB->record_exists('local_outcomemap_cinst', ['id' => $id]),
-            'An unused association must be removable even once confirmed.');
+        $this->assertFalse(
+            $DB->record_exists('local_outcomemap_cinst', ['id' => $id]),
+            'An unused association must be removable even once confirmed.'
+        );
     }
 
     /**
-     * Anything built on the association blocks removal, and says what.
+     * * Anything built on the association blocks removal, and says what.
      */
     public function test_delete_refuses_when_records_depend_on_it(): void {
         global $DB;
@@ -129,7 +137,7 @@ final class course_instance_service_test extends \advanced_testcase {
     }
 
     /**
-     * The summary listing carries the Moodle course facts a reader needs.
+     * * The summary listing carries the Moodle course facts a reader needs.
      */
     public function test_list_with_summary_carries_moodle_course_facts(): void {
         $this->resetAfterTest(true);
@@ -160,8 +168,11 @@ final class course_instance_service_test extends \advanced_testcase {
         $this->assertSame('Financial Management Spring', $row->moodlename);
         $this->assertSame($start, (int) $row->moodlestartdate);
         $this->assertSame($end, (int) $row->moodleenddate);
-        $this->assertSame(1, (int) $row->enrolledcount,
-            'Only active enrolments in the associated shell should be counted.');
+        $this->assertSame(
+            1,
+            (int) $row->enrolledcount,
+            'Only active enrolments in the associated shell should be counted.'
+        );
     }
 
     /**
@@ -180,19 +191,26 @@ final class course_instance_service_test extends \advanced_testcase {
         [$first] = $this->create_association('COURSE-A');
         [$second] = $this->create_association('COURSE-B');
 
-        $moved = course_instance_service::correct_periodcode([$first, $second], '2026',
-            'Gathered onto one reporting period so the programme can be captured at once.');
+        $moved = course_instance_service::correct_periodcode(
+            [$first, $second],
+            '2026',
+            'Gathered onto one reporting period so the programme can be captured at once.'
+        );
 
         $this->assertSame(2, $moved);
         $this->assertSame('2026', $DB->get_field('local_outcomemap_cinst', 'periodcode', ['id' => $first]));
         $this->assertSame('2026', $DB->get_field('local_outcomemap_cinst', 'periodcode', ['id' => $second]));
-        $this->assertTrue($DB->record_exists('local_outcomemap_audit',
-            ['action' => 'correct_periodcode', 'objecttype' => 'course_instance', 'objectid' => $first]),
-            'A correction to an approved record must leave an audit trail.');
+        $this->assertTrue(
+            $DB->record_exists(
+                'local_outcomemap_audit',
+                ['action' => 'correct_periodcode', 'objecttype' => 'course_instance', 'objectid' => $first]
+            ),
+            'A correction to an approved record must leave an audit trail.'
+        );
     }
 
     /**
-     * A correction has to say why, like every other change to an approved record.
+     * * A correction has to say why, like every other change to an approved record.
      */
     public function test_correct_periodcode_requires_a_reason(): void {
         $this->resetAfterTest(true);
@@ -205,7 +223,7 @@ final class course_instance_service_test extends \advanced_testcase {
     }
 
     /**
-     * One Moodle course cannot hold two associations for the same period.
+     * * One Moodle course cannot hold two associations for the same period.
      */
     public function test_correct_periodcode_refuses_a_collision(): void {
         global $DB;
@@ -232,8 +250,10 @@ final class course_instance_service_test extends \advanced_testcase {
         } catch (validation_exception $e) {
             $this->assertSame('courseinstanceexists', $e->errorcode);
         }
-        $this->assertSame('COURSE-A',
+        $this->assertSame(
+            'COURSE-A',
             $DB->get_field('local_outcomemap_cinst', 'periodcode', ['id' => $ids['COURSE-A']]),
-            'A refused correction must leave the association untouched.');
+            'A refused correction must leave the association untouched.'
+        );
     }
 }

@@ -32,25 +32,39 @@ use local_outcomemap\local\workflow;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class attainment_report_service_test extends \advanced_testcase {
-    /** @var \stdClass Moodle course under report. */
+    /**
+     * @var \stdClass Moodle course under report.
+     */
     private $course;
 
-    /** @var int Course instance ID. */
+    /**
+     * @var int Course instance ID.
+     */
     private $cinstid;
 
-    /** @var int Catalog course ID. */
+    /**
+     * @var int Catalog course ID.
+     */
     private $catalogid;
 
-    /** @var int Program ID. */
+    /**
+     * @var int Program ID.
+     */
     private $programid;
 
-    /** @var int Calculation policy ID. */
+    /**
+     * @var int Calculation policy ID.
+     */
     private $policyid;
 
-    /** @var array<string,int> Band IDs keyed by code. */
+    /**
+     * @var array<string,int> Band IDs keyed by code.
+     */
     private $bands = [];
 
-    /** @var \stdClass[] Learners. */
+    /**
+     * @var \stdClass[] Learners.
+     */
     private $learners = [];
 
     /**
@@ -146,8 +160,12 @@ final class attainment_report_service_test extends \advanced_testcase {
      * @param string $code Outcome code.
      * @return array{0:int,1:int} Item ID and outcome-version ID.
      */
-    private function create_outcome(string $fwcode, string $ownertype, ?int $ownerid,
-            string $code): array {
+    private function create_outcome(
+        string $fwcode,
+        string $ownertype,
+        ?int $ownerid,
+        string $code
+    ): array {
         global $DB;
         $now = time();
         $fwid = (int) ($DB->get_field('local_outcomemap_fw', 'id', ['code' => $fwcode]) ?: 0);
@@ -203,8 +221,13 @@ final class attainment_report_service_test extends \advanced_testcase {
      * @param int|null $cinstid Course instance; defaults to the course under report.
      * @return void
      */
-    private function store_result(int $userid, int $itemverid, ?string $percentage,
-            ?string $bandcode, ?int $cinstid = null): void {
+    private function store_result(
+        int $userid,
+        int $itemverid,
+        ?string $percentage,
+        ?string $bandcode,
+        ?int $cinstid = null
+    ): void {
         global $DB;
         $now = time();
         $DB->insert_record('local_outcomemap_result', (object) [
@@ -230,8 +253,11 @@ final class attainment_report_service_test extends \advanced_testcase {
      * @param string $benchmark Aggregate benchmark percentage.
      * @return void
      */
-    private function approve_accreditation_policy(int $floor, string $criterion,
-            string $benchmark): void {
+    private function approve_accreditation_policy(
+        int $floor,
+        string $criterion,
+        string $benchmark
+    ): void {
         global $DB;
         $now = time();
         $config = [
@@ -259,14 +285,30 @@ final class attainment_report_service_test extends \advanced_testcase {
      * @return array<string,int> Outcome-version IDs keyed by code.
      */
     private function build_hierarchy(): array {
-        [$ploitem, $plover] = $this->create_outcome('PRG-PLO', framework_service::OWNER_PROGRAM,
-            $this->programid, 'PLO1');
-        [$cloitem, $clover] = $this->create_outcome('CAT1-CLO', framework_service::OWNER_COURSE,
-            $this->catalogid, '0a');
-        [$ulo1item, $ulo1ver] = $this->create_outcome('CAT1-ULO', framework_service::OWNER_COURSE,
-            $this->catalogid, '1a');
-        [$ulo2item, $ulo2ver] = $this->create_outcome('CAT1-ULO', framework_service::OWNER_COURSE,
-            $this->catalogid, '1b');
+        [$ploitem, $plover] = $this->create_outcome(
+            'PRG-PLO',
+            framework_service::OWNER_PROGRAM,
+            $this->programid,
+            'PLO1'
+        );
+        [$cloitem, $clover] = $this->create_outcome(
+            'CAT1-CLO',
+            framework_service::OWNER_COURSE,
+            $this->catalogid,
+            '0a'
+        );
+        [$ulo1item, $ulo1ver] = $this->create_outcome(
+            'CAT1-ULO',
+            framework_service::OWNER_COURSE,
+            $this->catalogid,
+            '1a'
+        );
+        [$ulo2item, $ulo2ver] = $this->create_outcome(
+            'CAT1-ULO',
+            framework_service::OWNER_COURSE,
+            $this->catalogid,
+            '1b'
+        );
         $this->align($cloitem, $ploitem);
         $this->align($ulo1item, $cloitem);
         $this->align($ulo2item, $cloitem);
@@ -290,7 +332,7 @@ final class attainment_report_service_test extends \advanced_testcase {
     }
 
     /**
-     * Levels come from the alignment graph, deepest chain last, top level first.
+     * * Levels come from the alignment graph, deepest chain last, top level first.
      */
     public function test_levels_are_derived_from_the_alignment_graph(): void {
         $this->resetAfterTest(true);
@@ -303,16 +345,22 @@ final class attainment_report_service_test extends \advanced_testcase {
 
         $this->assertCount(3, $report->tiers, 'Three authored levels must produce three tiers.');
         $this->assertSame(['PLO1'], array_map(
-            static fn(\stdClass $n): string => $n->code, $report->tiers[0]->nodes));
+            static fn(\stdClass $n): string => $n->code,
+            $report->tiers[0]->nodes
+        ));
         $this->assertSame(['0a'], array_map(
-            static fn(\stdClass $n): string => $n->code, $report->tiers[1]->nodes));
+            static fn(\stdClass $n): string => $n->code,
+            $report->tiers[1]->nodes
+        ));
         $this->assertSame(['1a', '1b'], array_map(
-            static fn(\stdClass $n): string => $n->code, $report->tiers[2]->nodes));
+            static fn(\stdClass $n): string => $n->code,
+            $report->tiers[2]->nodes
+        ));
         $this->assertSame($report->tiers[0], $report->toptier);
     }
 
     /**
-     * An outcome nothing has evidenced is still carried, so its level is not empty.
+     * * An outcome nothing has evidenced is still carried, so its level is not empty.
      */
     public function test_alignment_targets_appear_without_any_result(): void {
         $this->resetAfterTest(true);
@@ -326,13 +374,15 @@ final class attainment_report_service_test extends \advanced_testcase {
 
         $plo = $this->node($report, 'PLO1');
         $this->assertSame(0, $plo->stats[attainment_report_service::COHORT_ALL]->graded);
-        $this->assertNull($plo->stats[attainment_report_service::COHORT_ALL]->metpct,
-            'An outcome with no stored result must report no rate rather than zero.');
+        $this->assertNull(
+            $plo->stats[attainment_report_service::COHORT_ALL]->metpct,
+            'An outcome with no stored result must report no rate rather than zero.'
+        );
         $this->assertCount(3, $report->tiers);
     }
 
     /**
-     * The level rate is a rate over learners, not an average of outcome averages.
+     * * The level rate is a rate over learners, not an average of outcome averages.
      */
     public function test_level_rate_is_weighted_by_learners(): void {
         $this->resetAfterTest(true);
@@ -341,8 +391,12 @@ final class attainment_report_service_test extends \advanced_testcase {
         $versions = $this->build_hierarchy();
         // 1a: four learners, one reached the standard. 1b: one learner, who did.
         foreach ([0, 1, 2] as $index) {
-            $this->store_result((int) $this->learners[$index]->id, $versions['1a'],
-                '40.0000000000', 'NOTMET');
+            $this->store_result(
+                (int) $this->learners[$index]->id,
+                $versions['1a'],
+                '40.0000000000',
+                'NOTMET'
+            );
         }
         $this->store_result((int) $this->learners[3]->id, $versions['1a'], '95.0000000000', 'EXCEEDS');
         $this->store_result((int) $this->learners[4]->id, $versions['1b'], '95.0000000000', 'EXCEEDS');
@@ -358,7 +412,7 @@ final class attainment_report_service_test extends \advanced_testcase {
     }
 
     /**
-     * With an approved policy the criterion decides; without one, the band does.
+     * * With an approved policy the criterion decides; without one, the band does.
      */
     public function test_achievement_criterion_comes_from_the_accreditation_policy(): void {
         $this->resetAfterTest(true);
@@ -370,9 +424,12 @@ final class attainment_report_service_test extends \advanced_testcase {
 
         $without = attainment_report_service::report((int) $this->course->id);
         $this->assertFalse($without->policy->available);
-        $this->assertEqualsWithDelta(100.0,
-            $this->node($without, '1a')->stats[attainment_report_service::COHORT_ALL]->metpct, 0.001,
-            'With no approved criterion, clearing the lowest band is the standard.');
+        $this->assertEqualsWithDelta(
+            100.0,
+            $this->node($without, '1a')->stats[attainment_report_service::COHORT_ALL]->metpct,
+            0.001,
+            'With no approved criterion, clearing the lowest band is the standard.'
+        );
 
         $this->approve_accreditation_policy(3, '70.0000000000', '80.0000000000');
         $with = attainment_report_service::report((int) $this->course->id);
@@ -380,13 +437,16 @@ final class attainment_report_service_test extends \advanced_testcase {
         $this->assertTrue($with->policy->available);
         $this->assertEqualsWithDelta(70.0, $with->policy->criterion, 0.001);
         $this->assertEqualsWithDelta(80.0, $with->policy->target, 0.001);
-        $this->assertEqualsWithDelta(0.0,
-            $this->node($with, '1a')->stats[attainment_report_service::COHORT_ALL]->metpct, 0.001,
-            'The approved criterion must override the band the calculation policy assigned.');
+        $this->assertEqualsWithDelta(
+            0.0,
+            $this->node($with, '1a')->stats[attainment_report_service::COHORT_ALL]->metpct,
+            0.001,
+            'The approved criterion must override the band the calculation policy assigned.'
+        );
     }
 
     /**
-     * The accreditation lens withholds thin results everywhere they appear.
+     * * The accreditation lens withholds thin results everywhere they appear.
      */
     public function test_accreditation_lens_withholds_results_under_the_floor(): void {
         $this->resetAfterTest(true);
@@ -398,21 +458,29 @@ final class attainment_report_service_test extends \advanced_testcase {
         $this->store_result((int) $this->learners[0]->id, $versions['1a'], '95.0000000000', 'EXCEEDS');
         $this->store_result((int) $this->learners[1]->id, $versions['1a'], '95.0000000000', 'EXCEEDS');
 
-        $educator = attainment_report_service::report((int) $this->course->id,
-            attainment_report_service::COHORT_ALL, attainment_report_service::LENS_EDUCATOR);
+        $educator = attainment_report_service::report(
+            (int) $this->course->id,
+            attainment_report_service::COHORT_ALL,
+            attainment_report_service::LENS_EDUCATOR
+        );
         $stats = $this->node($educator, '1a')->stats[attainment_report_service::COHORT_ALL];
-        $this->assertFalse(attainment_report_service::is_withheld($educator, $stats),
-            'The educator lens shows a thin result with its sample size.');
+        $this->assertFalse(
+            attainment_report_service::is_withheld($educator, $stats),
+            'The educator lens shows a thin result with its sample size.'
+        );
 
-        $reviewer = attainment_report_service::report((int) $this->course->id,
-            attainment_report_service::COHORT_ALL, attainment_report_service::LENS_ACCREDITATION);
+        $reviewer = attainment_report_service::report(
+            (int) $this->course->id,
+            attainment_report_service::COHORT_ALL,
+            attainment_report_service::LENS_ACCREDITATION
+        );
         $stats = $this->node($reviewer, '1a')->stats[attainment_report_service::COHORT_ALL];
         $this->assertTrue(attainment_report_service::is_withheld($reviewer, $stats));
         $this->assertCount(1, $reviewer->gaps->thin);
     }
 
     /**
-     * With no approved policy there is no floor to enforce, so no reviewer lens.
+     * * With no approved policy there is no floor to enforce, so no reviewer lens.
      */
     public function test_accreditation_lens_is_not_offered_without_a_policy(): void {
         $this->resetAfterTest(true);
@@ -421,17 +489,23 @@ final class attainment_report_service_test extends \advanced_testcase {
         $versions = $this->build_hierarchy();
         $this->store_result((int) $this->learners[0]->id, $versions['1a'], '95.0000000000', 'EXCEEDS');
 
-        $report = attainment_report_service::report((int) $this->course->id,
-            attainment_report_service::COHORT_ALL, attainment_report_service::LENS_ACCREDITATION);
+        $report = attainment_report_service::report(
+            (int) $this->course->id,
+            attainment_report_service::COHORT_ALL,
+            attainment_report_service::LENS_ACCREDITATION
+        );
 
         $this->assertNotContains(attainment_report_service::LENS_ACCREDITATION, $report->lenses);
-        $this->assertSame(attainment_report_service::LENS_EDUCATOR, $report->lens,
-            'A lens the data cannot support must fall back rather than pretend.');
+        $this->assertSame(
+            attainment_report_service::LENS_EDUCATOR,
+            $report->lens,
+            'A lens the data cannot support must fall back rather than pretend.'
+        );
         $this->assertNull($report->policy->floor);
     }
 
     /**
-     * Learners split on the pass mark the teacher set on the course grade item.
+     * * Learners split on the pass mark the teacher set on the course grade item.
      */
     public function test_cohort_split_uses_the_course_grade_pass_mark(): void {
         global $DB;
@@ -467,14 +541,20 @@ final class attainment_report_service_test extends \advanced_testcase {
         $this->assertSame(1, $report->cohortcounts[attainment_report_service::COHORT_NOTCOMPLETED]);
 
         $node = $this->node($report, '1a');
-        $this->assertEqualsWithDelta(100.0,
-            $node->stats[attainment_report_service::COHORT_COMPLETED]->metpct, 0.001);
-        $this->assertEqualsWithDelta(0.0,
-            $node->stats[attainment_report_service::COHORT_NOTCOMPLETED]->metpct, 0.001);
+        $this->assertEqualsWithDelta(
+            100.0,
+            $node->stats[attainment_report_service::COHORT_COMPLETED]->metpct,
+            0.001
+        );
+        $this->assertEqualsWithDelta(
+            0.0,
+            $node->stats[attainment_report_service::COHORT_NOTCOMPLETED]->metpct,
+            0.001
+        );
     }
 
     /**
-     * Without completion or a pass mark the split is unavailable, not invented.
+     * * Without completion or a pass mark the split is unavailable, not invented.
      */
     public function test_cohort_split_is_absent_when_the_course_defines_no_standard(): void {
         $this->resetAfterTest(true);
@@ -483,15 +563,17 @@ final class attainment_report_service_test extends \advanced_testcase {
         $versions = $this->build_hierarchy();
         $this->store_result((int) $this->learners[0]->id, $versions['1a'], '95.0000000000', 'EXCEEDS');
 
-        $report = attainment_report_service::report((int) $this->course->id,
-            attainment_report_service::COHORT_COMPLETED);
+        $report = attainment_report_service::report(
+            (int) $this->course->id,
+            attainment_report_service::COHORT_COMPLETED
+        );
 
         $this->assertNull($report->cohortrule);
         $this->assertSame(attainment_report_service::COHORT_ALL, $report->cohort);
     }
 
     /**
-     * A claim carried by outcomes that produced nothing is reported as hollow.
+     * * A claim carried by outcomes that produced nothing is reported as hollow.
      */
     public function test_gaps_report_a_claim_with_no_evidence_underneath_it(): void {
         $this->resetAfterTest(true);
@@ -507,12 +589,15 @@ final class attainment_report_service_test extends \advanced_testcase {
         $this->assertSame('0a', $report->gaps->hollow[0]->node->code);
         $this->assertCount(2, $report->gaps->hollow[0]->missing);
         $keys = array_map(static fn(\stdClass $f): string => $f->key, $report->priorities);
-        $this->assertContains('hollowclaim', $keys,
-            'A hollow claim is a finding, not merely a row with a blank cell.');
+        $this->assertContains(
+            'hollowclaim',
+            $keys,
+            'A hollow claim is a finding, not merely a row with a blank cell.'
+        );
     }
 
     /**
-     * The rollup shows every course in the programme that claims the top level.
+     * * The rollup shows every course in the programme that claims the top level.
      */
     public function test_rollup_covers_sibling_courses_in_the_same_programme(): void {
         $this->resetAfterTest(true);
@@ -524,8 +609,13 @@ final class attainment_report_service_test extends \advanced_testcase {
         $sibling = $this->getDataGenerator()->create_course();
         $siblingcatalog = $this->create_catalog_course('CAT2', 'Catalog course two');
         $siblingcinst = $this->create_instance($siblingcatalog, (int) $sibling->id);
-        $this->store_result((int) $this->learners[1]->id, $versions['PLO1'], '30.0000000000',
-            'NOTMET', $siblingcinst);
+        $this->store_result(
+            (int) $this->learners[1]->id,
+            $versions['PLO1'],
+            '30.0000000000',
+            'NOTMET',
+            $siblingcinst
+        );
 
         $report = attainment_report_service::report((int) $this->course->id);
 
@@ -546,7 +636,7 @@ final class attainment_report_service_test extends \advanced_testcase {
     }
 
     /**
-     * A learner row with no percentage is awaiting calculation, not a failure.
+     * * A learner row with no percentage is awaiting calculation, not a failure.
      */
     public function test_uncalculated_results_are_not_counted_as_missed(): void {
         $this->resetAfterTest(true);
@@ -606,20 +696,28 @@ final class attainment_report_service_test extends \advanced_testcase {
 
         $this->assertTrue($report->hasinstance, 'The report must still be produced.');
         $this->assertFalse($report->policy->available);
-        $this->assertTrue($report->policy->unreadable,
-            'A policy that exists but cannot be applied is not the same as no policy.');
+        $this->assertTrue(
+            $report->policy->unreadable,
+            'A policy that exists but cannot be applied is not the same as no policy.'
+        );
         $this->assertSame('achievementminpercent', $report->policy->problemfield);
         $this->assertNull($report->policy->target);
         $this->assertNull($report->policy->floor);
-        $this->assertNotContains(attainment_report_service::LENS_ACCREDITATION, $report->lenses,
-            'No floor can be enforced, so no submission lens may be offered.');
+        $this->assertNotContains(
+            attainment_report_service::LENS_ACCREDITATION,
+            $report->lenses,
+            'No floor can be enforced, so no submission lens may be offered.'
+        );
         // The attainment figures do not depend on the policy, so they stand.
-        $this->assertEqualsWithDelta(100.0,
-            $this->node($report, '1a')->stats[attainment_report_service::COHORT_ALL]->metpct, 0.001);
+        $this->assertEqualsWithDelta(
+            100.0,
+            $this->node($report, '1a')->stats[attainment_report_service::COHORT_ALL]->metpct,
+            0.001
+        );
     }
 
     /**
-     * A course with no approved confirmed instance reports that, and nothing else.
+     * * A course with no approved confirmed instance reports that, and nothing else.
      */
     public function test_course_without_an_instance_reports_no_instance(): void {
         $this->resetAfterTest(true);

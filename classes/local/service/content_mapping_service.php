@@ -23,7 +23,6 @@
  */
 
 namespace local_outcomemap\local\service;
-
 use local_outcomemap\api\outcome_search;
 use local_outcomemap\local\audit_writer;
 use local_outcomemap\local\decimal;
@@ -34,31 +33,47 @@ use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
 /**
- * Governed mappings from course content to exact outcome versions.
+ * * Governed mappings from course content to exact outcome versions.
  */
 final class content_mapping_service extends base_service {
-    /** Course-module mapping target. */
+    /**
+     * Course-module mapping target.
+     */
     public const TARGET_MODULE = 'course_module';
 
-    /** Course-section mapping target. */
+    /**
+     * Course-section mapping target.
+     */
     public const TARGET_SECTION = 'course_section';
 
-    /** Teaching mapping role. */
+    /**
+     * Teaching mapping role.
+     */
     public const ROLE_TEACHES = 'teaches';
 
-    /** Practice mapping role. */
+    /**
+     * Practice mapping role.
+     */
     public const ROLE_PRACTICES = 'practices';
 
-    /** Assessment mapping role. */
+    /**
+     * Assessment mapping role.
+     */
     public const ROLE_ASSESSES = 'assesses';
 
-    /** Remediation mapping role. */
+    /**
+     * Remediation mapping role.
+     */
     public const ROLE_REMEDIATES = 'remediates';
 
-    /** Alignment-only mapping role. */
+    /**
+     * Alignment-only mapping role.
+     */
     public const ROLE_ALIGNMENT_ONLY = 'alignment_only';
 
-    /** Supported mapping roles. */
+    /**
+     * Supported mapping roles.
+     */
     public const ROLES = [
         self::ROLE_TEACHES,
         self::ROLE_PRACTICES,
@@ -67,7 +82,9 @@ final class content_mapping_service extends base_service {
         self::ROLE_ALIGNMENT_ONLY,
     ];
 
-    /** Mapping target definitions keyed by target type. */
+    /**
+     * Mapping target definitions keyed by target type.
+     */
     private const TABLES = [
         self::TARGET_MODULE => ['local_outcomemap_cmmap', 'cmid'],
         self::TARGET_SECTION => ['local_outcomemap_secmap', 'sectionid'],
@@ -308,12 +325,15 @@ final class content_mapping_service extends base_service {
      * @return \stdClass The mapping record with its target type.
      */
     public static function get(string $targettype, int $id, ?int $expectedcourseid = null): \stdClass {
+
         [$table, $targetfield] = self::table_definition($targettype);
         $record = self::get_required($table, $id, 'content_mapping');
         $context = self::mapping_context($targettype, (int) $record->{$targetfield});
         require_capability('local/outcomemap:viewdefinitions', $context);
-        if ($expectedcourseid !== null && self::mapping_course_id($targettype, (int) $record->{$targetfield})
-                !== $expectedcourseid) {
+        if (
+            $expectedcourseid !== null
+            && self::mapping_course_id($targettype, (int) $record->{$targetfield}) !== $expectedcourseid
+        ) {
             throw new validation_exception('recordnotfound', 'content_mapping', $id);
         }
         $record->targettype = $targettype;
@@ -447,15 +467,13 @@ final class content_mapping_service extends base_service {
             ) {
                 throw new validation_exception('targetcoursemismatch', 'outcomemap_cinstid');
             }
-            $itemversion = self::require_approved_item_version(input::positive_int(
-                $data['outcomemap_itemverid'],
-                'outcomemap_itemverid'
-            ));
-            outcome_search::require_visible_version(
-                $context,
-                $itemversion->uuid,
-                input::positive_int($data['outcomemap_effectivefrom'] ?? time(), 'outcomemap_effectivefrom')
+            $itemversionid = input::positive_int($data['outcomemap_itemverid'], 'outcomemap_itemverid');
+            $itemversion = self::require_approved_item_version($itemversionid);
+            $effectivefrom = input::positive_int(
+                $data['outcomemap_effectivefrom'] ?? time(),
+                'outcomemap_effectivefrom'
             );
+            outcome_search::require_visible_version($context, $itemversion->uuid, $effectivefrom);
             self::validate_role_weight($data['outcomemap_role'] ?? '', $data['outcomemap_weight'] ?? null);
         } catch (validation_exception $e) {
             $field = match ($e->errorcode) {
@@ -527,6 +545,7 @@ final class content_mapping_service extends base_service {
      * @return array Outcome labels keyed by outcome-version ID.
      */
     public static function outcome_options(?\context $context = null): array {
+
         global $DB;
         $context = $context ?? \context_system::instance();
         $now = time();
@@ -537,18 +556,9 @@ final class content_mapping_service extends base_service {
             if (!$outcomes) {
                 break;
             }
-            $versionuuids = array_map(
-                static fn($outcome): string => $outcome->versionuuid,
-                $outcomes
-            );
+            $versionuuids = array_map(static fn($outcome): string => $outcome->versionuuid, $outcomes);
             [$insql, $params] = $DB->get_in_or_equal($versionuuids, SQL_PARAMS_NAMED, 'outcomeversion');
-            $idsbyuuid = $DB->get_records_select_menu(
-                'local_outcomemap_itemver',
-                'uuid ' . $insql,
-                $params,
-                '',
-                'uuid,id'
-            );
+            $idsbyuuid = $DB->get_records_select_menu('local_outcomemap_itemver', 'uuid ' . $insql, $params, '', 'uuid,id');
             foreach ($outcomes as $outcome) {
                 if (!isset($idsbyuuid[$outcome->versionuuid])) {
                     continue;
@@ -570,6 +580,7 @@ final class content_mapping_service extends base_service {
      * @return int Moodle course ID.
      */
     private static function mapping_course_id(string $targettype, int $targetid): int {
+
         global $DB;
         if ($targettype === self::TARGET_MODULE) {
             return (int) $DB->get_field('course_modules', 'course', ['id' => $targetid], MUST_EXIST);
@@ -693,11 +704,8 @@ final class content_mapping_service extends base_service {
             throw new validation_exception('targetcoursemismatch', $targetfield, $record->{$targetfield});
         }
         $itemversion = self::require_approved_item_version((int) $record->itemverid);
-        outcome_search::require_visible_version(
-            self::mapping_context($targettype, (int) $record->{$targetfield}),
-            $itemversion->uuid,
-            (int) $record->effectivefrom
-        );
+        $context = self::mapping_context($targettype, (int) $record->{$targetfield});
+        outcome_search::require_visible_version($context, $itemversion->uuid, (int) $record->effectivefrom);
         if (
             (int) $record->effectivefrom < (int) $itemversion->effectivefrom
                 || ($itemversion->effectiveto !== null

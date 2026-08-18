@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Accreditation snapshot report page model.
@@ -36,31 +44,49 @@ use templatable;
  * recomputed, so the report says the same thing for as long as the snapshot exists.
  */
 final class snapshot_report implements renderable, templatable {
-    /** Group the attainment table by each outcome's own framework. */
+    /**
+     * Group the attainment table by each outcome's own framework.
+     */
     public const GROUP_FRAMEWORK = 'framework';
 
-    /** Group by the course-level outcome each row rolls up into. */
+    /**
+     * Group by the course-level outcome each row rolls up into.
+     */
     public const GROUP_COURSE = 'course';
 
-    /** Group by the top-level outcome each row rolls up into. */
+    /**
+     * Group by the top-level outcome each row rolls up into.
+     */
     public const GROUP_PROGRAM = 'program';
 
-    /** Every subject in the captured population. */
+    /**
+     * Every subject in the captured population.
+     */
     public const SUBJECTS_ALL = 'all';
 
-    /** Only subjects who met the criterion in every course they were judged in. */
+    /**
+     * Only subjects who met the criterion in every course they were judged in.
+     */
     public const SUBJECTS_PASSEDALL = 'passedall';
 
-    /** Only subjects who missed the criterion in at least one course. */
+    /**
+     * Only subjects who missed the criterion in at least one course.
+     */
     public const SUBJECTS_FAILEDANY = 'failedany';
 
-    /** Selectable attainment groupings. */
+    /**
+     * Selectable attainment groupings.
+     */
     public const GROUPINGS = [self::GROUP_FRAMEWORK, self::GROUP_COURSE, self::GROUP_PROGRAM];
 
-    /** Selectable subject filters. */
+    /**
+     * Selectable subject filters.
+     */
     public const SUBJECT_FILTERS = [self::SUBJECTS_ALL, self::SUBJECTS_PASSEDALL, self::SUBJECTS_FAILEDANY];
 
-    /** Item types small enough to keep decoded for display. */
+    /**
+     * Item types small enough to keep decoded for display.
+     */
     private const DISPLAY_TYPES = [
         snapshot_service::ITEM_PROGRAM,
         snapshot_service::ITEM_COHORT,
@@ -72,40 +98,64 @@ final class snapshot_report implements renderable, templatable {
         snapshot_service::ITEM_PROGRAM_AGGREGATE,
     ];
 
-    /** @var \stdClass The snapshot record. */
+    /**
+     * @var \stdClass The snapshot record.
+     */
     private \stdClass $snapshot;
 
-    /** @var array[] Decoded display items grouped by item type. */
+    /**
+     * @var array[] Decoded display items grouped by item type.
+     */
     private array $grouped = [];
 
-    /** @var array[] Row counts and suppression counts keyed by item type. */
+    /**
+     * @var array[] Row counts and suppression counts keyed by item type.
+     */
     private array $counts = [];
 
-    /** @var int[][] Distinct learner references keyed by course-instance ID. */
+    /**
+     * @var int[][] Distinct learner references keyed by course-instance ID.
+     */
     private array $learnersbycourse = [];
 
-    /** @var string Selected attainment grouping. */
+    /**
+     * @var string Selected attainment grouping.
+     */
     private string $groupby;
 
-    /** @var string Selected subject filter. */
+    /**
+     * @var string Selected subject filter.
+     */
     private string $subjectfilter;
 
-    /** @var array<string,array<int,array>> Pooled points per subject per course instance. */
+    /**
+     * @var array<string,array<int,array>> Pooled points per subject per course instance.
+     */
     private array $coursepool = [];
 
-    /** @var array<int,array<string,array>> Pooled points per outcome per subject. */
+    /**
+     * @var array<int,array<string,array>> Pooled points per outcome per subject.
+     */
     private array $subjectpool = [];
 
-    /** @var string|null Canonical achievement criterion recorded on the frozen rows. */
+    /**
+     * @var string|null Canonical achievement criterion recorded on the frozen rows.
+     */
     private ?string $criterion = null;
 
-    /** @var array<string,string> Course-progress verdict keyed by subject reference. */
+    /**
+     * @var array<string,string> Course-progress verdict keyed by subject reference.
+     */
     private array $verdicts = [];
 
-    /** @var array<string,bool> Subject references the active filter selects. */
+    /**
+     * @var array<string,bool> Subject references the active filter selects.
+     */
     private array $selected = [];
 
-    /** @var bool Whether the grouping fell back to today's alignment edges. */
+    /**
+     * @var bool Whether the grouping fell back to today's alignment edges.
+     */
     private bool $liverollup = false;
 
     /**
@@ -123,8 +173,11 @@ final class snapshot_report implements renderable, templatable {
      * @param string $groupby One of this class's GROUP_* values.
      * @param string $subjectfilter One of this class's SUBJECTS_* values.
      */
-    public function __construct(int $snapshotid, string $groupby = self::GROUP_FRAMEWORK,
-            string $subjectfilter = self::SUBJECTS_ALL) {
+    public function __construct(
+        int $snapshotid,
+        string $groupby = self::GROUP_FRAMEWORK,
+        string $subjectfilter = self::SUBJECTS_ALL
+    ) {
         $this->groupby = in_array($groupby, self::GROUPINGS, true) ? $groupby : self::GROUP_FRAMEWORK;
         $this->subjectfilter = in_array($subjectfilter, self::SUBJECT_FILTERS, true)
             ? $subjectfilter
@@ -163,8 +216,10 @@ final class snapshot_report implements renderable, templatable {
                 // Only calculated rows carry points, and every captured learner
                 // result is course-scope, so pooling by course instance is the
                 // same judgement the engine makes for a course.
-                if ((string) $item->state !== calculation_service::STATE_CALCULATED
-                        || $item->percentage === null) {
+                if (
+                    (string) $item->state !== calculation_service::STATE_CALCULATED
+                        || $item->percentage === null
+                ) {
                     continue;
                 }
                 $numerator = decimal::canonical($item->numerator, 'numerator');
@@ -346,7 +401,9 @@ final class snapshot_report implements renderable, templatable {
         return $overrides;
     }
 
-    /** Export the template context. */
+    /**
+     * Export the template context.
+     */
     public function export_for_template(renderer_base $output): array {
         $context = \context_system::instance();
         $baseurl = new moodle_url('/local/outcomemap/snapshots.php');
@@ -446,12 +503,18 @@ final class snapshot_report implements renderable, templatable {
         return [
             [
                 'label' => get_string('populationcount', 'local_outcomemap'),
-                'value' => get_string('snapreport_learners', 'local_outcomemap',
-                    number_format((int) $this->snapshot->populationcount)),
+                'value' => get_string(
+                    'snapreport_learners',
+                    'local_outcomemap',
+                    number_format((int) $this->snapshot->populationcount)
+                ),
                 'note' => $cohort === null
                     ? get_string('population_' . $this->snapshot->populationsource, 'local_outcomemap')
-                    : get_string('snapreport_cohortnote', 'local_outcomemap',
-                        format_string($cohort['name'] ?? '')),
+                    : get_string(
+                        'snapreport_cohortnote',
+                        'local_outcomemap',
+                        format_string($cohort['name'] ?? '')
+                    ),
             ],
             [
                 'label' => get_string('snapshots_periodlabel', 'local_outcomemap'),
@@ -477,8 +540,11 @@ final class snapshot_report implements renderable, templatable {
                     'uuid' => substr((string) $this->snapshot->snapshotuuid, 0, 8),
                     'version' => (int) $this->snapshot->version,
                 ]),
-                'note' => get_string('snapreport_payloadshort', 'local_outcomemap',
-                    substr((string) $this->snapshot->payloadhash, 0, 12)),
+                'note' => get_string(
+                    'snapreport_payloadshort',
+                    'local_outcomemap',
+                    substr((string) $this->snapshot->payloadhash, 0, 12)
+                ),
             ],
         ];
     }
@@ -544,8 +610,11 @@ final class snapshot_report implements renderable, templatable {
                     : get_string('snapreport_band_' . $band, 'local_outcomemap'),
                 'pooled' => $item->payload['percentage'] === null
                     ? get_string('calculationnotavailable', 'local_outcomemap')
-                    : get_string('snapreport_pooledscore', 'local_outcomemap',
-                        number_format((float) $item->payload['percentage'], 1)),
+                    : get_string(
+                        'snapreport_pooledscore',
+                        'local_outcomemap',
+                        number_format((float) $item->payload['percentage'], 1)
+                    ),
             ];
         }
         $overrides = $this->overrides();
@@ -579,8 +648,11 @@ final class snapshot_report implements renderable, templatable {
                     count($contributions)
                 ),
                 'haswithheld' => $withheld > 0,
-                'withheldline' => get_string('snapreport_contribution_withheld',
-                    'local_outcomemap', $withheld),
+                'withheldline' => get_string(
+                    'snapreport_contribution_withheld',
+                    'local_outcomemap',
+                    $withheld
+                ),
                 'suppressed' => $suppressed,
                 'learners' => number_format((int) $cells['subjectcount']),
                 'results' => number_format((int) $cells['calculatedcount']),
@@ -713,8 +785,15 @@ final class snapshot_report implements renderable, templatable {
         // Outcome versions are immutable once approved, so the version-to-outcome
         // link is a stable fact rather than a figure that could have drifted.
         [$insql, $params] = $DB->get_in_or_equal(array_keys($itemids), SQL_PARAMS_NAMED, 'iv');
-        foreach ($DB->get_records_select('local_outcomemap_itemver', "id $insql", $params,
-                '', 'id, itemid') as $version) {
+        foreach (
+            $DB->get_records_select(
+                'local_outcomemap_itemver',
+                "id $insql",
+                $params,
+                '',
+                'id, itemid'
+            ) as $version
+        ) {
             $itemids[(int) $version->id] = (int) $version->itemid;
         }
 
@@ -722,8 +801,10 @@ final class snapshot_report implements renderable, templatable {
         foreach ($this->grouped[snapshot_service::ITEM_RELATION_VERSION] ?? [] as $item) {
             $payload = $item->payload;
             $type = (string) ($payload['type'] ?? '');
-            if (!in_array($type, [relation_service::ALIGNS_TO, relation_service::CONTRIBUTES_TO], true)
-                    || ($payload['status'] ?? '') !== workflow::APPROVED) {
+            if (
+                !in_array($type, [relation_service::ALIGNS_TO, relation_service::CONTRIBUTES_TO], true)
+                    || ($payload['status'] ?? '') !== workflow::APPROVED
+            ) {
                 continue;
             }
             $edges[(int) $payload['sourceitemid']][(int) $payload['targetitemid']] = true;
@@ -816,33 +897,47 @@ final class snapshot_report implements renderable, templatable {
             'known' => $this->criterion !== null,
             'criterion' => $this->criterion === null
                 ? ''
-                : get_string('snapreport_progresscriterion', 'local_outcomemap',
-                    number_format((float) $this->criterion, 1)),
+                : get_string(
+                    'snapreport_progresscriterion',
+                    'local_outcomemap',
+                    number_format((float) $this->criterion, 1)
+                ),
             'populationline' => get_string('snapreport_progresspopulation', 'local_outcomemap', (object) [
                 'count' => number_format($population),
-                'source' => get_string('population_' . $this->snapshot->populationsource,
-                    'local_outcomemap'),
+                'source' => get_string(
+                    'population_' . $this->snapshot->populationsource,
+                    'local_outcomemap'
+                ),
             ]),
             'tiles' => [
                 [
                     'label' => get_string('snapreport_progress_passedall', 'local_outcomemap'),
                     'value' => number_format($passed),
-                    'note' => get_string('snapreport_progress_passedallnote', 'local_outcomemap',
-                        $share($passed)),
+                    'note' => get_string(
+                        'snapreport_progress_passedallnote',
+                        'local_outcomemap',
+                        $share($passed)
+                    ),
                     'variant' => 'lom-snap-progress-good',
                 ],
                 [
                     'label' => get_string('snapreport_progress_failedany', 'local_outcomemap'),
                     'value' => number_format($failed),
-                    'note' => get_string('snapreport_progress_failedanynote', 'local_outcomemap',
-                        $share($failed)),
+                    'note' => get_string(
+                        'snapreport_progress_failedanynote',
+                        'local_outcomemap',
+                        $share($failed)
+                    ),
                     'variant' => $failed > 0 ? 'lom-snap-progress-bad' : '',
                 ],
                 [
                     'label' => get_string('snapreport_progress_unjudged', 'local_outcomemap'),
                     'value' => number_format($unjudged),
-                    'note' => get_string('snapreport_progress_unjudgednote', 'local_outcomemap',
-                        $share($unjudged)),
+                    'note' => get_string(
+                        'snapreport_progress_unjudgednote',
+                        'local_outcomemap',
+                        $share($unjudged)
+                    ),
                     'variant' => $unjudged > 0 ? 'lom-snap-progress-warn' : '',
                 ],
             ],
@@ -899,8 +994,11 @@ final class snapshot_report implements renderable, templatable {
             'groupings' => $groupings,
             'groupsub' => get_string('snapreport_groupsub_' . $this->groupby, 'local_outcomemap'),
             'liverollup' => $this->liverollup && $this->groupby !== self::GROUP_FRAMEWORK,
-            'liverollupnote' => get_string('snapreport_liverollup', 'local_outcomemap',
-                userdate((int) $this->snapshot->populationat)),
+            'liverollupnote' => get_string(
+                'snapreport_liverollup',
+                'local_outcomemap',
+                userdate((int) $this->snapshot->populationat)
+            ),
             'filters' => $filters,
             'filtered' => $this->subjectfilter !== self::SUBJECTS_ALL,
             'filternote' => get_string('snapreport_filternote', 'local_outcomemap', (object) [
@@ -1055,6 +1153,9 @@ final class snapshot_report implements renderable, templatable {
         return decimal::cmp($rate, $near) >= 0 ? 'near' : 'below';
     }
 
+    /**
+     * Handles the attainment cells operation.
+     */
     private static function attainment_cells(array $payload): array {
         $rate = $payload['attainmentpercent'] ?? null;
         $benchmark = $payload['benchmarkpercent'] ?? null;
@@ -1077,8 +1178,11 @@ final class snapshot_report implements renderable, templatable {
                 'assessed' => number_format((int) ($payload['assessedcount'] ?? 0)),
                 'rate' => $rate === null ? '—' : number_format((float) $rate, 1),
             ]),
-            'benchmark' => $benchmark === null ? '' : get_string('snapreport_vsbenchmark',
-                'local_outcomemap', number_format((float) $benchmark, 1)),
+            'benchmark' => $benchmark === null ? '' : get_string(
+                'snapreport_vsbenchmark',
+                'local_outcomemap',
+                number_format((float) $benchmark, 1)
+            ),
             'hasbenchmark' => $benchmark !== null,
             'benchmarkmet' => $met === true,
             'benchmarkmissed' => $met === false,
@@ -1386,8 +1490,13 @@ final class snapshot_report implements renderable, templatable {
         if ($ids === []) {
             return [];
         }
-        return $DB->get_records_list('user', 'id', array_unique($ids), '',
-            'id, firstname, lastname, firstnamephonetic, lastnamephonetic, middlename, alternatename');
+        return $DB->get_records_list(
+            'user',
+            'id',
+            array_unique($ids),
+            '',
+            'id, firstname, lastname, firstnamephonetic, lastnamephonetic, middlename, alternatename'
+        );
     }
 
     /**

@@ -35,10 +35,14 @@ use local_outcomemap\local\service\program_service;
  * @covers     \local_outcomemap\form\framework_form
  */
 final class framework_form_test extends \advanced_testcase {
-    /** @var int Program that may own a framework. */
+    /**
+     * @var int Program that may own a framework.
+     */
     private int $programid;
 
-    /** @var int Catalog course that may own a framework. */
+    /**
+     * @var int Catalog course that may own a framework.
+     */
     private int $courseid;
 
     protected function setUp(): void {
@@ -69,7 +73,7 @@ final class framework_form_test extends \advanced_testcase {
     }
 
     /**
-     * A program owner picked from the list becomes the owner id the service takes.
+     * * A program owner picked from the list becomes the owner id the service takes.
      */
     public function test_program_picker_becomes_the_owner_id(): void {
         $data = $this->submit([
@@ -84,8 +88,11 @@ final class framework_form_test extends \advanced_testcase {
 
         $this->assertNotNull($data, 'A complete submission must validate.');
         $this->assertSame($this->programid, (int) $data->ownerid);
-        $this->assertObjectNotHasProperty('ownerprogramid', $data,
-            'The service takes one owner id, so the pickers must not reach it.');
+        $this->assertObjectNotHasProperty(
+            'ownerprogramid',
+            $data,
+            'The service takes one owner id, so the pickers must not reach it.'
+        );
 
         // The whole point: what the form yields is accepted by the service.
         $frameworkid = framework_service::create((array) $data);
@@ -93,7 +100,7 @@ final class framework_form_test extends \advanced_testcase {
     }
 
     /**
-     * A catalog-course owner is read from its own picker, not the program one.
+     * * A catalog-course owner is read from its own picker, not the program one.
      */
     public function test_course_picker_becomes_the_owner_id(): void {
         $data = $this->submit([
@@ -107,13 +114,16 @@ final class framework_form_test extends \advanced_testcase {
         ]);
 
         $this->assertNotNull($data);
-        $this->assertSame($this->courseid, (int) $data->ownerid,
-            'A stale value in the other picker must be ignored.');
+        $this->assertSame(
+            $this->courseid,
+            (int) $data->ownerid,
+            'A stale value in the other picker must be ignored.'
+        );
         $this->assertGreaterThan(0, framework_service::create((array) $data));
     }
 
     /**
-     * An institution framework has no owner at all.
+     * * An institution framework has no owner at all.
      */
     public function test_institution_owner_is_null(): void {
         $data = $this->submit([
@@ -127,13 +137,15 @@ final class framework_form_test extends \advanced_testcase {
         ]);
 
         $this->assertNotNull($data);
-        $this->assertNull($data->ownerid,
-            'An institution framework must not inherit whatever the pickers held.');
+        $this->assertNull(
+            $data->ownerid,
+            'An institution framework must not inherit whatever the pickers held.'
+        );
         $this->assertGreaterThan(0, framework_service::create((array) $data));
     }
 
     /**
-     * Choosing no owner is caught by the form rather than by the service.
+     * * Choosing no owner is caught by the form rather than by the service.
      */
     public function test_missing_owner_is_a_form_error(): void {
         $this->assertNull($this->submit([
@@ -172,7 +184,7 @@ final class framework_form_test extends \advanced_testcase {
      * @return array Exported values.
      */
     private function defaults(framework_form $form): array {
-        // moodleform keeps its quickform private, and there is no public accessor
+        // The moodleform class keeps its quickform private, and there is no public accessor
         // for the defaults it was seeded with.
         $property = new \ReflectionProperty(\moodleform::class, '_form');
         $property->setAccessible(true);
@@ -180,7 +192,7 @@ final class framework_form_test extends \advanced_testcase {
     }
 
     /**
-     * An owner that arrived with the link is not asked for again.
+     * * An owner that arrived with the link is not asked for again.
      */
     public function test_owner_from_the_link_replaces_the_pickers(): void {
         framework_form::mock_submit([
@@ -192,43 +204,61 @@ final class framework_form_test extends \advanced_testcase {
             'ownerid' => $this->programid,
         ]);
         $form = new framework_form(new \moodle_url('/local/outcomemap/frameworks.php'), [
-            'owner' => $this->owner(framework_service::OWNER_PROGRAM, $this->programid, 'MEI',
-                "Master's in Entrepreneurship & Innovation"),
+            'owner' => $this->owner(
+                framework_service::OWNER_PROGRAM,
+                $this->programid,
+                'MEI',
+                "Master's in Entrepreneurship & Innovation"
+            ),
         ]);
         $data = $form->get_data();
 
         $this->assertNotNull($data, 'Nothing is missing: the owner came with the link.');
         $this->assertSame($this->programid, (int) $data->ownerid);
         $this->assertSame(framework_service::OWNER_PROGRAM, $data->ownertype);
-        $this->assertObjectNotHasProperty('ownerprogramid', $data,
-            'There is no picker to collapse when the owner is already settled.');
+        $this->assertObjectNotHasProperty(
+            'ownerprogramid',
+            $data,
+            'There is no picker to collapse when the owner is already settled.'
+        );
         $this->assertGreaterThan(0, framework_service::create((array) $data));
     }
 
     /**
-     * The code and name a program framework conventionally gets are filled in.
+     * * The code and name a program framework conventionally gets are filled in.
      */
     public function test_program_owner_suggests_the_plo_convention(): void {
         $form = new framework_form(new \moodle_url('/local/outcomemap/frameworks.php'), [
-            'owner' => $this->owner(framework_service::OWNER_PROGRAM, $this->programid, 'MEI',
-                "Master's in Entrepreneurship & Innovation"),
+            'owner' => $this->owner(
+                framework_service::OWNER_PROGRAM,
+                $this->programid,
+                'MEI',
+                "Master's in Entrepreneurship & Innovation"
+            ),
         ]);
         $defaults = $this->defaults($form);
 
-        $this->assertSame('MEI-PLO', $defaults['code'],
-            'The code convention is the owner code and the kind of outcomes held.');
+        $this->assertSame(
+            'MEI-PLO',
+            $defaults['code'],
+            'The code convention is the owner code and the kind of outcomes held.'
+        );
         $this->assertSame('MEI program learning outcomes', $defaults['name']);
         $this->assertSame(framework_service::OWNER_PROGRAM, $defaults['ownertype']);
         $this->assertEquals($this->programid, $defaults['ownerid']);
     }
 
     /**
-     * A catalog course gets the course-level convention, not the program one.
+     * * A catalog course gets the course-level convention, not the program one.
      */
     public function test_course_owner_suggests_the_clo_convention(): void {
         $form = new framework_form(new \moodle_url('/local/outcomemap/frameworks.php'), [
-            'owner' => $this->owner(framework_service::OWNER_COURSE, $this->courseid, 'MEI601',
-                'Financial Management'),
+            'owner' => $this->owner(
+                framework_service::OWNER_COURSE,
+                $this->courseid,
+                'MEI601',
+                'Financial Management'
+            ),
         ]);
         $defaults = $this->defaults($form);
 
@@ -239,7 +269,7 @@ final class framework_form_test extends \advanced_testcase {
     }
 
     /**
-     * An owner type that owns no record of its own keeps the full form.
+     * * An owner type that owns no record of its own keeps the full form.
      */
     public function test_institution_context_falls_back_to_the_pickers(): void {
         framework_form::mock_submit([
@@ -257,12 +287,14 @@ final class framework_form_test extends \advanced_testcase {
         $data = $form->get_data();
 
         $this->assertNotNull($data, 'The pickers must still be there to be submitted.');
-        $this->assertNull($data->ownerid,
-            'An institution framework has no owner record for a link to have named.');
+        $this->assertNull(
+            $data->ownerid,
+            'An institution framework has no owner record for a link to have named.'
+        );
     }
 
     /**
-     * Editing an existing framework preselects the owner it already has.
+     * * Editing an existing framework preselects the owner it already has.
      */
     public function test_editing_preselects_the_stored_owner(): void {
         $frameworkid = framework_service::create([
@@ -278,7 +310,10 @@ final class framework_form_test extends \advanced_testcase {
         $form->set_data($existing);
 
         $defaults = $this->defaults($form);
-        $this->assertEquals($this->programid, $defaults['ownerprogramid'],
-            'The stored owner must come back selected in its picker.');
+        $this->assertEquals(
+            $this->programid,
+            $defaults['ownerprogramid'],
+            'The stored owner must come back selected in its picker.'
+        );
     }
 }

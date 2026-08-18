@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\local\dto;
 
@@ -20,53 +28,101 @@ namespace local_outcomemap\local\dto;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class question_mapping implements \JsonSerializable {
-    /** @var int Mapping record ID used with the draft mutation services. */
+    /**
+     * @var int Mapping record ID used with the draft mutation services.
+     */
     public readonly int $id;
-    /** @var string Stable mapping UUID. */
+    /**
+     * @var string Stable mapping UUID.
+     */
     public readonly string $mappinguuid;
-    /** @var int Mapping version number. */
+    /**
+     * @var int Mapping version number.
+     */
     public readonly int $mappingversion;
-    /** @var int Core question-version ID the mapping binds to. */
+    /**
+     * @var int Core question-version ID the mapping binds to.
+     */
     public readonly int $questionversionid;
-    /** @var int Core question ID recorded for provenance. */
+    /**
+     * @var int Core question ID recorded for provenance.
+     */
     public readonly int $questionid;
-    /** @var int|null Source mapping record ID when copied from an earlier question version. */
+    /**
+     * @var int|null Source mapping record ID when copied from an earlier question version.
+     */
     public readonly ?int $sourceqmapid;
-    /** @var int|null Source core question-version ID when copied. */
+    /**
+     * @var int|null Source core question-version ID when copied.
+     */
     public readonly ?int $sourcequestionversionid;
-    /** @var string|null Stable source mapping UUID when copied. */
+    /**
+     * @var string|null Stable source mapping UUID when copied.
+     */
     public readonly ?string $sourcemappinguuid;
-    /** @var int|null Source mapping version number when copied. */
+    /**
+     * @var int|null Source mapping version number when copied.
+     */
     public readonly ?int $sourcemappingversion;
-    /** @var int|null Human-facing source question version number when copied. */
+    /**
+     * @var int|null Human-facing source question version number when copied.
+     */
     public readonly ?int $sourcequestionversion;
-    /** @var string Stable outcome UUID. */
+    /**
+     * @var string Stable outcome UUID.
+     */
     public readonly string $outcomeuuid;
-    /** @var string Outcome code. */
+    /**
+     * @var string Outcome code.
+     */
     public readonly string $outcomecode;
-    /** @var string Exact outcome-version UUID. */
+    /**
+     * @var string Exact outcome-version UUID.
+     */
     public readonly string $outcomeversionuuid;
-    /** @var int Exact outcome-version number. */
+    /**
+     * @var int Exact outcome-version number.
+     */
     public readonly int $outcomeversion;
-    /** @var string Outcome statement. */
+    /**
+     * @var string Outcome statement.
+     */
     public readonly string $outcomestatement;
-    /** @var string|null Outcome short statement. */
+    /**
+     * @var string|null Outcome short statement.
+     */
     public readonly ?string $outcomeshortstatement;
-    /** @var string Framework UUID. */
+    /**
+     * @var string Framework UUID.
+     */
     public readonly string $frameworkuuid;
-    /** @var string Framework code. */
+    /**
+     * @var string Framework code.
+     */
     public readonly string $frameworkcode;
-    /** @var string Mapping role. */
+    /**
+     * @var string Mapping role.
+     */
     public readonly string $role;
-    /** @var string|null Canonical assessed weight. */
+    /**
+     * @var string|null Canonical assessed weight.
+     */
     public readonly ?string $weight;
-    /** @var string|null Mapping notes. */
+    /**
+     * @var string|null Mapping notes.
+     */
     public readonly ?string $notes;
-    /** @var string Workflow status. */
+    /**
+     * @var string Workflow status.
+     */
     public readonly string $status;
-    /** @var int Effective start timestamp. */
+    /**
+     * @var int Effective start timestamp.
+     */
     public readonly int $effectivefrom;
-    /** @var int|null Effective end timestamp. */
+    /**
+     * @var int|null Effective end timestamp.
+     */
     public readonly ?int $effectiveto;
 
     /**

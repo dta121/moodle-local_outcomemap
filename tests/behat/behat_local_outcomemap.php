@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 use local_outcomemap\local\service\calculation_service;
 use local_outcomemap\local\service\framework_service;
@@ -216,12 +224,19 @@ class behat_local_outcomemap extends behat_base {
             'approvedat' => $now,
         ]);
 
-        $insertremediation = static function(
+        $insertremediation = static function (
             int $targetid,
             string $title,
             string $status,
             int $priority
-        ) use ($DB, $belowbandid, $cinstid, $effectivefrom, $itemverid, $now): void {
+        ) use (
+            $DB,
+            $belowbandid,
+            $cinstid,
+            $effectivefrom,
+            $itemverid,
+            $now
+): void {
             $DB->insert_record('local_outcomemap_remed', (object) [
                 'mappinguuid' => uuid::generate(),
                 'version' => 1,
@@ -457,7 +472,7 @@ class behat_local_outcomemap extends behat_base {
             'approvedat' => $now,
         ]);
 
-        $insertpolicy = static function(string $type, array $config) use ($DB, $effectivefrom, $now): int {
+        $insertpolicy = static function (string $type, array $config) use ($DB, $effectivefrom, $now): int {
             $configjson = \local_outcomemap\local\canonical_json::encode($config);
             return (int) $DB->insert_record('local_outcomemap_policy', (object) [
                 'policyuuid' => uuid::generate(),

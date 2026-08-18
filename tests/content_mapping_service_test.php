@@ -57,6 +57,7 @@ final class content_mapping_service_test extends \advanced_testcase {
      * @return array{0:int,1:int} Course-instance ID and outcome-version ID.
      */
     private function create_scope(\stdClass $course, \stdClass $reviewer): array {
+
         global $DB;
         $this->setAdminUser();
         $catalogid = catalog_course_service::create([
@@ -97,8 +98,11 @@ final class content_mapping_service_test extends \advanced_testcase {
         return [$cinstid, $itemverid];
     }
 
-    /** Create an approved outcome owned by one catalog course. */
+    /**
+     * Create an approved outcome owned by one catalog course.
+     */
     private function create_catalog_outcome(int $catalogid, \stdClass $reviewer, string $code): int {
+
         global $DB;
         $this->setAdminUser();
         $frameworkid = framework_service::create([
@@ -124,9 +128,8 @@ final class content_mapping_service_test extends \advanced_testcase {
         $this->setAdminUser();
         return $itemverid;
     }
-
     /**
-     * Tests governed module and section mappings.
+     * * Tests governed module and section mappings.
      */
     public function test_governed_module_and_section_mappings(): void {
         global $DB;
@@ -208,9 +211,10 @@ final class content_mapping_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests the external remediation workflow.
+     * * Tests the external remediation workflow.
      */
     public function test_external_remediation_workflow(): void {
+
         global $DB;
         $this->resetAfterTest(true);
         $this->setAdminUser();
@@ -241,8 +245,11 @@ final class content_mapping_service_test extends \advanced_testcase {
         $this->assertEquals(1, $record->required);
     }
 
-    /** Service reads and posted outcomes are constrained to the authoritative course. */
+    /**
+     * Service reads and posted outcomes are constrained to the authoritative course.
+     */
     public function test_record_reads_and_outcome_mutations_are_course_scoped(): void {
+
         global $DB;
         $this->resetAfterTest(true);
         $this->setAdminUser();
@@ -250,20 +257,8 @@ final class content_mapping_service_test extends \advanced_testcase {
         $secondcourse = $this->getDataGenerator()->create_course();
         $firstpage = $this->getDataGenerator()->create_module('page', ['course' => $firstcourse->id]);
         $secondpage = $this->getDataGenerator()->create_module('page', ['course' => $secondcourse->id]);
-        $firstcm = get_coursemodule_from_instance(
-            'page',
-            $firstpage->id,
-            $firstcourse->id,
-            false,
-            MUST_EXIST
-        );
-        $secondcm = get_coursemodule_from_instance(
-            'page',
-            $secondpage->id,
-            $secondcourse->id,
-            false,
-            MUST_EXIST
-        );
+        $firstcm = get_coursemodule_from_instance('page', $firstpage->id, $firstcourse->id, false, MUST_EXIST);
+        $secondcm = get_coursemodule_from_instance('page', $secondpage->id, $secondcourse->id, false, MUST_EXIST);
         $reviewer = $this->create_reviewer();
         [$firstcinstid, $firstitemverid] = $this->create_scope($firstcourse, $reviewer);
         [$secondcinstid, $seconditemverid] = $this->create_scope($secondcourse, $reviewer);
@@ -271,7 +266,6 @@ final class content_mapping_service_test extends \advanced_testcase {
             'id' => $secondcinstid,
         ], MUST_EXIST);
         $foreignitemverid = $this->create_catalog_outcome($secondcatalogid, $reviewer, 'PRIVATE');
-
         $options = content_mapping_service::editor_options((int) $firstcourse->id);
         $this->assertArrayNotHasKey($foreignitemverid, $options['outcomes']);
         try {
@@ -315,13 +309,8 @@ final class content_mapping_service_test extends \advanced_testcase {
             'title' => 'Second-course remediation',
             'effectivefrom' => 1704067200,
         ]);
-
         try {
-            content_mapping_service::get(
-                content_mapping_service::TARGET_MODULE,
-                $mappingid,
-                (int) $firstcourse->id
-            );
+            content_mapping_service::get(content_mapping_service::TARGET_MODULE, $mappingid, (int) $firstcourse->id);
             $this->fail('A mapping was loaded through a different course URL.');
         } catch (validation_exception $e) {
             $this->assertSame('recordnotfound', $e->errorcode);
@@ -336,33 +325,28 @@ final class content_mapping_service_test extends \advanced_testcase {
         $reader = $this->getDataGenerator()->create_user();
         $roleid = create_role('First course outcome reader', 'firstcoursereader', '');
         $firstcontext = \context_course::instance((int) $firstcourse->id);
-        foreach ([
-            'local/outcomemap:viewdefinitions',
-            'local/outcomemap:mapactivities',
-            'local/outcomemap:mapcourse',
-            'moodle/course:manageactivities',
-            'moodle/course:update',
-        ] as $capability) {
+        foreach (
+            [
+                'local/outcomemap:viewdefinitions',
+                'local/outcomemap:mapactivities',
+                'local/outcomemap:mapcourse',
+                'moodle/course:manageactivities',
+                'moodle/course:update',
+            ] as $capability
+        ) {
             assign_capability($capability, CAP_ALLOW, $roleid, $firstcontext->id);
         }
         role_assign($roleid, $reader->id, $firstcontext->id);
         $this->setUser($reader);
-        foreach ([
-            static fn() => content_mapping_service::update_draft(
-                content_mapping_service::TARGET_MODULE,
-                $mappingid,
-                [
-                    'cinstid' => $firstcinstid,
-                    'cmid' => $firstcm->id,
-                    'itemverid' => $firstitemverid,
-                ]
-            ),
-            static fn() => remediation_service::update_draft($remediationid, [
-                'cinstid' => $firstcinstid,
-                'itemverid' => $firstitemverid,
-                'externalurl' => 'https://example.test/moved',
+        foreach (
+            [
+            static fn() => content_mapping_service::update_draft(content_mapping_service::TARGET_MODULE, $mappingid, [
+                    'cinstid' => $firstcinstid, 'cmid' => $firstcm->id, 'itemverid' => $firstitemverid,
+                ]), static fn() => remediation_service::update_draft($remediationid, [
+                'cinstid' => $firstcinstid, 'itemverid' => $firstitemverid, 'externalurl' => 'https://example.test/moved',
             ]),
-        ] as $update) {
+            ] as $update
+        ) {
             try {
                 $update();
                 $this->fail('A draft was moved out of a course the caller cannot manage.');
@@ -370,10 +354,15 @@ final class content_mapping_service_test extends \advanced_testcase {
                 $this->assertNotEmpty($e->getMessage());
             }
         }
-        foreach ([
-            static fn() => content_mapping_service::get(content_mapping_service::TARGET_MODULE, $mappingid),
-            static fn() => remediation_service::get($remediationid),
-        ] as $read) {
+        foreach (
+            [
+                static fn() => content_mapping_service::get(
+                    content_mapping_service::TARGET_MODULE,
+                    $mappingid
+                ),
+                static fn() => remediation_service::get($remediationid),
+            ] as $read
+        ) {
             try {
                 $read();
                 $this->fail('A cross-course service read was allowed.');
@@ -383,8 +372,11 @@ final class content_mapping_service_test extends \advanced_testcase {
         }
     }
 
-    /** Restored or corrupted drafts cannot smuggle a non-web external URL through approval. */
+    /**
+     * Restored or corrupted drafts cannot smuggle a non-web external URL through approval.
+     */
     public function test_remediation_revalidates_stored_external_urls(): void {
+
         global $DB;
         $this->resetAfterTest(true);
         $this->setAdminUser();
@@ -408,9 +400,8 @@ final class content_mapping_service_test extends \advanced_testcase {
         }
         $this->assertSame(workflow::DRAFT, $DB->get_field('local_outcomemap_remed', 'status', ['id' => $id]));
     }
-
     /**
-     * Tests governed band/range selection, ordering, access filtering, and safe output fields.
+     * * Tests governed band/range selection, ordering, access filtering, and safe output fields.
      */
     public function test_accessible_remediation_selection_is_exact_ordered_and_learner_safe(): void {
         global $DB;
@@ -464,7 +455,7 @@ final class content_mapping_service_test extends \advanced_testcase {
             'purpose' => remediation_service::PURPOSE_REVIEW,
             'effectivefrom' => 1704067200,
         ];
-        $create = function(array $data, bool $approve = true) use ($base, $reviewer): int {
+        $create = function (array $data, bool $approve = true) use ($base, $reviewer): int {
             $this->setAdminUser();
             $id = remediation_service::create(array_merge($base, $data));
             if ($approve) {
@@ -578,8 +569,10 @@ final class content_mapping_service_test extends \advanced_testcase {
             ],
         ], $at, $modinfo, $modinfo->get_cms());
 
-        $this->assertSame(['External first', 'Module first', 'Module second'],
-            array_column($selected['clo'], 'title'));
+        $this->assertSame(
+            ['External first', 'Module first', 'Module second'],
+            array_column($selected['clo'], 'title')
+        );
         $this->assertSame([], $selected['notcalculated']);
         $this->assertSame([
             'title', 'explanation', 'url', 'required', 'purpose', 'priority', 'sortorder',

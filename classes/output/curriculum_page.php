@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Combined curriculum page model.
@@ -38,25 +46,39 @@ use templatable;
  * delivering each one.
  */
 final class curriculum_page implements renderable, templatable {
-    /** @var \stdClass[] Programs with governed course and outcome counts. */
+    /**
+     * @var \stdClass[] Programs with governed course and outcome counts.
+     */
     private array $programs;
 
-    /** @var \stdClass[] Catalog courses with their summary counts, keyed by id. */
+    /**
+     * @var \stdClass[] Catalog courses with their summary counts, keyed by id.
+     */
     private array $courses;
 
-    /** @var \stdClass[][] Non-retired memberships grouped by program id. */
+    /**
+     * @var \stdClass[][] Non-retired memberships grouped by program id.
+     */
     private array $byprogram = [];
 
-    /** @var \stdClass[][] Non-retired memberships grouped by catalog course id. */
+    /**
+     * @var \stdClass[][] Non-retired memberships grouped by catalog course id.
+     */
     private array $bycourse = [];
 
-    /** @var \stdClass[][] Associations grouped by catalog course id. */
+    /**
+     * @var \stdClass[][] Associations grouped by catalog course id.
+     */
     private array $instances = [];
 
-    /** @var int The program being read. */
+    /**
+     * @var int The program being read.
+     */
     private int $programid;
 
-    /** @var int Reference time for delivery-window comparisons. */
+    /**
+     * @var int Reference time for delivery-window comparisons.
+     */
     private int $now;
 
     /**
@@ -86,7 +108,9 @@ final class curriculum_page implements renderable, templatable {
             : (int) (array_key_first($this->programs) ?? 0);
     }
 
-    /** Export the template context. */
+    /**
+     * Export the template context.
+     */
     public function export_for_template(renderer_base $output): array {
         $context = \context_system::instance();
         $canmanageprograms = has_capability('local/outcomemap:manageprograms', $context);
@@ -104,8 +128,13 @@ final class curriculum_page implements renderable, templatable {
             'addcourseurl' => (new moodle_url($catalogurl, ['action' => 'add']))->out(false),
             'addinstanceurl' => $this->addinstanceurl(),
             'statsline' => $this->statsline(),
-        ] + $this->selected($canmanageprograms, $canmanagecourses, $canmanageframeworks,
-            $programsurl, $catalogurl);
+        ] + $this->selected(
+            $canmanageprograms,
+            $canmanagecourses,
+            $canmanageframeworks,
+            $programsurl,
+            $catalogurl
+        );
     }
 
     /**
@@ -183,8 +212,13 @@ final class curriculum_page implements renderable, templatable {
      * @param moodle_url $catalogurl Catalog courses page URL.
      * @return array Template context for the right-hand column.
      */
-    private function selected(bool $canmanageprograms, bool $canmanagecourses,
-            bool $canmanageframeworks, moodle_url $programsurl, moodle_url $catalogurl): array {
+    private function selected(
+        bool $canmanageprograms,
+        bool $canmanagecourses,
+        bool $canmanageframeworks,
+        moodle_url $programsurl,
+        moodle_url $catalogurl
+    ): array {
         $program = $this->programs[$this->programid] ?? null;
         if ($program === null) {
             return ['hasselection' => false];
@@ -198,8 +232,14 @@ final class curriculum_page implements renderable, templatable {
             if ($course === null) {
                 continue;
             }
-            $card = $this->course($course, $membership, $canmanagecourses, $canmanageprograms,
-                $canmanageframeworks, $catalogurl);
+            $card = $this->course(
+                $course,
+                $membership,
+                $canmanagecourses,
+                $canmanageprograms,
+                $canmanageframeworks,
+                $catalogurl
+            );
             $unconfirmed += $card['unconfirmedcount'];
             if (!$card['hasoutcomes']) {
                 $withoutoutcomes++;
@@ -258,8 +298,12 @@ final class curriculum_page implements renderable, templatable {
                 'action' => 'addmembership',
                 'programid' => $this->programid,
             ]))->out(false),
-        ] + $this->outcomeslink(framework_service::OWNER_PROGRAM, $this->programid,
-            (int) $program->frameworkcount, $canmanageframeworks);
+        ] + $this->outcomeslink(
+            framework_service::OWNER_PROGRAM,
+            $this->programid,
+            (int) $program->frameworkcount,
+            $canmanageframeworks
+        );
     }
 
     /**
@@ -297,8 +341,12 @@ final class curriculum_page implements renderable, templatable {
      * @param bool $canmanageframeworks Whether the reader may create one.
      * @return array Template context for the action link.
      */
-    private function outcomeslink(string $ownertype, int $ownerid, int $frameworkcount,
-            bool $canmanageframeworks): array {
+    private function outcomeslink(
+        string $ownertype,
+        int $ownerid,
+        int $frameworkcount,
+        bool $canmanageframeworks
+    ): array {
         $frameworksurl = new moodle_url('/local/outcomemap/frameworks.php');
         $iscourse = $ownertype === framework_service::OWNER_COURSE;
         if ($frameworkcount === 0 && $canmanageframeworks) {
@@ -333,8 +381,12 @@ final class curriculum_page implements renderable, templatable {
      * @param int $withoutoutcomes Attached courses governing no outcome.
      * @return array[] Fact tiles.
      */
-    private function facts(\stdClass $program, int $coursecount, int $unconfirmed,
-            int $withoutoutcomes): array {
+    private function facts(
+        \stdClass $program,
+        int $coursecount,
+        int $unconfirmed,
+        int $withoutoutcomes
+    ): array {
         $attention = [];
         if ($unconfirmed > 0) {
             $attention[] = get_string(
@@ -389,8 +441,14 @@ final class curriculum_page implements renderable, templatable {
      * @param moodle_url $catalogurl Catalog courses page URL.
      * @return array Template card context.
      */
-    private function course(\stdClass $course, \stdClass $membership, bool $canmanagecourses,
-            bool $canmanageprograms, bool $canmanageframeworks, moodle_url $catalogurl): array {
+    private function course(
+        \stdClass $course,
+        \stdClass $membership,
+        bool $canmanagecourses,
+        bool $canmanageprograms,
+        bool $canmanageframeworks,
+        moodle_url $catalogurl
+    ): array {
         $courseid = (int) $course->id;
         $instanceurl = new moodle_url('/local/outcomemap/courseinstances.php');
         $hasoutcomes = (int) $course->courseoutcomecount + (int) $course->unitoutcomecount > 0;
@@ -457,10 +515,15 @@ final class curriculum_page implements renderable, templatable {
             'unconfirmedcount' => $unconfirmed,
             'deliveryline' => $total === 0
                 ? get_string('curriculum_nodelivery', 'local_outcomemap')
-                : get_string($total === 1 ? 'instances_count_one' : 'instances_count',
-                    'local_outcomemap', (object) ['total' => $total, 'active' => $active]),
-            'statelabel' => get_string($active > 0 ? 'curriculum_indelivery' : 'curriculum_notdelivered',
-                'local_outcomemap'),
+                : get_string(
+                    $total === 1 ? 'instances_count_one' : 'instances_count',
+                    'local_outcomemap',
+                    (object) ['total' => $total, 'active' => $active]
+                ),
+            'statelabel' => get_string(
+                $active > 0 ? 'curriculum_indelivery' : 'curriculum_notdelivered',
+                'local_outcomemap'
+            ),
             'stateclass' => $active > 0 ? 'active' : 'ended',
             'shared' => $others !== [],
             'sharedlabel' => get_string('curriculum_alsoin', 'local_outcomemap', implode(', ', $others)),
@@ -478,8 +541,12 @@ final class curriculum_page implements renderable, templatable {
                 'action' => 'edit',
                 'id' => $courseid,
             ]))->out(false),
-        ] + $this->outcomeslink(framework_service::OWNER_COURSE, $courseid,
-            (int) $course->frameworkcount, $canmanageframeworks);
+        ] + $this->outcomeslink(
+            framework_service::OWNER_COURSE,
+            $courseid,
+            (int) $course->frameworkcount,
+            $canmanageframeworks
+        );
         if ($canmanageprograms && $membership->status === workflow::DRAFT) {
             $card['cansubmitmembership'] = true;
             $card['membershipsubmitlabel'] = workflow::submit_action_label();

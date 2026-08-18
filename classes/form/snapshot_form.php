@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\form;
 
@@ -16,7 +24,9 @@ namespace local_outcomemap\form;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class snapshot_form extends \moodleform {
-    /** Define fields. */
+    /**
+     * Define fields.
+     */
     public function definition(): void {
         $mform = $this->_form;
         $options = $this->_customdata['options'];
@@ -24,20 +34,32 @@ final class snapshot_form extends \moodleform {
 
         $mform->addElement('hidden', 'previousid', 0);
         $mform->setType('previousid', PARAM_INT);
-        $mform->addElement('autocomplete', 'programid', get_string('program', 'local_outcomemap'),
-            [0 => get_string('choosedots')] + $options['programs']);
+        $mform->addElement(
+            'autocomplete',
+            'programid',
+            get_string('program', 'local_outcomemap'),
+            [0 => get_string('choosedots')] + $options['programs']
+        );
         $mform->addRule('programid', null, 'required');
         // Only the periods that resolve to course instances are offered, so an
         // empty capture cannot be requested by mistyping an academic year. The
         // program/period pair is still checked in validation(), because one
         // period rarely covers every program.
-        $mform->addElement('select', 'periodcode', get_string('periodcode', 'local_outcomemap'),
-            ['' => get_string('choosedots')] + self::period_choices($options, $this->_customdata));
+        $mform->addElement(
+            'select',
+            'periodcode',
+            get_string('periodcode', 'local_outcomemap'),
+            ['' => get_string('choosedots')] + self::period_choices($options, $this->_customdata)
+        );
         $mform->setType('periodcode', PARAM_TEXT);
         $mform->addRule('periodcode', null, 'required');
         $mform->addHelpButton('periodcode', 'snapshotperiod', 'local_outcomemap');
-        $mform->addElement('autocomplete', 'cohortid', get_string('cohort', 'local_outcomemap'),
-            [0 => get_string('none')] + $options['cohorts']);
+        $mform->addElement(
+            'autocomplete',
+            'cohortid',
+            get_string('cohort', 'local_outcomemap'),
+            [0 => get_string('none')] + $options['cohorts']
+        );
         $mform->addHelpButton('cohortid', 'snapshotcohort', 'local_outcomemap');
         $mform->addElement('textarea', 'notes', get_string('snapshotnotes', 'local_outcomemap'), [
             'rows' => 4,
@@ -139,8 +161,11 @@ final class snapshot_form extends \moodleform {
         // leave nothing to say which is authoritative, so send the operator to
         // the correction action instead.
         if (empty($previousid)) {
-            $existing = $DB->get_records('local_outcomemap_snapshot',
-                ['programid' => $programid, 'periodcode' => $periodcode], 'version DESC, id DESC');
+            $existing = $DB->get_records(
+                'local_outcomemap_snapshot',
+                ['programid' => $programid, 'periodcode' => $periodcode],
+                'version DESC, id DESC'
+            );
             if ($existing) {
                 $latest = reset($existing);
                 $errors['periodcode'] = get_string('snapshotperiodcaptured', 'local_outcomemap', [

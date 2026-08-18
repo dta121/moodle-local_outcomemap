@@ -41,8 +41,10 @@ final class feature_test extends \advanced_testcase {
     public function test_remediation_defaults_to_enabled(): void {
         $this->resetAfterTest(true);
         unset_config('enableremediation', 'local_outcomemap');
-        $this->assertTrue(feature::remediation_enabled(),
-            'An unset switch must not withdraw a feature an institution already relies on.');
+        $this->assertTrue(
+            feature::remediation_enabled(),
+            'An unset switch must not withdraw a feature an institution already relies on.'
+        );
 
         set_config('enableremediation', 1, 'local_outcomemap');
         $this->assertTrue(feature::remediation_enabled());
@@ -52,7 +54,7 @@ final class feature_test extends \advanced_testcase {
     }
 
     /**
-     * A request that reaches a disabled feature by direct URL is refused.
+     * * A request that reaches a disabled feature by direct URL is refused.
      */
     public function test_require_enabled_refuses_a_disabled_feature(): void {
         $this->resetAfterTest(true);
@@ -72,12 +74,16 @@ final class feature_test extends \advanced_testcase {
         $this->setAdminUser();
 
         set_config('enableremediation', 1, 'local_outcomemap');
-        $this->assertTrue(remediation_engagement::is_available(),
-            'An administrator should be offered the source while the feature is on.');
+        $this->assertTrue(
+            remediation_engagement::is_available(),
+            'An administrator should be offered the source while the feature is on.'
+        );
 
         set_config('enableremediation', 0, 'local_outcomemap');
-        $this->assertFalse(remediation_engagement::is_available(),
-            'System-wide access must not keep a disabled feature in the source list.');
+        $this->assertFalse(
+            remediation_engagement::is_available(),
+            'System-wide access must not keep a disabled feature in the source list.'
+        );
     }
 
     /**
@@ -93,19 +99,29 @@ final class feature_test extends \advanced_testcase {
         // With the feature on, the reviewer has work to do.
         set_config('enableremediation', 1, 'local_outcomemap');
         $objecttypes = array_column(approval_service::list_pending(), 'objecttype');
-        $this->assertContains('remediation', $objecttypes,
-            'A pending remediation draft must reach the approval queue while the feature is on.');
+        $this->assertContains(
+            'remediation',
+            $objecttypes,
+            'A pending remediation draft must reach the approval queue while the feature is on.'
+        );
 
         set_config('enableremediation', 0, 'local_outcomemap');
         $objecttypes = array_column(approval_service::list_pending(), 'objecttype');
-        $this->assertNotContains('remediation', $objecttypes,
-            'A disabled feature must not queue work for a reviewer.');
+        $this->assertNotContains(
+            'remediation',
+            $objecttypes,
+            'A disabled feature must not queue work for a reviewer.'
+        );
 
-        $this->assertTrue($DB->record_exists('local_outcomemap_remed', ['id' => $remediationid]),
-            'Disabling a feature must not delete its records.');
-        $this->assertSame(workflow::NEEDS_REVIEW,
+        $this->assertTrue(
+            $DB->record_exists('local_outcomemap_remed', ['id' => $remediationid]),
+            'Disabling a feature must not delete its records.'
+        );
+        $this->assertSame(
+            workflow::NEEDS_REVIEW,
             $DB->get_field('local_outcomemap_remed', 'status', ['id' => $remediationid]),
-            'The withdrawn draft must keep its state so re-enabling restores the queue.');
+            'The withdrawn draft must keep its state so re-enabling restores the queue.'
+        );
     }
 
     /**
@@ -131,8 +147,11 @@ final class feature_test extends \advanced_testcase {
         ]);
         course_instance_service::submit_for_review($cinstid);
         $reviewer = $this->getDataGenerator()->create_user();
-        role_assign((int) $DB->get_field('role', 'id', ['shortname' => 'manager'], MUST_EXIST),
-            $reviewer->id, \context_system::instance()->id);
+        role_assign(
+            (int) $DB->get_field('role', 'id', ['shortname' => 'manager'], MUST_EXIST),
+            $reviewer->id,
+            \context_system::instance()->id
+        );
         $this->setUser($reviewer);
         course_instance_service::confirm($cinstid);
         $this->setAdminUser();

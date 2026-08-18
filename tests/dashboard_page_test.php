@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap;
 
@@ -31,7 +39,9 @@ use local_outcomemap\output\dashboard_page;
 final class dashboard_page_test extends \advanced_testcase {
     use \local_outcomemap\tests\moodle_compat_trait;
 
-    /** @var int Effective start shared by every governed record in a fixture. */
+    /**
+     * @var int Effective start shared by every governed record in a fixture.
+     */
     private const EFFECTIVE_FROM = 1704067200;
 
     /**
@@ -59,8 +69,12 @@ final class dashboard_page_test extends \advanced_testcase {
                 'statement' => 'Outcome ' . $code . '.' . $index,
                 'effectivefrom' => self::EFFECTIVE_FROM,
             ]);
-            $versionid = (int) $DB->get_field('local_outcomemap_itemver', 'id',
-                ['itemid' => $outcomeid], IGNORE_MULTIPLE);
+            $versionid = (int) $DB->get_field(
+                'local_outcomemap_itemver',
+                'id',
+                ['itemid' => $outcomeid],
+                IGNORE_MULTIPLE
+            );
             // A mapping may only bind to an approved version, and the dashboard
             // only reports approved outcomes, so the fixture takes each version
             // through the submission boundary.
@@ -92,8 +106,12 @@ final class dashboard_page_test extends \advanced_testcase {
             'statement' => 'Program outcome ' . $code,
             'effectivefrom' => self::EFFECTIVE_FROM,
         ]);
-        outcome_service::submit_for_review((int) $DB->get_field('local_outcomemap_itemver', 'id',
-            ['itemid' => $outcomeid], IGNORE_MULTIPLE));
+        outcome_service::submit_for_review((int) $DB->get_field(
+            'local_outcomemap_itemver',
+            'id',
+            ['itemid' => $outcomeid],
+            IGNORE_MULTIPLE
+        ));
         return $outcomeid;
     }
 
@@ -157,13 +175,25 @@ final class dashboard_page_test extends \advanced_testcase {
 
         // Three outcomes complete, one taught only, one untouched.
         foreach ([0, 1, 2] as $index) {
-            $this->map_module($cinstid, $teaching->cmid, $versionids[$index],
-                content_mapping_service::ROLE_TEACHES);
-            $this->map_module($cinstid, $assessing->cmid, $versionids[$index],
-                content_mapping_service::ROLE_ASSESSES);
+            $this->map_module(
+                $cinstid,
+                $teaching->cmid,
+                $versionids[$index],
+                content_mapping_service::ROLE_TEACHES
+            );
+            $this->map_module(
+                $cinstid,
+                $assessing->cmid,
+                $versionids[$index],
+                content_mapping_service::ROLE_ASSESSES
+            );
         }
-        $this->map_module($cinstid, $teaching->cmid, $versionids[3],
-            content_mapping_service::ROLE_TEACHES);
+        $this->map_module(
+            $cinstid,
+            $teaching->cmid,
+            $versionids[3],
+            content_mapping_service::ROLE_TEACHES
+        );
 
         return [
             'programid' => $programid,
@@ -186,21 +216,27 @@ final class dashboard_page_test extends \advanced_testcase {
     }
 
     /**
-     * Coverage gaps are counted with the same rule the coverage page applies.
+     * * Coverage gaps are counted with the same rule the coverage page applies.
      */
     public function test_coverage_gaps_split_no_content_from_never_assessed(): void {
         $this->resetAfterTest(true);
         $this->create_uneven_coverage_fixture();
 
         $summary = dashboard_service::summary();
-        $this->assertSame(1, $summary['nocontent'],
-            'One outcome has no mapping of any role.');
-        $this->assertSame(1, $summary['taughtnotassessed'],
-            'One outcome has teaching content but no assessing mapping.');
+        $this->assertSame(
+            1,
+            $summary['nocontent'],
+            'One outcome has no mapping of any role.'
+        );
+        $this->assertSame(
+            1,
+            $summary['taughtnotassessed'],
+            'One outcome has teaching content but no assessing mapping.'
+        );
     }
 
     /**
-     * Readiness is the share of in-scope outcomes that are taught and assessed.
+     * * Readiness is the share of in-scope outcomes that are taught and assessed.
      */
     public function test_program_readiness_reports_completed_share(): void {
         $this->resetAfterTest(true);
@@ -217,7 +253,7 @@ final class dashboard_page_test extends \advanced_testcase {
     }
 
     /**
-     * An approved assessed question mapping counts as assessment coverage.
+     * * An approved assessed question mapping counts as assessment coverage.
      */
     public function test_question_mapping_counts_towards_readiness(): void {
         global $DB;
@@ -249,18 +285,23 @@ final class dashboard_page_test extends \advanced_testcase {
         question_mapping_service::submit_for_review($questionmappingid);
 
         $matrix = coverage_service::matrix($fixture['courseid']);
-        $this->assertSame(coverage_service::STATUS_FULL,
-            coverage_service::row_status($matrix[$fixture['versionids'][0]]));
+        $this->assertSame(
+            coverage_service::STATUS_FULL,
+            coverage_service::row_status($matrix[$fixture['versionids'][0]])
+        );
         $this->assertCount(1, $matrix[$fixture['versionids'][0]]->questions);
 
         $program = dashboard_service::summary()['programs'][0];
-        $this->assertSame(3, $program['complete'],
-            'Replacing an activity assessment with a question assessment must not reduce readiness.');
+        $this->assertSame(
+            3,
+            $program['complete'],
+            'Replacing an activity assessment with a question assessment must not reduce readiness.'
+        );
         $this->assertSame(60, $program['percent']);
     }
 
     /**
-     * A program with no outcome framework has not started rather than scored zero.
+     * * A program with no outcome framework has not started rather than scored zero.
      */
     public function test_program_without_outcomes_reports_not_started(): void {
         $this->resetAfterTest(true);
@@ -278,19 +319,26 @@ final class dashboard_page_test extends \advanced_testcase {
     }
 
     /**
-     * A course outcome with no approved relation rolls up nowhere.
+     * * A course outcome with no approved relation rolls up nowhere.
      */
     public function test_unaligned_outcomes_ignore_related_ones(): void {
         $this->resetAfterTest(true);
         $fixture = $this->create_uneven_coverage_fixture();
         $programoutcomeid = $this->add_program_outcome($fixture['programid'], 'MBA-PLO');
 
-        $this->assertSame(5, dashboard_service::summary()['unaligned'],
-            'No course outcome is related to a program outcome yet.');
+        $this->assertSame(
+            5,
+            dashboard_service::summary()['unaligned'],
+            'No course outcome is related to a program outcome yet.'
+        );
 
         global $DB;
-        $sourceitemid = (int) $DB->get_field('local_outcomemap_itemver', 'itemid',
-            ['id' => $fixture['versionids'][0]], MUST_EXIST);
+        $sourceitemid = (int) $DB->get_field(
+            'local_outcomemap_itemver',
+            'itemid',
+            ['id' => $fixture['versionids'][0]],
+            MUST_EXIST
+        );
         $relationid = relation_service::create([
             'sourceitemid' => $sourceitemid,
             'targetitemid' => $programoutcomeid,
@@ -302,12 +350,15 @@ final class dashboard_page_test extends \advanced_testcase {
         ]);
         relation_service::submit_for_review($relationid);
 
-        $this->assertSame(4, dashboard_service::summary()['unaligned'],
-            'The related course outcome no longer counts as unaligned.');
+        $this->assertSame(
+            4,
+            dashboard_service::summary()['unaligned'],
+            'The related course outcome no longer counts as unaligned.'
+        );
     }
 
     /**
-     * A catalog course owning no approved outcome is reported by code.
+     * * A catalog course owning no approved outcome is reported by code.
      */
     public function test_catalog_course_without_outcomes_is_reported(): void {
         $this->resetAfterTest(true);
@@ -321,7 +372,7 @@ final class dashboard_page_test extends \advanced_testcase {
     }
 
     /**
-     * The work queue leads with what blocks reporting and links to the fix.
+     * * The work queue leads with what blocks reporting and links to the fix.
      */
     public function test_tasks_are_ordered_by_what_blocks_reporting(): void {
         $this->resetAfterTest(true);
@@ -331,8 +382,11 @@ final class dashboard_page_test extends \advanced_testcase {
         $context = $this->export();
         $this->assertFalse($context['allclear']);
         $tones = array_column($context['tasks'], 'tone');
-        $this->assertSame(['danger', 'danger', 'warn', 'warn'], $tones,
-            'Blocking findings precede findings that only limit measurement.');
+        $this->assertSame(
+            ['danger', 'danger', 'warn', 'warn'],
+            $tones,
+            'Blocking findings precede findings that only limit measurement.'
+        );
 
         $severities = array_column($context['tasks'], 'severity');
         $this->assertSame(get_string('dash_severity_blocks', 'local_outcomemap'), $severities[0]);
@@ -343,7 +397,7 @@ final class dashboard_page_test extends \advanced_testcase {
     }
 
     /**
-     * A resolved site reports an all-clear rather than an empty list.
+     * * A resolved site reports an all-clear rather than an empty list.
      */
     public function test_all_clear_when_nothing_is_outstanding(): void {
         $this->resetAfterTest(true);
@@ -354,31 +408,40 @@ final class dashboard_page_test extends \advanced_testcase {
         $this->assertTrue($context['allclear']);
         $this->assertSame([], $context['tasks']);
         foreach ($context['tiles'] as $tile) {
-            $this->assertSame('clear', $tile['tone'],
-                'Every tile reads as resolved when there is no gap to report.');
+            $this->assertSame(
+                'clear',
+                $tile['tone'],
+                'Every tile reads as resolved when there is no gap to report.'
+            );
             $this->assertSame(0, $tile['value']);
         }
     }
 
     /**
-     * Tiles carry a tone that separates blocking gaps from lesser ones.
+     * * Tiles carry a tone that separates blocking gaps from lesser ones.
      */
     public function test_tiles_tone_by_severity_of_the_gap(): void {
         $this->resetAfterTest(true);
         $this->create_uneven_coverage_fixture();
 
         $tiles = array_column($this->export()['tiles'], null, 'label');
-        $this->assertSame('danger',
-            $tiles[get_string('dash_tile_unaligned', 'local_outcomemap')]['tone']);
-        $this->assertSame('warn',
-            $tiles[get_string('dash_tile_coverage', 'local_outcomemap')]['tone']);
-        $this->assertSame(2,
+        $this->assertSame(
+            'danger',
+            $tiles[get_string('dash_tile_unaligned', 'local_outcomemap')]['tone']
+        );
+        $this->assertSame(
+            'warn',
+            $tiles[get_string('dash_tile_coverage', 'local_outcomemap')]['tone']
+        );
+        $this->assertSame(
+            2,
             $tiles[get_string('dash_tile_coverage', 'local_outcomemap')]['value'],
-            'The coverage tile totals both kinds of gap.');
+            'The coverage tile totals both kinds of gap.'
+        );
     }
 
     /**
-     * Repeated governance events of one kind collapse into a single line.
+     * * Repeated governance events of one kind collapse into a single line.
      */
     public function test_activity_groups_repeated_changes_of_one_kind(): void {
         $this->resetAfterTest(true);
@@ -398,7 +461,7 @@ final class dashboard_page_test extends \advanced_testcase {
     }
 
     /**
-     * Reading the dashboard needs no management capability.
+     * * Reading the dashboard needs no management capability.
      */
     public function test_definition_reader_can_load_the_dashboard(): void {
         $this->resetAfterTest(true);
@@ -406,8 +469,12 @@ final class dashboard_page_test extends \advanced_testcase {
 
         $reader = $this->getDataGenerator()->create_user();
         $roleid = $this->getDataGenerator()->create_role();
-        assign_capability('local/outcomemap:viewdefinitions', CAP_ALLOW, $roleid,
-            \context_system::instance()->id);
+        assign_capability(
+            'local/outcomemap:viewdefinitions',
+            CAP_ALLOW,
+            $roleid,
+            \context_system::instance()->id
+        );
         role_assign($roleid, $reader->id, \context_system::instance()->id);
         $this->setUser($reader);
 

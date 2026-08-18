@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\form;
 
@@ -22,7 +30,7 @@ use local_outcomemap\local\validation_exception;
  */
 final class policy_form extends \moodleform {
     /**
-     * Defines the form elements.
+     * * Defines the form elements.
      */
     public function definition(): void {
         $mform = $this->_form;
@@ -55,17 +63,33 @@ final class policy_form extends \moodleform {
         ];
         $mform->addElement('select', 'scopetype', get_string('policyscope', 'local_outcomemap'), $scopetypes);
         $mform->setDefault('scopetype', policy_service::SCOPE_INSTITUTION);
-        $mform->addElement('autocomplete', 'programid', get_string('program', 'local_outcomemap'),
-            [0 => get_string('choosedots')] + $options['programs']);
+        $mform->addElement(
+            'autocomplete',
+            'programid',
+            get_string('program', 'local_outcomemap'),
+            [0 => get_string('choosedots')] + $options['programs']
+        );
         $mform->hideIf('programid', 'scopetype', 'neq', policy_service::SCOPE_PROGRAM);
-        $mform->addElement('autocomplete', 'catalogcourseid', get_string('catalogcourse', 'local_outcomemap'),
-            [0 => get_string('choosedots')] + $options['catalogcourses']);
+        $mform->addElement(
+            'autocomplete',
+            'catalogcourseid',
+            get_string('catalogcourse', 'local_outcomemap'),
+            [0 => get_string('choosedots')] + $options['catalogcourses']
+        );
         $mform->hideIf('catalogcourseid', 'scopetype', 'neq', policy_service::SCOPE_CATALOG_COURSE);
-        $mform->addElement('autocomplete', 'courseinstanceid', get_string('courseinstance', 'local_outcomemap'),
-            [0 => get_string('choosedots')] + $options['courseinstances']);
+        $mform->addElement(
+            'autocomplete',
+            'courseinstanceid',
+            get_string('courseinstance', 'local_outcomemap'),
+            [0 => get_string('choosedots')] + $options['courseinstances']
+        );
         $mform->hideIf('courseinstanceid', 'scopetype', 'neq', policy_service::SCOPE_COURSE_INSTANCE);
-        $mform->addElement('autocomplete', 'assessmentid', get_string('assessment', 'local_outcomemap'),
-            [0 => get_string('choosedots')] + $options['assessments']);
+        $mform->addElement(
+            'autocomplete',
+            'assessmentid',
+            get_string('assessment', 'local_outcomemap'),
+            [0 => get_string('choosedots')] + $options['assessments']
+        );
         $mform->hideIf('assessmentid', 'scopetype', 'neq', policy_service::SCOPE_ASSESSMENT);
 
         if ($lockedscope) {
@@ -99,8 +123,12 @@ final class policy_form extends \moodleform {
             policy_service::RELEASE_SCHEDULED => get_string('releasemode_scheduled', 'local_outcomemap'),
             policy_service::RELEASE_MANUAL => get_string('releasemode_manual', 'local_outcomemap'),
         ];
-        $mform->addElement('select', 'releasemode', get_string('feedbackreleasemode', 'local_outcomemap'),
-            $releasemodes);
+        $mform->addElement(
+            'select',
+            'releasemode',
+            get_string('feedbackreleasemode', 'local_outcomemap'),
+            $releasemodes
+        );
         $mform->hideIf('releasemode', 'policytype', 'neq', policy_service::TYPE_RELEASE);
         $mform->addElement('date_time_selector', 'releaseat', get_string('feedbackreleaseat', 'local_outcomemap'));
         $mform->hideIf('releaseat', 'policytype', 'neq', policy_service::TYPE_RELEASE);
@@ -125,8 +153,11 @@ final class policy_form extends \moodleform {
                 get_string('retention_privacy_deletion', 'local_outcomemap'),
         ]);
         $mform->hideIf('retentionbasis', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
-        $mform->addElement('text', 'achievementminpercent',
-            get_string('achievementminpercent', 'local_outcomemap'));
+        $mform->addElement(
+            'text',
+            'achievementminpercent',
+            get_string('achievementminpercent', 'local_outcomemap')
+        );
         $mform->setType('achievementminpercent', PARAM_RAW_TRIMMED);
         $mform->addHelpButton('achievementminpercent', 'achievementminpercent', 'local_outcomemap');
         $mform->hideIf('achievementminpercent', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
@@ -134,11 +165,19 @@ final class policy_form extends \moodleform {
         $mform->setType('benchmarkpercent', PARAM_RAW_TRIMMED);
         $mform->addHelpButton('benchmarkpercent', 'benchmarkpercent', 'local_outcomemap');
         $mform->hideIf('benchmarkpercent', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
-        $mform->addElement('static', 'aggregationmethod', get_string('aggregationmethod', 'local_outcomemap'),
-            get_string('aggregation_sum_numerators_denominators', 'local_outcomemap'));
+        $mform->addElement(
+            'static',
+            'aggregationmethod',
+            get_string('aggregationmethod', 'local_outcomemap'),
+            get_string('aggregation_sum_numerators_denominators', 'local_outcomemap')
+        );
         $mform->hideIf('aggregationmethod', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
-        $mform->addElement('static', 'correctionmethod', get_string('correctionmethod', 'local_outcomemap'),
-            get_string('correction_new_snapshot_version', 'local_outcomemap'));
+        $mform->addElement(
+            'static',
+            'correctionmethod',
+            get_string('correctionmethod', 'local_outcomemap'),
+            get_string('correction_new_snapshot_version', 'local_outcomemap')
+        );
         $mform->hideIf('correctionmethod', 'policytype', 'neq', policy_service::TYPE_ACCREDITATION);
 
         $mform->addElement('text', 'minitems', get_string('minimumdistinctitems', 'local_outcomemap'));
@@ -148,11 +187,18 @@ final class policy_form extends \moodleform {
         $mform->addElement('text', 'minweightedpossible', get_string('minimumweightedpossible', 'local_outcomemap'));
         $mform->setType('minweightedpossible', PARAM_RAW_TRIMMED);
         $mform->hideIf('minweightedpossible', 'policytype', 'neq', policy_service::TYPE_CALCULATION);
-        $mform->addElement('advcheckbox', 'requiremanualgrading',
-            get_string('requiremanualgrading', 'local_outcomemap'));
+        $mform->addElement(
+            'advcheckbox',
+            'requiremanualgrading',
+            get_string('requiremanualgrading', 'local_outcomemap')
+        );
         $mform->hideIf('requiremanualgrading', 'policytype', 'neq', policy_service::TYPE_CALCULATION);
-        $mform->addElement('select', 'displayscale', get_string('displayprecision', 'local_outcomemap'),
-            array_combine(range(0, decimal::SCALE), range(0, decimal::SCALE)));
+        $mform->addElement(
+            'select',
+            'displayscale',
+            get_string('displayprecision', 'local_outcomemap'),
+            array_combine(range(0, decimal::SCALE), range(0, decimal::SCALE))
+        );
         $mform->setDefault('displayscale', 1);
         $mform->hideIf('displayscale', 'policytype', 'neq', policy_service::TYPE_CALCULATION);
 
@@ -167,19 +213,31 @@ final class policy_form extends \moodleform {
                 'maxlength' => 255,
                 'size' => 60,
             ]),
-            $mform->createElement('textarea', 'banddescription',
-                get_string('banddescription_number', 'local_outcomemap'), ['rows' => 3, 'cols' => 60]),
+            $mform->createElement(
+                'textarea',
+                'banddescription',
+                get_string('banddescription_number', 'local_outcomemap'),
+                ['rows' => 3, 'cols' => 60]
+            ),
             $mform->createElement('text', 'bandminpercent', get_string('bandminimum_number', 'local_outcomemap')),
-            $mform->createElement('advcheckbox', 'bandmininclusive',
-                get_string('bandminimuminclusive_number', 'local_outcomemap')),
+            $mform->createElement(
+                'advcheckbox',
+                'bandmininclusive',
+                get_string('bandminimuminclusive_number', 'local_outcomemap')
+            ),
             $mform->createElement('text', 'bandmaxpercent', get_string('bandmaximum_number', 'local_outcomemap')),
-            $mform->createElement('advcheckbox', 'bandmaxinclusive',
-                get_string('bandmaximuminclusive_number', 'local_outcomemap')),
+            $mform->createElement(
+                'advcheckbox',
+                'bandmaxinclusive',
+                get_string('bandmaximuminclusive_number', 'local_outcomemap')
+            ),
             $mform->createElement('submit', 'deleteband', get_string('deleteperformanceband', 'local_outcomemap'), [], false),
         ];
         $repeatoptions = [];
-        foreach (['bandheader', 'bandcode', 'bandname', 'banddescription', 'bandminpercent',
-                'bandmininclusive', 'bandmaxpercent', 'bandmaxinclusive', 'deleteband'] as $elementname) {
+        foreach (
+            ['bandheader', 'bandcode', 'bandname', 'banddescription', 'bandminpercent',
+                'bandmininclusive', 'bandmaxpercent', 'bandmaxinclusive', 'deleteband'] as $elementname
+        ) {
             $repeatoptions[$elementname]['hideif'] = ['policytype', 'neq', policy_service::TYPE_CALCULATION];
         }
         $repeatoptions['bandcode']['type'] = PARAM_TEXT;
@@ -240,11 +298,16 @@ final class policy_form extends \moodleform {
         $policytype = $data['policytype'] ?? '';
         if ($policytype === policy_service::TYPE_ACCREDITATION) {
             if (!in_array($scopetype, [policy_service::SCOPE_PROGRAM, policy_service::SCOPE_INSTITUTION], true)) {
-                $errors['scopetype'] = get_string('invalidaccreditationscope', 'local_outcomemap',
-                    (object) ['detail' => $scopetype]);
+                $errors['scopetype'] = get_string(
+                    'invalidaccreditationscope',
+                    'local_outcomemap',
+                    (object) ['detail' => $scopetype]
+                );
             }
-            if (filter_var($data['mincohortsize'] ?? null, FILTER_VALIDATE_INT) === false
-                    || (int) $data['mincohortsize'] < 1) {
+            if (
+                filter_var($data['mincohortsize'] ?? null, FILTER_VALIDATE_INT) === false
+                    || (int) $data['mincohortsize'] < 1
+            ) {
                 $errors['mincohortsize'] = get_string('invalidminimumcohortsize', 'local_outcomemap');
             }
             if (!in_array($data['populationsource'] ?? '', suppression_service::POPULATION_SOURCES, true)) {
@@ -261,8 +324,11 @@ final class policy_form extends \moodleform {
             return $errors;
         }
         if ($scopetype === policy_service::SCOPE_PROGRAM) {
-            $errors['scopetype'] = get_string('invalidfield', 'local_outcomemap',
-                (object) ['field' => 'scopetype', 'detail' => $scopetype]);
+            $errors['scopetype'] = get_string(
+                'invalidfield',
+                'local_outcomemap',
+                (object) ['field' => 'scopetype', 'detail' => $scopetype]
+            );
         }
 
         if ($policytype === policy_service::TYPE_ATTEMPT_SELECTION) {
@@ -310,8 +376,11 @@ final class policy_form extends \moodleform {
             if ($code === '') {
                 $errors['bandcode[' . $index . ']'] = get_string('required');
             } else if (isset($seencodes[$code])) {
-                $errors['bandcode[' . $index . ']'] = get_string('duplicatebandcode', 'local_outcomemap',
-                    (object) ['detail' => $code]);
+                $errors['bandcode[' . $index . ']'] = get_string(
+                    'duplicatebandcode',
+                    'local_outcomemap',
+                    (object) ['detail' => $code]
+                );
             }
             $seencodes[$code] = true;
             if ($name === '') {
@@ -329,19 +398,29 @@ final class policy_form extends \moodleform {
             } catch (validation_exception $e) {
                 $errors['bandmaxpercent[' . $index . ']'] = get_string('invaliddecimal', 'local_outcomemap');
             }
-            if ($canonicalmin !== null && $canonicalmax !== null
-                    && decimal::cmp($canonicalmin, $canonicalmax) > 0) {
+            if (
+                $canonicalmin !== null && $canonicalmax !== null
+                    && decimal::cmp($canonicalmin, $canonicalmax) > 0
+            ) {
                 $errors['bandmaxpercent[' . $index . ']'] = get_string('bandrangeinvalid', 'local_outcomemap');
             }
             if (count($seencodes) > 1 && ($previousmax === null || $canonicalmin === null)) {
-                $errors['bandminpercent[' . $index . ']'] = get_string('bandsoverlap', 'local_outcomemap',
-                    (object) ['detail' => $code]);
+                $errors['bandminpercent[' . $index . ']'] = get_string(
+                    'bandsoverlap',
+                    'local_outcomemap',
+                    (object) ['detail' => $code]
+                );
             } else if ($previousmax !== null && $canonicalmin !== null) {
                 $comparison = decimal::cmp($canonicalmin, $previousmax);
-                if ($comparison < 0 || ($comparison === 0 && $previousmaxinclusive
-                        && !empty($data['bandmininclusive'][$index]))) {
-                    $errors['bandminpercent[' . $index . ']'] = get_string('bandsoverlap', 'local_outcomemap',
-                        (object) ['detail' => $code]);
+                if (
+                    $comparison < 0 || ($comparison === 0 && $previousmaxinclusive
+                        && !empty($data['bandmininclusive'][$index]))
+                ) {
+                    $errors['bandminpercent[' . $index . ']'] = get_string(
+                        'bandsoverlap',
+                        'local_outcomemap',
+                        (object) ['detail' => $code]
+                    );
                 }
             }
             $previousmax = $canonicalmax;

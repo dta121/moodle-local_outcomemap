@@ -35,13 +35,16 @@ use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
 /**
- * Provides preview-and-commit CSV imports for foundation entities.
+ * * Provides preview-and-commit CSV imports for foundation entities.
  */
 final class foundation_import_service extends base_service {
-    /** Maximum accepted upload size before CSV parsing. */
+    /**
+     * Maximum accepted upload size before CSV parsing.
+     */
     public const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
-
-    /** Maximum number of data rows accepted in one atomic import. */
+    /**
+     * Maximum number of data rows accepted in one atomic import.
+     */
     public const MAX_IMPORT_ROWS = 10000;
 
     /**
@@ -116,7 +119,9 @@ final class foundation_import_service extends base_service {
      */
     public const HIERARCHY = 'hierarchy';
 
-    /** @var string Relationship the Maps to column expresses. */
+    /**
+     * @var string Relationship the Maps to column expresses.
+     */
     private const HIERARCHY_RELATION = relation_service::ALIGNS_TO;
 
     /**
@@ -144,7 +149,9 @@ final class foundation_import_service extends base_service {
         self::HIERARCHY => ['Type', 'Framework', 'Code', 'Statement', 'Maps to', 'Version', 'Status'],
     ];
 
-    /** @var string[] Previous Programs header retained for backward-compatible imports. */
+    /**
+     * @var string[] Previous Programs header retained for backward-compatible imports.
+     */
     private const LEGACY_PROGRAM_HEADERS = ['uuid', 'code', 'name', 'description', 'externalid'];
 
     /**
@@ -156,6 +163,7 @@ final class foundation_import_service extends base_service {
      * @return int Import identifier.
      */
     public static function load(string $content, string $encoding, string $delimiter): int {
+
         global $CFG;
         require_once($CFG->libdir . '/csvlib.class.php');
         self::require_system('local/outcomemap:manageframeworks');
@@ -397,8 +405,12 @@ final class foundation_import_service extends base_service {
                     'statement' => trim($row['Statement']),
                     'effectivefrom' => $now,
                 ]);
-                $versionid = (int) $DB->get_field('local_outcomemap_itemver', 'id',
-                    ['itemid' => $itemid], MUST_EXIST);
+                $versionid = (int) $DB->get_field(
+                    'local_outcomemap_itemver',
+                    'id',
+                    ['itemid' => $itemid],
+                    MUST_EXIST
+                );
                 // An alignment may only join approved outcomes, so each new
                 // outcome is carried through the submission boundary. Where the
                 // site requires independent approval it stops there, and the
@@ -415,8 +427,10 @@ final class foundation_import_service extends base_service {
                 }
                 foreach (self::hierarchy_targets($row['Maps to']) as $targetlabel) {
                     $target = $items[$targetlabel] ?? null;
-                    if ($target === null || $target->status !== workflow::APPROVED
-                            || (int) $target->id === (int) $source->id) {
+                    if (
+                        $target === null || $target->status !== workflow::APPROVED
+                            || (int) $target->id === (int) $source->id
+                    ) {
                         continue;
                     }
                     if (self::alignment_exists((int) $source->id, (int) $target->id)) {
@@ -505,13 +519,16 @@ final class foundation_import_service extends base_service {
      */
     private static function alignment_exists(int $sourceid, int $targetid): bool {
         global $DB;
-        return $DB->record_exists_select('local_outcomemap_rel',
-            'sourceitemid = :source AND targetitemid = :target AND type = :type AND status <> :retired', [
+        return $DB->record_exists_select(
+            'local_outcomemap_rel',
+            'sourceitemid = :source AND targetitemid = :target AND type = :type AND status <> :retired',
+            [
                 'source' => $sourceid,
                 'target' => $targetid,
                 'type' => self::HIERARCHY_RELATION,
                 'retired' => workflow::RETIRED,
-            ]);
+            ]
+        );
     }
 
     /**

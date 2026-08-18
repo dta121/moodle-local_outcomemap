@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\reportbuilder\local;
 
@@ -72,7 +80,7 @@ abstract class secured_datasource extends datasource {
     }
 
     /**
-     * Perform the source-specific setup after access has been checked.
+     * * Perform the source-specific setup after access has been checked.
      */
     abstract protected function initialise_source(): void;
 
@@ -95,7 +103,7 @@ abstract class secured_datasource extends datasource {
     }
 
     /**
-     * Enforce access before any query definition is exposed.
+     * * Enforce access before any query definition is exposed.
      */
     final protected function initialise(): void {
         if (!static::can_view()) {

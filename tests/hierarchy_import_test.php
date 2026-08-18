@@ -30,7 +30,9 @@ use local_outcomemap\local\workflow;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class hierarchy_import_test extends \advanced_testcase {
-    /** @var string The header the hierarchy export writes. */
+    /**
+     * @var string The header the hierarchy export writes.
+     */
     private const HEADER = 'Type,Framework,Code,Statement,"Maps to",Version,Status';
 
     /**
@@ -60,9 +62,13 @@ final class hierarchy_import_test extends \advanced_testcase {
         try {
             $preview = foundation_import_service::preview($importid, foundation_import_service::HIERARCHY);
             $this->assertTrue($preview->valid, 'Preview reported: ' . json_encode(
-                array_map(static fn($r) => $r->errors, $preview->rows)));
-            return foundation_import_service::commit($importid,
-                foundation_import_service::HIERARCHY, $preview->hash);
+                array_map(static fn($r) => $r->errors, $preview->rows)
+            ));
+            return foundation_import_service::commit(
+                $importid,
+                foundation_import_service::HIERARCHY,
+                $preview->hash
+            );
         } finally {
             foundation_import_service::cleanup($importid);
         }
@@ -84,7 +90,7 @@ final class hierarchy_import_test extends \advanced_testcase {
     }
 
     /**
-     * The exported hierarchy can be read back in, outcomes and alignments alike.
+     * * The exported hierarchy can be read back in, outcomes and alignments alike.
      */
     public function test_exported_hierarchy_imports_with_its_alignments(): void {
         global $DB;
@@ -109,16 +115,20 @@ final class hierarchy_import_test extends \advanced_testcase {
         $plo1 = $DB->get_record('local_outcomemap_item', ['code' => 'PLO1'], '*', MUST_EXIST);
         $this->assertSame(workflow::APPROVED, $plo1->status);
         $statement = $DB->get_field_sql(
-            'SELECT statement FROM {local_outcomemap_itemver} WHERE itemid = ?', [$plo1->id]);
+            'SELECT statement FROM {local_outcomemap_itemver} WHERE itemid = ?',
+            [$plo1->id]
+        );
         $this->assertSame('Analyse business problems', $statement);
 
         // Three alignments: 0a to PLO1, and 0b to both program outcomes.
-        $this->assertSame(3, $DB->count_records('local_outcomemap_rel',
-            ['type' => relation_service::ALIGNS_TO]));
+        $this->assertSame(3, $DB->count_records(
+            'local_outcomemap_rel',
+            ['type' => relation_service::ALIGNS_TO]
+        ));
     }
 
     /**
-     * Re-importing the same file changes nothing.
+     * * Re-importing the same file changes nothing.
      */
     public function test_reimport_is_idempotent(): void {
         global $DB;
@@ -137,14 +147,20 @@ final class hierarchy_import_test extends \advanced_testcase {
         $relations = $DB->count_records('local_outcomemap_rel');
 
         $this->import($csv);
-        $this->assertSame($items, $DB->count_records('local_outcomemap_item'),
-            'A second import of the same file must not duplicate outcomes.');
-        $this->assertSame($relations, $DB->count_records('local_outcomemap_rel'),
-            'A second import of the same file must not duplicate alignments.');
+        $this->assertSame(
+            $items,
+            $DB->count_records('local_outcomemap_item'),
+            'A second import of the same file must not duplicate outcomes.'
+        );
+        $this->assertSame(
+            $relations,
+            $DB->count_records('local_outcomemap_rel'),
+            'A second import of the same file must not duplicate alignments.'
+        );
     }
 
     /**
-     * A framework the file names but the site does not hold is reported, by name.
+     * * A framework the file names but the site does not hold is reported, by name.
      */
     public function test_missing_framework_is_named_in_the_preview(): void {
         $this->resetAfterTest(true);
@@ -160,7 +176,7 @@ final class hierarchy_import_test extends \advanced_testcase {
     }
 
     /**
-     * An alignment naming an outcome that exists nowhere is reported, not dropped.
+     * * An alignment naming an outcome that exists nowhere is reported, not dropped.
      */
     public function test_unresolvable_alignment_is_reported(): void {
         $this->resetAfterTest(true);
@@ -177,7 +193,7 @@ final class hierarchy_import_test extends \advanced_testcase {
     }
 
     /**
-     * The same outcome twice in one file is a mistake, and is named as one.
+     * * The same outcome twice in one file is a mistake, and is named as one.
      */
     public function test_duplicate_outcome_in_one_file_is_reported(): void {
         $this->resetAfterTest(true);
@@ -195,7 +211,7 @@ final class hierarchy_import_test extends \advanced_testcase {
     }
 
     /**
-     * The header error names the columns it wanted, rather than a placeholder.
+     * * The header error names the columns it wanted, rather than a placeholder.
      */
     public function test_header_error_names_the_expected_columns(): void {
         $this->resetAfterTest(true);
@@ -207,8 +223,11 @@ final class hierarchy_import_test extends \advanced_testcase {
             $this->fail('A file with the wrong header must be refused.');
         } catch (validation_exception $e) {
             $this->assertSame('importheader', $e->errorcode);
-            $this->assertStringContainsString('Maps to', $e->getMessage(),
-                'The message must name the expected columns, not print a raw placeholder.');
+            $this->assertStringContainsString(
+                'Maps to',
+                $e->getMessage(),
+                'The message must name the expected columns, not print a raw placeholder.'
+            );
             $this->assertStringNotContainsString('{$a}', $e->getMessage());
         } finally {
             foundation_import_service::cleanup($importid);

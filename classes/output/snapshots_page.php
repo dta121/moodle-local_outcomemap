@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Accreditation snapshot list page model.
@@ -31,15 +39,21 @@ use templatable;
  * versions of the same snapshot are grouped under one heading, newest first.
  */
 final class snapshots_page implements renderable, templatable {
-    /** @var \stdClass[] Snapshot versions with program metadata and row counts. */
+    /**
+     * @var \stdClass[] Snapshot versions with program metadata and row counts.
+     */
     private array $snapshots;
 
-    /** Load every snapshot version once. */
+    /**
+     * Load every snapshot version once.
+     */
     public function __construct() {
         $this->snapshots = snapshot_service::list_all();
     }
 
-    /** Export the template context. */
+    /**
+     * Export the template context.
+     */
     public function export_for_template(renderer_base $output): array {
         $baseurl = new moodle_url('/local/outcomemap/snapshots.php');
         $groups = [];
@@ -70,8 +84,11 @@ final class snapshots_page implements renderable, templatable {
             }
             $groups[$uuid]['rows'][] = [
                 'version' => (int) $snapshot->version,
-                'versionlabel' => get_string('snapreport_shortversion', 'local_outcomemap',
-                    (int) $snapshot->version),
+                'versionlabel' => get_string(
+                    'snapreport_shortversion',
+                    'local_outcomemap',
+                    (int) $snapshot->version
+                ),
                 'iscorrection' => $snapshot->previousid !== null,
                 'statuslabel' => get_string('snapshotstatus_' . $snapshot->status, 'local_outcomemap'),
                 'statusclass' => $isfrozen ? 'approved' : 'draft',
@@ -81,8 +98,11 @@ final class snapshots_page implements renderable, templatable {
                     'local_outcomemap',
                     number_format((int) $snapshot->populationcount)
                 ),
-                'itemcount' => get_string('snapshots_rowcount', 'local_outcomemap',
-                    number_format((int) $snapshot->itemcount)),
+                'itemcount' => get_string(
+                    'snapshots_rowcount',
+                    'local_outcomemap',
+                    number_format((int) $snapshot->itemcount)
+                ),
                 'created' => userdate((int) $snapshot->timecreated),
                 'viewurl' => (new moodle_url($baseurl, [
                     'action' => 'view',

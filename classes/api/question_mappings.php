@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\api;
 
@@ -25,12 +33,30 @@ use local_outcomemap\local\validation_exception;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class question_mappings {
+    /**
+     * Public API version.
+     */
     public const API_VERSION = '1.1';
 
+    /**
+     * Bulk operation identifier.
+     */
     public const BULK_INSPECT = 'inspect';
+    /**
+     * Bulk operation identifier.
+     */
     public const BULK_ADD = 'add';
+    /**
+     * Bulk operation identifier.
+     */
     public const BULK_CHANGE_ROLE = 'change_role';
+    /**
+     * Bulk operation identifier.
+     */
     public const BULK_DELETE_DRAFTS = 'delete_drafts';
+    /**
+     * Bulk operation identifier.
+     */
     public const BULK_SUBMIT_DRAFTS = 'submit_drafts';
 
     /**
@@ -99,7 +125,9 @@ final class question_mappings {
         );
     }
 
-    /** Normalize the public request so preview and commit hash identical data. */
+    /**
+     * Normalize the public request so preview and commit hash identical data.
+     */
     private static function normalize_bulk_operation(array $operation): array {
         $action = (string) ($operation['action'] ?? '');
         $normalized = ['action' => $action];
@@ -114,11 +142,13 @@ final class question_mappings {
                 ? (int) $operation['effectivefrom']
                 : time();
         }
-        if (in_array($action, [
+        if (
+            in_array($action, [
             self::BULK_CHANGE_ROLE,
             self::BULK_DELETE_DRAFTS,
             self::BULK_SUBMIT_DRAFTS,
-        ], true)) {
+            ], true)
+        ) {
             $mappingids = array_values(array_unique(array_filter(array_map(
                 'intval',
                 (array) ($operation['mappingids'] ?? [])

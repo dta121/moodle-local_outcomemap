@@ -16,8 +16,6 @@
 
 namespace local_outcomemap\tests;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Bridges core API differences across the Moodle versions this plugin supports.
  *

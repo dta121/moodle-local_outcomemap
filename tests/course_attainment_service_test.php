@@ -117,8 +117,11 @@ final class course_attainment_service_test extends \advanced_testcase {
     private function create_course_outcome(int $catalogid, string $fwcode, string $code): int {
         global $DB;
         $now = time();
-        $fwid = (int) ($DB->get_field('local_outcomemap_fw', 'id',
-            ['code' => $fwcode, 'ownertype' => 'catalog_course', 'ownerid' => $catalogid]) ?: 0);
+        $fwid = (int) ($DB->get_field(
+            'local_outcomemap_fw',
+            'id',
+            ['code' => $fwcode, 'ownertype' => 'catalog_course', 'ownerid' => $catalogid]
+        ) ?: 0);
         if (!$fwid) {
             $fwid = (int) $DB->insert_record('local_outcomemap_fw', (object) [
                 'uuid' => uuid::generate(), 'code' => $fwcode, 'name' => $fwcode, 'description' => null,
@@ -153,12 +156,19 @@ final class course_attainment_service_test extends \advanced_testcase {
      * @param string $scopetype Result scope.
      * @return int The new result ID.
      */
-    private function store_result(int $cinstid, int $userid, int $itemverid, int $policyid,
-            ?string $percentage, ?int $bandid, string $state = 'calculated',
-            string $scopetype = calculation_service::SCOPE_COURSE): int {
+    private function store_result(
+        int $cinstid,
+        int $userid,
+        int $itemverid,
+        int $policyid,
+        ?string $percentage,
+        ?int $bandid,
+        string $state = 'calculated',
+        string $scopetype = calculation_service::SCOPE_COURSE
+    ): int {
         global $DB;
         $now = time();
-        // resultkey is unique with version, so each fixture row needs its own.
+        // The resultkey is unique with version, so each fixture row needs its own.
         return (int) $DB->insert_record('local_outcomemap_result', (object) [
             'uuid' => uuid::generate(), 'resultkey' => hash('sha256', uuid::generate()),
             'version' => 1, 'cinstid' => $cinstid, 'userid' => $userid,
@@ -187,10 +197,18 @@ final class course_attainment_service_test extends \advanced_testcase {
         $DB->insert_record('local_outcomemap_rel', (object) [
             'relationuuid' => uuid::generate(),
             'version' => 1,
-            'sourceitemid' => $DB->get_field('local_outcomemap_itemver', 'itemid',
-                ['id' => $sourceverid], MUST_EXIST),
-            'targetitemid' => $DB->get_field('local_outcomemap_itemver', 'itemid',
-                ['id' => $targetverid], MUST_EXIST),
+            'sourceitemid' => $DB->get_field(
+                'local_outcomemap_itemver',
+                'itemid',
+                ['id' => $sourceverid],
+                MUST_EXIST
+            ),
+            'targetitemid' => $DB->get_field(
+                'local_outcomemap_itemver',
+                'itemid',
+                ['id' => $targetverid],
+                MUST_EXIST
+            ),
             'type' => $type,
             'weight' => null,
             'status' => workflow::APPROVED,
@@ -206,15 +224,18 @@ final class course_attainment_service_test extends \advanced_testcase {
     }
 
     /**
-     * Attainment counts learners per band and averages only calculated results.
+     * * Attainment counts learners per band and averages only calculated results.
      */
     public function test_summary_counts_bands_and_averages(): void {
         global $DB;
         $this->resetAfterTest(true);
         $this->setAdminUser();
         [$course, $cinstid, $policyid, $lowband] = $this->create_fixture();
-        $metband = (int) $DB->get_field('local_outcomemap_band', 'id',
-            ['policyid' => $policyid, 'code' => 'MET']);
+        $metband = (int) $DB->get_field(
+            'local_outcomemap_band',
+            'id',
+            ['policyid' => $policyid, 'code' => 'MET']
+        );
         $itemverid = $this->create_outcome('TESTFW', 'U1');
 
         $u1 = $this->getDataGenerator()->create_user();
@@ -241,7 +262,7 @@ final class course_attainment_service_test extends \advanced_testcase {
     }
 
     /**
-     * Superseded results and other scopes never reach the cohort view.
+     * * Superseded results and other scopes never reach the cohort view.
      */
     public function test_summary_ignores_superseded_and_other_scopes(): void {
         global $DB;
@@ -254,8 +275,16 @@ final class course_attainment_service_test extends \advanced_testcase {
         // A quiz-attempt row, which is out of scope for a course figure, and an
         // older course-scope row superseded by it. supersededby is a foreign key,
         // so it has to point at a row that exists.
-        $attemptrow = $this->store_result($cinstid, $user->id, $itemverid, $policyid,
-            '10.0000000000', $lowband, 'calculated', 'quiz_attempt');
+        $attemptrow = $this->store_result(
+            $cinstid,
+            $user->id,
+            $itemverid,
+            $policyid,
+            '10.0000000000',
+            $lowband,
+            'calculated',
+            'quiz_attempt'
+        );
         $old = $this->store_result($cinstid, $user->id, $itemverid, $policyid, '50.0000000000', $lowband);
         $DB->set_field('local_outcomemap_result', 'supersededby', $attemptrow, ['id' => $old]);
 
@@ -292,15 +321,18 @@ final class course_attainment_service_test extends \advanced_testcase {
     }
 
     /**
-     * Measured rows are classified by the lowest band's share of the cohort.
+     * * Measured rows are classified by the lowest band's share of the cohort.
      */
     public function test_summary_states_split_attention_from_attained(): void {
         global $DB;
         $this->resetAfterTest(true);
         $this->setAdminUser();
         [$course, $cinstid, $policyid, $lowband] = $this->create_fixture();
-        $metband = (int) $DB->get_field('local_outcomemap_band', 'id',
-            ['policyid' => $policyid, 'code' => 'MET']);
+        $metband = (int) $DB->get_field(
+            'local_outcomemap_band',
+            'id',
+            ['policyid' => $policyid, 'code' => 'MET']
+        );
         $strong = $this->create_outcome('TESTFW3', 'S1');
         $weak = $this->create_outcome('TESTFW3', 'W1');
 
@@ -317,18 +349,27 @@ final class course_attainment_service_test extends \advanced_testcase {
             array_column($summary->rows, 'state')
         );
         $this->assertSame(course_attainment_service::STATE_ATTAINED, $states['S1']);
-        $this->assertSame(course_attainment_service::STATE_ATTENTION, $states['W1'],
-            'Half the assessed learners in the lowest band must flag the outcome.');
+        $this->assertSame(
+            course_attainment_service::STATE_ATTENTION,
+            $states['W1'],
+            'Half the assessed learners in the lowest band must flag the outcome.'
+        );
         $this->assertSame(2, $summary->measured);
         $this->assertSame(1, $summary->counts[course_attainment_service::STATE_ATTENTION]);
-        $this->assertEqualsWithDelta(78.75, $summary->average, 0.001,
-            'The headline average is the mean of the per-outcome cohort averages.');
+        $this->assertEqualsWithDelta(
+            78.75,
+            $summary->average,
+            0.001,
+            'The headline average is the mean of the per-outcome cohort averages.'
+        );
 
         // Nobody sits in the bottom band of the strong outcome, so there is no
         // lowest-band row to report and its share is zero rather than everything.
         $rows = array_combine(array_column($summary->rows, 'code'), $summary->rows);
-        $this->assertNull($rows['S1']->lowestband,
-            'An outcome every learner passed has no result in the policy\'s bottom band.');
+        $this->assertNull(
+            $rows['S1']->lowestband,
+            'An outcome every learner passed has no result in the policy\'s bottom band.'
+        );
         $this->assertSame(0.0, $rows['S1']->lowshare);
         $this->assertSame('NOTMET', $rows['W1']->lowestband->code);
         $this->assertEqualsWithDelta(0.5, $rows['W1']->lowshare, 0.001);
@@ -394,7 +435,7 @@ final class course_attainment_service_test extends \advanced_testcase {
     }
 
     /**
-     * A course with no approved confirmed instance reports that, not an empty table.
+     * * A course with no approved confirmed instance reports that, not an empty table.
      */
     public function test_summary_without_a_course_instance(): void {
         $this->resetAfterTest(true);
@@ -406,7 +447,7 @@ final class course_attainment_service_test extends \advanced_testcase {
     }
 
     /**
-     * Viewing other learners' attainment requires the all-results capability.
+     * * Viewing other learners' attainment requires the all-results capability.
      */
     public function test_summary_requires_viewallresults(): void {
         $this->resetAfterTest(true);

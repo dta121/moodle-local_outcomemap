@@ -33,6 +33,7 @@ use local_outcomemap\local\service\question_browser_service;
 use local_outcomemap\local\service\question_mapping_service;
 use local_outcomemap\local\workflow;
 
+// phpcs:ignore moodle.Files.MoodleInternal.MoodleInternalGlobalState -- Portable bootstrap path.
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     // Windows junctions resolve __DIR__ to the repository target rather than
@@ -291,7 +292,7 @@ echo html_writer::div(
 );
 echo html_writer::tag('h2', get_string('questionmapping_heading', 'local_outcomemap'), ['class' => 'lom-cov-title']);
 
-// ---------------------------------------------------------------- quiz picker.
+// Quiz picker.
 if (!$cmid) {
     $quizzes = question_browser_service::quizzes($courseid);
     echo html_writer::div(get_string('questionmapping_subtitle', 'local_outcomemap'), 'lom-cov-subtitle');
@@ -351,7 +352,7 @@ if (!$cmid) {
     exit;
 }
 
-// -------------------------------------------------------------- quiz detail.
+// Quiz detail.
 $detail = question_browser_service::quiz_detail($courseid, $cmid);
 
 $backurl = new moodle_url($url);
@@ -383,6 +384,9 @@ echo html_writer::div(
 // Outcomes are scoped to what this course may claim — institution frameworks,
 // its catalog course, and its programs — matching the question bank's own bulk
 // action rather than the site-wide list the content mapping page offers.
+/**
+ * Pagination size.
+ */
 const LOM_OUTCOME_PAGE_SIZE = 200;
 $outcomes = $canmap ? outcome_search::search($context, $outcomequery, null, LOM_OUTCOME_PAGE_SIZE) : [];
 // Report the true total rather than paginating: selections are checkboxes in one
@@ -402,7 +406,7 @@ echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'cf', 'value
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'expand', 'value' => $expandall ? 1 : 0]);
 echo html_writer::start_div('lom-map-layout');
 
-// ---------------------------------------------------------------- left panel.
+// Left panel.
 echo html_writer::start_div('lom-map-content');
 $chips = '';
 foreach (['all', 'unmapped', 'assessed'] as $key) {
@@ -575,7 +579,7 @@ if ($rendered === 0) {
 }
 echo html_writer::end_div();
 
-// --------------------------------------------------------------- right panel.
+// Right panel.
 echo html_writer::start_div('lom-map-apply');
 if (!$canapply) {
     echo html_writer::div(

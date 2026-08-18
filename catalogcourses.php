@@ -1,5 +1,26 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 use local_outcomemap\form\catalog_course_form;
 use local_outcomemap\form\program_course_form;
@@ -9,6 +30,7 @@ use local_outcomemap\local\service\program_course_service;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
+// phpcs:ignore moodle.Files.MoodleInternal.MoodleInternalGlobalState -- Portable bootstrap path.
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     // Windows junctions resolve __DIR__ to the repository target rather than
@@ -44,7 +66,10 @@ if ($action === 'removemembership' && $id) {
            FROM {local_outcomemap_progcourse} pc
            JOIN {local_outcomemap_program} p ON p.id = pc.programid
            JOIN {local_outcomemap_course} c ON c.id = pc.courseid
-          WHERE pc.id = :id', ['id' => $id], MUST_EXIST);
+          WHERE pc.id = :id',
+        ['id' => $id],
+        MUST_EXIST
+    );
     $back = new moodle_url('/local/outcomemap/curriculum.php', ['program' => (int) $membership->programid]);
     if (optional_param('confirm', 0, PARAM_BOOL)) {
         program_course_service::remove($id);
@@ -84,9 +109,13 @@ if ($action === 'movemembership' && $id) {
     if ($data = $form->get_data()) {
         try {
             program_course_service::move($id, (int) $data->targetprogramid, $data->reason ?: null);
-            redirect(new moodle_url('/local/outcomemap/curriculum.php',
-                ['program' => (int) $data->targetprogramid]),
-                get_string('membershipmoved', 'local_outcomemap'));
+            redirect(
+                new moodle_url(
+                    '/local/outcomemap/curriculum.php',
+                    ['program' => (int) $data->targetprogramid]
+                ),
+                get_string('membershipmoved', 'local_outcomemap')
+            );
         } catch (validation_exception $e) {
             \core\notification::error($e->getMessage());
         }

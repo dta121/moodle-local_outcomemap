@@ -30,28 +30,51 @@ use local_outcomemap\local\workflow as internal_workflow;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class workflow {
+    /**
+     * Public API version.
+     */
     public const API_VERSION = '1.0';
+    /**
+     * Value for draft.
+     */
     public const DRAFT = 'draft';
+    /**
+     * Value for needs review.
+     */
     public const NEEDS_REVIEW = 'needs_review';
+    /**
+     * Value for approved.
+     */
     public const APPROVED = 'approved';
+    /**
+     * Value for retired.
+     */
     public const RETIRED = 'retired';
 
-    /** Whether a separate approver is required. */
+    /**
+     * Whether a separate approver is required.
+     */
     public static function requires_independent_approval(): bool {
         return internal_workflow::requires_independent_approval();
     }
 
-    /** Return the configured label for the explicit submission boundary. */
+    /**
+     * Return the configured label for the explicit submission boundary.
+     */
     public static function submit_action_label(): string {
         return internal_workflow::submit_action_label();
     }
 
-    /** Return the configured success message for that boundary. */
+    /**
+     * Return the configured success message for that boundary.
+     */
     public static function submission_success_message(): string {
         return internal_workflow::submission_success_message();
     }
 
-    /** Return a mode-aware label for a canonical workflow state. */
+    /**
+     * Return a mode-aware label for a canonical workflow state.
+     */
     public static function status_label(string $status): string {
         return internal_workflow::status_label($status);
     }

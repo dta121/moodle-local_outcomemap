@@ -27,6 +27,7 @@ use local_outcomemap\local\highlight;
 use local_outcomemap\local\service\attainment_report_service as report_service;
 use local_outcomemap\local\service\course_attainment_service;
 
+// phpcs:ignore moodle.Files.MoodleInternal.MoodleInternalGlobalState -- Portable bootstrap path.
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     // Windows junctions resolve __DIR__ to the repository target rather than
@@ -85,12 +86,7 @@ if (!isset($viewoptions[$view])) {
 
 $url = new moodle_url('/local/outcomemap/attainment.php', ['courseid' => $courseid]);
 $state = ['view' => $view, 'cohort' => $cohort, 'lens' => $lens, 'q' => $search];
-/**
- * Build a link back to this page with some of the view state replaced.
- *
- * @param array $overrides Parameters to change.
- * @return moodle_url
- */
+// Build a link back to this page with some of the view state replaced.
 $link = static function (array $overrides = []) use ($url, $state, $traceid): moodle_url {
     $params = $state;
     if ($traceid) {
@@ -113,32 +109,26 @@ $PAGE->set_pagelayout('incourse');
 $PAGE->set_title(get_string('attainment_heading', 'local_outcomemap'));
 $PAGE->set_heading($course->fullname);
 
-// ---------------------------------------------------------------------------
 // States in which there is nothing to report, each naming its own cause.
-// ---------------------------------------------------------------------------
 
 if (!$report->hasinstance) {
     echo $OUTPUT->header();
-    echo $OUTPUT->notification(get_string('nocourseinstance', 'local_outcomemap'),
-        \core\output\notification::NOTIFY_WARNING);
+    echo $OUTPUT->notification(
+        get_string('nocourseinstance', 'local_outcomemap'),
+        \core\output\notification::NOTIFY_WARNING
+    );
     echo $OUTPUT->footer();
     exit;
 }
 
-/**
- * Explain an empty report by naming the gate the evidence pipeline stopped at.
- *
- * The two conditions readers assume — mappings approved, assessments completed —
- * are often both satisfied while a third, the mapping's effective window, is
- * what actually fails.
- *
- * @param int $courseid Moodle course ID.
- * @return string
- */
+// Explain an empty report by naming the gate the evidence pipeline stopped at.
 $diagnosis = static function (int $courseid): string {
     $why = course_attainment_service::diagnose($courseid);
-    return html_writer::tag('h3', get_string('attainment_whyheading', 'local_outcomemap'),
-            ['class' => 'lom-oa-why-title'])
+    return html_writer::tag(
+        'h3',
+        get_string('attainment_whyheading', 'local_outcomemap'),
+        ['class' => 'lom-oa-why-title']
+    )
         . html_writer::div(
             get_string('attainment_why_' . $why->cause, 'local_outcomemap', (object) [
                 'mappings' => $why->mappings,
@@ -157,29 +147,24 @@ $diagnosis = static function (int $courseid): string {
 
 if (!$report->tiers) {
     echo $OUTPUT->header();
-    echo $OUTPUT->notification(get_string('attainment_noresults', 'local_outcomemap'),
-        \core\output\notification::NOTIFY_INFO);
+    echo $OUTPUT->notification(
+        get_string('attainment_noresults', 'local_outcomemap'),
+        \core\output\notification::NOTIFY_INFO
+    );
     echo $diagnosis($courseid);
     echo $OUTPUT->footer();
     exit;
 }
 
-// ---------------------------------------------------------------------------
 // Shared vocabulary. Every figure on the page passes through these, so a
 // withheld result cannot leak into one view because a caller forgot to check.
-// ---------------------------------------------------------------------------
 
 $policy = $report->policy;
 $target = $policy->target;
 $needle = core_text::strtolower($search);
 $nodes = $report->nodes;
 
-/**
- * Name one level, preferring the frameworks that make it up.
- *
- * @param stdClass $tier Level.
- * @return string
- */
+// Name one level, preferring the frameworks that make it up.
 $tiername = static function (stdClass $tier): string {
     if (count($tier->frameworks) === 1) {
         return (string) reset($tier->frameworks);
@@ -191,39 +176,19 @@ $tiername = static function (stdClass $tier): string {
     return implode(' · ', $owners);
 };
 
-/**
- * Short code line for a level, used where the full name will not fit.
- *
- * @param stdClass $tier Level.
- * @return string
- */
+// Short code line for a level, used where the full name will not fit.
 $tiercodes = static function (stdClass $tier): string {
     return implode(' · ', array_keys($tier->frameworks));
 };
 
-/**
- * Whether a figure must be withheld rather than shown with a caveat.
- *
- * @param stdClass $stats Tally.
- * @return bool
- */
+// Whether a figure must be withheld rather than shown with a caveat.
 $withheld = static fn(stdClass $stats): bool => report_service::is_withheld($report, $stats);
 
-/**
- * Whether a figure rests on fewer learners than the governing floor allows.
- *
- * @param stdClass $stats Tally.
- * @return bool
- */
+// Whether a figure rests on fewer learners than the governing floor allows.
 $isthin = static fn(stdClass $stats): bool => $policy->floor !== null
     && $stats->graded > 0 && $stats->graded < $policy->floor;
 
-/**
- * The attainment rate as it may be shown under the current lens.
- *
- * @param stdClass $stats Tally.
- * @return string
- */
+// The attainment rate as it may be shown under the current lens.
 $metlabel = static function (stdClass $stats) use ($withheld): string {
     if ($withheld($stats)) {
         return get_string('oa_withheld', 'local_outcomemap');
@@ -231,12 +196,7 @@ $metlabel = static function (stdClass $stats) use ($withheld): string {
     return $stats->metpct === null ? '—' : number_format($stats->metpct, 1) . '%';
 };
 
-/**
- * Colour class for an attainment rate against the governing benchmark.
- *
- * @param stdClass $stats Tally.
- * @return string
- */
+// Colour class for an attainment rate against the governing benchmark.
 $metclass = static function (stdClass $stats) use ($target, $withheld): string {
     if ($withheld($stats) || $stats->metpct === null) {
         return 'lom-oa-quiet';
@@ -247,16 +207,7 @@ $metclass = static function (stdClass $stats) use ($target, $withheld): string {
     return $stats->metpct + 0.05 >= $target ? 'lom-oa-ok' : 'lom-oa-below';
 };
 
-/**
- * Render the band spread as a single stacked bar.
- *
- * Bands run strongest first, so the share that reached the standard grows from
- * the left and the benchmark marker reads as a finishing line.
- *
- * @param stdClass $stats Tally.
- * @param string $extra Extra class on the bar.
- * @return string
- */
+// Render the band spread as a single stacked bar.
 $bar = static function (stdClass $stats, string $extra = '') use ($target, $withheld, $policy): string {
     $segments = '';
     if ($withheld($stats)) {
@@ -273,7 +224,7 @@ $bar = static function (stdClass $stats, string $extra = '') use ($target, $with
         // Strongest band first, so the share that reached the standard grows from
         // the left and the benchmark marker reads as a finishing line.
         foreach (array_reverse($stats->bands) as $band) {
-            // html_writer escapes attribute values, so the raw name goes in here.
+            // The html_writer API escapes attribute values, so the raw name goes in here.
             $segments .= html_writer::span('', 'lom-oa-seg lom-oa-seg-' . $band->rank, [
                 'style' => 'width:' . round($band->count / $stats->graded * 100, 2) . '%',
                 'title' => $band->name . ': ' . $band->count,
@@ -287,16 +238,14 @@ $bar = static function (stdClass $stats, string $extra = '') use ($target, $with
     // Every rendering of the bar sits beside a band line or legend that states
     // the same shares in words, so the graphic is decorative to assistive
     // technology; the titles remain as sighted hover detail.
-    return html_writer::span($segments . $marker, trim('lom-oa-bar ' . $extra),
-        ['aria-hidden' => 'true']);
+    return html_writer::span(
+        $segments . $marker,
+        trim('lom-oa-bar ' . $extra),
+        ['aria-hidden' => 'true']
+    );
 };
 
-/**
- * One-line description of where the learners landed.
- *
- * @param stdClass $stats Tally.
- * @return string
- */
+// One-line description of where the learners landed.
 $bandline = static function (stdClass $stats) use ($withheld, $policy): string {
     if ($withheld($stats)) {
         return get_string('oa_bandwithheld', 'local_outcomemap', (object) [
@@ -313,15 +262,7 @@ $bandline = static function (stdClass $stats) use ($withheld, $policy): string {
     return $parts ? implode(' · ', $parts) : get_string('oa_nobands', 'local_outcomemap');
 };
 
-/**
- * Diagnostic tags for one outcome.
- *
- * These are internal judgements rather than evidence, so the accreditation lens
- * keeps only the two that describe the evidence itself.
- *
- * @param stdClass $node Outcome node.
- * @return string
- */
+// Diagnostic tags for one outcome.
 $flags = static function (stdClass $node) use ($report, $cohort, $target, $policy, $isthin, $withheld): string {
     $stats = $node->stats[$cohort];
     $tags = [];
@@ -337,19 +278,25 @@ $flags = static function (stdClass $node) use ($report, $cohort, $target, $polic
     if ($withheld($stats)) {
         $tags[] = [get_string('oa_flag_withheld', 'local_outcomemap'), 'lom-oa-tag-outline'];
     }
-    if ($target !== null && $stats->metpct !== null && !$withheld($stats)
-            && $stats->metpct + 0.05 < $target) {
+    if (
+        $target !== null && $stats->metpct !== null && !$withheld($stats)
+            && $stats->metpct + 0.05 < $target
+    ) {
         $tags[] = [get_string('oa_flag_belowtarget', 'local_outcomemap'), 'lom-oa-tag-outline'];
     }
     if ($report->lens !== report_service::LENS_ACCREDITATION && $report->cohortrule !== null) {
         $done = $node->stats[report_service::COHORT_COMPLETED];
         $notdone = $node->stats[report_service::COHORT_NOTCOMPLETED];
-        if ($target !== null && $done->metpct !== null && $done->judged > 0
-                && $done->metpct + 0.05 < $target) {
+        if (
+            $target !== null && $done->metpct !== null && $done->judged > 0
+                && $done->metpct + 0.05 < $target
+        ) {
             $tags[] = [get_string('oa_flag_completersshort', 'local_outcomemap'), 'lom-oa-tag-accent'];
         }
-        if ($done->judged > 0 && $notdone->judged > 0
-                && abs($done->metpct - $notdone->metpct) < report_service::ALIKE_SPREAD) {
+        if (
+            $done->judged > 0 && $notdone->judged > 0
+                && abs($done->metpct - $notdone->metpct) < report_service::ALIKE_SPREAD
+        ) {
             $tags[] = [get_string('oa_flag_alike', 'local_outcomemap'), 'lom-oa-tag-accent2'];
         }
     }
@@ -360,21 +307,11 @@ $flags = static function (stdClass $node) use ($report, $cohort, $target, $polic
     return $html ? html_writer::div($html, 'lom-oa-tags') : '';
 };
 
-/**
- * The statement to show, highlighted when it answers the search.
- *
- * @param stdClass $node Outcome node.
- * @return string
- */
+// The statement to show, highlighted when it answers the search.
 $statement = static fn(stdClass $node): string
     => highlight::mark($node->shortstatement ?: $node->statement, $needle);
 
-/**
- * Whether one outcome answers the current search.
- *
- * @param stdClass $node Outcome node.
- * @return bool
- */
+// Whether one outcome answers the current search.
 $matches = static function (stdClass $node) use ($needle): bool {
     if ($needle === '') {
         return true;
@@ -385,12 +322,7 @@ $matches = static function (stdClass $node) use ($needle): bool {
     return core_text::strpos($haystack, $needle) !== false;
 };
 
-/**
- * Whether an outcome or anything underneath it answers the search.
- *
- * @param int $itemid Outcome item ID.
- * @return bool
- */
+// Whether an outcome or anything underneath it answers the search.
 $branchmatches = static function (int $itemid) use (&$branchmatches, $nodes, $matches): bool {
     if (!isset($nodes[$itemid])) {
         return false;
@@ -406,9 +338,7 @@ $branchmatches = static function (int $itemid) use (&$branchmatches, $nodes, $ma
     return false;
 };
 
-// ---------------------------------------------------------------------------
 // CSV export: the same figures, per level, with the cohort split kept intact.
-// ---------------------------------------------------------------------------
 
 if ($action === 'export') {
     require_once($CFG->libdir . '/csvlib.class.php');
@@ -472,9 +402,7 @@ if ($action === 'export') {
 echo $OUTPUT->header();
 echo html_writer::start_div('lom-oa');
 
-// ---------------------------------------------------------------------------
 // Masthead: who this is about, and the one question it answers.
-// ---------------------------------------------------------------------------
 
 $kicker = array_filter([
     $report->program ? s($report->program->code) . ' ' . format_string($report->program->name) : '',
@@ -484,11 +412,17 @@ $kicker = array_filter([
 $headline = $report->headline;
 $toplabel = $tiername($report->toptier);
 
-$actions = html_writer::link($link(['action' => 'export']),
-    get_string('coverage_exportcsv', 'local_outcomemap'), ['class' => 'lom-oa-btn']);
+$actions = html_writer::link(
+    $link(['action' => 'export']),
+    get_string('coverage_exportcsv', 'local_outcomemap'),
+    ['class' => 'lom-oa-btn']
+);
 if ($report->toptier->measurable) {
-    $actions .= html_writer::link($link(['sheets' => 1]),
-        get_string('oa_opensheets', 'local_outcomemap'), ['class' => 'lom-oa-btn lom-oa-btn-primary']);
+    $actions .= html_writer::link(
+        $link(['sheets' => 1]),
+        get_string('oa_opensheets', 'local_outcomemap'),
+        ['class' => 'lom-oa-btn lom-oa-btn-primary']
+    );
 }
 
 echo html_writer::div(
@@ -506,9 +440,7 @@ echo html_writer::div(
     'lom-oa-masthead'
 );
 
-// ---------------------------------------------------------------------------
 // The headline strip: the figure, what stands behind it, and how to read it.
-// ---------------------------------------------------------------------------
 
 $evidence = '';
 foreach ($report->tiers as $tier) {
@@ -560,8 +492,10 @@ echo html_writer::div(
                 $withheld($headline) ? get_string('oa_withheld', 'local_outcomemap')
                     : ($headline->metpct === null ? '—' : number_format($headline->metpct, 1) . '%'),
                 'lom-oa-figure'
-            ) . html_writer::span(get_string('oa_headlineof', 'local_outcomemap', s($toplabel)),
-                'lom-oa-figure-of'),
+            ) . html_writer::span(
+                get_string('oa_headlineof', 'local_outcomemap', s($toplabel)),
+                'lom-oa-figure-of'
+            ),
             'lom-oa-figure-line'
         )
         . html_writer::tag('p', $headline->judged
@@ -569,8 +503,11 @@ echo html_writer::div(
                 'met' => $headline->met,
                 'judged' => $headline->judged,
                 'top' => s($toplabel),
-                'cohort' => get_string('oa_cohortphrase_' . $cohort, 'local_outcomemap',
-                    $report->cohortcounts[$cohort]),
+                'cohort' => get_string(
+                    'oa_cohortphrase_' . $cohort,
+                    'local_outcomemap',
+                    $report->cohortcounts[$cohort]
+                ),
                 'mean' => report_service::pct($headline->mean),
             ])
             : get_string('oa_headlinenone', 'local_outcomemap', s($toplabel))),
@@ -612,29 +549,21 @@ if ($policy->unreadable) {
 // than stopping — but it names the gate the evidence pipeline stopped at first.
 if (!$report->learners) {
     echo html_writer::div(
-        $OUTPUT->notification(get_string('attainment_noresults', 'local_outcomemap'),
-            \core\output\notification::NOTIFY_INFO)
+        $OUTPUT->notification(
+            get_string('attainment_noresults', 'local_outcomemap'),
+            \core\output\notification::NOTIFY_INFO
+        )
         . $diagnosis($courseid),
         'lom-oa-diagnosis'
     );
 }
 
-// ---------------------------------------------------------------------------
 // Controls. Every one of them is a link, so the whole report is a URL and any
 // reading of it can be sent to somebody else exactly as it was read.
-// ---------------------------------------------------------------------------
 
-/**
- * Render one segmented control.
- *
- * @param string $label Control label.
- * @param array $options Value to text.
- * @param string $selected Selected value.
- * @param string $param Query parameter the control sets.
- * @return string
- */
+// Render one segmented control.
 $segmented = static function (string $label, array $options, string $selected, string $param)
-        use ($link): string {
+ use ($link): string {
     $buttons = '';
     foreach ($options as $value => $text) {
         $buttons .= html_writer::link(
@@ -660,8 +589,12 @@ if ($report->cohortrule !== null) {
     foreach (report_service::COHORTS as $key) {
         $cohortoptions[$key] = get_string('oa_cohort_' . $key, 'local_outcomemap');
     }
-    $controls .= $segmented(get_string('oa_controlcohort', 'local_outcomemap'),
-        $cohortoptions, $cohort, 'cohort');
+    $controls .= $segmented(
+        get_string('oa_controlcohort', 'local_outcomemap'),
+        $cohortoptions,
+        $cohort,
+        'cohort'
+    );
 }
 
 $lensoptions = [];
@@ -679,8 +612,12 @@ $searchform = html_writer::start_tag('form', [
     . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'view', 'value' => $view])
     . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'cohort', 'value' => $cohort])
     . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'lens', 'value' => $lens])
-    . html_writer::label(get_string('attainment_searchlabel', 'local_outcomemap'), 'lom-oa-q',
-        false, ['class' => 'sr-only visually-hidden'])
+    . html_writer::label(
+        get_string('attainment_searchlabel', 'local_outcomemap'),
+        'lom-oa-q',
+        false,
+        ['class' => 'sr-only visually-hidden']
+    )
     . html_writer::empty_tag('input', [
         'type' => 'search',
         'id' => 'lom-oa-q',
@@ -690,13 +627,18 @@ $searchform = html_writer::start_tag('form', [
         'class' => 'lom-oa-input',
     ])
     . html_writer::tag('button', get_string('search'), ['type' => 'submit', 'class' => 'lom-oa-btn'])
-    . ($search !== '' ? html_writer::link($link(['q' => null]),
-        get_string('coverage_clearsearch', 'local_outcomemap'), ['class' => 'lom-oa-btn-ghost']) : '')
+    . ($search !== '' ? html_writer::link(
+        $link(['q' => null]),
+        get_string('coverage_clearsearch', 'local_outcomemap'),
+        ['class' => 'lom-oa-btn-ghost']
+    ) : '')
     . html_writer::end_tag('form');
 
 echo html_writer::div(
-    html_writer::div($controls . html_writer::div($searchform, 'lom-oa-control lom-oa-control-end'),
-        'lom-oa-controlbar-inner'),
+    html_writer::div(
+        $controls . html_writer::div($searchform, 'lom-oa-control lom-oa-control-end'),
+        'lom-oa-controlbar-inner'
+    ),
     'lom-oa-controlbar lom-oa-noprint'
 );
 
@@ -711,8 +653,11 @@ if ($report->cohortrule !== null) {
                 'total' => $report->cohortcounts[report_service::COHORT_ALL],
                 'rule' => $report->cohortrule === 'completion'
                     ? get_string('oa_rule_completion', 'local_outcomemap')
-                    : get_string('oa_rule_gradepass', 'local_outcomemap',
-                        report_service::pct($report->cohortrulevalue)),
+                    : get_string(
+                        'oa_rule_gradepass',
+                        'local_outcomemap',
+                        report_service::pct($report->cohortrulevalue)
+                    ),
             ]),
             'lom-oa-note-body'
         ),
@@ -720,20 +665,24 @@ if ($report->cohortrule !== null) {
     );
 }
 $notes .= html_writer::div(
-    html_writer::span(get_string('oa_lensnotelabel', 'local_outcomemap',
-        get_string('oa_lens_' . $lens, 'local_outcomemap')), 'lom-oa-note-kicker')
-    . html_writer::span(get_string('oa_lensnote_' . $lens, 'local_outcomemap',
-        (object) ['floor' => $policy->floor, 'top' => s($toplabel)]), 'lom-oa-note-body'),
+    html_writer::span(get_string(
+        'oa_lensnotelabel',
+        'local_outcomemap',
+        get_string('oa_lens_' . $lens, 'local_outcomemap')
+    ), 'lom-oa-note-kicker')
+    . html_writer::span(get_string(
+        'oa_lensnote_' . $lens,
+        'local_outcomemap',
+        (object) ['floor' => $policy->floor, 'top' => s($toplabel)]
+    ), 'lom-oa-note-body'),
     'lom-oa-note lom-oa-note-quiet'
 );
 echo html_writer::div($notes, 'lom-oa-notes');
 
 echo html_writer::start_div('lom-oa-body');
 
-// ---------------------------------------------------------------------------
 // Summary: the top level as cards, what to look at first, and where the
 // evidence runs out.
-// ---------------------------------------------------------------------------
 
 if ($view === report_service::VIEW_SUMMARY) {
     echo html_writer::div(
@@ -805,9 +754,11 @@ if ($view === report_service::VIEW_SUMMARY) {
             . $flags($node)
             . html_writer::div(
                 html_writer::span($rests, 'lom-oa-card-feeds')
-                . html_writer::link($link(['detail' => $node->itemid]),
+                . html_writer::link(
+                    $link(['detail' => $node->itemid]),
                     get_string('oa_tracelink', 'local_outcomemap'),
-                    ['class' => 'lom-oa-btn-ghost lom-oa-noprint']),
+                    ['class' => 'lom-oa-btn-ghost lom-oa-noprint']
+                ),
                 'lom-oa-card-foot'
             ),
             'lom-oa-card'
@@ -823,20 +774,31 @@ if ($view === report_service::VIEW_SUMMARY) {
         $priorities .= html_writer::div(
             html_writer::span(s($finding->code), 'lom-oa-pri-code')
             . html_writer::div(
-                html_writer::div(get_string('oapri_' . $finding->key . '_headline',
-                    'local_outcomemap', $finding->args), 'lom-oa-pri-headline')
-                . html_writer::div(get_string('oapri_' . $finding->key . '_why',
-                    'local_outcomemap', $finding->args), 'lom-oa-pri-why')
-                . html_writer::div(get_string('oapri_' . $finding->key . '_action_' . $lens,
-                    'local_outcomemap', $finding->args), 'lom-oa-pri-action'),
+                html_writer::div(get_string(
+                    'oapri_' . $finding->key . '_headline',
+                    'local_outcomemap',
+                    $finding->args
+                ), 'lom-oa-pri-headline')
+                . html_writer::div(get_string(
+                    'oapri_' . $finding->key . '_why',
+                    'local_outcomemap',
+                    $finding->args
+                ), 'lom-oa-pri-why')
+                . html_writer::div(get_string(
+                    'oapri_' . $finding->key . '_action_' . $lens,
+                    'local_outcomemap',
+                    $finding->args
+                ), 'lom-oa-pri-action'),
                 'lom-oa-pri-text'
             ),
             'lom-oa-pri'
         );
     }
     if ($priorities === '') {
-        $priorities = html_writer::div(get_string('oa_nopriorities', 'local_outcomemap'),
-            'lom-oa-empty');
+        $priorities = html_writer::div(
+            get_string('oa_nopriorities', 'local_outcomemap'),
+            'lom-oa-empty'
+        );
     }
 
     // Where the evidence runs out.
@@ -858,9 +820,13 @@ if ($view === report_service::VIEW_SUMMARY) {
                 'missing' => count($hollow->missing),
                 'total' => count($hollow->node->children),
             ]), 'lom-oa-gap-body')
-            . html_writer::div(get_string('oa_gapaffected', 'local_outcomemap', implode(', ',
-                array_map(static fn(int $id): string => s($nodes[$id]->code),
-                    array_slice($hollow->missing, 0, 20)))), 'lom-oa-gap-codes'),
+            . html_writer::div(get_string('oa_gapaffected', 'local_outcomemap', implode(
+                ', ',
+                array_map(
+                    static fn(int $id): string => s($nodes[$id]->code),
+                    array_slice($hollow->missing, 0, 20)
+                )
+            )), 'lom-oa-gap-codes'),
             'lom-oa-gap'
         );
     }
@@ -875,9 +841,13 @@ if ($view === report_service::VIEW_SUMMARY) {
                 'lom-oa-gap-head'
             )
             . html_writer::div(get_string('oa_gapunassessedbody', 'local_outcomemap'), 'lom-oa-gap-body')
-            . html_writer::div(get_string('oa_gapaffected', 'local_outcomemap', implode(', ',
-                array_map(static fn(stdClass $n): string => s($n->code),
-                    array_slice($report->gaps->unassessed, 0, 20)))), 'lom-oa-gap-codes'),
+            . html_writer::div(get_string('oa_gapaffected', 'local_outcomemap', implode(
+                ', ',
+                array_map(
+                    static fn(stdClass $n): string => s($n->code),
+                    array_slice($report->gaps->unassessed, 0, 20)
+                )
+            )), 'lom-oa-gap-codes'),
             'lom-oa-gap'
         );
     }
@@ -888,12 +858,18 @@ if ($view === report_service::VIEW_SUMMARY) {
                 . html_writer::span(count($report->gaps->thin), 'lom-oa-gap-count'),
                 'lom-oa-gap-head'
             )
-            . html_writer::div(get_string('oa_gapthinbody', 'local_outcomemap', $policy->floor),
-                'lom-oa-gap-body')
-            . html_writer::div(get_string('oa_gapaffected', 'local_outcomemap', implode(', ',
-                array_map(static fn(stdClass $n): string
+            . html_writer::div(
+                get_string('oa_gapthinbody', 'local_outcomemap', $policy->floor),
+                'lom-oa-gap-body'
+            )
+            . html_writer::div(get_string('oa_gapaffected', 'local_outcomemap', implode(
+                ', ',
+                array_map(
+                    static fn(stdClass $n): string
                     => s($n->code) . ' (n=' . $n->stats[$cohort]->graded . ')',
-                    array_slice($report->gaps->thin, 0, 20)))), 'lom-oa-gap-codes'),
+                    array_slice($report->gaps->thin, 0, 20)
+                )
+            )), 'lom-oa-gap-codes'),
             'lom-oa-gap'
         );
     }
@@ -903,16 +879,25 @@ if ($view === report_service::VIEW_SUMMARY) {
 
     echo html_writer::div(
         html_writer::div(
-            html_writer::tag('h3', get_string('oa_priorities_' . $lens, 'local_outcomemap'),
-                ['class' => 'lom-oa-h3'])
-            . html_writer::tag('p', get_string('oa_prioritiessub_' . $lens, 'local_outcomemap'),
-                ['class' => 'lom-oa-sectionnote'])
+            html_writer::tag(
+                'h3',
+                get_string('oa_priorities_' . $lens, 'local_outcomemap'),
+                ['class' => 'lom-oa-h3']
+            )
+            . html_writer::tag(
+                'p',
+                get_string('oa_prioritiessub_' . $lens, 'local_outcomemap'),
+                ['class' => 'lom-oa-sectionnote']
+            )
             . $priorities,
             'lom-oa-half'
         )
         . html_writer::div(
-            html_writer::tag('h3', get_string('oa_gapsheading', 'local_outcomemap'),
-                ['class' => 'lom-oa-h3'])
+            html_writer::tag(
+                'h3',
+                get_string('oa_gapsheading', 'local_outcomemap'),
+                ['class' => 'lom-oa-h3']
+            )
             . html_writer::tag('p', get_string('oa_gapsintro', 'local_outcomemap', (object) [
                 'unassessed' => count($report->gaps->unassessed),
                 'total' => $report->gaps->leaves,
@@ -925,9 +910,7 @@ if ($view === report_service::VIEW_SUMMARY) {
     );
 }
 
-// ---------------------------------------------------------------------------
 // Ledger: every outcome, one level inside another.
-// ---------------------------------------------------------------------------
 
 if ($view === report_service::VIEW_LEDGER) {
     // The program lens acts on claims, not on unit coursework, so the deepest
@@ -936,16 +919,25 @@ if ($view === report_service::VIEW_LEDGER) {
         ? max(0, count($report->tiers) - 2)
         : PHP_INT_MAX;
 
-    /**
-     * Render one ledger row and everything underneath it.
-     *
-     * @param int $itemid Outcome item ID.
-     * @param array $seen Item IDs already on this path.
-     * @return string
-     */
-    $ledgerrow = static function (int $itemid, array $seen = []) use (
-        &$ledgerrow, $nodes, $cohort, $maxtier, $branchmatches, $statement,
-        $metlabel, $metclass, $bar, $bandline, $flags, $link, $report, $tiercodes
+    // Render one ledger row and everything underneath it.
+    $ledgerrow = static function (
+        int $itemid,
+        array $seen = []
+    ) use (
+        &$ledgerrow,
+        $nodes,
+        $cohort,
+        $maxtier,
+        $branchmatches,
+        $statement,
+        $metlabel,
+        $metclass,
+        $bar,
+        $bandline,
+        $flags,
+        $link,
+        $report,
+        $tiercodes
     ): string {
         if (isset($seen[$itemid]) || !isset($nodes[$itemid]) || !$branchmatches($itemid)) {
             return '';
@@ -974,8 +966,10 @@ if ($view === report_service::VIEW_LEDGER) {
                 'lom-oa-lcell lom-oa-lcell-text'
             )
             . html_writer::div(
-                html_writer::div($stats->graded . ' / ' . $report->cohortcounts[$cohort],
-                    'lom-oa-ln' . ($stats->graded ? '' : ' lom-oa-quiet'))
+                html_writer::div(
+                    $stats->graded . ' / ' . $report->cohortcounts[$cohort],
+                    'lom-oa-ln' . ($stats->graded ? '' : ' lom-oa-quiet')
+                )
                 . html_writer::div($stats->graded
                     ? get_string('oa_graded', 'local_outcomemap')
                     : get_string('oa_notmeasuredshort', 'local_outcomemap'), 'lom-oa-lnnote'),
@@ -987,9 +981,11 @@ if ($view === report_service::VIEW_LEDGER) {
             )
             . html_writer::div(
                 html_writer::span($metlabel($stats), 'lom-oa-lmet ' . $metclass($stats))
-                . html_writer::link($link(['detail' => $node->itemid]),
+                . html_writer::link(
+                    $link(['detail' => $node->itemid]),
                     get_string('oa_detail', 'local_outcomemap'),
-                    ['class' => 'lom-oa-btn-ghost lom-oa-noprint']),
+                    ['class' => 'lom-oa-btn-ghost lom-oa-noprint']
+                ),
                 'lom-oa-lcell lom-oa-lcell-met'
             ),
             'lom-oa-lrow'
@@ -1015,23 +1011,29 @@ if ($view === report_service::VIEW_LEDGER) {
     );
     echo html_writer::div(
         html_writer::span(get_string('oa_col_outcome', 'local_outcomemap'), 'lom-oa-lcell lom-oa-lcell-code')
-        . html_writer::span(get_string('oa_col_statement', 'local_outcomemap'),
-            'lom-oa-lcell lom-oa-lcell-text')
-        . html_writer::span(get_string('oa_col_graded', 'local_outcomemap'),
-            'lom-oa-lcell lom-oa-lcell-n')
-        . html_writer::span(get_string('oa_col_landed', 'local_outcomemap'),
-            'lom-oa-lcell lom-oa-lcell-bar')
-        . html_writer::span(get_string('oa_col_reached', 'local_outcomemap'),
-            'lom-oa-lcell lom-oa-lcell-met'),
+        . html_writer::span(
+            get_string('oa_col_statement', 'local_outcomemap'),
+            'lom-oa-lcell lom-oa-lcell-text'
+        )
+        . html_writer::span(
+            get_string('oa_col_graded', 'local_outcomemap'),
+            'lom-oa-lcell lom-oa-lcell-n'
+        )
+        . html_writer::span(
+            get_string('oa_col_landed', 'local_outcomemap'),
+            'lom-oa-lcell lom-oa-lcell-bar'
+        )
+        . html_writer::span(
+            get_string('oa_col_reached', 'local_outcomemap'),
+            'lom-oa-lcell lom-oa-lcell-met'
+        ),
         'lom-oa-lrow lom-oa-lhead'
     );
     echo $rows !== '' ? html_writer::div($rows, 'lom-oa-ledger')
         : html_writer::div(get_string('coverage_nomatches', 'local_outcomemap'), 'lom-oa-empty');
 }
 
-// ---------------------------------------------------------------------------
 // Alignment map: one column per level, with a trace through the graph.
-// ---------------------------------------------------------------------------
 
 if ($view === report_service::VIEW_MAP) {
     $lit = null;
@@ -1115,21 +1117,24 @@ if ($view === report_service::VIEW_MAP) {
                 ]), 'lom-oa-mapcol-sub'),
                 'lom-oa-mapcol-head'
             ) . html_writer::div($items ?: html_writer::div(
-                get_string('coverage_nomatches', 'local_outcomemap'), 'lom-oa-empty'), 'lom-oa-mapcol-body'),
+                get_string('coverage_nomatches', 'local_outcomemap'),
+                'lom-oa-empty'
+            ), 'lom-oa-mapcol-body'),
             'lom-oa-mapcol'
         );
     }
     echo html_writer::div($columns, 'lom-oa-map');
 }
 
-// ---------------------------------------------------------------------------
 // Program rollup: the same outcome across every course that claims it.
-// ---------------------------------------------------------------------------
 
 if ($view === report_service::VIEW_ROLLUP) {
     echo html_writer::div(
-        html_writer::tag('h2', get_string('oa_rollupheading', 'local_outcomemap',
-            s($report->program->name)), ['class' => 'lom-oa-h2'])
+        html_writer::tag('h2', get_string(
+            'oa_rollupheading',
+            'local_outcomemap',
+            s($report->program->name)
+        ), ['class' => 'lom-oa-h2'])
         . html_writer::span(get_string('oa_rollupsub', 'local_outcomemap'), 'lom-oa-sectionnote'),
         'lom-oa-sectionhead'
     );
@@ -1139,47 +1144,65 @@ if ($view === report_service::VIEW_ROLLUP) {
             'class' => 'lom-oa-center', 'title' => $outcome->statement,
         ]);
     }
-    $head .= html_writer::tag('th', get_string('attainment_learners', 'local_outcomemap'),
-        ['class' => 'lom-oa-right']);
+    $head .= html_writer::tag(
+        'th',
+        get_string('attainment_learners', 'local_outcomemap'),
+        ['class' => 'lom-oa-right']
+    );
 
     $body = '';
     foreach ($report->rollup->courses as $rollupcourse) {
-        $cells = html_writer::tag('td',
+        $cells = html_writer::tag(
+            'td',
             html_writer::div(s($rollupcourse->code . ' ' . $rollupcourse->name), 'lom-oa-rollup-name')
-            . html_writer::div($rollupcourse->current
+            . html_writer::div(
+                $rollupcourse->current
                 ? get_string('oa_rollupthis', 'local_outcomemap')
-                : get_string('oa_rollupother', 'local_outcomemap'), 'lom-oa-rollup-note'));
+                : get_string('oa_rollupother', 'local_outcomemap'),
+                'lom-oa-rollup-note'
+            )
+        );
         foreach ($report->rollup->outcomes as $outcome) {
             $stats = $rollupcourse->cells[$outcome->itemid];
-            $cells .= html_writer::tag('td',
-                html_writer::div($stats->graded ? $metlabel($stats) : '—',
-                    'lom-oa-rollup-met ' . $metclass($stats))
+            $cells .= html_writer::tag(
+                'td',
+                html_writer::div(
+                    $stats->graded ? $metlabel($stats) : '—',
+                    'lom-oa-rollup-met ' . $metclass($stats)
+                )
                 . html_writer::div($stats->graded
                     ? get_string('oa_rollupn', 'local_outcomemap', $stats->graded)
                     : get_string('oa_rollupnotclaimed', 'local_outcomemap'), 'lom-oa-rollup-n'),
-                ['class' => 'lom-oa-center']);
+                ['class' => 'lom-oa-center']
+            );
         }
         $cells .= html_writer::tag('td', $rollupcourse->learners, ['class' => 'lom-oa-right']);
-        $body .= html_writer::tag('tr', $cells,
-            ['class' => $rollupcourse->current ? 'lom-oa-rollup-current' : '']);
+        $body .= html_writer::tag(
+            'tr',
+            $cells,
+            ['class' => $rollupcourse->current ? 'lom-oa-rollup-current' : '']
+        );
     }
-    echo html_writer::tag('table',
+    echo html_writer::tag(
+        'table',
         html_writer::tag('thead', html_writer::tag('tr', $head))
         . html_writer::tag('tbody', $body),
-        ['class' => 'lom-oa-table']);
+        ['class' => 'lom-oa-table']
+    );
     echo html_writer::div(
         html_writer::div(get_string('oa_rollupnote1', 'local_outcomemap'), 'lom-oa-note')
-        . html_writer::div(get_string('oa_rollupnote2', 'local_outcomemap',
-            implode(', ', array_map('s', $report->periodcodes))), 'lom-oa-note'),
+        . html_writer::div(get_string(
+            'oa_rollupnote2',
+            'local_outcomemap',
+            implode(', ', array_map('s', $report->periodcodes))
+        ), 'lom-oa-note'),
         'lom-oa-notes'
     );
 }
 
 echo html_writer::end_div();
 
-// ---------------------------------------------------------------------------
 // Provenance and definitions: what these numbers are, in the reader's language.
-// ---------------------------------------------------------------------------
 
 $definitions = [
     ['oa_def_reached', $policy->available
@@ -1191,8 +1214,11 @@ $definitions = [
 if ($report->cohortrule !== null) {
     $definitions[] = ['oa_def_completed', $report->cohortrule === 'completion'
         ? get_string('oa_def_completed_completion', 'local_outcomemap')
-        : get_string('oa_def_completed_gradepass', 'local_outcomemap',
-            report_service::pct($report->cohortrulevalue))];
+        : get_string(
+            'oa_def_completed_gradepass',
+            'local_outcomemap',
+            report_service::pct($report->cohortrulevalue)
+        )];
 }
 if ($policy->floor !== null) {
     $definitions[] = ['oa_def_thin',
@@ -1216,7 +1242,9 @@ echo html_writer::div(
         . html_writer::tag('p', get_string('oa_provenancebody', 'local_outcomemap', (object) [
             'periods' => implode(', ', array_map('s', $report->periodcodes)),
         ]), ['class' => 'lom-oa-fineprint'])
-        . html_writer::tag('p', $policy->available
+        . html_writer::tag(
+            'p',
+            $policy->available
             ? get_string('oa_provenancepolicy', 'local_outcomemap', (object) [
                 'name' => s($policy->name),
                 'version' => $policy->version,
@@ -1232,7 +1260,8 @@ echo html_writer::div(
                         : s($policy->problemfield),
                 ])
                 : get_string('oa_provenancenopolicy', 'local_outcomemap')),
-            ['class' => 'lom-oa-fineprint']),
+            ['class' => 'lom-oa-fineprint']
+        ),
         'lom-oa-half'
     )
     . html_writer::div(
@@ -1243,9 +1272,7 @@ echo html_writer::div(
     'lom-oa-columns lom-oa-footmatter'
 );
 
-// ---------------------------------------------------------------------------
 // Detail panel: one outcome, all three cohorts, and what it rests on.
-// ---------------------------------------------------------------------------
 
 if ($detailid && isset($nodes[$detailid])) {
     $node = $nodes[$detailid];
@@ -1306,9 +1333,11 @@ if ($detailid && isset($nodes[$detailid])) {
     foreach ($node->sources as $source) {
         $sources .= html_writer::div(
             html_writer::span(s($source->name), 'lom-oa-src-name')
-            . html_writer::span($source->detail
+            . html_writer::span(
+                $source->detail
                 ? get_string('oa_srcquestions', 'local_outcomemap', $source->detail) : '',
-                'lom-oa-src-n'),
+                'lom-oa-src-n'
+            ),
             'lom-oa-src'
         );
     }
@@ -1365,12 +1394,18 @@ if ($detailid && isset($nodes[$detailid])) {
                         'code' => s($node->frameworkcode . '.' . $node->code),
                         'version' => $node->version,
                     ]), 'lom-oa-kicker')
-                    . html_writer::tag('h3', s($node->shortstatement ?: $node->statement),
-                        ['class' => 'lom-oa-h3']),
+                    . html_writer::tag(
+                        'h3',
+                        s($node->shortstatement ?: $node->statement),
+                        ['class' => 'lom-oa-h3']
+                    ),
                     'lom-oa-drawer-titles'
                 )
-                . html_writer::link($link(['detail' => null]),
-                    get_string('closebuttontitle'), ['class' => 'lom-oa-btn']),
+                . html_writer::link(
+                    $link(['detail' => null]),
+                    get_string('closebuttontitle'),
+                    ['class' => 'lom-oa-btn']
+                ),
                 'lom-oa-drawer-head'
             )
             . html_writer::tag('p', s($node->statement), ['class' => 'lom-oa-drawer-statement'])
@@ -1396,9 +1431,7 @@ if ($detailid && isset($nodes[$detailid])) {
     );
 }
 
-// ---------------------------------------------------------------------------
 // Summary sheets: one page per top-level outcome, the shape a reviewer asks for.
-// ---------------------------------------------------------------------------
 
 if ($sheets) {
     // The sheets are the submission itself rather than a view of it, so the
@@ -1464,10 +1497,16 @@ if ($sheets) {
             : ($all->metpct === null
                 ? get_string('oa_sheet_none', 'local_outcomemap')
                 : ($target !== null && $all->metpct + 0.05 >= $target
-                    ? get_string('oa_sheet_meets', 'local_outcomemap',
-                        implode(', ', array_map('s', $report->periodcodes)))
-                    : get_string('oa_sheet_below', 'local_outcomemap',
-                        implode(', ', array_map('s', $report->periodcodes)))));
+                    ? get_string(
+                        'oa_sheet_meets',
+                        'local_outcomemap',
+                        implode(', ', array_map('s', $report->periodcodes))
+                    )
+                    : get_string(
+                        'oa_sheet_below',
+                        'local_outcomemap',
+                        implode(', ', array_map('s', $report->periodcodes))
+                    )));
         $evidencenames = $subtreesources($node->itemid);
 
         $pages .= html_writer::div(
@@ -1485,14 +1524,20 @@ if ($sheets) {
                 ]), 'lom-oa-sheet-meta'),
                 'lom-oa-sheet-head'
             )
-            . html_writer::tag('h3', s($node->shortstatement ?: $node->statement),
-                ['class' => 'lom-oa-h3'])
+            . html_writer::tag(
+                'h3',
+                s($node->shortstatement ?: $node->statement),
+                ['class' => 'lom-oa-h3']
+            )
             . html_writer::tag('p', s($node->statement), ['class' => 'lom-oa-sheet-statement'])
             . html_writer::div($statcells, 'lom-oa-sheet-stats')
             . html_writer::tag('p', $narrative, ['class' => 'lom-oa-sheet-narrative'])
             . html_writer::div($evidencenames
-                ? get_string('oa_sheetevidence', 'local_outcomemap',
-                    s(implode('; ', array_slice($evidencenames, 0, 12))))
+                ? get_string(
+                    'oa_sheetevidence',
+                    'local_outcomemap',
+                    s(implode('; ', array_slice($evidencenames, 0, 12)))
+                )
                 : get_string('oa_sheetnoevidence', 'local_outcomemap'), 'lom-oa-sheet-evidence'),
             'lom-oa-sheet'
         );
@@ -1500,8 +1545,11 @@ if ($sheets) {
     echo html_writer::div(
         html_writer::div(
             html_writer::span(get_string('oa_sheetsintro', 'local_outcomemap'), 'lom-oa-sectionnote')
-            . html_writer::link($link(['sheets' => null]),
-                get_string('closebuttontitle'), ['class' => 'lom-oa-btn']),
+            . html_writer::link(
+                $link(['sheets' => null]),
+                get_string('closebuttontitle'),
+                ['class' => 'lom-oa-btn']
+            ),
             'lom-oa-sheets-bar lom-oa-noprint'
         ) . $pages,
         'lom-oa-sheets'

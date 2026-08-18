@@ -28,6 +28,7 @@ use local_outcomemap\local\service\content_mapping_service;
 use local_outcomemap\local\service\remediation_service;
 use local_outcomemap\local\workflow;
 
+// phpcs:ignore moodle.Files.MoodleInternal.MoodleInternalGlobalState -- Portable bootstrap path.
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     // Windows junctions resolve __DIR__ to the repository target rather than

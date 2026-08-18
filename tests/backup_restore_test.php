@@ -63,6 +63,7 @@ final class backup_restore_test extends \advanced_testcase {
      * @return array{0:int,1:int} Course-instance ID and outcome-version ID.
      */
     private function create_scope(\stdClass $course, \stdClass $reviewer): array {
+
         global $DB;
         $this->setAdminUser();
         $catalogid = catalog_course_service::create([
@@ -101,8 +102,11 @@ final class backup_restore_test extends \advanced_testcase {
         return [$cinstid, $itemverid];
     }
 
-    /** Restore rejects external remediation schemes that must never become clickable. */
+    /**
+     * Restore rejects external remediation schemes that must never become clickable.
+     */
     public function test_restore_rejects_non_web_remediation_url(): void {
+
         global $DB;
         $this->resetAfterTest(true);
         $this->setAdminUser();
@@ -113,7 +117,6 @@ final class backup_restore_test extends \advanced_testcase {
         $itemuuid = (string) $DB->get_field('local_outcomemap_item', 'uuid', [
             'id' => $version->itemid,
         ], MUST_EXIST);
-
         $restored = mapping_restorer::restore_remediation('external_url', (object) [
             'outcomeuuid' => $itemuuid,
             'outcomeversionuuid' => $version->uuid,
@@ -121,13 +124,11 @@ final class backup_restore_test extends \advanced_testcase {
             'title' => 'Unsafe restored recommendation',
             'effectivefrom' => 1704067200,
         ], $cinstid);
-
         $this->assertNull($restored);
         $this->assertEquals(0, $DB->count_records('local_outcomemap_remed'));
     }
-
     /**
-     * Tests that course restore creates new draft mappings.
+     * * Tests that course restore creates new draft mappings.
      */
     public function test_course_restore_creates_new_draft_mappings(): void {
         global $CFG, $DB, $USER;
@@ -323,7 +324,7 @@ final class backup_restore_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that course restore recreates question mappings as drafts on the restored version.
+     * * Tests that course restore recreates question mappings as drafts on the restored version.
      */
     public function test_course_restore_creates_question_mapping_drafts(): void {
         global $CFG, $DB, $USER;
@@ -414,7 +415,9 @@ final class backup_restore_test extends \advanced_testcase {
         ], '*', MUST_EXIST);
         $this->assertEquals($restoredversion->questionid, $restoredmapping->questionid);
         // The source mapping remains approved on the original version.
-        $this->assertSame(workflow::APPROVED,
-            $DB->get_field('local_outcomemap_qmap', 'status', ['id' => $mappingid]));
+        $this->assertSame(
+            workflow::APPROVED,
+            $DB->get_field('local_outcomemap_qmap', 'status', ['id' => $mappingid])
+        );
     }
 }

@@ -28,7 +28,7 @@ use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 
 /**
- * Aggregates and dispatches records in the Milestone 1 approval queue.
+ * * Aggregates and dispatches records in the Milestone 1 approval queue.
  */
 final class approval_service extends base_service {
     /**
@@ -174,8 +174,11 @@ final class approval_service extends base_service {
                 'timemodified' => $record->timemodified,
             ];
         }
-        $policies = $DB->get_records('local_outcomemap_policy',
-            ['status' => workflow::NEEDS_REVIEW], 'policytype, name');
+        $policies = $DB->get_records(
+            'local_outcomemap_policy',
+            ['status' => workflow::NEEDS_REVIEW],
+            'policytype, name'
+        );
         foreach ($policies as $record) {
             $pending[] = (object) [
                 'objecttype' => 'policy',

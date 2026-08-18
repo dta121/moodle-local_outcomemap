@@ -1,5 +1,26 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Learning Outcome Mapping plugin component.
+ *
+ * @package    local_outcomemap
+ * @copyright  2026 Moodle Learning Outcome Mapping contributors
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 use local_outcomemap\form\framework_form;
 use local_outcomemap\form\outcome_form;
@@ -11,6 +32,7 @@ use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
 use local_outcomemap\output\outcomes_hierarchy;
 
+// phpcs:ignore moodle.Files.MoodleInternal.MoodleInternalGlobalState -- Portable bootstrap path.
 $configpath = __DIR__ . '/../../config.php';
 if (!is_readable($configpath) && !empty($_SERVER['DOCUMENT_ROOT'])) {
     // Windows junctions resolve __DIR__ to the repository target rather than
@@ -116,7 +138,9 @@ if ($action === 'savenewversion') {
         'SELECT v.* FROM {local_outcomemap_itemver} v
           WHERE v.itemid = :itemid
             AND v.version = (SELECT MAX(v2.version) FROM {local_outcomemap_itemver} v2 WHERE v2.itemid = v.itemid)',
-        ['itemid' => $itemid], MUST_EXIST);
+        ['itemid' => $itemid],
+        MUST_EXIST
+    );
     try {
         $versionid = outcome_service::create_version($itemid, [
             'statement' => $statement,
@@ -171,11 +195,17 @@ if (in_array($action, ['addoutcome', 'editoutcome', 'newversion'], true)) {
             $record = $DB->get_record_sql(
                 'SELECT v.*, v.id AS versionid, i.id AS itemid, i.frameworkid, i.code
                    FROM {local_outcomemap_itemver} v JOIN {local_outcomemap_item} i ON i.id = v.itemid
-                  WHERE v.id = :id', ['id' => $id], MUST_EXIST);
+                  WHERE v.id = :id',
+                ['id' => $id],
+                MUST_EXIST
+            );
         } else {
             $record = $DB->get_record_sql(
                 'SELECT i.id AS itemid, i.frameworkid, i.code
-                   FROM {local_outcomemap_item} i WHERE i.id = :id', ['id' => $id], MUST_EXIST);
+                   FROM {local_outcomemap_item} i WHERE i.id = :id',
+                ['id' => $id],
+                MUST_EXIST
+            );
             $record->effectivefrom = time();
         }
         $form->set_data($record);
@@ -235,7 +265,9 @@ if ($action === 'addframework' || $action === 'editframework') {
 
 echo $OUTPUT->header();
 $hierarchy = new outcomes_hierarchy($view);
-echo $OUTPUT->render_from_template('local_outcomemap/outcomes_hierarchy',
-    $hierarchy->export_for_template($OUTPUT));
+echo $OUTPUT->render_from_template(
+    'local_outcomemap/outcomes_hierarchy',
+    $hierarchy->export_for_template($OUTPUT)
+);
 
 echo $OUTPUT->footer();

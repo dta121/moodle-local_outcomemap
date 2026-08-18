@@ -34,7 +34,9 @@ use local_outcomemap\local\service\student_result_service;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class attainment_export_service_test extends \basic_testcase {
-    /** @var array Outcome descriptor shared by every pooled row. */
+    /**
+     * @var array Outcome descriptor shared by every pooled row.
+     */
     private const OUTCOME = [
         'itemid' => 41,
         'code' => 'PLO1',
@@ -63,7 +65,7 @@ final class attainment_export_service_test extends \basic_testcase {
     }
 
     /**
-     * Tests that pooling sums canonical fractions and never averages percentages.
+     * * Tests that pooling sums canonical fractions and never averages percentages.
      */
     public function test_pooling_sums_fractions_rather_than_averaging_percentages(): void {
         $pooled = attainment_export_service::pool_outcome(self::OUTCOME, [
@@ -93,7 +95,7 @@ final class attainment_export_service_test extends \basic_testcase {
     }
 
     /**
-     * Tests that non-calculated rows contribute no figures but decide the fallback state.
+     * * Tests that non-calculated rows contribute no figures but decide the fallback state.
      */
     public function test_placeholder_rows_carry_no_figures_and_rank_by_precedence(): void {
         // A withheld row alone: the pooled outcome says withheld, not zero.
@@ -126,7 +128,7 @@ final class attainment_export_service_test extends \basic_testcase {
     }
 
     /**
-     * Tests that an outcome no course has fed yet reads not assessed, never zero.
+     * * Tests that an outcome no course has fed yet reads not assessed, never zero.
      */
     public function test_no_rows_is_not_assessed(): void {
         $pooled = attainment_export_service::pool_outcome(self::OUTCOME, [], 9);
@@ -138,7 +140,7 @@ final class attainment_export_service_test extends \basic_testcase {
     }
 
     /**
-     * Tests that disagreeing band ladders withhold the threshold instead of inventing one.
+     * * Tests that disagreeing band ladders withhold the threshold instead of inventing one.
      */
     public function test_mixed_ladders_withhold_thresholds(): void {
         $pooled = attainment_export_service::pool_outcome(self::OUTCOME, [
@@ -151,7 +153,7 @@ final class attainment_export_service_test extends \basic_testcase {
     }
 
     /**
-     * Tests the per-course contribution choice: released figures first, then recency.
+     * * Tests the per-course contribution choice: released figures first, then recency.
      */
     public function test_prefer_takes_released_calculated_then_most_recent(): void {
         $calculated = $this->row();

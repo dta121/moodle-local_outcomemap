@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Outcome policies page model.
@@ -33,10 +41,14 @@ use templatable;
  * present one, and each group states the precedence its own type resolves by.
  */
 final class policies_page implements renderable, templatable {
-    /** Group the decisions and their scopes. */
+    /**
+     * Group the decisions and their scopes.
+     */
     public const VIEW_DECISION = 'decision';
 
-    /** Group the scopes and the decisions each settles. */
+    /**
+     * Group the scopes and the decisions each settles.
+     */
     public const VIEW_SCOPE = 'scope';
 
     /**
@@ -55,19 +67,29 @@ final class policies_page implements renderable, templatable {
         ],
     ];
 
-    /** @var \stdClass[] Every policy version with decoded config and bands. */
+    /**
+     * @var \stdClass[] Every policy version with decoded config and bands.
+     */
     private array $policies;
 
-    /** @var string The grouping being rendered. */
+    /**
+     * @var string The grouping being rendered.
+     */
     private string $view;
 
-    /** @var array<string, array<int, string>> Scope labels keyed by scope type and id. */
+    /**
+     * @var array<string, array<int, string>> Scope labels keyed by scope type and id.
+     */
     private array $scopelabels = [];
 
-    /** @var \stdClass[] Catalog courses keyed by id. */
+    /**
+     * @var \stdClass[] Catalog courses keyed by id.
+     */
     private array $courses;
 
-    /** @var int Reference time for effective-range comparisons. */
+    /**
+     * @var int Reference time for effective-range comparisons.
+     */
     private int $now;
 
     /**
@@ -85,7 +107,9 @@ final class policies_page implements renderable, templatable {
         $this->scopelabels = $this->scope_labels();
     }
 
-    /** Export the template context. */
+    /**
+     * Export the template context.
+     */
     public function export_for_template(renderer_base $output): array {
         $baseurl = new moodle_url('/local/outcomemap/policies.php');
         $isscope = $this->view === self::VIEW_SCOPE;
@@ -147,9 +171,11 @@ final class policies_page implements renderable, templatable {
      */
     private function institution_default(string $type): ?\stdClass {
         foreach ($this->policies as $policy) {
-            if ($policy->policytype === $type
+            if (
+                $policy->policytype === $type
                     && $policy->scopetype === policy_service::SCOPE_INSTITUTION
-                    && $this->in_force($policy)) {
+                    && $this->in_force($policy)
+            ) {
                 return $policy;
             }
         }
@@ -217,11 +243,14 @@ final class policies_page implements renderable, templatable {
                 'rows' => $rows,
                 'hasrows' => $rows !== [],
                 'emptyline' => get_string('policies_nopolicies', 'local_outcomemap'),
-                'chainline' => get_string('policies_chain', 'local_outcomemap',
+                'chainline' => get_string(
+                    'policies_chain',
+                    'local_outcomemap',
                     implode(' → ', array_map(
                         fn($scope) => get_string('policyscope_' . $scope, 'local_outcomemap'),
                         self::RESOLUTION[$type] ?? policy_service::SCOPE_PRECEDENCE
-                    ))),
+                    ))
+                ),
                 'hasuncovered' => $uncovered !== [],
                 'uncoveredline' => get_string(
                     count($uncovered) === 1 ? 'policies_uncovered_one' : 'policies_uncovered',
@@ -229,7 +258,8 @@ final class policies_page implements renderable, templatable {
                     implode(', ', $uncovered)
                 ),
                 'searchtext' => \core_text::strtolower(
-                    get_string('policytype_' . $type, 'local_outcomemap')),
+                    get_string('policytype_' . $type, 'local_outcomemap')
+                ),
             ];
         }
         return $groups;
@@ -242,8 +272,10 @@ final class policies_page implements renderable, templatable {
      * @return array[] Scope groups.
      */
     private function by_scope(moodle_url $baseurl): array {
-        $order = array_flip(array_merge([policy_service::SCOPE_INSTITUTION, policy_service::SCOPE_PROGRAM],
-            policy_service::SCOPE_PRECEDENCE));
+        $order = array_flip(array_merge(
+            [policy_service::SCOPE_INSTITUTION, policy_service::SCOPE_PROGRAM],
+            policy_service::SCOPE_PRECEDENCE
+        ));
         $buckets = [];
         foreach ($this->policies as $policy) {
             $key = $policy->scopetype . ':' . (int) $policy->scopeid;
@@ -289,8 +321,11 @@ final class policies_page implements renderable, templatable {
                 'rows' => $rows,
                 'hasrows' => $rows !== [],
                 'hasuncovered' => $missing !== [],
-                'uncoveredline' => get_string('policies_scopemissing', 'local_outcomemap',
-                    implode(', ', $missing)),
+                'uncoveredline' => get_string(
+                    'policies_scopemissing',
+                    'local_outcomemap',
+                    implode(', ', $missing)
+                ),
                 'searchtext' => \core_text::strtolower($bucket['label']),
             ];
         }
@@ -306,8 +341,10 @@ final class policies_page implements renderable, templatable {
     private function sorted_for(string $type): array {
         $chain = self::RESOLUTION[$type] ?? policy_service::SCOPE_PRECEDENCE;
         $order = array_flip($chain);
-        $rows = array_values(array_filter($this->policies,
-            static fn($policy) => $policy->policytype === $type));
+        $rows = array_values(array_filter(
+            $this->policies,
+            static fn($policy) => $policy->policytype === $type
+        ));
         usort($rows, function ($a, $b) use ($order) {
             $delta = ($order[$a->scopetype] ?? 99) <=> ($order[$b->scopetype] ?? 99);
             if ($delta !== 0) {
@@ -333,8 +370,10 @@ final class policies_page implements renderable, templatable {
             'settings' => $this->settings($policy),
             'meta' => get_string('policies_meta', 'local_outcomemap', (object) [
                 'version' => (int) $policy->version,
-                'from' => userdate((int) $policy->effectivefrom,
-                    get_string('strftimedate', 'core_langconfig')),
+                'from' => userdate(
+                    (int) $policy->effectivefrom,
+                    get_string('strftimedate', 'core_langconfig')
+                ),
             ]),
             'statuslabel' => workflow::status_label($policy->status),
             'statusclass' => $this->status_class($policy),
@@ -365,9 +404,11 @@ final class policies_page implements renderable, templatable {
                 'action' => 'newversion',
                 'id' => $id,
             ]))->out(false);
-            if ($policy->policytype === policy_service::TYPE_RELEASE
+            if (
+                $policy->policytype === policy_service::TYPE_RELEASE
                     && ($policy->config['mode'] ?? null) === policy_service::RELEASE_MANUAL
-                    && $policy->manualreleasedat === null) {
+                    && $policy->manualreleasedat === null
+            ) {
                 $row['canrelease'] = true;
                 $row['releaseurl'] = (new moodle_url($baseurl, [
                     'action' => 'release',
@@ -417,8 +458,10 @@ final class policies_page implements renderable, templatable {
                 get_string('releasemode_' . $mode, 'local_outcomemap')
             )];
             if ($mode === policy_service::RELEASE_SCHEDULED && !empty($config['releaseat'])) {
-                $settings[] = $pair(get_string('policies_setting_releaseat', 'local_outcomemap'),
-                    userdate((int) $config['releaseat']));
+                $settings[] = $pair(
+                    get_string('policies_setting_releaseat', 'local_outcomemap'),
+                    userdate((int) $config['releaseat'])
+                );
             } else if ($mode === policy_service::RELEASE_MANUAL) {
                 $settings[] = $pair(
                     get_string('policies_setting_released', 'local_outcomemap'),
@@ -431,27 +474,45 @@ final class policies_page implements renderable, templatable {
         }
         if ($policy->policytype === policy_service::TYPE_ACCREDITATION) {
             return [
-                $pair(get_string('policies_setting_criterion', 'local_outcomemap'),
-                    ($config['achievementminpercent'] ?? '') . '%'),
-                $pair(get_string('policies_setting_benchmark', 'local_outcomemap'),
-                    ($config['benchmarkpercent'] ?? '') . '%'),
-                $pair(get_string('policies_setting_suppression', 'local_outcomemap'),
-                    (string) ($config['mincohortsize'] ?? '')),
-                $pair(get_string('policies_setting_population', 'local_outcomemap'),
-                    get_string('population_' . ($config['populationsource'] ?? ''), 'local_outcomemap')),
-                $pair(get_string('policies_setting_retention', 'local_outcomemap'),
-                    get_string('retention_' . ($config['retentionbasis'] ?? ''), 'local_outcomemap')),
+                $pair(
+                    get_string('policies_setting_criterion', 'local_outcomemap'),
+                    ($config['achievementminpercent'] ?? '') . '%'
+                ),
+                $pair(
+                    get_string('policies_setting_benchmark', 'local_outcomemap'),
+                    ($config['benchmarkpercent'] ?? '') . '%'
+                ),
+                $pair(
+                    get_string('policies_setting_suppression', 'local_outcomemap'),
+                    (string) ($config['mincohortsize'] ?? '')
+                ),
+                $pair(
+                    get_string('policies_setting_population', 'local_outcomemap'),
+                    get_string('population_' . ($config['populationsource'] ?? ''), 'local_outcomemap')
+                ),
+                $pair(
+                    get_string('policies_setting_retention', 'local_outcomemap'),
+                    get_string('retention_' . ($config['retentionbasis'] ?? ''), 'local_outcomemap')
+                ),
             ];
         }
         $settings = [
-            $pair(get_string('policies_setting_minitems', 'local_outcomemap'),
-                (string) ($config['minitems'] ?? 1)),
-            $pair(get_string('policies_setting_decimals', 'local_outcomemap'),
-                (string) ($config['displayscale'] ?? 1)),
-            $pair(get_string('policies_setting_manual', 'local_outcomemap'),
-                empty($config['requiremanualgrading']) ? get_string('no') : get_string('yes')),
-            $pair(get_string('policies_setting_bands', 'local_outcomemap'),
-                (string) count($policy->bands)),
+            $pair(
+                get_string('policies_setting_minitems', 'local_outcomemap'),
+                (string) ($config['minitems'] ?? 1)
+            ),
+            $pair(
+                get_string('policies_setting_decimals', 'local_outcomemap'),
+                (string) ($config['displayscale'] ?? 1)
+            ),
+            $pair(
+                get_string('policies_setting_manual', 'local_outcomemap'),
+                empty($config['requiremanualgrading']) ? get_string('no') : get_string('yes')
+            ),
+            $pair(
+                get_string('policies_setting_bands', 'local_outcomemap'),
+                (string) count($policy->bands)
+            ),
         ];
         if (isset($config['minweightedpossible'])) {
             array_splice($settings, 1, 0, [$pair(
@@ -512,9 +573,11 @@ final class policies_page implements renderable, templatable {
         }
         $covered = [];
         foreach ($this->policies as $policy) {
-            if ($policy->policytype === $type
+            if (
+                $policy->policytype === $type
                     && $policy->scopetype === policy_service::SCOPE_CATALOG_COURSE
-                    && $this->in_force($policy)) {
+                    && $this->in_force($policy)
+            ) {
                 $covered[(int) $policy->scopeid] = true;
             }
         }
@@ -549,7 +612,8 @@ final class policies_page implements renderable, templatable {
         $instances = $DB->get_records_sql(
             "SELECT ci.id, cc.code, ci.periodcode
                FROM {local_outcomemap_cinst} ci
-               JOIN {local_outcomemap_course} cc ON cc.id = ci.courseid");
+               JOIN {local_outcomemap_course} cc ON cc.id = ci.courseid"
+        );
         foreach ($instances as $instance) {
             $labels[policy_service::SCOPE_COURSE_INSTANCE][(int) $instance->id] =
                 $instance->code . ' / ' . $instance->periodcode;
@@ -568,7 +632,9 @@ final class policies_page implements renderable, templatable {
                 "SELECT cm.id, c.shortname
                    FROM {course_modules} cm
                    JOIN {course} c ON c.id = cm.course
-                  WHERE cm.id $insql", $params);
+                  WHERE cm.id $insql",
+                $params
+            );
             foreach ($modules as $module) {
                 $labels[policy_service::SCOPE_ASSESSMENT][(int) $module->id] =
                     $module->shortname . ' [cmid ' . (int) $module->id . ']';

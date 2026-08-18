@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\local\service;
 
@@ -30,32 +38,81 @@ use local_outcomemap\local\workflow;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class snapshot_service extends base_service {
-    /** Snapshot states. */
+    /**
+     * Snapshot states.
+     */
     public const STATUS_DRAFT = 'draft';
+    /**
+     * Value for status frozen.
+     */
     public const STATUS_FROZEN = 'frozen';
 
-    /** Snapshot payload algorithm. */
+    /**
+     * Snapshot payload algorithm.
+     */
     public const ALGO_VERSION = 'outcomemap-accreditation-v1';
 
-    /** Erasable protected subject-reference method for new snapshots. */
+    /**
+     * Erasable protected subject-reference method for new snapshots.
+     */
     public const SUBJECT_HASH_METHOD = 'hmac-sha256-subject-key-v2';
 
-    /** Legacy site-secret method retained for immutable historical snapshots. */
+    /**
+     * Legacy site-secret method retained for immutable historical snapshots.
+     */
     public const LEGACY_SUBJECT_HASH_METHOD = 'hmac-sha256-site-secret-v1';
 
-    /** Snapshot item types. */
+    /**
+     * Snapshot item types.
+     */
     public const ITEM_PROGRAM = 'program';
+    /**
+     * Value for item cohort.
+     */
     public const ITEM_COHORT = 'cohort';
+    /**
+     * Value for item population.
+     */
     public const ITEM_POPULATION = 'population_subject';
+    /**
+     * Value for item program course.
+     */
     public const ITEM_PROGRAM_COURSE = 'program_course';
+    /**
+     * Value for item course instance.
+     */
     public const ITEM_COURSE_INSTANCE = 'course_instance';
+    /**
+     * Value for item outcome version.
+     */
     public const ITEM_OUTCOME_VERSION = 'outcome_version';
+    /**
+     * Value for item policy version.
+     */
     public const ITEM_POLICY_VERSION = 'policy_version';
+    /**
+     * Value for item mapping version.
+     */
     public const ITEM_MAPPING_VERSION = 'mapping_version';
+    /**
+     * Value for item relation version.
+     */
     public const ITEM_RELATION_VERSION = 'relation_version';
+    /**
+     * Value for item evidence.
+     */
     public const ITEM_EVIDENCE = 'evidence';
+    /**
+     * Value for item result.
+     */
     public const ITEM_RESULT = 'learner_result';
+    /**
+     * Value for item course aggregate.
+     */
     public const ITEM_COURSE_AGGREGATE = 'course_aggregate';
+    /**
+     * Value for item program aggregate.
+     */
     public const ITEM_PROGRAM_AGGREGATE = 'program_aggregate';
 
     /**
@@ -376,7 +433,9 @@ final class snapshot_service extends base_service {
     public static function verify_streamed(\stdClass $snapshot): void {
         self::require_system('local/outcomemap:managesnapshots');
         audit_lineage_service::verify_snapshot_payload_streamed(
-            $snapshot, self::stream_items((int) $snapshot->id));
+            $snapshot,
+            self::stream_items((int) $snapshot->id)
+        );
     }
 
     /**
@@ -404,10 +463,15 @@ final class snapshot_service extends base_service {
         $lastid = 0;
         $lastsortorder = null;
         while (true) {
-            $rows = $DB->get_records_select('local_outcomemap_snapitem',
+            $rows = $DB->get_records_select(
+                'local_outcomemap_snapitem',
                 'snapshotid = :snapshotid AND id > :lastid',
                 ['snapshotid' => $snapshotid, 'lastid' => $lastid],
-                'id ASC', '*', 0, $pagesize);
+                'id ASC',
+                '*',
+                0,
+                $pagesize
+            );
             if (!$rows) {
                 return;
             }
@@ -443,8 +507,12 @@ final class snapshot_service extends base_service {
         }
         [$insql, $params] = $DB->get_in_or_equal($itemtypes, SQL_PARAMS_NAMED, 'it');
         $params['snapshotid'] = $snapshotid;
-        return array_values($DB->get_records_select('local_outcomemap_snapitem',
-            "snapshotid = :snapshotid AND itemtype $insql", $params, 'sortorder ASC, id ASC'));
+        return array_values($DB->get_records_select(
+            'local_outcomemap_snapitem',
+            "snapshotid = :snapshotid AND itemtype $insql",
+            $params,
+            'sortorder ASC, id ASC'
+        ));
     }
 
     /**
@@ -467,7 +535,8 @@ final class snapshot_service extends base_service {
                FROM {local_outcomemap_snapitem}
               WHERE snapshotid = :snapshotid
            GROUP BY itemtype",
-            ['snapshotid' => $snapshotid]);
+            ['snapshotid' => $snapshotid]
+        );
         foreach ($rs as $row) {
             $counts[(string) $row->itemtype] = [
                 'total' => (int) $row->total,
@@ -492,13 +561,18 @@ final class snapshot_service extends base_service {
     public static function result_index_rows(int $snapshotid) {
         global $DB;
         self::require_system('local/outcomemap:managesnapshots');
-        return $DB->get_recordset_select('local_outcomemap_snapitem',
+        return $DB->get_recordset_select(
+            'local_outcomemap_snapitem',
             'snapshotid = :snapshotid AND itemtype = :itemtype AND cinstid IS NOT NULL',
             ['snapshotid' => $snapshotid, 'itemtype' => self::ITEM_RESULT],
             'sortorder ASC, id ASC',
-            'id, cinstid, subjectref, itemverid, state, percentage, numerator, denominator');
+            'id, cinstid, subjectref, itemverid, state, percentage, numerator, denominator'
+        );
     }
 
+    /**
+     * Handles the verify operation.
+     */
     public static function verify(\stdClass $snapshot, array $items): void {
         audit_lineage_service::verify_snapshot_payload($snapshot, $items);
         if ($snapshot->status === self::STATUS_FROZEN) {
@@ -586,9 +660,11 @@ final class snapshot_service extends base_service {
             return [uuid::generate(), 1, null];
         }
         $previous = $DB->get_record('local_outcomemap_snapshot', ['id' => $previousid], '*', MUST_EXIST);
-        if ($previous->status !== self::STATUS_FROZEN
+        if (
+            $previous->status !== self::STATUS_FROZEN
                 || (int) $previous->programid !== $programid
-                || (string) $previous->periodcode !== $periodcode) {
+                || (string) $previous->periodcode !== $periodcode
+        ) {
             throw new validation_exception('snapshotpreviousinvalid', 'previousid', $previousid);
         }
         if ($reason === null || trim($reason) === '') {
@@ -1266,7 +1342,10 @@ final class snapshot_service extends base_service {
      */
     private static function load_items(int $snapshotid): array {
         global $DB;
-        return array_values($DB->get_records('local_outcomemap_snapitem',
-            ['snapshotid' => $snapshotid], 'sortorder ASC, id ASC'));
+        return array_values($DB->get_records(
+            'local_outcomemap_snapitem',
+            ['snapshotid' => $snapshotid],
+            'sortorder ASC, id ASC'
+        ));
     }
 }

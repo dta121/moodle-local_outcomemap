@@ -5,10 +5,16 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap;
-
-defined('MOODLE_INTERNAL') || die();
 
 use core\context_helper;
 use local_outcomemap\local\canonical_json;
@@ -290,7 +296,7 @@ final class example_seed_service_test extends \advanced_testcase {
     }
 
     /**
-     * Test one example report per source, populated from the source defaults.
+     * * Test one example report per source, populated from the source defaults.
      */
     public function test_seed_reports_covers_every_source_and_repeats_safely(): void {
         global $DB;
@@ -336,7 +342,7 @@ final class example_seed_service_test extends \advanced_testcase {
     }
 
     /**
-     * Test the example snapshot is captured, frozen, and never duplicated.
+     * * Test the example snapshot is captured, frozen, and never duplicated.
      */
     public function test_seed_snapshot_freezes_one_verifiable_capture(): void {
         global $DB;
@@ -383,7 +389,7 @@ final class example_seed_service_test extends \advanced_testcase {
     }
 
     /**
-     * Test reseeding withdraws the previous example and recaptures current data.
+     * * Test reseeding withdraws the previous example and recaptures current data.
      */
     public function test_seed_snapshot_replaces_an_existing_example_capture(): void {
         global $DB;
@@ -412,8 +418,12 @@ final class example_seed_service_test extends \advanced_testcase {
         // A reseed ends at one capture of current data rather than a further
         // version of the lineage it withdrew.
         $this->assertSame(1, $DB->count_records('local_outcomemap_snapshot'));
-        $snapshot = $DB->get_record('local_outcomemap_snapshot',
-            ['id' => $replacement['snapshotid']], '*', MUST_EXIST);
+        $snapshot = $DB->get_record(
+            'local_outcomemap_snapshot',
+            ['id' => $replacement['snapshotid']],
+            '*',
+            MUST_EXIST
+        );
         $this->assertSame(1, (int) $snapshot->version);
         $this->assertNull($snapshot->previousid);
         snapshot_service::verify($snapshot, snapshot_service::items((int) $snapshot->id));
@@ -429,7 +439,7 @@ final class example_seed_service_test extends \advanced_testcase {
     }
 
     /**
-     * Test seeding refuses to invent a snapshot with no captured attainment.
+     * * Test seeding refuses to invent a snapshot with no captured attainment.
      */
     public function test_seed_snapshot_requires_existing_results(): void {
         $this->resetAfterTest(true);

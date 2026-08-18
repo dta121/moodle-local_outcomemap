@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Outcome mapping dashboard page model.
@@ -36,15 +44,21 @@ use templatable;
  * dashboard is a starting point rather than a report.
  */
 final class dashboard_page implements renderable, templatable {
-    /** @var array Readiness signals from the service. */
+    /**
+     * @var array Readiness signals from the service.
+     */
     private array $summary;
 
-    /** Load every dashboard figure once. */
+    /**
+     * Load every dashboard figure once.
+     */
     public function __construct() {
         $this->summary = dashboard_service::summary();
     }
 
-    /** Export the template context. */
+    /**
+     * Export the template context.
+     */
     public function export_for_template(renderer_base $output): array {
         $tasks = $this->tasks();
         return [
@@ -128,8 +142,11 @@ final class dashboard_page implements renderable, templatable {
         $unaligned = (int) $this->summary['unaligned'];
         if ($unaligned > 0) {
             $tasks[] = [
-                'title' => get_string($unaligned === 1 ? 'dash_task_unaligned_one' : 'dash_task_unaligned',
-                    'local_outcomemap', $unaligned),
+                'title' => get_string(
+                    $unaligned === 1 ? 'dash_task_unaligned_one' : 'dash_task_unaligned',
+                    'local_outcomemap',
+                    $unaligned
+                ),
                 'detail' => get_string('dash_task_unaligned_detail', 'local_outcomemap'),
                 'severity' => get_string('dash_severity_blocks', 'local_outcomemap'),
                 'tone' => 'danger',
@@ -197,8 +214,11 @@ final class dashboard_page implements renderable, templatable {
         $pending = (int) $this->summary['pendingapproval'];
         if ($pending > 0) {
             $tasks[] = [
-                'title' => get_string($pending === 1 ? 'dash_task_pending_one' : 'dash_task_pending',
-                    'local_outcomemap', $pending),
+                'title' => get_string(
+                    $pending === 1 ? 'dash_task_pending_one' : 'dash_task_pending',
+                    'local_outcomemap',
+                    $pending
+                ),
                 'detail' => get_string('dash_task_pending_detail', 'local_outcomemap'),
                 'severity' => get_string('dash_severity_review', 'local_outcomemap'),
                 'tone' => 'info',
@@ -281,15 +301,18 @@ final class dashboard_page implements renderable, templatable {
             $actionkey = 'dash_action_' . $event['action'];
             $rows[] = [
                 'when' => userdate($event['timecreated'], get_string('strftimedatefullshort', 'core_langconfig')),
-                'text' => get_string($single ? 'dash_activity_line_one' : 'dash_activity_line',
-                    'local_outcomemap', (object) [
+                'text' => get_string(
+                    $single ? 'dash_activity_line_one' : 'dash_activity_line',
+                    'local_outcomemap',
+                    (object) [
                         'count' => number_format($event['count']),
                         // An audit row records an object type and action this
                         // release may not have a phrase for yet, so the raw
                         // recorded value is shown rather than nothing at all.
                         'object' => self::phrase($objectkey, $event['objecttype']),
                         'action' => self::phrase($actionkey, $event['action']),
-                    ]),
+                    ]
+                ),
             ];
         }
         return $rows;

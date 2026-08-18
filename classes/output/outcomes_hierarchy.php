@@ -32,37 +32,57 @@ use renderer_base;
 use templatable;
 
 /**
- * Builds the program/course outcome hierarchy for templates and CSV export.
+ * * Builds the program/course outcome hierarchy for templates and CSV export.
  */
 class outcomes_hierarchy implements renderable, templatable {
-    /** The alignment matrix view. */
+    /**
+     * The alignment matrix view.
+     */
     public const VIEW_MATRIX = 'matrix';
 
-    /** @var moodle_url Page base URL. */
+    /**
+     * @var moodle_url Page base URL.
+     */
     private moodle_url $baseurl;
 
-    /** @var string The view being rendered. */
+    /**
+     * @var string The view being rendered.
+     */
     private string $view;
 
-    /** @var \stdClass[] Programs keyed by id. */
+    /**
+     * @var \stdClass[] Programs keyed by id.
+     */
     private array $programs;
 
-    /** @var \stdClass[] Catalog courses keyed by id. */
+    /**
+     * @var \stdClass[] Catalog courses keyed by id.
+     */
     private array $courses;
 
-    /** @var \stdClass[] Frameworks keyed by id, each annotated with a hierarchy kind. */
+    /**
+     * @var \stdClass[] Frameworks keyed by id, each annotated with a hierarchy kind.
+     */
     private array $frameworks;
 
-    /** @var \stdClass[] Latest outcome version per stable item, keyed by item id. */
+    /**
+     * @var \stdClass[] Latest outcome version per stable item, keyed by item id.
+     */
     private array $items;
 
-    /** @var int[][] Alignment target item ids keyed by source item id. */
+    /**
+     * @var int[][] Alignment target item ids keyed by source item id.
+     */
     private array $mapsbysource = [];
 
-    /** @var int[][] Alignment source item ids keyed by target item id. */
+    /**
+     * @var int[][] Alignment source item ids keyed by target item id.
+     */
     private array $mapsbytarget = [];
 
-    /** Load all governed records once. */
+    /**
+     * Load all governed records once.
+     */
     public function __construct(string $view = 'program') {
         global $DB;
         $this->view = in_array($view, ['program', 'course', self::VIEW_MATRIX], true) ? $view : 'program';
@@ -110,23 +130,31 @@ class outcomes_hierarchy implements renderable, templatable {
         }
     }
 
-    /** Return the hierarchy kind of an item's framework. */
+    /**
+     * Return the hierarchy kind of an item's framework.
+     */
     private function kind(\stdClass $item): string {
         return $this->frameworks[(int) $item->frameworkid]->kind;
     }
 
-    /** Return the full display label of an item, e.g. "MBA-PLO.PLO1". */
+    /**
+     * Return the full display label of an item, e.g. "MBA-PLO.PLO1".
+     */
     private function label(\stdClass $item): string {
         return $this->frameworks[(int) $item->frameworkid]->code . '.' . $item->code;
     }
 
-    /** Return the catalog course id owning an item's framework, or null. */
+    /**
+     * Return the catalog course id owning an item's framework, or null.
+     */
     private function courseid(\stdClass $item): ?int {
         $framework = $this->frameworks[(int) $item->frameworkid];
         return $framework->ownertype === framework_service::OWNER_COURSE ? (int) $framework->ownerid : null;
     }
 
-    /** Return items of one hierarchy kind, optionally limited to one catalog course. */
+    /**
+     * Return items of one hierarchy kind, optionally limited to one catalog course.
+     */
     private function items_of_kind(string $kind, ?int $courseid = null): array {
         return array_filter($this->items, function ($item) use ($kind, $courseid) {
             return $this->kind($item) === $kind
@@ -134,12 +162,16 @@ class outcomes_hierarchy implements renderable, templatable {
         });
     }
 
-    /** True when an item has no outgoing alignment. */
+    /**
+     * True when an item has no outgoing alignment.
+     */
     private function is_unmapped(\stdClass $item): bool {
         return empty($this->mapsbysource[(int) $item->itemid]);
     }
 
-    /** Governance status, version, and action fields shared by every row. */
+    /**
+     * Governance status, version, and action fields shared by every row.
+     */
     private function status_fields(\stdClass $item, bool $canmanage, bool $canapprove): array {
         $status = $item->versionstatus;
         $row = [
@@ -190,12 +222,16 @@ class outcomes_hierarchy implements renderable, templatable {
         return $row;
     }
 
-    /** Lower-case haystack the client-side search matches against. */
+    /**
+     * Lower-case haystack the client-side search matches against.
+     */
     private function searchtext(\stdClass $item): string {
         return \core_text::strtolower($this->label($item) . ' ' . $item->code . ' ' . $item->statement);
     }
 
-    /** Build one unit-outcome row. */
+    /**
+     * Build one unit-outcome row.
+     */
     private function ulo_row(\stdClass $item, bool $canmanage, bool $canapprove): array {
         $courseid = $this->courseid($item);
         return $this->status_fields($item, $canmanage, $canapprove) + [
@@ -207,7 +243,9 @@ class outcomes_hierarchy implements renderable, templatable {
         ];
     }
 
-    /** Build one course-outcome row with its aligned unit outcomes. */
+    /**
+     * Build one course-outcome row with its aligned unit outcomes.
+     */
     private function clo_row(\stdClass $item, bool $withchips, bool $canmanage, bool $canapprove): array {
         $ulos = [];
         foreach ($this->mapsbytarget[(int) $item->itemid] ?? [] as $sourceid) {
@@ -227,8 +265,11 @@ class outcomes_hierarchy implements renderable, templatable {
         return $this->status_fields($item, $canmanage, $canapprove) + [
             'badge' => get_string('hier_clobadge', 'local_outcomemap', $item->code),
             'searchtext' => $this->searchtext($item),
-            'ulocountchip' => get_string($count === 1 ? 'hier_unitoutcomes_one' : 'hier_unitoutcomes',
-                'local_outcomemap', $count),
+            'ulocountchip' => get_string(
+                $count === 1 ? 'hier_unitoutcomes_one' : 'hier_unitoutcomes',
+                'local_outcomemap',
+                $count
+            ),
             'haschips' => $withchips && $chips !== [],
             'chips' => $chips,
             'isunmapped' => $this->is_unmapped($item),
@@ -241,7 +282,9 @@ class outcomes_hierarchy implements renderable, templatable {
         ];
     }
 
-    /** Export the full template context. */
+    /**
+     * Export the full template context.
+     */
     public function export_for_template(renderer_base $output): array {
         $context = \context_system::instance();
         $canmanage = has_capability('local/outcomemap:manageframeworks', $context);
@@ -293,8 +336,10 @@ class outcomes_hierarchy implements renderable, templatable {
                     $groupclos = [];
                     foreach ($this->mapsbytarget[(int) $plo->itemid] ?? [] as $sourceid) {
                         $source = $this->items[$sourceid] ?? null;
-                        if ($source && $this->kind($source) === 'course'
-                                && $this->courseid($source) === (int) $course->id) {
+                        if (
+                            $source && $this->kind($source) === 'course'
+                                && $this->courseid($source) === (int) $course->id
+                        ) {
                             $groupclos[$sourceid] = $source;
                         }
                     }
@@ -305,15 +350,20 @@ class outcomes_hierarchy implements renderable, templatable {
                     $totalclos += count($groupclos);
                     $groups[] = [
                         'label' => get_string('hier_grouplabel', 'local_outcomemap', $course->code),
-                        'clos' => array_map(fn($clo) => $this->clo_row($clo, false, $canmanage, $canapprove),
-                            array_values($groupclos)),
+                        'clos' => array_map(
+                            fn($clo) => $this->clo_row($clo, false, $canmanage, $canapprove),
+                            array_values($groupclos)
+                        ),
                     ];
                 }
                 $rows[] = $this->status_fields($plo, $canmanage, $canapprove) + [
                     'badge' => $plo->code,
                     'searchtext' => $this->searchtext($plo),
-                    'countchip' => get_string($totalclos === 1 ? 'hier_courseoutcomes_one' : 'hier_courseoutcomes',
-                        'local_outcomemap', $totalclos),
+                    'countchip' => get_string(
+                        $totalclos === 1 ? 'hier_courseoutcomes_one' : 'hier_courseoutcomes',
+                        'local_outcomemap',
+                        $totalclos
+                    ),
                     'canmap' => false,
                     'hastoggle' => true,
                     'groups' => $groups,
@@ -326,8 +376,11 @@ class outcomes_hierarchy implements renderable, templatable {
                     'code' => $framework->code,
                     'status' => workflow::status_label($framework->status),
                 ]),
-                'countline' => get_string(count($fwitems) === 1 ? 'hier_programoutcomes_one' : 'hier_programoutcomes',
-                    'local_outcomemap', count($fwitems)),
+                'countline' => get_string(
+                    count($fwitems) === 1 ? 'hier_programoutcomes_one' : 'hier_programoutcomes',
+                    'local_outcomemap',
+                    count($fwitems)
+                ),
                 'searchtext' => \core_text::strtolower($ownername . ' ' . $framework->code),
                 'rows' => $rows,
                 'frameworks' => [$this->framework_actions($framework, $canmanage)],
@@ -337,8 +390,10 @@ class outcomes_hierarchy implements renderable, templatable {
         // Course view: one card per catalog course owning frameworks.
         $coursecards = [];
         foreach ($this->courses as $course) {
-            $ownedfws = array_filter($this->frameworks,
-                fn($fw) => $fw->ownertype === framework_service::OWNER_COURSE && (int) $fw->ownerid === (int) $course->id);
+            $ownedfws = array_filter(
+                $this->frameworks,
+                fn($fw) => $fw->ownertype === framework_service::OWNER_COURSE && (int) $fw->ownerid === (int) $course->id
+            );
             if ($ownedfws === []) {
                 continue;
             }
@@ -347,26 +402,37 @@ class outcomes_hierarchy implements renderable, templatable {
             $unmappedulos = array_filter($courseulos, fn($item) => $this->is_unmapped($item));
             $coursecards[] = [
                 'course' => $course->code,
-                'subtitle' => get_string('hier_courseframeworks', 'local_outcomemap',
-                    implode(', ', array_map(fn($fw) => $fw->code, $ownedfws))),
-                'frameworks' => array_map(fn($fw) => $this->framework_actions($fw, $canmanage),
-                    array_values($ownedfws)),
+                'subtitle' => get_string(
+                    'hier_courseframeworks',
+                    'local_outcomemap',
+                    implode(', ', array_map(fn($fw) => $fw->code, $ownedfws))
+                ),
+                'frameworks' => array_map(
+                    fn($fw) => $this->framework_actions($fw, $canmanage),
+                    array_values($ownedfws)
+                ),
                 'countline' => get_string('hier_coursecountline', 'local_outcomemap', (object) [
                     'clos' => count($courseclos), 'ulos' => count($courseulos),
                 ]),
                 'searchtext' => \core_text::strtolower($course->code . ' ' . $course->name),
-                'clos' => array_map(fn($clo) => $this->clo_row($clo, true, $canmanage, $canapprove),
-                    array_values($courseclos)),
+                'clos' => array_map(
+                    fn($clo) => $this->clo_row($clo, true, $canmanage, $canapprove),
+                    array_values($courseclos)
+                ),
                 'hasunmappedulos' => $unmappedulos !== [],
                 'unmappedcount' => count($unmappedulos),
-                'unmappedulos' => array_map(fn($ulo) => $this->ulo_row($ulo, $canmanage, $canapprove),
-                    array_values($unmappedulos)),
+                'unmappedulos' => array_map(
+                    fn($ulo) => $this->ulo_row($ulo, $canmanage, $canapprove),
+                    array_values($unmappedulos)
+                ),
             ];
         }
 
         // Unmapped-only view, grouped by catalog course.
-        $unmappeditems = array_filter($this->items,
-            fn($item) => $this->kind($item) !== 'program' && $this->is_unmapped($item));
+        $unmappeditems = array_filter(
+            $this->items,
+            fn($item) => $this->kind($item) !== 'program' && $this->is_unmapped($item)
+        );
         $unmappedgroups = [];
         foreach ($this->courses as $course) {
             $rows = [];
@@ -465,8 +531,10 @@ class outcomes_hierarchy implements renderable, templatable {
      */
     private function viewtabs(bool $ismatrix): array {
         $tabs = [];
-        foreach (['program' => 'hier_byprogram', 'course' => 'hier_bycourse',
-                self::VIEW_MATRIX => 'outcomes_matrixview'] as $id => $stringid) {
+        foreach (
+            ['program' => 'hier_byprogram', 'course' => 'hier_bycourse',
+                self::VIEW_MATRIX => 'outcomes_matrixview'] as $id => $stringid
+        ) {
             $islink = $ismatrix || $id === self::VIEW_MATRIX;
             $tabs[] = [
                 'id' => $id,
@@ -501,8 +569,10 @@ class outcomes_hierarchy implements renderable, templatable {
             'name' => format_string($framework->name),
             'statuslabel' => workflow::status_label($framework->status),
             'canedit' => $canmanage && ($isdraft || $isapproved),
-            'editlabel' => get_string($isapproved ? 'hier_frameworkrename' : 'editframework',
-                'local_outcomemap'),
+            'editlabel' => get_string(
+                $isapproved ? 'hier_frameworkrename' : 'editframework',
+                'local_outcomemap'
+            ),
             'editurl' => (new moodle_url($this->baseurl, [
                 'action' => 'editframework',
                 'id' => $id,
@@ -520,7 +590,9 @@ class outcomes_hierarchy implements renderable, templatable {
         ];
     }
 
-    /** Rows for the CSV export: type, framework, code, statement, maps to, version, status. */
+    /**
+     * Rows for the CSV export: type, framework, code, statement, maps to, version, status.
+     */
     public function csv_rows(): array {
         $rows = [[
             get_string('hier_csv_type', 'local_outcomemap'),
@@ -540,7 +612,8 @@ class outcomes_hierarchy implements renderable, templatable {
             foreach ($this->items_of_kind($kind) as $item) {
                 $mapsto = array_map(
                     fn($targetid) => isset($this->items[$targetid]) ? $this->label($this->items[$targetid]) : '',
-                    $this->mapsbysource[(int) $item->itemid] ?? []);
+                    $this->mapsbysource[(int) $item->itemid] ?? []
+                );
                 $mapsto = array_values(array_filter($mapsto));
                 sort($mapsto);
                 $rows[] = [
@@ -557,7 +630,9 @@ class outcomes_hierarchy implements renderable, templatable {
         return $rows;
     }
 
-    /** Current alignment target ids for one source item (latest relation versions, not retired). */
+    /**
+     * Current alignment target ids for one source item (latest relation versions, not retired).
+     */
     public static function current_targets(int $itemid): array {
         global $DB;
         $records = $DB->get_records_sql("

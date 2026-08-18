@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\local\service;
 
@@ -78,10 +86,12 @@ final class audit_lineage_service {
             throw new validation_exception('snapshotintegrityfailure', 'snapitem', $item->id);
         }
         $decoded = json_decode($item->payloadjson, true);
-        if (!is_array($decoded) || canonical_json::encode($decoded) !== $item->payloadjson
+        if (
+            !is_array($decoded) || canonical_json::encode($decoded) !== $item->payloadjson
                 || ($decoded['type'] ?? null) !== (string) $item->itemtype
                 || !is_array($decoded['identity'] ?? null)
-                || !is_array($decoded['index'] ?? null)) {
+                || !is_array($decoded['index'] ?? null)
+        ) {
             throw new validation_exception('snapshotintegrityfailure', 'snapitem', $item->id);
         }
         $stablekey = hash('sha256', canonical_json::encode([
@@ -107,8 +117,10 @@ final class audit_lineage_service {
         $comparablekeys = array_keys($comparable);
         sort($storedkeys);
         sort($comparablekeys);
-        if ($storedkeys !== $comparablekeys
-                || canonical_json::encode($comparable) !== canonical_json::encode($stored)) {
+        if (
+            $storedkeys !== $comparablekeys
+                || canonical_json::encode($comparable) !== canonical_json::encode($stored)
+        ) {
             throw new validation_exception('snapshotintegrityfailure', 'index', $item->id);
         }
         return [

@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\local\service;
 
@@ -20,27 +28,50 @@ use local_outcomemap\local\workflow;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class suppression_service {
-    /** Accreditation reporting policy type. */
+    /**
+     * Accreditation reporting policy type.
+     */
     public const POLICY_TYPE = policy_service::TYPE_ACCREDITATION;
 
-    /** Supported population sources. */
+    /**
+     * Supported population sources.
+     */
     public const POPULATION_ACTIVE_ENROLMENTS = 'active_enrolments_at_freeze';
+    /**
+     * Value for population moodle cohort.
+     */
     public const POPULATION_MOODLE_COHORT = 'moodle_cohort_at_freeze';
+    /**
+     * Value for population sources.
+     */
     public const POPULATION_SOURCES = [
         self::POPULATION_ACTIVE_ENROLMENTS,
         self::POPULATION_MOODLE_COHORT,
     ];
 
-    /** Supported privacy/retention decisions. */
+    /**
+     * Supported privacy/retention decisions.
+     */
     public const RETENTION_ANONYMISED = 'institutional_record_anonymised';
+    /**
+     * Value for retention privacy deletion.
+     */
     public const RETENTION_PRIVACY_DELETION = 'privacy_deletion';
+    /**
+     * Value for retention bases.
+     */
     public const RETENTION_BASES = [
         self::RETENTION_ANONYMISED,
         self::RETENTION_PRIVACY_DELETION,
     ];
 
-    /** Fixed arithmetic and correction semantics. */
+    /**
+     * Fixed arithmetic and correction semantics.
+     */
     public const AGGREGATION_METHOD = 'sum_numerators_denominators';
+    /**
+     * Value for correction method.
+     */
     public const CORRECTION_METHOD = 'new_snapshot_version';
 
     /**
@@ -59,8 +90,11 @@ final class suppression_service {
     public static function normalize_config(array $config): array {
         $threshold = filter_var($config['mincohortsize'] ?? null, FILTER_VALIDATE_INT);
         if ($threshold === false || (int) $threshold < 1) {
-            throw new validation_exception('invalidpolicyconfig', 'mincohortsize',
-                $config['mincohortsize'] ?? '');
+            throw new validation_exception(
+                'invalidpolicyconfig',
+                'mincohortsize',
+                $config['mincohortsize'] ?? ''
+            );
         }
         $achievement = self::require_percent($config['achievementminpercent'] ?? null, 'achievementminpercent');
         $benchmark = self::require_percent($config['benchmarkpercent'] ?? null, 'benchmarkpercent');
@@ -72,15 +106,25 @@ final class suppression_service {
         if (!in_array($retention, self::RETENTION_BASES, true)) {
             throw new validation_exception('invalidpolicyconfig', 'retentionbasis', $retention);
         }
-        if (isset($config['aggregationmethod'])
-                && $config['aggregationmethod'] !== self::AGGREGATION_METHOD) {
-            throw new validation_exception('invalidpolicyconfig', 'aggregationmethod',
-                $config['aggregationmethod']);
+        if (
+            isset($config['aggregationmethod'])
+                && $config['aggregationmethod'] !== self::AGGREGATION_METHOD
+        ) {
+            throw new validation_exception(
+                'invalidpolicyconfig',
+                'aggregationmethod',
+                $config['aggregationmethod']
+            );
         }
-        if (isset($config['correctionmethod'])
-                && $config['correctionmethod'] !== self::CORRECTION_METHOD) {
-            throw new validation_exception('invalidpolicyconfig', 'correctionmethod',
-                $config['correctionmethod']);
+        if (
+            isset($config['correctionmethod'])
+                && $config['correctionmethod'] !== self::CORRECTION_METHOD
+        ) {
+            throw new validation_exception(
+                'invalidpolicyconfig',
+                'correctionmethod',
+                $config['correctionmethod']
+            );
         }
         return [
             'mincohortsize' => (int) $threshold,
@@ -105,8 +149,10 @@ final class suppression_service {
             throw new validation_exception('invalidpolicyconfig', $field, '');
         }
         $canonical = decimal::require_canonical($value, $field);
-        if (decimal::cmp($canonical, decimal::ZERO) < 0
-                || decimal::cmp($canonical, decimal::canonical('100', $field)) > 0) {
+        if (
+            decimal::cmp($canonical, decimal::ZERO) < 0
+                || decimal::cmp($canonical, decimal::canonical('100', $field)) > 0
+        ) {
             throw new validation_exception('invalidpolicyconfig', $field, (string) $value);
         }
         return $canonical;
@@ -125,10 +171,12 @@ final class suppression_service {
     public static function resolve(int $programid, ?int $at = null): ?\stdClass {
         global $DB;
         $at = $at ?? time();
-        foreach ([
+        foreach (
+            [
             [policy_service::SCOPE_PROGRAM, $programid],
             [policy_service::SCOPE_INSTITUTION, null],
-        ] as [$scopetype, $scopeid]) {
+            ] as [$scopetype, $scopeid]
+        ) {
             $select = 'policytype = :policytype AND scopetype = :scopetype AND status = :status
                 AND effectivefrom <= :at1 AND (effectiveto IS NULL OR effectiveto > :at2)';
             $params = [
@@ -144,8 +192,15 @@ final class suppression_service {
                 $select .= ' AND scopeid = :scopeid';
                 $params['scopeid'] = $scopeid;
             }
-            $records = $DB->get_records_select('local_outcomemap_policy', $select, $params,
-                'version DESC, id DESC', '*', 0, 1);
+            $records = $DB->get_records_select(
+                'local_outcomemap_policy',
+                $select,
+                $params,
+                'version DESC, id DESC',
+                '*',
+                0,
+                1
+            );
             if ($records) {
                 $policy = reset($records);
                 $policy->config = self::normalize_config(json_decode($policy->configjson, true) ?? []);

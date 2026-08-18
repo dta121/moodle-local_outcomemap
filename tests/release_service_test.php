@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap;
 
@@ -44,7 +52,7 @@ final class release_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests scheduled and governed manual release timestamps.
+     * * Tests scheduled and governed manual release timestamps.
      */
     public function test_scheduled_and_manual_release_respect_time_and_access(): void {
         $scheduled = $this->policy(policy_service::RELEASE_SCHEDULED, ['releaseat' => 500]);
@@ -75,7 +83,7 @@ final class release_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests learner-specific grade visibility and quiz-close decisions.
+     * * Tests learner-specific grade visibility and quiz-close decisions.
      */
     public function test_grade_visible_and_quiz_closed_require_every_assessment(): void {
         $scope = [
@@ -122,7 +130,7 @@ final class release_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests fully-graded release with real unfinished and manually graded essay usages.
+     * * Tests fully-graded release with real unfinished and manually graded essay usages.
      */
     public function test_fully_graded_requires_finished_loadable_graded_usages(): void {
         global $DB;
@@ -147,7 +155,7 @@ final class release_service_test extends \advanced_testcase {
         $student = $this->getDataGenerator()->create_user();
         $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
 
-        $createattempt = function(int $attemptnumber, bool $grade) use ($DB, $quiz, $student): \stdClass {
+        $createattempt = function (int $attemptnumber, bool $grade) use ($DB, $quiz, $student): \stdClass {
             $timenow = time() + ($attemptnumber * 100);
             $quizobj = quiz_settings::create($quiz->id, $student->id);
             $usage = \question_engine::make_questions_usage_by_activity('mod_quiz', $quizobj->get_context());

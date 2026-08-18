@@ -29,7 +29,7 @@ use local_outcomemap\local\uuid;
 use local_outcomemap\local\workflow;
 
 /**
- * Restores outcome mapping records as unconfirmed drafts.
+ * * Restores outcome mapping records as unconfirmed drafts.
  */
 final class mapping_restorer {
     /**
@@ -190,8 +190,7 @@ final class mapping_restorer {
         if (!$itemverid || !$DB->record_exists('local_outcomemap_cinst', ['id' => $cinstid])) {
             return null;
         }
-        $externalurl = $targettype === 'external_url'
-            ? clean_param((string) ($data->externalurl ?? ''), PARAM_URL) : null;
+        $externalurl = $targettype === 'external_url' ? clean_param((string) ($data->externalurl ?? ''), PARAM_URL) : null;
         if ($targettype === 'external_url') {
             $scheme = strtolower((string) parse_url($externalurl, PHP_URL_SCHEME));
             $host = (string) parse_url($externalurl, PHP_URL_HOST);

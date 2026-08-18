@@ -28,7 +28,7 @@ use local_outcomemap\local\validation_exception;
  */
 final class decimal_test extends \basic_testcase {
     /**
-     * Tests canonical parsing and rejection rules.
+     * * Tests canonical parsing and rejection rules.
      */
     public function test_canonical_parsing(): void {
         $this->assertSame('0.5000000000', decimal::canonical('0.5'));
@@ -52,7 +52,7 @@ final class decimal_test extends \basic_testcase {
     }
 
     /**
-     * Tests signed addition and subtraction.
+     * * Tests signed addition and subtraction.
      */
     public function test_signed_addition(): void {
         $this->assertSame('1.0000000000', decimal::add('0.9999999999', '0.0000000001'));
@@ -64,7 +64,7 @@ final class decimal_test extends \basic_testcase {
     }
 
     /**
-     * Tests multiplication with exact intermediate precision.
+     * * Tests multiplication with exact intermediate precision.
      */
     public function test_multiplication(): void {
         $this->assertSame('0.1250000000', decimal::mul('0.5', '0.25'));
@@ -79,7 +79,7 @@ final class decimal_test extends \basic_testcase {
     }
 
     /**
-     * Tests repeating division and the half-away-from-zero guard digit.
+     * * Tests repeating division and the half-away-from-zero guard digit.
      */
     public function test_division(): void {
         $this->assertSame('0.3333333333', decimal::div('1', '3'));
@@ -97,7 +97,7 @@ final class decimal_test extends \basic_testcase {
     }
 
     /**
-     * Tests comparison including sign handling.
+     * * Tests comparison including sign handling.
      */
     public function test_comparison(): void {
         $this->assertSame(0, decimal::cmp('85', '85.0000000000'));
@@ -110,7 +110,7 @@ final class decimal_test extends \basic_testcase {
     }
 
     /**
-     * Tests display quantization at policy boundaries.
+     * * Tests display quantization at policy boundaries.
      */
     public function test_quantize(): void {
         $this->assertSame('85.1000000000', decimal::quantize('85.0500000000', 1));

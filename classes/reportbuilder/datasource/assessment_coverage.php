@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\reportbuilder\datasource;
 
@@ -36,12 +44,18 @@ use local_outcomemap\reportbuilder\local\secured_datasource;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class assessment_coverage extends secured_datasource {
-    /** @return string */
+    /**
+     * Returns the report source name.
+     * @return string
+     */
     public static function get_name(): string {
         return get_string('report_source_assessment_coverage', 'local_outcomemap');
     }
 
-    /** @return string[] */
+    /**
+     * Returns the capabilities required to access the source.
+     * @return string[]
+     */
     protected static function get_required_capabilities(): array {
         return [
             'local/outcomemap:viewdefinitions',
@@ -49,7 +63,10 @@ final class assessment_coverage extends secured_datasource {
         ];
     }
 
-    /** @return string[] */
+    /**
+     * Returns the alternative capabilities accepted by the source.
+     * @return string[]
+     */
     protected static function get_any_capabilities(): array {
         return [
             'moodle/question:viewall',
@@ -101,13 +118,18 @@ final class assessment_coverage extends secured_datasource {
         return $cache[$questioncapability];
     }
 
-    /** @return bool */
+    /**
+     * Checks whether the current user can view the scoped source.
+     * @return bool
+     */
     protected static function can_view_scoped(): bool {
         return self::allowed_question_context_ids('moodle/question:viewall') !== []
             || self::allowed_question_context_ids('moodle/question:viewmine') !== [];
     }
 
-    /** Build the source. */
+    /**
+     * Build the source.
+     */
     protected function initialise_source(): void {
         global $DB, $USER;
 
@@ -232,85 +254,234 @@ final class assessment_coverage extends secured_datasource {
         $catalogcoursename = "COALESCE({$observedcourse}.name, {$ownercourse}.name)";
 
         $entity
-            ->define_column('recordid', new lang_string('reportcolumn_recordid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$mapping}.id"])
-            ->define_column('mappinguuid', new lang_string('uuid', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$mapping}.mappinguuid"])
-            ->define_column('mappingversion', new lang_string('version', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$mapping}.version"])
-            ->define_column('mappingrole', new lang_string('mappingrole', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$mapping}.role"])
-            ->define_column('mappingweight', new lang_string('mappingweight', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$mapping}.weight"], true, null, [], true)
-            ->define_column('mappingstatus', new lang_string('status', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$mapping}.status"])
-            ->define_column('questionversionid', new lang_string('question_version', 'question'),
-                column::TYPE_INTEGER, ["{$questionversion}.id"])
-            ->define_column('questionversion', new lang_string('version', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$questionversion}.version"])
-            ->define_column('questionid', new lang_string('question'),
-                column::TYPE_INTEGER, ["{$question}.id"])
-            ->define_column('questionname', new lang_string('questionname', 'question'),
-                column::TYPE_TEXT, ["{$question}.name"])
-            ->define_column('questioncategory', new lang_string('category', 'question'),
-                column::TYPE_TEXT, ["{$category}.name"])
-            ->define_column('outcomeversionid',
+            ->define_column(
+                'recordid',
+                new lang_string('reportcolumn_recordid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$mapping}.id"]
+            )
+            ->define_column(
+                'mappinguuid',
+                new lang_string('uuid', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$mapping}.mappinguuid"]
+            )
+            ->define_column(
+                'mappingversion',
+                new lang_string('version', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$mapping}.version"]
+            )
+            ->define_column(
+                'mappingrole',
+                new lang_string('mappingrole', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$mapping}.role"]
+            )
+            ->define_column(
+                'mappingweight',
+                new lang_string('mappingweight', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$mapping}.weight"],
+                true,
+                null,
+                [],
+                true
+            )
+            ->define_column(
+                'mappingstatus',
+                new lang_string('status', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$mapping}.status"]
+            )
+            ->define_column(
+                'questionversionid',
+                new lang_string('question_version', 'question'),
+                column::TYPE_INTEGER,
+                ["{$questionversion}.id"]
+            )
+            ->define_column(
+                'questionversion',
+                new lang_string('version', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$questionversion}.version"]
+            )
+            ->define_column(
+                'questionid',
+                new lang_string('question'),
+                column::TYPE_INTEGER,
+                ["{$question}.id"]
+            )
+            ->define_column(
+                'questionname',
+                new lang_string('questionname', 'question'),
+                column::TYPE_TEXT,
+                ["{$question}.name"]
+            )
+            ->define_column(
+                'questioncategory',
+                new lang_string('category', 'question'),
+                column::TYPE_TEXT,
+                ["{$category}.name"]
+            )
+            ->define_column(
+                'outcomeversionid',
                 new lang_string('reportcolumn_outcomeversionid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$outcomeversion}.id"])
-            ->define_column('outcomecode', new lang_string('outcome', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$outcome}.code"])
-            ->define_column('outcomestatement', new lang_string('statement', 'local_outcomemap'),
-                column::TYPE_LONGTEXT, ["{$outcomeversion}.statement"])
-            ->define_column('programid', new lang_string('reportcolumn_programid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['programid' => $programid])
-            ->define_column('programcode', new lang_string('program', 'local_outcomemap'),
-                column::TYPE_TEXT, ['programcode' => $programcode])
-            ->define_column('catalogcourseid',
+                column::TYPE_INTEGER,
+                ["{$outcomeversion}.id"]
+            )
+            ->define_column(
+                'outcomecode',
+                new lang_string('outcome', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$outcome}.code"]
+            )
+            ->define_column(
+                'outcomestatement',
+                new lang_string('statement', 'local_outcomemap'),
+                column::TYPE_LONGTEXT,
+                ["{$outcomeversion}.statement"]
+            )
+            ->define_column(
+                'programid',
+                new lang_string('reportcolumn_programid', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ['programid' => $programid]
+            )
+            ->define_column(
+                'programcode',
+                new lang_string('program', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['programcode' => $programcode]
+            )
+            ->define_column(
+                'catalogcourseid',
                 new lang_string('reportcolumn_catalogcourseid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ['catalogcourseid' => $catalogcourseid])
-            ->define_column('catalogcoursecode', new lang_string('catalogcourse', 'local_outcomemap'),
-                column::TYPE_TEXT, ['catalogcoursecode' => $catalogcoursecode])
-            ->define_column('catalogcoursename', new lang_string('name', 'local_outcomemap'),
-                column::TYPE_TEXT, ['catalogcoursename' => $catalogcoursename])
-            ->define_column('moodlecourseid',
+                column::TYPE_INTEGER,
+                ['catalogcourseid' => $catalogcourseid]
+            )
+            ->define_column(
+                'catalogcoursecode',
+                new lang_string('catalogcourse', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['catalogcoursecode' => $catalogcoursecode]
+            )
+            ->define_column(
+                'catalogcoursename',
+                new lang_string('name', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ['catalogcoursename' => $catalogcoursename]
+            )
+            ->define_column(
+                'moodlecourseid',
                 new lang_string('reportcolumn_moodlecourseid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$moodlecourse}.id"])
-            ->define_column('moodlecoursename', new lang_string('moodlecourse', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$moodlecourse}.fullname"])
-            ->define_column('periodcode', new lang_string('periodcode', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$courseinstance}.periodcode"])
-            ->define_column('assessmentid',
+                column::TYPE_INTEGER,
+                ["{$moodlecourse}.id"]
+            )
+            ->define_column(
+                'moodlecoursename',
+                new lang_string('moodlecourse', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$moodlecourse}.fullname"]
+            )
+            ->define_column(
+                'periodcode',
+                new lang_string('periodcode', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$courseinstance}.periodcode"]
+            )
+            ->define_column(
+                'assessmentid',
                 new lang_string('reportcolumn_assessmentid', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$coursemodule}.id"])
-            ->define_column('assessmentname', new lang_string('assessment', 'local_outcomemap'),
-                column::TYPE_TEXT, ["{$quiz}.name"])
-            ->define_column('evidencecount', new lang_string('itemcount', 'local_outcomemap'),
-                column::TYPE_INTEGER, ["{$observed}.evidencecount"], true, null, [], true)
-            ->define_filter('programid', new lang_string('program', 'local_outcomemap'),
-                number::class, $programid)
-            ->define_filter('catalogcourseid', new lang_string('catalogcourse', 'local_outcomemap'),
-                number::class, $catalogcourseid)
-            ->define_filter('moodlecourseid', new lang_string('moodlecourse', 'local_outcomemap'),
-                course_selector::class, "{$moodlecourse}.id")
-            ->define_filter('periodcode', new lang_string('periodcode', 'local_outcomemap'),
-                text::class, "{$courseinstance}.periodcode")
-            ->define_filter('assessmentid', new lang_string('assessment', 'local_outcomemap'),
-                number::class, "{$coursemodule}.id")
-            ->define_filter('questionversionid', new lang_string('question_version', 'question'),
-                number::class, "{$questionversion}.id")
-            ->define_filter('outcomeversionid', new lang_string('outcomeversion', 'local_outcomemap'),
-                number::class, "{$outcomeversion}.id")
-            ->define_filter('outcomecode', new lang_string('outcome', 'local_outcomemap'),
-                text::class, "{$outcome}.code")
-            ->define_filter('mappingrole', new lang_string('mappingrole', 'local_outcomemap'),
-                select::class, "{$mapping}.role", filter_options::mapping_roles())
-            ->define_filter('mappingstatus', new lang_string('status', 'local_outcomemap'),
-                select::class, "{$mapping}.status", filter_options::workflow_states());
+                column::TYPE_INTEGER,
+                ["{$coursemodule}.id"]
+            )
+            ->define_column(
+                'assessmentname',
+                new lang_string('assessment', 'local_outcomemap'),
+                column::TYPE_TEXT,
+                ["{$quiz}.name"]
+            )
+            ->define_column(
+                'evidencecount',
+                new lang_string('itemcount', 'local_outcomemap'),
+                column::TYPE_INTEGER,
+                ["{$observed}.evidencecount"],
+                true,
+                null,
+                [],
+                true
+            )
+            ->define_filter(
+                'programid',
+                new lang_string('program', 'local_outcomemap'),
+                number::class,
+                $programid
+            )
+            ->define_filter(
+                'catalogcourseid',
+                new lang_string('catalogcourse', 'local_outcomemap'),
+                number::class,
+                $catalogcourseid
+            )
+            ->define_filter(
+                'moodlecourseid',
+                new lang_string('moodlecourse', 'local_outcomemap'),
+                course_selector::class,
+                "{$moodlecourse}.id"
+            )
+            ->define_filter(
+                'periodcode',
+                new lang_string('periodcode', 'local_outcomemap'),
+                text::class,
+                "{$courseinstance}.periodcode"
+            )
+            ->define_filter(
+                'assessmentid',
+                new lang_string('assessment', 'local_outcomemap'),
+                number::class,
+                "{$coursemodule}.id"
+            )
+            ->define_filter(
+                'questionversionid',
+                new lang_string('question_version', 'question'),
+                number::class,
+                "{$questionversion}.id"
+            )
+            ->define_filter(
+                'outcomeversionid',
+                new lang_string('outcomeversion', 'local_outcomemap'),
+                number::class,
+                "{$outcomeversion}.id"
+            )
+            ->define_filter(
+                'outcomecode',
+                new lang_string('outcome', 'local_outcomemap'),
+                text::class,
+                "{$outcome}.code"
+            )
+            ->define_filter(
+                'mappingrole',
+                new lang_string('mappingrole', 'local_outcomemap'),
+                select::class,
+                "{$mapping}.role",
+                filter_options::mapping_roles()
+            )
+            ->define_filter(
+                'mappingstatus',
+                new lang_string('status', 'local_outcomemap'),
+                select::class,
+                "{$mapping}.status",
+                filter_options::workflow_states()
+            );
 
         $this->register_entity($entity, 'local_outcomemap_qmap');
     }
 
-    /** @return string[] */
+    /**
+     * Returns the default report columns.
+     * @return string[]
+     */
     public function get_default_columns(): array {
         return [
             'outcomemap:programcode',
@@ -326,7 +497,10 @@ final class assessment_coverage extends secured_datasource {
         ];
     }
 
-    /** @return string[] */
+    /**
+     * Returns the default report filters.
+     * @return string[]
+     */
     public function get_default_filters(): array {
         return [
             'outcomemap:programid',

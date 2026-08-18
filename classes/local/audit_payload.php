@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace local_outcomemap\local;
 
@@ -22,7 +30,9 @@ namespace local_outcomemap\local;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class audit_payload {
-    /** Direct Moodle-user reference fields removed at every nesting level. */
+    /**
+     * Direct Moodle-user reference fields removed at every nesting level.
+     */
     private const USER_REFERENCE_KEYS = [
         'userid',
         'userids',
@@ -33,7 +43,9 @@ final class audit_payload {
         'actorid',
     ];
 
-    /** Non-personal transition fields retained for learner-owned objects. */
+    /**
+     * Non-personal transition fields retained for learner-owned objects.
+     */
     private const LEARNER_SUMMARY_FIELDS = [
         'evidence' => [
             'cinstid',
@@ -112,7 +124,9 @@ final class audit_payload {
         return self::remove_user_references($value);
     }
 
-    /** Convert nested objects to arrays without changing scalar values. */
+    /**
+     * Convert nested objects to arrays without changing scalar values.
+     */
     private static function to_structure($value) {
         if (is_object($value)) {
             $value = get_object_vars($value);
@@ -126,7 +140,9 @@ final class audit_payload {
         return $value;
     }
 
-    /** Remove direct user-reference keys recursively. */
+    /**
+     * Remove direct user-reference keys recursively.
+     */
     private static function remove_user_references($value) {
         if (!is_array($value)) {
             return $value;

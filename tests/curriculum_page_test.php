@@ -33,7 +33,9 @@ use local_outcomemap\output\curriculum_page;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class curriculum_page_test extends \advanced_testcase {
-    /** @var int Fixed reference time for delivery-window assertions. */
+    /**
+     * @var int Fixed reference time for delivery-window assertions.
+     */
     private const NOW = 1785110400;
 
     /**
@@ -111,7 +113,7 @@ final class curriculum_page_test extends \advanced_testcase {
     }
 
     /**
-     * The page joins a program to its courses and each course to its delivery.
+     * * The page joins a program to its courses and each course to its delivery.
      */
     public function test_export_joins_programs_courses_and_delivery(): void {
         $this->resetAfterTest(true);
@@ -139,8 +141,11 @@ final class curriculum_page_test extends \advanced_testcase {
         $this->assertSame(2, $context['sidebar'][0]['rows'][0]['coursecount']);
 
         $courses = array_column($context['courses'], null, 'code');
-        $this->assertSame(['MBA601', 'MBA699'], array_keys($courses),
-            'Courses are listed in catalog code order.');
+        $this->assertSame(
+            ['MBA601', 'MBA699'],
+            array_keys($courses),
+            'Courses are listed in catalog code order.'
+        );
 
         $this->assertTrue($courses['MBA601']['hasoutcomes']);
         $this->assertTrue($courses['MBA601']['hasinstances']);
@@ -150,14 +155,19 @@ final class curriculum_page_test extends \advanced_testcase {
         $this->assertArrayHasKey('coverageurl', $courses['MBA601']['instances'][0]);
 
         $this->assertFalse($courses['MBA699']['hasoutcomes']);
-        $this->assertFalse($courses['MBA699']['hasinstances'],
-            'A course with no Moodle association captures no evidence.');
-        $this->assertSame('ended', $courses['MBA699']['stateclass'],
-            'A course nothing delivers must not read as in delivery.');
+        $this->assertFalse(
+            $courses['MBA699']['hasinstances'],
+            'A course with no Moodle association captures no evidence.'
+        );
+        $this->assertSame(
+            'ended',
+            $courses['MBA699']['stateclass'],
+            'A course nothing delivers must not read as in delivery.'
+        );
     }
 
     /**
-     * The attention fact names the two things that stop a program reporting.
+     * * The attention fact names the two things that stop a program reporting.
      */
     public function test_export_flags_unconfirmed_delivery_and_missing_outcomes(): void {
         $this->resetAfterTest(true);
@@ -228,7 +238,7 @@ final class curriculum_page_test extends \advanced_testcase {
     }
 
     /**
-     * A retired membership no longer claims the course for its program.
+     * * A retired membership no longer claims the course for its program.
      */
     public function test_export_ignores_retired_memberships(): void {
         global $DB;
@@ -242,19 +252,26 @@ final class curriculum_page_test extends \advanced_testcase {
             'programtype' => program_service::TYPE_UNDERGRADUATE,
         ]);
         $courseid = $this->attach($programid, 'BUS101', 'Introduction to Business');
-        $DB->set_field('local_outcomemap_progcourse', 'status', workflow::RETIRED,
-            ['programid' => $programid, 'courseid' => $courseid]);
+        $DB->set_field(
+            'local_outcomemap_progcourse',
+            'status',
+            workflow::RETIRED,
+            ['programid' => $programid, 'courseid' => $courseid]
+        );
 
         $context = $this->export($programid);
-        $this->assertSame([], $context['courses'],
-            'A retired membership must not keep the course in the program.');
+        $this->assertSame(
+            [],
+            $context['courses'],
+            'A retired membership must not keep the course in the program.'
+        );
         $this->assertSame(0, $context['sidebar'][0]['rows'][0]['coursecount']);
         // The course is not lost: it is offered back for attachment.
         $this->assertSame(['BUS101'], array_column($context['attachable'], 'code'));
     }
 
     /**
-     * With no programs the page says so instead of rendering an empty column.
+     * * With no programs the page says so instead of rendering an empty column.
      */
     public function test_export_reports_an_empty_curriculum(): void {
         $this->resetAfterTest(true);
@@ -293,24 +310,35 @@ final class curriculum_page_test extends \advanced_testcase {
 
         $context = $this->export($programid);
 
-        $this->assertSame(get_string('curriculum_addframework', 'local_outcomemap'),
-            $context['outcomeslabel']);
+        $this->assertSame(
+            get_string('curriculum_addframework', 'local_outcomemap'),
+            $context['outcomeslabel']
+        );
         $this->assertStringContainsString('action=addframework', $context['outcomesurl']);
-        $this->assertStringContainsString('ownertype=' . framework_service::OWNER_PROGRAM,
-            $context['outcomesurl']);
-        $this->assertStringContainsString('ownerid=' . $programid, $context['outcomesurl'],
-            'The program travels with the link so the form does not ask for it again.');
+        $this->assertStringContainsString(
+            'ownertype=' . framework_service::OWNER_PROGRAM,
+            $context['outcomesurl']
+        );
+        $this->assertStringContainsString(
+            'ownerid=' . $programid,
+            $context['outcomesurl'],
+            'The program travels with the link so the form does not ask for it again.'
+        );
 
         $card = $context['courses'][0];
-        $this->assertSame(get_string('curriculum_addframework', 'local_outcomemap'),
-            $card['outcomeslabel']);
-        $this->assertStringContainsString('ownertype=' . framework_service::OWNER_COURSE,
-            $card['outcomesurl']);
+        $this->assertSame(
+            get_string('curriculum_addframework', 'local_outcomemap'),
+            $card['outcomeslabel']
+        );
+        $this->assertStringContainsString(
+            'ownertype=' . framework_service::OWNER_COURSE,
+            $card['outcomesurl']
+        );
         $this->assertStringContainsString('ownerid=' . $courseid, $card['outcomesurl']);
     }
 
     /**
-     * An owner that already has a framework is sent to the view that lists it.
+     * * An owner that already has a framework is sent to the view that lists it.
      */
     public function test_export_browses_the_hierarchy_once_a_framework_exists(): void {
         $this->resetAfterTest(true);
@@ -333,20 +361,27 @@ final class curriculum_page_test extends \advanced_testcase {
 
         $context = $this->export($programid);
 
-        $this->assertSame(get_string('curriculum_programoutcomes', 'local_outcomemap'),
-            $context['outcomeslabel']);
+        $this->assertSame(
+            get_string('curriculum_programoutcomes', 'local_outcomemap'),
+            $context['outcomeslabel']
+        );
         $this->assertStringNotContainsString('addframework', $context['outcomesurl']);
         $this->assertStringContainsString('view=program', $context['outcomesurl']);
 
         $card = $context['courses'][0];
-        $this->assertSame(get_string('curriculum_courseoutcomes', 'local_outcomemap'),
-            $card['outcomeslabel']);
-        $this->assertStringContainsString('view=course', $card['outcomesurl'],
-            'A course-owned framework is only ever listed under its course.');
+        $this->assertSame(
+            get_string('curriculum_courseoutcomes', 'local_outcomemap'),
+            $card['outcomeslabel']
+        );
+        $this->assertStringContainsString(
+            'view=course',
+            $card['outcomesurl'],
+            'A course-owned framework is only ever listed under its course.'
+        );
     }
 
     /**
-     * A reader who may not create frameworks is not offered one.
+     * * A reader who may not create frameworks is not offered one.
      */
     public function test_export_does_not_offer_a_framework_without_the_capability(): void {
         $this->resetAfterTest(true);
@@ -366,10 +401,15 @@ final class curriculum_page_test extends \advanced_testcase {
         $this->setUser($reader);
 
         $context = $this->export($programid);
-        $this->assertStringNotContainsString('addframework', $context['outcomesurl'],
-            'The frameworks page would refuse the action, so it must not be offered.');
-        $this->assertSame(get_string('curriculum_programoutcomes', 'local_outcomemap'),
-            $context['outcomeslabel']);
+        $this->assertStringNotContainsString(
+            'addframework',
+            $context['outcomesurl'],
+            'The frameworks page would refuse the action, so it must not be offered.'
+        );
+        $this->assertSame(
+            get_string('curriculum_programoutcomes', 'local_outcomemap'),
+            $context['outcomeslabel']
+        );
     }
 
     /**
@@ -394,8 +434,11 @@ final class curriculum_page_test extends \advanced_testcase {
         $context = $this->export($programid);
         $card = $context['courses'][0];
 
-        $this->assertStringContainsString('courseid=' . $courseid, $card['addinstanceurl'],
-            'The card asks about its own course, not whichever one sorts first.');
+        $this->assertStringContainsString(
+            'courseid=' . $courseid,
+            $card['addinstanceurl'],
+            'The card asks about its own course, not whichever one sorts first.'
+        );
         $this->assertStringContainsString('returnprogram=' . $programid, $card['addinstanceurl']);
         // The page-level action has no one course, but still comes back here.
         $this->assertStringNotContainsString('courseid=', $context['addinstanceurl']);
@@ -403,7 +446,7 @@ final class curriculum_page_test extends \advanced_testcase {
     }
 
     /**
-     * An unknown program falls back to the first rather than showing nothing.
+     * * An unknown program falls back to the first rather than showing nothing.
      */
     public function test_export_falls_back_to_the_first_program(): void {
         $this->resetAfterTest(true);

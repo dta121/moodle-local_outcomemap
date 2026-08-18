@@ -37,13 +37,19 @@ use local_outcomemap\local\uuid;
  * @covers     \local_outcomemap\form\snapshot_form
  */
 final class snapshot_form_test extends \advanced_testcase {
-    /** @var int Approved program owning the membership. */
+    /**
+     * @var int Approved program owning the membership.
+     */
     private int $programid;
 
-    /** @var int Approved catalog course. */
+    /**
+     * @var int Approved catalog course.
+     */
     private int $catalogcourseid;
 
-    /** @var string Period code that resolves to a course instance. */
+    /**
+     * @var string Period code that resolves to a course instance.
+     */
     private string $period = '2026-T1';
 
     protected function setUp(): void {
@@ -147,7 +153,9 @@ final class snapshot_form_test extends \advanced_testcase {
         ], []);
     }
 
-    /** Insert a frozen capture for the resolving period. */
+    /**
+     * Insert a frozen capture for the resolving period.
+     */
     private function freeze_existing(): int {
         global $DB;
         $now = time();
@@ -181,7 +189,7 @@ final class snapshot_form_test extends \advanced_testcase {
     }
 
     /**
-     * Only periods that resolve to an approved, confirmed instance are offered.
+     * * Only periods that resolve to an approved, confirmed instance are offered.
      */
     public function test_period_choices_offer_only_resolving_periods(): void {
         global $CFG;
@@ -189,46 +197,64 @@ final class snapshot_form_test extends \advanced_testcase {
         $periods = \local_outcomemap_snapshot_periods();
 
         $this->assertArrayHasKey($this->programid, $periods);
-        $this->assertSame([$this->period => 1], $periods[$this->programid],
-            'The period must be listed once, with its course-instance count.');
+        $this->assertSame(
+            [$this->period => 1],
+            $periods[$this->programid],
+            'The period must be listed once, with its course-instance count.'
+        );
     }
 
     /**
-     * A period no instance carries is refused by the form, not by the service.
+     * * A period no instance carries is refused by the form, not by the service.
      */
     public function test_unresolved_period_is_a_form_error(): void {
         $errors = $this->errors(['periodcode' => '2026']);
 
-        $this->assertArrayHasKey('periodcode', $errors,
-            'An academic year no instance carries must be caught before create_draft().');
-        $this->assertStringContainsString($this->period, $errors['periodcode'],
-            'The error must name the periods that would work.');
+        $this->assertArrayHasKey(
+            'periodcode',
+            $errors,
+            'An academic year no instance carries must be caught before create_draft().'
+        );
+        $this->assertStringContainsString(
+            $this->period,
+            $errors['periodcode'],
+            'The error must name the periods that would work.'
+        );
     }
 
     /**
-     * A period that resolves and is not yet captured validates.
+     * * A period that resolves and is not yet captured validates.
      */
     public function test_resolving_uncaptured_period_validates(): void {
-        $this->assertSame([], $this->errors([]),
-            'The one submission that should succeed must not be blocked.');
+        $this->assertSame(
+            [],
+            $this->errors([]),
+            'The one submission that should succeed must not be blocked.'
+        );
     }
 
     /**
-     * A period already captured is refused, and points at the correction action.
+     * * A period already captured is refused, and points at the correction action.
      */
     public function test_already_captured_period_is_refused(): void {
         $existing = $this->freeze_existing();
 
         $errors = $this->errors([]);
 
-        $this->assertArrayHasKey('periodcode', $errors,
-            'A second version-one lineage for one period must not be creatable here.');
-        $this->assertStringContainsString((string) $existing, $errors['periodcode'],
-            'The error must identify the capture that already holds the period.');
+        $this->assertArrayHasKey(
+            'periodcode',
+            $errors,
+            'A second version-one lineage for one period must not be creatable here.'
+        );
+        $this->assertStringContainsString(
+            (string) $existing,
+            $errors['periodcode'],
+            'The error must identify the capture that already holds the period.'
+        );
     }
 
     /**
-     * Correcting an existing capture is exempt: that is the supported route.
+     * * Correcting an existing capture is exempt: that is the supported route.
      */
     public function test_correction_is_not_blocked_by_the_existing_capture(): void {
         $existing = $this->freeze_existing();
@@ -238,12 +264,15 @@ final class snapshot_form_test extends \advanced_testcase {
             'correctionreason' => 'Recomputed after a mapping correction.',
         ], $this->period, true);
 
-        $this->assertSame([], $errors,
-            'The duplicate guard must not block the correction it recommends.');
+        $this->assertSame(
+            [],
+            $errors,
+            'The duplicate guard must not block the correction it recommends.'
+        );
     }
 
     /**
-     * A correction still has to say why, which was already true and must stay true.
+     * * A correction still has to say why, which was already true and must stay true.
      */
     public function test_correction_without_a_reason_is_still_refused(): void {
         $existing = $this->freeze_existing();
