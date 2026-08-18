@@ -21,7 +21,7 @@ Feature: Governed accreditation reporting
   Scenario: A snapshot creator and independent reviewer complete the export workflow
     Given I log in as "admin"
     And I navigate to "Learning outcome mapping > Accreditation snapshots" in site administration
-    And I press "Create snapshot draft"
+    And I click on "Create snapshot draft" "link"
     And I set the following fields to these values:
       | Program               | M6-PROGRAM — M6 reporting program                     |
       | Reporting period code | 2026-T1                                                |
@@ -42,9 +42,9 @@ Feature: Governed accreditation reporting
     And I should see "Suppression threshold"
     And I should see "Payload hash"
     And I should see "Manifest hash"
-    And the "Canonical JSON package" "button" should exist
-    And the "Summary CSV" "button" should exist
-    And the "Include de-identified subject evidence" "button" should exist
+    And "Canonical JSON package" "button" should exist
+    And "Summary CSV" "button" should exist
+    And "Include de-identified subject evidence" "button" should exist
     And the latest frozen accreditation export for "reviewer" reconstructs "85.0000000000" percent
 
   Scenario: Authorized staff can discover every governed Report Builder source
@@ -58,4 +58,4 @@ Feature: Governed accreditation reporting
     And I should see "Program aggregates"
     And I should see "Remediation recommendations and engagement"
     And I should see "Mapping, calculation, and snapshot audit history"
-    And the "Open custom reports" "button" should exist
+    And "Open custom reports" "button" should exist
