@@ -29,15 +29,16 @@ Feature: Governed accreditation reporting
       | Reviewer notes        | Baseline accreditation evidence for independent review |
     When I press "Create snapshot draft"
     Then I should see "The snapshot draft was created."
-    And I should see "Draft" in the "M6-PROGRAM" "table_row"
+    And I should see "M6-PROGRAM" in the ".lom-snapshot-group" "css_element"
+    And I should see "Draft" in the ".lom-snapshot-group" "css_element"
     And I log out
     And I log in as "reviewer"
     And I navigate to "Learning outcome mapping > Accreditation snapshots" in site administration
-    And I click on "Freeze snapshot" "link" in the "M6-PROGRAM" "table_row"
+    And I click on "Freeze snapshot" "link" in the ".lom-snapshot-group" "css_element"
     And I press "Continue"
     Then I should see "The snapshot was verified and frozen."
-    And I should see "Frozen" in the "M6-PROGRAM" "table_row"
-    When I click on "View" "link" in the "M6-PROGRAM" "table_row"
+    And I should see "Frozen" in the ".lom-snapshot-group" "css_element"
+    When I click on "View" "link" in the ".lom-snapshot-group" "css_element"
     Then I should see "Population size"
     And I should see "Suppression threshold"
     And I should see "Payload hash"

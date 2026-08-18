@@ -15,13 +15,13 @@ Feature: Administrators govern frameworks and outcome versions
   Scenario: A framework and outcome are created and independently approved
     Given I log in as "admin"
     And I navigate to "Learning outcome mapping > Outcomes & alignment" in site administration
-    And I click on "Add framework" "button"
+    And I click on "Add framework" "link"
     And I set the following fields to these values:
       | Code       | MBA614          |
       | Name       | MBA614 outcomes |
       | Owner type | Institution     |
     And I press "Save changes"
-    And I click on "Submit for review" "link" in the "MBA614" "table_row"
+    And I click on "Submit for review" "link" in the ".lom-fwbar" "css_element"
     And I log out
     And I log in as "reviewer"
     And I navigate to "Learning outcome mapping > Approval queue" in site administration
@@ -30,14 +30,14 @@ Feature: Administrators govern frameworks and outcome versions
     And I log out
     And I log in as "admin"
     And I navigate to "Learning outcome mapping > Outcomes & alignment" in site administration
-    And I click on "Add outcome" "button"
+    And I click on "Add outcome" "link"
     And I set the following fields to these values:
       | Framework      | MBA614                              |
       | Code           | CLO1                                |
       | Statement      | Evaluate strategic alternatives.    |
       | Effective from | 1 January 2026, 00:00               |
     And I press "Save changes"
-    And I click on "Submit for review" "link" in the "CLO1" "table_row"
+    And I click on "Submit for review" "link" in the ".lom-node[data-search*='clo1']" "css_element"
     And I log out
     And I log in as "reviewer"
     And I navigate to "Learning outcome mapping > Approval queue" in site administration
@@ -45,7 +45,7 @@ Feature: Administrators govern frameworks and outcome versions
     And I press "Continue"
     Then I should see "The record was approved."
     And I navigate to "Learning outcome mapping > Outcomes & alignment" in site administration
-    And I should see "Approved" in the "CLO1" "table_row"
+    And I should see "Approved" in the ".lom-node[data-search*='clo1']" "css_element"
 
   Scenario: An administrator creates a typed program with a generic credential
     Given I log in as "admin"

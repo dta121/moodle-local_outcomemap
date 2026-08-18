@@ -31,8 +31,8 @@ Feature: Course staff map content to governed outcome versions
     And I am on "Strategic Leadership" course homepage
     When I am on the "MBA614" course "Content mappings" outcome page
     Then I should see "Course content mappings"
-    And "Add content mapping" "button" should not exist
-    And "Submit for review" "button" should not exist
+    And "Apply mappings" "button" should not exist
+    And "Submit for review" "link" should not exist
     When I am on "Strategic Leadership" course homepage
     And I am on the "MBA614" course "Remediation" outcome page
     Then I should see "Outcome remediation"
@@ -51,7 +51,7 @@ Feature: Course staff map content to governed outcome versions
     And I click on "Add course instance" "link"
     And I set the following fields to these values:
       | Catalog course       | MBA614               |
-      | Moodle course        | Strategic Leadership |
+      | Moodle course        | MBA614               |
       | Reporting period code | 2026-T1              |
     And I press "Save changes"
     And I click on "Submit for review" "link" in the ".lom-instance-row" "css_element"
@@ -63,13 +63,13 @@ Feature: Course staff map content to governed outcome versions
     And I log out
     And I log in as "admin"
     And I navigate to "Learning outcome mapping > Outcomes & alignment" in site administration
-    And I click on "Add framework" "button"
+    And I click on "Add framework" "link"
     And I set the following fields to these values:
       | Code       | MBA614-FW          |
       | Name       | MBA614 outcomes    |
       | Owner type | Institution        |
     And I press "Save changes"
-    And I click on "Submit for review" "link" in the "MBA614-FW" "table_row"
+    And I click on "Submit for review" "link" in the ".lom-fwbar" "css_element"
     And I log out
     And I log in as "reviewer"
     And I navigate to "Learning outcome mapping > Approval queue" in site administration
@@ -78,14 +78,14 @@ Feature: Course staff map content to governed outcome versions
     And I log out
     And I log in as "admin"
     And I navigate to "Learning outcome mapping > Outcomes & alignment" in site administration
-    And I click on "Add outcome" "button"
+    And I click on "Add outcome" "link"
     And I set the following fields to these values:
       | Framework      | MBA614-FW                         |
       | Code           | CLO1                              |
       | Statement      | Evaluate strategic alternatives. |
       | Effective from | 1 January 2026, 00:00             |
     And I press "Save changes"
-    And I click on "Submit for review" "link" in the "CLO1" "table_row"
+    And I click on "Submit for review" "link" in the ".lom-node[data-search*='clo1']" "css_element"
     And I log out
     And I log in as "reviewer"
     And I navigate to "Learning outcome mapping > Approval queue" in site administration
@@ -95,16 +95,12 @@ Feature: Course staff map content to governed outcome versions
     And I log in as "admin"
     And I am on "Strategic Leadership" course homepage
     And I am on the "MBA614" course "Content mappings" outcome page
-    And I click on "Add content mapping" "button"
-    And I set the following fields to these values:
-      | Course instance            | 2026-T1                 |
-      | Target type                | Course activity or resource |
-      | Course activity or resource | Evidence workshop       |
-      | Exact outcome version      | MBA614-FW.CLO1 v1       |
-      | Mapping role               | Assesses                |
-      | Explicit weight            | 1                       |
-    And I press "Save changes"
-    And I click on "Submit for review" "button" in the "Evidence workshop" "table_row"
+    And I click on "Evidence workshop" "checkbox"
+    And I click on "MBA614-FW.CLO1 v1" "checkbox"
+    And I click on "Assesses" "radio"
+    And I set the field "Weight" to "1"
+    And I press "Apply mappings"
+    And I click on "Submit for review" "link" in the ".lom-map-section" "css_element"
     And I log out
     And I log in as "reviewer"
     And I navigate to "Learning outcome mapping > Approval queue" in site administration

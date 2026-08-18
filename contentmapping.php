@@ -259,8 +259,21 @@ function local_outcomemap_chips(array $records, string $type, bool $canedit, moo
             . ' — ' . $rolelabel . ' · ' . workflow::status_label($record->status);
         $inner = s($record->frameworkcode . '.' . $record->outcomecode)
             . html_writer::span(core_text::substr($rolelabel, 0, 1), 'lom-map-chip-role');
-        // Only a draft can be removed; approved mappings are governed history.
+        // Only a draft can be submitted or removed; approved mappings are governed history.
         if ($canedit && $record->status === workflow::DRAFT) {
+            $inner .= html_writer::link(
+                new moodle_url($stateurl, [
+                    'action' => 'submit',
+                    'targettype' => $type,
+                    'id' => $record->id,
+                    'sesskey' => sesskey(),
+                ]),
+                workflow::submit_action_label(),
+                [
+                    'class' => 'lom-map-chip-submit',
+                    'aria-label' => workflow::submit_action_label() . ': ' . $title,
+                ]
+            );
             $inner .= html_writer::link(
                 new moodle_url($stateurl, [
                     'action' => 'delete',
