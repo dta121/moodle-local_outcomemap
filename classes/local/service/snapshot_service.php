@@ -256,26 +256,27 @@ final class snapshot_service extends base_service {
         global $DB;
 
         $actorid = self::require_approval_system('local/outcomemap:managesnapshots');
+        $before = $DB->get_record('local_outcomemap_snapshot', ['id' => $snapshotid], '*', MUST_EXIST);
+        if ($before->status !== self::STATUS_DRAFT) {
+            throw new validation_exception('snapshotimmutable', 'status', $before->status);
+        }
+        workflow::require_approver_separation((int) $before->createdby, $actorid);
+        $items = self::load_items($snapshotid);
+        audit_lineage_service::verify_snapshot_payload($before, $items);
+
+        $after = clone $before;
+        $after->status = self::STATUS_FROZEN;
+        $after->approvedby = $actorid;
+        $after->approvedat = time();
+        $after->timemodified = $after->approvedat;
+        $after->manifesthash = hash('sha256', canonical_json::encode(
+            audit_lineage_service::manifest($after, count($items))
+        ));
+        audit_lineage_service::verify_manifest($after, count($items));
+
         $transaction = $DB->start_delegated_transaction();
         try {
-            $before = $DB->get_record('local_outcomemap_snapshot', ['id' => $snapshotid], '*', MUST_EXIST);
-            if ($before->status !== self::STATUS_DRAFT) {
-                throw new validation_exception('snapshotimmutable', 'status', $before->status);
-            }
-            workflow::require_approver_separation((int) $before->createdby, $actorid);
-            $items = self::load_items($snapshotid);
-            audit_lineage_service::verify_snapshot_payload($before, $items);
-
-            $after = clone $before;
-            $after->status = self::STATUS_FROZEN;
-            $after->approvedby = $actorid;
-            $after->approvedat = time();
-            $after->timemodified = $after->approvedat;
-            $after->manifesthash = hash('sha256', canonical_json::encode(
-                audit_lineage_service::manifest($after, count($items))
-            ));
             $DB->update_record('local_outcomemap_snapshot', $after);
-            audit_lineage_service::verify_manifest($after, count($items));
             audit_writer::write(
                 'freeze_snapshot',
                 'snapshot',
@@ -313,12 +314,13 @@ final class snapshot_service extends base_service {
         global $DB;
 
         $actorid = self::require_system('local/outcomemap:managesnapshots');
+        $before = self::get_required('local_outcomemap_snapshot', $snapshotid, 'snapshot');
+        if ($DB->record_exists('local_outcomemap_snapshot', ['previousid' => $snapshotid])) {
+            throw new validation_exception('snapshotdeletesuperseded', 'id', $snapshotid);
+        }
+
         $transaction = $DB->start_delegated_transaction();
         try {
-            $before = self::get_required('local_outcomemap_snapshot', $snapshotid, 'snapshot');
-            if ($DB->record_exists('local_outcomemap_snapshot', ['previousid' => $snapshotid])) {
-                throw new validation_exception('snapshotdeletesuperseded', 'id', $snapshotid);
-            }
             $DB->delete_records('local_outcomemap_snapitem', ['snapshotid' => $snapshotid]);
             $DB->delete_records('local_outcomemap_snapshot', ['id' => $snapshotid]);
             audit_writer::write(

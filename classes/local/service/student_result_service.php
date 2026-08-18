@@ -95,6 +95,41 @@ final class student_result_service {
      * @return array Report data containing courseid, generatedat, and rows.
      */
     public static function report_for(int $userid, int $courseid, ?int $at = null): array {
+        return self::build_report($userid, $courseid, $at, false);
+    }
+
+    /**
+     * Build an authorized report with the canonical fractions needed to pool attainment.
+     *
+     * The learner-facing report deliberately omits internal course-instance IDs
+     * and numerators. Only the system-level SIS export capability may request
+     * those additional aggregation fields.
+     *
+     * @param int $userid Learner whose released results are reported.
+     * @param int $courseid Moodle course ID.
+     * @param int|null $at Evaluation timestamp; defaults to now.
+     * @return array Report data with export-only aggregation fields.
+     */
+    public static function report_for_attainment(int $userid, int $courseid, ?int $at = null): array {
+        require_capability('local/outcomemap:exportattainment', \context_system::instance());
+        return self::build_report($userid, $courseid, $at, true);
+    }
+
+    /**
+     * Build a release-gated report, optionally including export-only pooling fields.
+     *
+     * @param int $userid Learner whose released results are reported.
+     * @param int $courseid Moodle course ID.
+     * @param int|null $at Evaluation timestamp; defaults to now.
+     * @param bool $includeaggregationfields Include internal pooling inputs.
+     * @return array Report data containing courseid, generatedat, and rows.
+     */
+    private static function build_report(
+        int $userid,
+        int $courseid,
+        ?int $at,
+        bool $includeaggregationfields
+    ): array {
         global $CFG, $DB;
         get_course($courseid);
         $at = $at ?? time();
@@ -524,7 +559,7 @@ final class student_result_service {
                         : max((int) $combined->releasedat, (int) $decision->releasedat);
                 }
             }
-            $row = self::safe_row($outcome, $result, $combined, $cms);
+            $row = self::safe_row($outcome, $result, $combined, $cms, $includeaggregationfields);
             $rows[$key] = $row;
             if ($row['state'] === calculation_service::STATE_CALCULATED && $row['percentage'] !== null) {
                 $remediationrequests[$key] = [
@@ -942,13 +977,15 @@ final class student_result_service {
      * @param \stdClass|null $result Stored result, or null when not assessed.
      * @param \stdClass $decision Combined release decision.
      * @param array $cms Course-module info keyed by ID.
+     * @param bool $includeaggregationfields Include export-only pooling inputs.
      * @return array Safe row with no question or evidence fields.
      */
     private static function safe_row(
         \stdClass $outcome,
         ?\stdClass $result,
         \stdClass $decision,
-        array $cms
+        array $cms,
+        bool $includeaggregationfields
     ): array {
         $scopetype = $result->scopetype ?? calculation_service::SCOPE_COURSE;
         $scopeid = $result === null ? $outcome->cinstid : (int) $result->scopeid;
@@ -967,11 +1004,6 @@ final class student_result_service {
             'expectedpercent' => null,
             'strongpercent' => null,
             'periodcode' => $outcome->periodcode,
-            // The course instance this row was judged in. scopeid cannot carry
-            // it alone — an assessment-scope row's scopeid is the course-module
-            // ID — and cross-course pooling needs the instance to attribute
-            // each contribution to one catalog course.
-            'cinstid' => (int) $outcome->cinstid,
             'scopetype' => $scopetype,
             'scopeid' => $scopeid,
             'scopename' => $scopename,
@@ -982,12 +1014,18 @@ final class student_result_service {
             'bandfeedback' => null,
             'bandid' => null,
             'distinctitems' => null,
-            'weightedearned' => null,
             'weightedpossible' => null,
             'timecalculated' => null,
             'releasedat' => $decision->releasedat,
             'remediation' => [],
         ];
+        if ($includeaggregationfields) {
+            // scopeid cannot identify the course instance for assessment rows,
+            // and pooling must sum the stored numerator rather than reverse a
+            // rounded percentage. These fields stay out of learner responses.
+            $base['cinstid'] = (int) $outcome->cinstid;
+            $base['weightedearned'] = null;
+        }
         if (!$decision->released) {
             return $base;
         }
@@ -1007,7 +1045,9 @@ final class student_result_service {
         // canonical values instead of un-rounding a per-row percentage — ADR
         // 0003 forbids rounding per row and re-summing. The same sensitivity
         // class as the percentage: it is this learner's own weighted score.
-        $base['weightedearned'] = decimal::canonical($result->numerator, 'numerator');
+        if ($includeaggregationfields) {
+            $base['weightedearned'] = decimal::canonical($result->numerator, 'numerator');
+        }
         $base['weightedpossible'] = decimal::canonical($result->denominator, 'denominator');
         $base['timecalculated'] = (int) $result->timecalculated;
         if ($result->state === calculation_service::STATE_CALCULATED && $result->percentage !== null) {

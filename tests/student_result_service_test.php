@@ -364,6 +364,22 @@ final class student_result_service_test extends \advanced_testcase {
             $this->assertStringNotContainsString($protected, $encodedreport);
         }
 
+        try {
+            student_result_service::report_for_attainment($student->id, $course->id, self::RELEASEAT);
+            $this->fail('A learner must not request export-only aggregation fields.');
+        } catch (\required_capability_exception $exception) {
+            $this->assertSame('nopermissions', $exception->errorcode);
+        }
+        $this->setAdminUser();
+        $attainmentreport = student_result_service::report_for_attainment(
+            $student->id,
+            $course->id,
+            self::RELEASEAT
+        );
+        $this->assertSame($cinstid, $attainmentreport['rows'][0]['cinstid']);
+        $this->assertArrayHasKey('weightedearned', $attainmentreport['rows'][0]);
+        $this->setUser($student);
+
         $courseresult = $DB->get_record('local_outcomemap_result', [
             'userid' => $student->id,
             'itemverid' => $itemverid,

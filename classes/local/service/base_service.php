@@ -78,7 +78,12 @@ abstract class base_service {
      * @return never
      */
     protected static function rollback(\moodle_transaction $transaction, \Throwable $exception): void {
-        $transaction->rollback($exception);
+        // A nested service may already have rolled back every delegated
+        // transaction. Preserve the original failure instead of masking it
+        // with "Transactions already disposed" in the caller's catch block.
+        if (!$transaction->is_disposed()) {
+            $transaction->rollback($exception);
+        }
         throw $exception;
     }
 }

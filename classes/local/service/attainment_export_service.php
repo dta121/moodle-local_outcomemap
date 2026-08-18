@@ -33,7 +33,7 @@ use local_outcomemap\local\workflow;
  * The SIS shows a learner what their DEGREE certifies, so the unit here is the
  * program outcome pooled across every course instance feeding it — not the
  * per-course rows the in-Moodle report renders. Each contribution is taken
- * from {@see student_result_service::report_for()}, which runs the full
+ * from {@see student_result_service::report_for_attainment()}, which runs the full
  * release evaluation for the target learner, so nothing Moodle currently
  * withholds from that learner (unreleased, stale, hidden grades) can reach
  * the export. Pooling sums the canonical stored numerators and denominators
@@ -110,7 +110,7 @@ final class attainment_export_service {
         $rows = [];
         $cinstids = [];
         foreach ($courseids as $moodlecourseid) {
-            $report = student_result_service::report_for($userid, (int) $moodlecourseid, $at);
+            $report = student_result_service::report_for_attainment($userid, (int) $moodlecourseid, $at);
             foreach ($report['rows'] as $row) {
                 if (($row['tier'] ?? '') !== student_result_service::TIER_PROGRAM) {
                     continue;

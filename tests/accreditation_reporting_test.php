@@ -121,6 +121,9 @@ final class accreditation_reporting_test extends \advanced_testcase {
     private function create_snapshot_fixture(int $threshold = 2): array {
         global $CFG, $DB;
 
+        if (!isset($this->reviewer)) {
+            $this->reviewer = $this->create_reviewer();
+        }
         if (empty($CFG->passwordsaltmain)) {
             $CFG->passwordsaltmain = 'local_outcomemap_phpunit_snapshot_secret';
         }

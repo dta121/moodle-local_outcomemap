@@ -259,10 +259,25 @@ final class question_mapping_service extends base_service {
             }
             global $USER;
             $actorid = (int) $USER->id;
+            $correctedassessed = [];
+            foreach ($corrected as $id => $after) {
+                self::require_no_approved_overlap($after);
+                if ($after->role === content_mapping_service::ROLE_ASSESSES) {
+                    $correctedassessed[(int) $after->questionversionid][$id] = $after;
+                }
+            }
+            self::require_no_batch_conflicts(array_values($corrected));
+            foreach ($correctedassessed as $questionversionid => $batch) {
+                self::require_valid_assessed_total(
+                    $questionversionid,
+                    array_values($batch),
+                    $batch
+                );
+            }
+
             $transaction = $DB->start_delegated_transaction();
             try {
                 foreach ($corrected as $id => $after) {
-                    self::require_no_approved_overlap($after);
                     $DB->update_record(self::TABLE, $after);
                     audit_writer::write(
                         'correct_effectivefrom',
@@ -276,15 +291,9 @@ final class question_mapping_service extends base_service {
                         $actorid
                     );
                 }
-                // Validated only once the whole set has moved, at which point
-                // the corrected start is a boundary the weights must total one at.
+                // Candidate dates were validated as a complete set before any
+                // row moved; stale results can now be marked in the same commit.
                 foreach ($questionversionids as $questionversionid) {
-                    $batch = $DB->get_records(self::TABLE, [
-                        'questionversionid' => $questionversionid,
-                        'role' => content_mapping_service::ROLE_ASSESSES,
-                        'status' => workflow::APPROVED,
-                    ]);
-                    self::require_valid_assessed_total($questionversionid, array_values($batch));
                     // Results calculated without these mappings in force are wrong.
                     calculation_service::mark_stale_for_question_version($questionversionid);
                 }
@@ -353,30 +362,72 @@ final class question_mapping_service extends base_service {
                 'status' => workflow::DRAFT,
             ], 'id ASC'));
         }
+        $requiresapproval = workflow::requires_independent_approval();
+        $context = context_resolver::for_question_version((int) $before->questionversionid);
+        $now = time();
+        $submittedbatch = [];
+        $approvedbatch = [];
+        foreach ($batch as $record) {
+            self::validate_record($record);
+            $submitted = clone $record;
+            $submitted->status = workflow::NEEDS_REVIEW;
+            $submitted->timemodified = $now;
+            $submittedbatch[(int) $record->id] = $submitted;
+            if (!$requiresapproval) {
+                self::require_no_approved_overlap($submitted);
+                self::require_no_duplicate_scope($submitted);
+                $approved = clone $submitted;
+                $approved->status = workflow::APPROVED;
+                $approved->approvedby = $actorid;
+                $approved->approvedat = $now;
+                $approvedbatch[(int) $record->id] = $approved;
+            }
+        }
+        if (!$requiresapproval) {
+            self::require_no_batch_conflicts(array_values($approvedbatch));
+        }
+        if (!$requiresapproval && $before->role === content_mapping_service::ROLE_ASSESSES) {
+            self::require_valid_assessed_total(
+                (int) $before->questionversionid,
+                array_values($approvedbatch),
+                $approvedbatch
+            );
+        }
+
         $transaction = $DB->start_delegated_transaction();
         try {
-            $context = context_resolver::for_question_version((int) $before->questionversionid);
             foreach ($batch as $record) {
-                self::validate_record($record);
-                $after = clone $record;
-                $after->status = workflow::NEEDS_REVIEW;
-                $after->timemodified = time();
-                $DB->update_record(self::TABLE, $after);
+                $submitted = $submittedbatch[(int) $record->id];
+                $DB->update_record(self::TABLE, $submitted);
                 audit_writer::write(
                     'submit_review',
                     'question_mapping',
                     (int) $record->id,
-                    $after->mappinguuid,
+                    $submitted->mappinguuid,
                     $record,
-                    $after,
+                    $submitted,
                     $reason,
                     $context,
                     $actorid
                 );
+                if (!$requiresapproval) {
+                    $approved = $approvedbatch[(int) $record->id];
+                    $DB->update_record(self::TABLE, $approved);
+                    audit_writer::write(
+                        'approve',
+                        'question_mapping',
+                        (int) $record->id,
+                        $approved->mappinguuid,
+                        $submitted,
+                        $approved,
+                        $reason,
+                        $context,
+                        $actorid
+                    );
+                }
             }
-            if (!workflow::requires_independent_approval()) {
-                $batchids = array_map(static fn(\stdClass $record): int => (int) $record->id, $batch);
-                self::approve_batch($id, $reason, $batchids);
+            if (!$requiresapproval && $before->role === content_mapping_service::ROLE_ASSESSES) {
+                calculation_service::mark_stale_for_question_version((int) $before->questionversionid);
             }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
@@ -462,18 +513,29 @@ final class question_mapping_service extends base_service {
             self::require_no_approved_overlap($record);
             self::require_no_duplicate_scope($record);
         }
+        $now = time();
+        $approvedbatch = [];
+        foreach ($batch as $record) {
+            $after = clone $record;
+            $after->status = workflow::APPROVED;
+            $after->approvedby = $actorid;
+            $after->approvedat = $now;
+            $after->timemodified = $now;
+            $approvedbatch[(int) $record->id] = $after;
+        }
+        self::require_no_batch_conflicts(array_values($approvedbatch));
+        if ($candidate->role === content_mapping_service::ROLE_ASSESSES) {
+            self::require_valid_assessed_total(
+                (int) $candidate->questionversionid,
+                array_values($approvedbatch),
+                $approvedbatch
+            );
+        }
+
         $transaction = $DB->start_delegated_transaction();
         try {
-            $now = time();
             foreach ($batch as $record) {
-                self::validate_record($record);
-                self::require_no_approved_overlap($record);
-                self::require_no_duplicate_scope($record);
-                $after = clone $record;
-                $after->status = workflow::APPROVED;
-                $after->approvedby = $actorid;
-                $after->approvedat = $now;
-                $after->timemodified = $now;
+                $after = $approvedbatch[(int) $record->id];
                 $DB->update_record(self::TABLE, $after);
                 audit_writer::write(
                     'approve',
@@ -488,7 +550,6 @@ final class question_mapping_service extends base_service {
                 );
             }
             if ($candidate->role === content_mapping_service::ROLE_ASSESSES) {
-                self::require_valid_assessed_total((int) $candidate->questionversionid, $batch);
                 // Existing nonfrozen results built from this question version
                 // are now stale; reconciliation recalculates them.
                 calculation_service::mark_stale_for_question_version((int) $candidate->questionversionid);
@@ -879,20 +940,20 @@ final class question_mapping_service extends base_service {
         global $DB;
         $locks = self::acquire_bulk_locks($questionids);
         try {
+            $prepared = self::prepare_bulk($questionids, $operation);
+            if (!$prepared->valid) {
+                throw new validation_exception(
+                    'bulkpreviewinvalid',
+                    'operation',
+                    implode('; ', self::bulk_error_messages($prepared))
+                );
+            }
+            if ($previewtoken === '' || !hash_equals($prepared->previewtoken, $previewtoken)) {
+                throw new validation_exception('bulkpreviewstale', 'previewtoken');
+            }
+
             $transaction = $DB->start_delegated_transaction();
             try {
-                $prepared = self::prepare_bulk($questionids, $operation);
-                if (!$prepared->valid) {
-                    throw new validation_exception(
-                        'bulkpreviewinvalid',
-                        'operation',
-                        implode('; ', self::bulk_error_messages($prepared))
-                    );
-                }
-                if ($previewtoken === '' || !hash_equals($prepared->previewtoken, $previewtoken)) {
-                    throw new validation_exception('bulkpreviewstale', 'previewtoken');
-                }
-
                 $affected = 0;
                 $now = time();
                 foreach ($prepared->_changes as $change) {
@@ -1758,20 +1819,34 @@ final class question_mapping_service extends base_service {
      * Require that approved assessed weights total exactly one across every
      * effective segment touched by a newly approved batch.
      *
-     * Runs inside the approval transaction after the batch rows are updated so
-     * the check sees the exact state being committed.
-     *
      * @param int $questionversionid Question-version ID.
-     * @param \stdClass[] $batch Mapping records that were just approved.
+     * @param \stdClass[] $batch Mapping records being approved or corrected.
+     * @param \stdClass[] $overrides Candidate records keyed by ID.
      * @return void
      */
-    private static function require_valid_assessed_total(int $questionversionid, array $batch): void {
+    private static function require_valid_assessed_total(
+        int $questionversionid,
+        array $batch,
+        array $overrides = []
+    ): void {
         global $DB;
         $approved = $DB->get_records(self::TABLE, [
             'questionversionid' => $questionversionid,
             'role' => content_mapping_service::ROLE_ASSESSES,
             'status' => workflow::APPROVED,
         ]);
+        foreach ($overrides as $record) {
+            $recordid = (int) $record->id;
+            if (
+                (int) $record->questionversionid === $questionversionid
+                    && $record->role === content_mapping_service::ROLE_ASSESSES
+                    && $record->status === workflow::APPROVED
+            ) {
+                $approved[$recordid] = $record;
+            } else {
+                unset($approved[$recordid]);
+            }
+        }
         $boundaries = [];
         foreach ($approved as $record) {
             $boundaries[] = (int) $record->effectivefrom;
@@ -1869,6 +1944,43 @@ final class question_mapping_service extends base_service {
             . ' AND status = :status AND id <> :id AND mappinguuid <> :mappinguuid AND ' . $overlapsql;
         if ($DB->record_exists_select(self::TABLE, $select, $params)) {
             throw new validation_exception('duplicatemapping', 'itemverid');
+        }
+    }
+
+    /**
+     * Reject overlaps introduced between records approved in one batch.
+     *
+     * Database checks see the state before mutation, so they cannot detect two
+     * candidates that conflict only with each other. Validate those pairs
+     * before opening the transaction.
+     *
+     * @param \stdClass[] $batch Candidate records.
+     * @return void
+     */
+    private static function require_no_batch_conflicts(array $batch): void {
+        $count = count($batch);
+        for ($leftindex = 0; $leftindex < $count; $leftindex++) {
+            $left = $batch[$leftindex];
+            for ($rightindex = $leftindex + 1; $rightindex < $count; $rightindex++) {
+                $right = $batch[$rightindex];
+                $leftto = $left->effectiveto === null ? null : (int) $left->effectiveto;
+                $rightto = $right->effectiveto === null ? null : (int) $right->effectiveto;
+                $overlaps = ($leftto === null || (int) $right->effectivefrom < $leftto)
+                    && ($rightto === null || (int) $left->effectivefrom < $rightto);
+                if (!$overlaps) {
+                    continue;
+                }
+                if ($left->mappinguuid === $right->mappinguuid) {
+                    throw new validation_exception('effectiverangeoverlap', 'effectivefrom');
+                }
+                if (
+                    (int) $left->questionversionid === (int) $right->questionversionid
+                        && (int) $left->itemverid === (int) $right->itemverid
+                        && $left->role === $right->role
+                ) {
+                    throw new validation_exception('duplicatemapping', 'itemverid');
+                }
+            }
         }
     }
 
