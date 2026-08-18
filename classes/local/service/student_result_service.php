@@ -1020,7 +1020,7 @@ final class student_result_service {
             'remediation' => [],
         ];
         if ($includeaggregationfields) {
-            // scopeid cannot identify the course instance for assessment rows,
+            // Scopeid cannot identify the course instance for assessment rows,
             // and pooling must sum the stored numerator rather than reverse a
             // rounded percentage. These fields stay out of learner responses.
             $base['cinstid'] = (int) $outcome->cinstid;
