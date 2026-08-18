@@ -407,7 +407,7 @@ echo html_writer::div(
             get_string('contentsearch', 'local_outcomemap'),
             'lom-map-q',
             false,
-            ['class' => 'sr-only visually-hidden']
+            ['class' => 'visually-hidden']
         )
         . html_writer::empty_tag('input', [
             'type' => 'search',
@@ -551,7 +551,7 @@ if (!$canapply) {
             get_string('filteroutcomes', 'local_outcomemap'),
             'lom-map-oq',
             false,
-            ['class' => 'sr-only visually-hidden']
+            ['class' => 'visually-hidden']
         )
         . html_writer::empty_tag('input', [
             'type' => 'search',
@@ -607,7 +607,7 @@ if (!$canapply) {
 
     // Reporting period and weight, collapsed by default as in the design.
     $instanceselect = html_writer::select($options['instances'], 'cinstid', '', false, [
-        'id' => 'lom-map-cinst', 'class' => 'custom-select form-select form-select-sm',
+        'id' => 'lom-map-cinst', 'class' => 'form-select-sm',
     ]);
     echo html_writer::tag(
         'details',

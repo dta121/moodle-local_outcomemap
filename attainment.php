@@ -616,7 +616,7 @@ $searchform = html_writer::start_tag('form', [
         get_string('attainment_searchlabel', 'local_outcomemap'),
         'lom-oa-q',
         false,
-        ['class' => 'sr-only visually-hidden']
+        ['class' => 'visually-hidden']
     )
     . html_writer::empty_tag('input', [
         'type' => 'search',

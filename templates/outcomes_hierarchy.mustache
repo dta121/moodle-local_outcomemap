@@ -75,7 +75,7 @@
             {{#hasmatrix}}
             <div class="lom-matrix-wrap">
                 <table class="lom-matrix">
-                    <caption class="sr-only visually-hidden">{{title}} &mdash; {{subtitle}}</caption>
+                    <caption class="visually-hidden">{{title}} &mdash; {{subtitle}}</caption>
                     <thead>
                         <tr>
                             <th scope="col" class="lom-matrix-source">{{#str}} sourceoutcome, local_outcomemap {{/str}}</th>
@@ -94,12 +94,12 @@
                             {{#cells}}
                             <td title="{{title}}">
                                 {{#hasrelation}}
-                                    {{#hasaction}}<a class="lom-matrix-cell" href="{{actionurl}}"><span class="lom-matrix-dot lom-dot-{{statusclass}}"></span><span class="sr-only visually-hidden">{{title}}</span></a>{{/hasaction}}
-                                    {{^hasaction}}<span class="lom-matrix-cell"><span class="lom-matrix-dot lom-dot-{{statusclass}}"></span><span class="sr-only visually-hidden">{{title}}</span></span>{{/hasaction}}
+                                    {{#hasaction}}<a class="lom-matrix-cell" href="{{actionurl}}"><span class="lom-matrix-dot lom-dot-{{statusclass}}"></span><span class="visually-hidden">{{title}}</span></a>{{/hasaction}}
+                                    {{^hasaction}}<span class="lom-matrix-cell"><span class="lom-matrix-dot lom-dot-{{statusclass}}"></span><span class="visually-hidden">{{title}}</span></span>{{/hasaction}}
                                 {{/hasrelation}}
                                 {{^hasrelation}}
-                                    {{#canadd}}<a class="lom-matrix-cell lom-matrix-empty" href="{{addurl}}"><span aria-hidden="true">+</span><span class="sr-only visually-hidden">{{title}}</span></a>{{/canadd}}
-                                    {{^canadd}}<span class="lom-matrix-cell lom-matrix-empty"><span class="sr-only visually-hidden">{{title}}</span></span>{{/canadd}}
+                                    {{#canadd}}<a class="lom-matrix-cell lom-matrix-empty" href="{{addurl}}"><span aria-hidden="true">+</span><span class="visually-hidden">{{title}}</span></a>{{/canadd}}
+                                    {{^canadd}}<span class="lom-matrix-cell lom-matrix-empty"><span class="visually-hidden">{{title}}</span></span>{{/canadd}}
                                 {{/hasrelation}}
                             </td>
                             {{/cells}}
@@ -527,7 +527,7 @@
                 label.classList.add('lom-locked');
                 label.title = root.getAttribute('data-lockedmsg');
                 var explanation = document.createElement('span');
-                explanation.className = 'sr-only visually-hidden';
+                explanation.className = 'visually-hidden';
                 explanation.textContent = root.getAttribute('data-lockedmsg');
                 label.appendChild(explanation);
             }

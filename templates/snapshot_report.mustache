@@ -184,7 +184,7 @@
                             <span class="lom-snap-contrib-bar" aria-hidden="true">
                                 <span class="lom-snap-bar-fill lom-snap-band-{{band}}" style="width: {{barwidth}}%"></span>
                             </span>
-                            <span class="lom-snap-contrib-rate lom-snap-band-{{band}}">{{rate}}{{#hasband}}<span class="sr-only visually-hidden"> ({{bandlabel}})</span>{{/hasband}}</span>
+                            <span class="lom-snap-contrib-rate lom-snap-band-{{band}}">{{rate}}{{#hasband}}<span class="visually-hidden"> ({{bandlabel}})</span>{{/hasband}}</span>
                             <span class="lom-snap-contrib-note">{{learners}} &middot; {{pooled}}</span>
                             {{/hasrate}}
                             {{^hasrate}}
@@ -209,8 +209,8 @@
                 <span class="lom-snap-pct">{{percent}}</span>
             </span>
             <span class="lom-snap-rate" role="cell" title="{{ratedetail}}">
-                <span class="lom-snap-pct lom-snap-band-{{band}}">{{rate}}{{#hasband}}<span class="sr-only visually-hidden"> ({{bandlabel}})</span>{{/hasband}}</span>
-                <span class="sr-only visually-hidden">{{ratedetail}}</span>
+                <span class="lom-snap-pct lom-snap-band-{{band}}">{{rate}}{{#hasband}}<span class="visually-hidden"> ({{bandlabel}})</span>{{/hasband}}</span>
+                <span class="visually-hidden">{{ratedetail}}</span>
                 {{#hasbenchmark}}
                 <span class="lom-snap-benchmark">{{benchmark}}</span>
                 {{/hasbenchmark}}

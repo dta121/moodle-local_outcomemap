@@ -423,7 +423,7 @@ echo html_writer::div(
             get_string('questionmapping_search', 'local_outcomemap'),
             'lom-q-q',
             false,
-            ['class' => 'sr-only visually-hidden']
+            ['class' => 'visually-hidden']
         )
         . html_writer::empty_tag('input', [
             'type' => 'search',
@@ -617,7 +617,7 @@ if (!$canapply) {
             get_string('filteroutcomes', 'local_outcomemap'),
             'lom-q-oq',
             false,
-            ['class' => 'sr-only visually-hidden']
+            ['class' => 'visually-hidden']
         )
         . html_writer::empty_tag('input', [
             'type' => 'search',

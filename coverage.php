@@ -291,7 +291,7 @@ $searchform = html_writer::start_tag('form', $searchattributes)
         get_string('coverage_searchlabel', 'local_outcomemap'),
         'lom-cov-q',
         false,
-        ['class' => 'sr-only visually-hidden']
+        ['class' => 'visually-hidden']
     )
     . html_writer::empty_tag('input', [
         'type' => 'search',

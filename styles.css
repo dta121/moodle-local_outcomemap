@@ -2634,7 +2634,7 @@ a.lom-matrix-cell:hover {
    matrix layout rules further down, so the states stay tellable apart when the
    hues do not reach the reader: approved a filled circle, review a diamond,
    draft a hollow square, retired a ring. Draft is hollow so fill separates it
-   from approved even in monochrome. The sr-only cell text names the status. */
+   from approved even in monochrome. The visually hidden cell text names the status. */
 .lom-matrix-dot {
     border: 1px solid #d7dce3;
     border-radius: 50%;
