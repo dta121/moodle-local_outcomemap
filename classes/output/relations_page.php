@@ -78,6 +78,8 @@ final class relations_page implements renderable, templatable {
 
     /**
      * Return a safe CSS suffix for a workflow status.
+     *
+     * @param string $status Status.
      */
     private function status_class(string $status): string {
         return match ($status) {
@@ -91,6 +93,10 @@ final class relations_page implements renderable, templatable {
 
     /**
      * Return actions available for one relation version.
+     *
+     * @param \stdClass $relation Relation.
+     * @param bool $canmanage Canmanage.
+     * @param moodle_url $baseurl Baseurl.
      */
     private function actions(\stdClass $relation, bool $canmanage, moodle_url $baseurl): array {
         if (!$canmanage) {
@@ -129,6 +135,13 @@ final class relations_page implements renderable, templatable {
 
     /**
      * Build one matrix cell for a source/target pair.
+     *
+     * @param ?\stdClass $relation Relation.
+     * @param \stdClass $source Source.
+     * @param \stdClass $target Target.
+     * @param string $type Type.
+     * @param bool $canmanage Canmanage.
+     * @param moodle_url $baseurl Baseurl.
      */
     private function matrix_cell(
         ?\stdClass $relation,
@@ -173,6 +186,8 @@ final class relations_page implements renderable, templatable {
 
     /**
      * Export the template context.
+     *
+     * @param renderer_base $output Output.
      */
     public function export_for_template(renderer_base $output): array {
         $canmanage = has_capability('local/outcomemap:manageframeworks', \context_system::instance());

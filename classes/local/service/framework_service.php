@@ -57,6 +57,8 @@ final class framework_service extends base_service {
 
     /**
      * Create a draft framework.
+     *
+     * @param array $data Data.
      */
     public static function create(array $data): int {
         global $DB;
@@ -101,6 +103,9 @@ final class framework_service extends base_service {
 
     /**
      * Update a draft framework.
+     *
+     * @param int $id Id.
+     * @param array $data Data.
      */
     public static function update(int $id, array $data): void {
         global $DB;
@@ -151,6 +156,9 @@ final class framework_service extends base_service {
 
     /**
      * Submits the record for review.
+     *
+     * @param int $id Id.
+     * @param ?string $reason Reason.
      */
     public static function submit_for_review(int $id, ?string $reason = null): void {
         self::change_status(
@@ -166,6 +174,9 @@ final class framework_service extends base_service {
 
     /**
      * Approves the record.
+     *
+     * @param int $id Id.
+     * @param ?string $reason Reason.
      */
     public static function approve(int $id, ?string $reason = null): void {
         $capability = workflow::requires_independent_approval()
@@ -193,6 +204,14 @@ final class framework_service extends base_service {
 
     /**
      * Changes the record workflow status.
+     *
+     * @param int $id Id.
+     * @param string $required Required.
+     * @param string $status Status.
+     * @param string $action Action.
+     * @param ?string $reason Reason.
+     * @param string $capability Capability.
+     * @param bool $separateapprover Separateapprover.
      */
     private static function change_status(
         int $id,
@@ -241,6 +260,9 @@ final class framework_service extends base_service {
 
     /**
      * Validates the record owner.
+     *
+     * @param mixed $ownertype Ownertype.
+     * @param mixed $ownerid Ownerid.
      */
     private static function validate_owner($ownertype, $ownerid): array {
         $ownertype = input::required_text($ownertype, 'ownertype', 20);
@@ -261,6 +283,12 @@ final class framework_service extends base_service {
 
     /**
      * Requires unique record identifiers.
+     *
+     * @param string $uuidvalue Uuidvalue.
+     * @param string $ownertype Ownertype.
+     * @param ?int $ownerid Ownerid.
+     * @param string $code Code.
+     * @param int $excludeid Excludeid.
      */
     private static function require_unique(
         string $uuidvalue,

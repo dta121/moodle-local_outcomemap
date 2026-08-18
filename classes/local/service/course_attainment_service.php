@@ -383,7 +383,7 @@ final class course_attainment_service extends base_service {
      * in, because the two differ in exactly the case that matters: an outcome
      * every assessed learner passed has no result in its bottom band at all.
      *
-     * @param array<int,\stdClass> $rows Report rows carrying their policy IDs.
+     * @param array $rows Report rows carrying their policy IDs.
      * @return array<int,int> Lowest defined sort order keyed by outcome item ID.
      */
     private static function lowest_band_order(array $rows): array {

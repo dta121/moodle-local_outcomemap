@@ -58,6 +58,8 @@ final class dashboard_page implements renderable, templatable {
 
     /**
      * Export the template context.
+     *
+     * @param renderer_base $output Output.
      */
     public function export_for_template(renderer_base $output): array {
         $tasks = $this->tasks();

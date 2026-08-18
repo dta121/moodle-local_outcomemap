@@ -74,6 +74,8 @@ final class workflow {
 
     /**
      * Return a mode-aware label for a canonical workflow state.
+     *
+     * @param string $status Status.
      */
     public static function status_label(string $status): string {
         return internal_workflow::status_label($status);

@@ -41,6 +41,8 @@ final class catalog_course_service extends base_service {
 
     /**
      * Create a draft catalog course.
+     *
+     * @param array $data Data.
      */
     public static function create(array $data): int {
         global $DB;
@@ -83,6 +85,9 @@ final class catalog_course_service extends base_service {
 
     /**
      * Update a draft catalog course.
+     *
+     * @param int $id Id.
+     * @param array $data Data.
      */
     public static function update(int $id, array $data): void {
         global $DB;
@@ -121,6 +126,9 @@ final class catalog_course_service extends base_service {
 
     /**
      * Submits the record for review.
+     *
+     * @param int $id Id.
+     * @param ?string $reason Reason.
      */
     public static function submit_for_review(int $id, ?string $reason = null): void {
         self::change_status(
@@ -136,6 +144,9 @@ final class catalog_course_service extends base_service {
 
     /**
      * Approves the record.
+     *
+     * @param int $id Id.
+     * @param ?string $reason Reason.
      */
     public static function approve(int $id, ?string $reason = null): void {
         $capability = workflow::requires_independent_approval()
@@ -154,6 +165,9 @@ final class catalog_course_service extends base_service {
 
     /**
      * Retires the record.
+     *
+     * @param int $id Id.
+     * @param string $reason Reason.
      */
     public static function retire(int $id, string $reason): void {
         global $DB;
@@ -265,6 +279,14 @@ final class catalog_course_service extends base_service {
 
     /**
      * Changes the record workflow status.
+     *
+     * @param int $id Id.
+     * @param string $required Required.
+     * @param string $status Status.
+     * @param string $action Action.
+     * @param ?string $reason Reason.
+     * @param string $capability Capability.
+     * @param bool $separateapprover Separateapprover.
      */
     private static function change_status(
         int $id,
@@ -313,6 +335,10 @@ final class catalog_course_service extends base_service {
 
     /**
      * Requires unique record identifiers.
+     *
+     * @param string $uuidvalue Uuidvalue.
+     * @param string $code Code.
+     * @param int $excludeid Excludeid.
      */
     private static function require_unique(string $uuidvalue, string $code, int $excludeid = 0): void {
         global $DB;

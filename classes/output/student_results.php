@@ -73,7 +73,8 @@ final class student_results implements \renderable, \templatable {
     private ?string $strong;
 
     /**
-     * * @param array $report Learner-safe report data.
+     *
+     * @param array $report Learner-safe report data.
      */
     public function __construct(array $report) {
         $this->report = $report;

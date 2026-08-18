@@ -46,6 +46,8 @@ final class outcome_service extends base_service {
 
     /**
      * Create a stable outcome and its initial draft version.
+     *
+     * @param array $data Data.
      */
     public static function create(array $data): int {
         global $DB;
@@ -128,6 +130,9 @@ final class outcome_service extends base_service {
 
     /**
      * Update a draft version and, for an initial draft, its stable code.
+     *
+     * @param int $versionid Versionid.
+     * @param array $data Data.
      */
     public static function update_draft(int $versionid, array $data): void {
         global $DB;
@@ -208,6 +213,9 @@ final class outcome_service extends base_service {
 
     /**
      * Create the next draft version of an existing stable outcome.
+     *
+     * @param int $itemid Itemid.
+     * @param array $data Data.
      */
     public static function create_version(int $itemid, array $data): int {
         global $DB;
@@ -268,6 +276,9 @@ final class outcome_service extends base_service {
 
     /**
      * Submit an outcome version for independent review.
+     *
+     * @param int $versionid Versionid.
+     * @param ?string $reason Reason.
      */
     public static function submit_for_review(int $versionid, ?string $reason = null): void {
         global $DB;
@@ -313,6 +324,9 @@ final class outcome_service extends base_service {
 
     /**
      * Approve an outcome version after rechecking dates and framework state.
+     *
+     * @param int $versionid Versionid.
+     * @param ?string $reason Reason.
      */
     public static function approve(int $versionid, ?string $reason = null): void {
         global $DB;
@@ -554,6 +568,8 @@ final class outcome_service extends base_service {
 
     /**
      * Normalises the required outcome statement.
+     *
+     * @param mixed $value Value.
      */
     private static function required_statement($value): string {
         $value = clean_param((string) $value, PARAM_TEXT);
@@ -565,6 +581,9 @@ final class outcome_service extends base_service {
 
     /**
      * Requires a unique outcome UUID.
+     *
+     * @param string $itemuuid Itemuuid.
+     * @param string $versionuuid Versionuuid.
      */
     private static function require_unique_uuid(string $itemuuid, string $versionuuid): void {
         global $DB;
@@ -578,6 +597,8 @@ final class outcome_service extends base_service {
 
     /**
      * Requires nonoverlapping approved effective dates.
+     *
+     * @param \stdClass $candidate Candidate.
      */
     private static function require_no_approved_overlap(\stdClass $candidate): void {
         global $DB;

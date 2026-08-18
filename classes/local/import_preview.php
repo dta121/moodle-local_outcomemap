@@ -47,6 +47,10 @@ final class import_preview {
 
     /**
      * Constructor.
+     *
+     * @param array $rows Rows.
+     * @param string $hash Hash.
+     * @param bool $valid Valid.
      */
     public function __construct(array $rows, string $hash, bool $valid) {
         $this->rows = $rows;

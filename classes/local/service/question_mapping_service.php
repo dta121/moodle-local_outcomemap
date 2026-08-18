@@ -640,6 +640,9 @@ final class question_mapping_service extends base_service {
 
     /**
      * Resolve and validate the exact source and eligible copy set.
+     *
+     * @param int $targetquestionversionid Targetquestionversionid.
+     * @param ?int $sourcequestionversionid Sourcequestionversionid.
      */
     private static function prepare_copy_to_version(
         int $targetquestionversionid,
@@ -1343,6 +1346,13 @@ final class question_mapping_service extends base_service {
 
     /**
      * Build a validated add candidate using already bulk-loaded core data.
+     *
+     * @param \stdClass $question Question.
+     * @param \stdClass $outcome Outcome.
+     * @param string $role Role.
+     * @param mixed $weight Weight.
+     * @param ?string $notes Notes.
+     * @param int $effectivefrom Effectivefrom.
      */
     private static function bulk_new_record(
         \stdClass $question,
@@ -1384,6 +1394,8 @@ final class question_mapping_service extends base_service {
 
     /**
      * Validate a selected draft using its already bulk-loaded outcome fields.
+     *
+     * @param \stdClass $record Record.
      */
     private static function bulk_validate_loaded_record(\stdClass $record): void {
         if ($record->outcomeversionstatus !== workflow::APPROVED) {
@@ -1402,6 +1414,8 @@ final class question_mapping_service extends base_service {
 
     /**
      * Return the public subset of one draft for bulk selection.
+     *
+     * @param \stdClass $record Record.
      */
     private static function bulk_mapping_summary(\stdClass $record): \stdClass {
         return (object) [
@@ -1415,6 +1429,10 @@ final class question_mapping_service extends base_service {
 
     /**
      * Calculate an exact assessed total after applying in-memory changes.
+     *
+     * @param array $records Records.
+     * @param array $changes Changes.
+     * @param string $action Action.
      */
     private static function bulk_hypothetical_assessed_total(
         array $records,
@@ -1511,6 +1529,10 @@ final class question_mapping_service extends base_service {
 
     /**
      * Validate that role changes do not create a duplicate draft/current scope.
+     *
+     * @param array $records Records.
+     * @param array $changes Changes.
+     * @param array $questions Questions.
      */
     private static function bulk_validate_changed_scope(array $records, array $changes, array &$questions): void {
         $changed = [];
@@ -1541,6 +1563,10 @@ final class question_mapping_service extends base_service {
 
     /**
      * Validate duplicate scopes and immutable history before direct finalization.
+     *
+     * @param array $records Records.
+     * @param array $changes Changes.
+     * @param array $questions Questions.
      */
     private static function bulk_validate_finalization(array $records, array $changes, array &$questions): void {
         $final = [];
@@ -1578,6 +1604,9 @@ final class question_mapping_service extends base_service {
 
     /**
      * Whether two effective ranges overlap.
+     *
+     * @param \stdClass $a A.
+     * @param \stdClass $b B.
      */
     private static function bulk_ranges_overlap(\stdClass $a, \stdClass $b): bool {
         return ($a->effectiveto === null || (int) $b->effectivefrom < (int) $a->effectiveto)
@@ -1586,6 +1615,10 @@ final class question_mapping_service extends base_service {
 
     /**
      * Bind a preview token to request and current mapping state.
+     *
+     * @param array $questionids Questionids.
+     * @param array $operation Operation.
+     * @param array $records Records.
      */
     private static function bulk_preview_token(array $questionids, array $operation, array $records): string {
         $state = [];
@@ -1611,6 +1644,8 @@ final class question_mapping_service extends base_service {
 
     /**
      * Flatten structured preview errors for a commit exception.
+     *
+     * @param \stdClass $preview Preview.
      */
     private static function bulk_error_messages(\stdClass $preview): array {
         $messages = $preview->errors;
@@ -1895,6 +1930,8 @@ final class question_mapping_service extends base_service {
 
     /**
      * Prevent scalar mutations from racing an explicit prior-version copy.
+     *
+     * @param \stdClass $candidate Candidate.
      */
     private static function require_no_existing_copied_scope(\stdClass $candidate): void {
         global $DB;

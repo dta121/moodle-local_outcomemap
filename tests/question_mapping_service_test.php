@@ -100,6 +100,8 @@ final class question_mapping_service_test extends \advanced_testcase {
 
     /**
      * Create an approved outcome owned by an unrelated catalog course.
+     *
+     * @param \stdClass $reviewer Reviewer.
      */
     private function create_unrelated_catalog_outcome(\stdClass $reviewer): \stdClass {
 

@@ -127,6 +127,8 @@ final class question_mappings {
 
     /**
      * Normalize the public request so preview and commit hash identical data.
+     *
+     * @param array $operation Operation.
      */
     private static function normalize_bulk_operation(array $operation): array {
         $action = (string) ($operation['action'] ?? '');

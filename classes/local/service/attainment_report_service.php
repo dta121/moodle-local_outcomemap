@@ -232,7 +232,7 @@ final class attainment_report_service extends base_service {
      * effective now is reported, because the accreditation policy that governs
      * this page is resolved from it.
      *
-     * @param array<int,\stdClass> $instances Approved confirmed course instances.
+     * @param array $instances Approved confirmed course instances.
      * @param int $at Effective timestamp.
      * @return \stdClass|null Program record, or null when the course sits in none.
      */
@@ -407,7 +407,7 @@ final class attainment_report_service extends base_service {
      * attainment rate are both counts over learners, and an aggregate cannot be
      * split back apart.
      *
-     * @param array<int,\stdClass> $instances Approved confirmed course instances.
+     * @param array $instances Approved confirmed course instances.
      * @return \stdClass[] Result rows carrying their outcome and band.
      */
     private static function load_results(array $instances): array {
@@ -471,7 +471,7 @@ final class attainment_report_service extends base_service {
      *
      * @param int $courseid Moodle course ID.
      * @param \stdClass[] $records Result rows.
-     * @param array<int,\stdClass> $instances Approved confirmed course instances.
+     * @param array $instances Approved confirmed course instances.
      * @param int $at Effective timestamp.
      * @return array<int,\stdClass> Nodes keyed by stable outcome item ID.
      */
@@ -583,7 +583,7 @@ final class attainment_report_service extends base_service {
      * by the catalog courses this Moodle course is linked to — the same
      * association that makes a mapping valid.
      *
-     * @param array<int,\stdClass> $instances Approved confirmed course instances.
+     * @param array $instances Approved confirmed course instances.
      * @param int $at Effective timestamp.
      * @return int[] Stable outcome item IDs.
      */
@@ -663,7 +663,7 @@ final class attainment_report_service extends base_service {
      * without the plugin having to hold an opinion about how many levels a
      * curriculum has.
      *
-     * @param array<int,\stdClass> $nodes Nodes with parents already linked.
+     * @param array $nodes Nodes with parents already linked.
      * @return void
      */
     private static function assign_heights(array $nodes): void {
@@ -693,7 +693,7 @@ final class attainment_report_service extends base_service {
     /**
      * Attach per-cohort statistics to every node.
      *
-     * @param array<int,\stdClass> $nodes Nodes keyed by item ID.
+     * @param array $nodes Nodes keyed by item ID.
      * @param \stdClass[] $records Result rows.
      * @param \stdClass $policy Resolved reporting policy.
      * @param \stdClass $split Completion split.
@@ -782,7 +782,7 @@ final class attainment_report_service extends base_service {
      *
      * @param \stdClass[] $rows Result rows for one outcome and cohort.
      * @param \stdClass $policy Resolved reporting policy.
-     * @param array<int,array{lowest:int,highest:int}> $bounds Band range by policy ID.
+     * @param array $bounds Band range by policy ID.
      * @return \stdClass Learner counts, attainment rate, mean, and band spread.
      */
     private static function tally(array $rows, \stdClass $policy, array $bounds): \stdClass {
@@ -838,7 +838,7 @@ final class attainment_report_service extends base_service {
      *
      * @param \stdClass $row Result row.
      * @param \stdClass $policy Resolved reporting policy.
-     * @param array<int,array{lowest:int,highest:int}> $bounds Band range by policy ID.
+     * @param array $bounds Band range by policy ID.
      * @return bool|null Null when the result cannot be placed against any standard.
      */
     private static function reached_standard(\stdClass $row, \stdClass $policy, array $bounds): ?bool {
@@ -888,7 +888,7 @@ final class attainment_report_service extends base_service {
      * means, so an outcome graded for eight learners cannot move a level as hard
      * as one graded for sixty.
      *
-     * @param array<int,\stdClass> $nodes Scored nodes.
+     * @param array $nodes Scored nodes.
      * @return \stdClass[] Levels, top first.
      */
     private static function build_tiers(array $nodes): array {
@@ -970,7 +970,7 @@ final class attainment_report_service extends base_service {
      * honest thing to do with a number people have been quoting is to show what
      * it was and why it moved, not to change it silently.
      *
-     * @param array<int,\stdClass> $nodes Scored nodes.
+     * @param array $nodes Scored nodes.
      * @param string $cohort Cohort key.
      * @return float|null Null when nothing is measured.
      */
@@ -993,7 +993,7 @@ final class attainment_report_service extends base_service {
      *
      * @param int $courseid Moodle course ID.
      * @param \context_course $context Course context.
-     * @param array<int,\stdClass> $nodes Nodes keyed by item ID.
+     * @param array $nodes Nodes keyed by item ID.
      * @return void
      */
     private static function apply_coverage(int $courseid, \context_course $context, array $nodes): void {
@@ -1097,7 +1097,7 @@ final class attainment_report_service extends base_service {
      * learners is one score away from a different answer. Neither is a low score;
      * both are silence, and silence is what a reviewer asks about.
      *
-     * @param array<int,\stdClass> $nodes Scored nodes.
+     * @param array $nodes Scored nodes.
      * @param \stdClass[] $tiers Levels, top first.
      * @param \stdClass $policy Resolved reporting policy.
      * @param string $cohort Cohort key.

@@ -572,6 +572,9 @@ final class snapshot_service extends base_service {
 
     /**
      * Handles the verify operation.
+     *
+     * @param \stdClass $snapshot Snapshot.
+     * @param array $items Items.
      */
     public static function verify(\stdClass $snapshot, array $items): void {
         audit_lineage_service::verify_snapshot_payload($snapshot, $items);
@@ -809,11 +812,11 @@ final class snapshot_service extends base_service {
      * @param string $snapshotuuid Snapshot UUID.
      * @param \stdClass $program Program record.
      * @param string $periodcode Reporting period.
-     * @param int|null $cohortid Cohort ID.
+     * @param ?int $cohortid Cohort ID.
      * @param int $populationat Data-freeze timestamp.
      * @param \stdClass[] $courses Course instances.
      * @param int[] $userids Population IDs, never written to payloads.
-     * @param array<int,string> $subjectrefs Subject references keyed by user ID.
+     * @param array $subjectrefs Subject references keyed by user ID.
      * @param \stdClass[] $results Results.
      * @param array $aggregates Course and program aggregate rows.
      * @param array $lineage Bulk-loaded lineage context.

@@ -403,6 +403,8 @@ final class snapshot_report implements renderable, templatable {
 
     /**
      * Export the template context.
+     *
+     * @param renderer_base $output Output.
      */
     public function export_for_template(renderer_base $output): array {
         $context = \context_system::instance();
@@ -729,7 +731,7 @@ final class snapshot_report implements renderable, templatable {
      * falling back to the unfiltered figure.
      *
      * @param \stdClass $item Program aggregate row.
-     * @param array<int,array> $overrides Recomputed cells keyed by outcome-version ID.
+     * @param array $overrides Recomputed cells keyed by outcome-version ID.
      * @return array Cell values for one row.
      */
     private function cells(\stdClass $item, array $overrides): array {
@@ -1049,7 +1051,7 @@ final class snapshot_report implements renderable, templatable {
      * Walk the alignment edges to the outcomes at the end of every chain.
      *
      * @param int $itemid Starting outcome ID.
-     * @param array<int,array<int,bool>> $edges Alignment edges by source outcome ID.
+     * @param array $edges Alignment edges by source outcome ID.
      * @return int[] Terminal outcome IDs.
      */
     private static function terminals(int $itemid, array $edges): array {
@@ -1079,8 +1081,8 @@ final class snapshot_report implements renderable, templatable {
     /**
      * Label every outcome the grouping can land on, by immutable identity.
      *
-     * @param array<int,int|null> $itemids Outcome IDs keyed by captured version ID.
-     * @param array<int,array<int,bool>> $edges Alignment edges by source outcome ID.
+     * @param array $itemids Outcome IDs keyed by captured version ID.
+     * @param array $edges Alignment edges by source outcome ID.
      * @return array<int,string> Framework-qualified code keyed by outcome ID.
      */
     private function outcome_identities(array $itemids, array $edges): array {
@@ -1155,6 +1157,8 @@ final class snapshot_report implements renderable, templatable {
 
     /**
      * Handles the attainment cells operation.
+     *
+     * @param array $payload Payload.
      */
     private static function attainment_cells(array $payload): array {
         $rate = $payload['attainmentpercent'] ?? null;

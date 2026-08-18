@@ -42,6 +42,8 @@ final class program_course_service extends base_service {
 
     /**
      * Create a draft effective-dated membership.
+     *
+     * @param array $data Data.
      */
     public static function create(array $data): int {
         global $DB;
@@ -94,6 +96,9 @@ final class program_course_service extends base_service {
 
     /**
      * Submits the record for review.
+     *
+     * @param int $id Id.
+     * @param ?string $reason Reason.
      */
     public static function submit_for_review(int $id, ?string $reason = null): void {
         self::set_status($id, workflow::DRAFT, workflow::NEEDS_REVIEW, 'submit_review', $reason, false);
@@ -101,6 +106,9 @@ final class program_course_service extends base_service {
 
     /**
      * Approves the record.
+     *
+     * @param int $id Id.
+     * @param ?string $reason Reason.
      */
     public static function approve(int $id, ?string $reason = null): void {
         global $DB;
@@ -270,6 +278,13 @@ final class program_course_service extends base_service {
 
     /**
      * Sets the record workflow status.
+     *
+     * @param int $id Id.
+     * @param string $required Required.
+     * @param string $status Status.
+     * @param string $action Action.
+     * @param ?string $reason Reason.
+     * @param bool $approving Approving.
      */
     private static function set_status(
         int $id,
@@ -315,6 +330,8 @@ final class program_course_service extends base_service {
 
     /**
      * Requires nonoverlapping approved effective dates.
+     *
+     * @param \stdClass $candidate Candidate.
      */
     private static function require_no_approved_overlap(\stdClass $candidate): void {
         global $DB;

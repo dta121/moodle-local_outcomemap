@@ -82,6 +82,8 @@ class outcomes_hierarchy implements renderable, templatable {
 
     /**
      * Load all governed records once.
+     *
+     * @param string $view View.
      */
     public function __construct(string $view = 'program') {
         global $DB;
@@ -132,6 +134,8 @@ class outcomes_hierarchy implements renderable, templatable {
 
     /**
      * Return the hierarchy kind of an item's framework.
+     *
+     * @param \stdClass $item Item.
      */
     private function kind(\stdClass $item): string {
         return $this->frameworks[(int) $item->frameworkid]->kind;
@@ -139,6 +143,8 @@ class outcomes_hierarchy implements renderable, templatable {
 
     /**
      * Return the full display label of an item, e.g. "MBA-PLO.PLO1".
+     *
+     * @param \stdClass $item Item.
      */
     private function label(\stdClass $item): string {
         return $this->frameworks[(int) $item->frameworkid]->code . '.' . $item->code;
@@ -146,6 +152,8 @@ class outcomes_hierarchy implements renderable, templatable {
 
     /**
      * Return the catalog course id owning an item's framework, or null.
+     *
+     * @param \stdClass $item Item.
      */
     private function courseid(\stdClass $item): ?int {
         $framework = $this->frameworks[(int) $item->frameworkid];
@@ -154,6 +162,9 @@ class outcomes_hierarchy implements renderable, templatable {
 
     /**
      * Return items of one hierarchy kind, optionally limited to one catalog course.
+     *
+     * @param string $kind Kind.
+     * @param ?int $courseid Courseid.
      */
     private function items_of_kind(string $kind, ?int $courseid = null): array {
         return array_filter($this->items, function ($item) use ($kind, $courseid) {
@@ -164,6 +175,8 @@ class outcomes_hierarchy implements renderable, templatable {
 
     /**
      * True when an item has no outgoing alignment.
+     *
+     * @param \stdClass $item Item.
      */
     private function is_unmapped(\stdClass $item): bool {
         return empty($this->mapsbysource[(int) $item->itemid]);
@@ -171,6 +184,10 @@ class outcomes_hierarchy implements renderable, templatable {
 
     /**
      * Governance status, version, and action fields shared by every row.
+     *
+     * @param \stdClass $item Item.
+     * @param bool $canmanage Canmanage.
+     * @param bool $canapprove Canapprove.
      */
     private function status_fields(\stdClass $item, bool $canmanage, bool $canapprove): array {
         $status = $item->versionstatus;
@@ -224,6 +241,8 @@ class outcomes_hierarchy implements renderable, templatable {
 
     /**
      * Lower-case haystack the client-side search matches against.
+     *
+     * @param \stdClass $item Item.
      */
     private function searchtext(\stdClass $item): string {
         return \core_text::strtolower($this->label($item) . ' ' . $item->code . ' ' . $item->statement);
@@ -231,6 +250,10 @@ class outcomes_hierarchy implements renderable, templatable {
 
     /**
      * Build one unit-outcome row.
+     *
+     * @param \stdClass $item Item.
+     * @param bool $canmanage Canmanage.
+     * @param bool $canapprove Canapprove.
      */
     private function ulo_row(\stdClass $item, bool $canmanage, bool $canapprove): array {
         $courseid = $this->courseid($item);
@@ -245,6 +268,11 @@ class outcomes_hierarchy implements renderable, templatable {
 
     /**
      * Build one course-outcome row with its aligned unit outcomes.
+     *
+     * @param \stdClass $item Item.
+     * @param bool $withchips Withchips.
+     * @param bool $canmanage Canmanage.
+     * @param bool $canapprove Canapprove.
      */
     private function clo_row(\stdClass $item, bool $withchips, bool $canmanage, bool $canapprove): array {
         $ulos = [];
@@ -284,6 +312,8 @@ class outcomes_hierarchy implements renderable, templatable {
 
     /**
      * Export the full template context.
+     *
+     * @param renderer_base $output Output.
      */
     public function export_for_template(renderer_base $output): array {
         $context = \context_system::instance();
@@ -632,6 +662,8 @@ class outcomes_hierarchy implements renderable, templatable {
 
     /**
      * Current alignment target ids for one source item (latest relation versions, not retired).
+     *
+     * @param int $itemid Itemid.
      */
     public static function current_targets(int $itemid): array {
         global $DB;

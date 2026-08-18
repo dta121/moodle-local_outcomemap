@@ -77,6 +77,8 @@ final class relation_service extends base_service {
 
     /**
      * Create a version-one draft relation.
+     *
+     * @param array $data Data.
      */
     public static function create(array $data): int {
         $record = self::build_record($data, uuid::normalize_or_generate($data['relationuuid'] ?? null), 1);
@@ -85,6 +87,9 @@ final class relation_service extends base_service {
 
     /**
      * Create the next draft version of an approved relation identity.
+     *
+     * @param int $relationid Relationid.
+     * @param array $data Data.
      */
     public static function create_version(int $relationid, array $data): int {
         global $DB;
@@ -106,6 +111,9 @@ final class relation_service extends base_service {
 
     /**
      * Update a draft relation version.
+     *
+     * @param int $id Id.
+     * @param array $data Data.
      */
     public static function update_draft(int $id, array $data): void {
         global $DB;
@@ -142,6 +150,9 @@ final class relation_service extends base_service {
 
     /**
      * Submit a relation version for review.
+     *
+     * @param int $id Id.
+     * @param ?string $reason Reason.
      */
     public static function submit_for_review(int $id, ?string $reason = null): void {
         global $DB;
@@ -178,6 +189,9 @@ final class relation_service extends base_service {
 
     /**
      * Approve a relation after effective-range and graph-cycle validation.
+     *
+     * @param int $id Id.
+     * @param ?string $reason Reason.
      */
     public static function approve(int $id, ?string $reason = null): void {
         global $DB;
@@ -278,6 +292,13 @@ final class relation_service extends base_service {
 
     /**
      * Validate whether a candidate edge would be acyclic.
+     *
+     * @param int $sourceitemid Sourceitemid.
+     * @param int $targetitemid Targetitemid.
+     * @param string $type Type.
+     * @param int $effectivefrom Effectivefrom.
+     * @param ?int $effectiveto Effectiveto.
+     * @param int $excludeid Excludeid.
      */
     public static function validate_acyclic(
         int $sourceitemid,
@@ -308,6 +329,10 @@ final class relation_service extends base_service {
 
     /**
      * Builds a validated database record.
+     *
+     * @param array $data Data.
+     * @param string $relationuuid Relationuuid.
+     * @param int $version Version.
      */
     private static function build_record(array $data, string $relationuuid, int $version): \stdClass {
         $sourceitemid = input::positive_int($data['sourceitemid'] ?? 0, 'sourceitemid');
@@ -358,6 +383,9 @@ final class relation_service extends base_service {
 
     /**
      * Inserts a validated record.
+     *
+     * @param \stdClass $record Record.
+     * @param string $action Action.
      */
     private static function insert(\stdClass $record, string $action): int {
         global $DB;
@@ -387,6 +415,8 @@ final class relation_service extends base_service {
 
     /**
      * Handles the require approved outcomes operation.
+     *
+     * @param \stdClass $candidate Candidate.
      */
     private static function require_approved_outcomes(\stdClass $candidate): void {
         $source = self::get_required('local_outcomemap_item', (int) $candidate->sourceitemid, 'source_outcome');
@@ -398,6 +428,8 @@ final class relation_service extends base_service {
 
     /**
      * Requires nonoverlapping approved effective dates.
+     *
+     * @param \stdClass $candidate Candidate.
      */
     private static function require_no_approved_overlap(\stdClass $candidate): void {
         global $DB;
@@ -420,6 +452,8 @@ final class relation_service extends base_service {
 
     /**
      * Handles the require acyclic operation.
+     *
+     * @param \stdClass $candidate Candidate.
      */
     private static function require_acyclic(\stdClass $candidate): void {
         global $DB;

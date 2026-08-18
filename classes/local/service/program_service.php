@@ -83,6 +83,8 @@ final class program_service extends base_service {
 
     /**
      * Create a draft program.
+     *
+     * @param array $data Data.
      */
     public static function create(array $data): int {
         global $DB;
@@ -129,6 +131,9 @@ final class program_service extends base_service {
 
     /**
      * Update a draft program.
+     *
+     * @param int $id Id.
+     * @param array $data Data.
      */
     public static function update(int $id, array $data): void {
         global $DB;
@@ -174,6 +179,9 @@ final class program_service extends base_service {
 
     /**
      * Submit a draft program for review.
+     *
+     * @param int $id Id.
+     * @param ?string $reason Reason.
      */
     public static function submit_for_review(int $id, ?string $reason = null): void {
         self::change_status(
@@ -189,6 +197,9 @@ final class program_service extends base_service {
 
     /**
      * Approve a reviewed program.
+     *
+     * @param int $id Id.
+     * @param ?string $reason Reason.
      */
     public static function approve(int $id, ?string $reason = null): void {
         $capability = workflow::requires_independent_approval()
@@ -207,6 +218,9 @@ final class program_service extends base_service {
 
     /**
      * Retire a program.
+     *
+     * @param int $id Id.
+     * @param string $reason Reason.
      */
     public static function retire(int $id, string $reason): void {
         global $DB;
@@ -294,6 +308,8 @@ final class program_service extends base_service {
      * Counts are loaded in one query so presentation code does not issue queries
      * per program. Retired records and memberships outside their effective range
      * are excluded from the summary.
+     *
+     * @param ?int $time Time.
      */
     public static function list_with_summary(?int $time = null): array {
         global $DB;
@@ -334,6 +350,14 @@ final class program_service extends base_service {
 
     /**
      * Changes the record workflow status.
+     *
+     * @param int $id Id.
+     * @param string $required Required.
+     * @param string $status Status.
+     * @param string $action Action.
+     * @param ?string $reason Reason.
+     * @param string $capability Capability.
+     * @param bool $separateapprover Separateapprover.
      */
     private static function change_status(
         int $id,
@@ -382,6 +406,10 @@ final class program_service extends base_service {
 
     /**
      * Requires unique record identifiers.
+     *
+     * @param string $uuidvalue Uuidvalue.
+     * @param string $code Code.
+     * @param int $excludeid Excludeid.
      */
     private static function require_unique(string $uuidvalue, string $code, int $excludeid = 0): void {
         global $DB;

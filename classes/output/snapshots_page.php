@@ -53,6 +53,8 @@ final class snapshots_page implements renderable, templatable {
 
     /**
      * Export the template context.
+     *
+     * @param renderer_base $output Output.
      */
     public function export_for_template(renderer_base $output): array {
         $baseurl = new moodle_url('/local/outcomemap/snapshots.php');

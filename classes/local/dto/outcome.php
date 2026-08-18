@@ -97,6 +97,18 @@ final class outcome implements \JsonSerializable {
 
     /**
      * Constructor.
+     *
+     * @param string $uuid Uuid.
+     * @param string $code Code.
+     * @param string $frameworkuuid Frameworkuuid.
+     * @param string $frameworkcode Frameworkcode.
+     * @param string $versionuuid Versionuuid.
+     * @param int $version Version.
+     * @param string $statement Statement.
+     * @param ?string $shortstatement Shortstatement.
+     * @param ?string $bloomlevel Bloomlevel.
+     * @param int $effectivefrom Effectivefrom.
+     * @param ?int $effectiveto Effectiveto.
      */
     public function __construct(
         string $uuid,

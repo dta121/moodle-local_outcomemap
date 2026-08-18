@@ -50,6 +50,10 @@ final class relation_service_test extends \advanced_testcase {
 
     /**
      * Creates an approved outcome fixture.
+     *
+     * @param int $frameworkid Frameworkid.
+     * @param string $code Code.
+     * @param \stdClass $approver Approver.
      */
     private function create_approved_outcome(int $frameworkid, string $code, \stdClass $approver): int {
         global $DB;
@@ -69,6 +73,10 @@ final class relation_service_test extends \advanced_testcase {
 
     /**
      * Approves a relationship fixture.
+     *
+     * @param int $source Source.
+     * @param int $target Target.
+     * @param \stdClass $approver Approver.
      */
     private function approve_relation(int $source, int $target, \stdClass $approver): int {
         $this->setAdminUser();

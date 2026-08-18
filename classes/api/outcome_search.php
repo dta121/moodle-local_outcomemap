@@ -199,6 +199,11 @@ final class outcome_search {
 
     /**
      * Add owner scoping for non-system contexts.
+     *
+     * @param \context $context Context.
+     * @param int $effectiveat Effectiveat.
+     * @param array $where Where.
+     * @param array $params Params.
      */
     private static function add_context_scope(\context $context, int $effectiveat, array &$where, array &$params): void {
         global $DB;

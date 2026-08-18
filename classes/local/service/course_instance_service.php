@@ -163,6 +163,8 @@ final class course_instance_service extends base_service {
 
     /**
      * Create an unconfirmed draft course-instance association.
+     *
+     * @param array $data Data.
      */
     public static function create(array $data): int {
         global $DB;
@@ -220,6 +222,9 @@ final class course_instance_service extends base_service {
 
     /**
      * Submit an association for independent confirmation.
+     *
+     * @param int $id Id.
+     * @param ?string $reason Reason.
      */
     public static function submit_for_review(int $id, ?string $reason = null): void {
         global $DB;
@@ -257,6 +262,9 @@ final class course_instance_service extends base_service {
 
     /**
      * Confirm an association in its authoritative course context.
+     *
+     * @param int $id Id.
+     * @param ?string $reason Reason.
      */
     public static function confirm(int $id, ?string $reason = null): void {
         global $DB, $USER;

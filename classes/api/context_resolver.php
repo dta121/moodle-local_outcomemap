@@ -44,6 +44,8 @@ final class context_resolver {
 
     /**
      * Resolve a course-instance association to its authoritative course context.
+     *
+     * @param int $courseinstanceid Courseinstanceid.
      */
     public static function for_course_instance(int $courseinstanceid): \context_course {
         global $DB;
@@ -60,6 +62,8 @@ final class context_resolver {
 
     /**
      * Resolve a Moodle course-module target after validating it exists.
+     *
+     * @param int $cmid Cmid.
      */
     public static function for_course_module(int $cmid): \context_module {
         return \context_module::instance($cmid, MUST_EXIST);
@@ -67,6 +71,8 @@ final class context_resolver {
 
     /**
      * Resolve the actual question-category context for a question version.
+     *
+     * @param int $questionversionid Questionversionid.
      */
     public static function for_question_version(int $questionversionid): \context {
         global $DB;
@@ -84,6 +90,9 @@ final class context_resolver {
 
     /**
      * Resolve and require a capability without accepting a browser context ID.
+     *
+     * @param int $courseinstanceid Courseinstanceid.
+     * @param string $capability Capability.
      */
     public static function require_for_course_instance(int $courseinstanceid, string $capability): \context_course {
         $context = self::for_course_instance($courseinstanceid);

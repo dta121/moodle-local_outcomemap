@@ -230,7 +230,7 @@ class restore_local_outcomemap_plugin extends restore_local_plugin {
     /**
      * Resolves or lazily restores a course instance for partial backups.
      *
-     * @param stdClass $data Backup data.
+     * @param object $data Backup data.
      * @return int|null Course-instance ID, or null when it cannot be restored.
      */
     private function course_instance_id(object $data): ?int {

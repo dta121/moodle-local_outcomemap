@@ -126,6 +126,8 @@ final class audit_payload {
 
     /**
      * Convert nested objects to arrays without changing scalar values.
+     *
+     * @param mixed $value Value.
      */
     private static function to_structure($value) {
         if (is_object($value)) {
@@ -142,6 +144,8 @@ final class audit_payload {
 
     /**
      * Remove direct user-reference keys recursively.
+     *
+     * @param mixed $value Value.
      */
     private static function remove_user_references($value) {
         if (!is_array($value)) {

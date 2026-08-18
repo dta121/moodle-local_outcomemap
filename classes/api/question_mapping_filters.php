@@ -165,6 +165,8 @@ final class question_mapping_filters {
 
     /**
      * Build the outcome/framework keyword predicate.
+     *
+     * @param array $filter Filter.
      */
     private static function outcome(array $filter): array {
         global $DB;
@@ -235,6 +237,11 @@ final class question_mapping_filters {
 
     /**
      * Build role/status predicates where separate mappings may satisfy each selected value.
+     *
+     * @param array $filter Filter.
+     * @param string $field Field.
+     * @param array $allowed Allowed.
+     * @param string $prefix Prefix.
      */
     private static function field_values(array $filter, string $field, array $allowed, string $prefix): array {
         $values = [];
@@ -265,6 +272,10 @@ final class question_mapping_filters {
 
     /**
      * Build a fixed yes/no condition around an EXISTS expression.
+     *
+     * @param array $filter Filter.
+     * @param string $exists Exists.
+     * @param array $params Params.
      */
     private static function binary(array $filter, string $exists, array $params = []): array {
         $values = $filter['values'] ?? [];
@@ -295,6 +306,8 @@ final class question_mapping_filters {
 
     /**
      * Build the current effective assessed-total validity predicate.
+     *
+     * @param array $filter Filter.
      */
     private static function invalid_weight(array $filter): array {
         $now = time();

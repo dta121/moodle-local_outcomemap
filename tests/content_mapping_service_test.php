@@ -102,6 +102,10 @@ final class content_mapping_service_test extends \advanced_testcase {
 
     /**
      * Create an approved outcome owned by one catalog course.
+     *
+     * @param int $catalogid Catalogid.
+     * @param \stdClass $reviewer Reviewer.
+     * @param string $code Code.
      */
     private function create_catalog_outcome(int $catalogid, \stdClass $reviewer, string $code): int {
 

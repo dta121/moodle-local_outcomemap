@@ -113,8 +113,8 @@ final class subject_key_service {
      * returned flat array preserves those keys and omits references that have
      * been erased or use unavailable key material.
      *
-     * @param array<int,string> $active V2 snapshot UUIDs keyed by snapshot ID.
-     * @param array<int,string> $legacy Legacy snapshot UUIDs keyed by snapshot ID.
+     * @param array $active V2 snapshot UUIDs keyed by snapshot ID.
+     * @param array $legacy Legacy snapshot UUIDs keyed by snapshot ID.
      * @param int $userid Moodle user ID.
      * @return array<int,string> Resolvable subject references keyed by snapshot ID.
      */
