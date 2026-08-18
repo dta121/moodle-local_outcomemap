@@ -1,0 +1,131 @@
+name: Moodle Plugin CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.moodle-branch }} / PHP ${{ matrix.php }} / ${{ matrix.database }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    services:
+      postgres:
+        image: ${{ matrix.database == 'pgsql' && 'postgres:17' || '' }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+      mariadb:
+        image: ${{ matrix.database == 'mariadb' && 'mariadb:11' || '' }}
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+          MYSQL_CHARACTER_SET_SERVER: utf8mb4
+          MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.1'
+            moodle-branch: MOODLE_405_STABLE
+            database: mariadb
+          - php: '8.3'
+            moodle-branch: MOODLE_502_STABLE
+            database: mariadb
+          - php: '8.3'
+            moodle-branch: MOODLE_502_STABLE
+            database: pgsql
+
+    steps:
+      - name: Check out the plugin
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          path: plugin
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: ${{ matrix.php }}
+          ini-values: max_input_vars=5000, opcache.enable_cli=1
+          coverage: none
+
+      - name: Initialise Moodle Plugin CI
+        run: |
+          composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci ci ^4
+          echo "$(cd ci/bin && pwd)" >> "$GITHUB_PATH"
+          echo "$(cd ci/vendor/bin && pwd)" >> "$GITHUB_PATH"
+          sudo locale-gen en_AU.UTF-8
+          echo "NVM_DIR=$HOME/.nvm" >> "$GITHUB_ENV"
+
+      - name: Install Moodle and the plugin
+        run: moodle-plugin-ci install --plugin ./plugin --db-host=127.0.0.1
+        env:
+          DB: ${{ matrix.database }}
+          MOODLE_BRANCH: ${{ matrix.moodle-branch }}
+
+      - name: PHP lint
+        run: moodle-plugin-ci phplint
+
+      - name: PHP mess detector
+        continue-on-error: true
+        run: moodle-plugin-ci phpmd
+
+      - name: Moodle code checker
+        run: moodle-plugin-ci phpcs --max-warnings 0
+
+      - name: PHPDoc checker
+        run: moodle-plugin-ci phpdoc --max-warnings 0
+
+      - name: Moodle plugin validation
+        run: moodle-plugin-ci validate
+
+      - name: Upgrade savepoint validation
+        run: moodle-plugin-ci savepoints
+
+      - name: Mustache lint
+        run: moodle-plugin-ci mustache
+
+      - name: JavaScript and CSS lint
+        run: moodle-plugin-ci grunt --max-lint-warnings 0
+
+      - name: PHPUnit tests
+        run: moodle-plugin-ci phpunit --fail-on-warning
+
+      - name: Behat tests
+        run: moodle-plugin-ci behat --profile chrome --scss-deprecations
+
+      - name: Upload Behat failures
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: behat-failures-${{ matrix.moodle-branch }}-php${{ matrix.php }}-${{ matrix.database }}
+          path: moodledata/behat_dump
+          if-no-files-found: ignore
+
+      - name: Fail cancelled jobs
+        if: cancelled()
+        run: exit 1
