@@ -31,7 +31,7 @@ Feature: Course staff map content to governed outcome versions
     And I am on "Strategic Leadership" course homepage
     When I am on the "MBA614" course "Content mappings" outcome page
     Then I should see "Course content mappings"
-    And "Apply mappings" "button" should not exist
+    And "Apply to selected content" "button" should not exist
     And "Submit for review" "link" should not exist
     When I am on "Strategic Leadership" course homepage
     And I am on the "MBA614" course "Remediation" outcome page
@@ -99,8 +99,8 @@ Feature: Course staff map content to governed outcome versions
     And I click on "MBA614-FW.CLO1 v1" "checkbox"
     And I click on "Assesses" "radio"
     And I click on ".lom-map-adv-head" "css_element"
-    And I set the field "Weight" to "1"
-    And I press "Apply mappings"
+    And I set the field "Contribution weight" to "1"
+    And I press "Apply to selected content"
     And I click on "Submit for review" "link" in the ".lom-map-section" "css_element"
     And I log out
     And I log in as "reviewer"
