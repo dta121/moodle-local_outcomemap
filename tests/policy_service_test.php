@@ -28,6 +28,8 @@ use local_outcomemap\local\workflow;
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @covers \local_outcomemap\local\service\policy_service
  */
 final class policy_service_test extends \advanced_testcase {
     /**

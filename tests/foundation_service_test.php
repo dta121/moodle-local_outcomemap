@@ -37,6 +37,8 @@ use local_outcomemap\local\workflow;
 
 /**
  * Tests for Milestone 1 definition, version, and multi-program services.
+ *
+ * @covers \local_outcomemap\local\service\program_service
  */
 final class foundation_service_test extends \advanced_testcase {
     /**

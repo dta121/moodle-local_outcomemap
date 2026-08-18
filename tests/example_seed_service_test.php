@@ -36,6 +36,8 @@ use local_outcomemap\reportbuilder\local\sources;
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @covers \local_outcomemap\local\service\example_seed_service
  */
 final class example_seed_service_test extends \advanced_testcase {
     /**

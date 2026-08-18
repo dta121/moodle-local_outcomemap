@@ -32,6 +32,8 @@ use mod_quiz\quiz_settings;
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @covers \local_outcomemap\local\service\release_service
  */
 final class release_service_test extends \advanced_testcase {
     use \local_outcomemap\tests\moodle_compat_trait;

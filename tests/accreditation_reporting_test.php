@@ -45,6 +45,8 @@ use local_outcomemap\output\snapshots_page;
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @covers \local_outcomemap\local\service\snapshot_service
  */
 final class accreditation_reporting_test extends \advanced_testcase {
     /**

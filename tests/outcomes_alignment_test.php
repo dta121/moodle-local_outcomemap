@@ -30,6 +30,8 @@ use local_outcomemap\output\outcomes_hierarchy;
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @covers \local_outcomemap\output\outcomes_hierarchy
  */
 final class outcomes_alignment_test extends \advanced_testcase {
     /**

@@ -30,6 +30,8 @@ use local_outcomemap\local\validation_exception;
 
 /**
  * Tests for CSV preview binding and all-or-nothing commit.
+ *
+ * @covers \local_outcomemap\local\service\foundation_import_service
  */
 final class foundation_import_service_test extends \advanced_testcase {
     public function test_import_size_and_row_limits_are_enforced_before_preview(): void {

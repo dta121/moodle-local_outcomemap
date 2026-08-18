@@ -31,6 +31,8 @@ use local_outcomemap\local\validation_exception;
 
 /**
  * Tests for relationship validation and cycle detection.
+ *
+ * @covers \local_outcomemap\local\service\relation_service
  */
 final class relation_service_test extends \advanced_testcase {
     /**

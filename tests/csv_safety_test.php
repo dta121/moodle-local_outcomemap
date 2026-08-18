@@ -24,6 +24,8 @@ use local_outcomemap\local\csv_safety;
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @covers \local_outcomemap\local\csv_safety
  */
 final class csv_safety_test extends \basic_testcase {
     /**

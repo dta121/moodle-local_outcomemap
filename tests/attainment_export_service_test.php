@@ -32,6 +32,8 @@ use local_outcomemap\local\service\student_result_service;
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @covers \local_outcomemap\local\service\attainment_export_service
  */
 final class attainment_export_service_test extends \basic_testcase {
     /**

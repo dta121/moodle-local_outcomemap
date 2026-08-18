@@ -27,6 +27,8 @@ use local_outcomemap\output\policies_page;
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @covers \local_outcomemap\output\policies_page
  */
 final class policies_page_test extends \advanced_testcase {
     /**

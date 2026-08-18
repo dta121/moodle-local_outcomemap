@@ -41,6 +41,8 @@ use local_outcomemap\reportbuilder\local\filters\cohort_membership;
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @covers \local_outcomemap\reportbuilder\datasource\assessment_coverage
  */
 final class reportbuilder_datasource_test extends core_reportbuilder_testcase {
     /**

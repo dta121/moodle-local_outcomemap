@@ -30,6 +30,8 @@ use local_outcomemap\output\student_results;
  * @package    local_outcomemap
  * @copyright  2026 Moodle Learning Outcome Mapping contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @covers \local_outcomemap\output\student_results
  */
 final class student_results_page_test extends \advanced_testcase {
     /**

@@ -22,1647 +22,3072 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['pluginname'] = 'Learning outcome mapping';
+$string['achievementminpercent'] = 'Achievement criterion (percentage per learner)';
 
-$string['requireapproval'] = 'Require independent approval';
-$string['requireapproval_desc'] = 'When enabled, a governed record must be approved by a different user with the approval capability. When disabled, submitting a record finalizes it immediately through the same validation and audit workflow using the editor\'s normal management or mapping capabilities. Existing pending records are not changed automatically, approved versions remain immutable, and copied question mappings remain drafts until explicitly submitted.';
-$string['approvalnotrequired'] = 'Independent approval is disabled. Submitting a valid draft finalizes it immediately, while all validation, audit history, explicit-weight rules, and approved-version immutability remain enforced. Existing pending records remain listed below.';
+$string['achievementminpercent_help'] = 'The percentage a learner must reach on the assessment items mapped to an outcome to be counted as having achieved it. Faculty set this figure; the plugin supplies no default.';
 
-$string['outcomemap:viewdefinitions'] = 'View outcome definitions';
-$string['outcomemap:manageprograms'] = 'Manage programs and program-course memberships';
-$string['outcomemap:managecatalogcourses'] = 'Manage catalog courses and course-instance associations';
-$string['outcomemap:manageframeworks'] = 'Manage frameworks, outcomes, versions, and relations';
-$string['outcomemap:mapcourse'] = 'Map and confirm a course instance';
-$string['outcomemap:mapactivities'] = 'Map course activities, resources, and sections';
-$string['outcomemap:mapquestions'] = 'Map question versions';
-$string['outcomemap:approve'] = 'Approve governed outcome records';
-$string['outcomemap:viewownresults'] = 'View own outcome results';
-$string['outcomemap:viewallresults'] = 'View all authorized outcome results';
-$string['outcomemap:managepolicies'] = 'Manage calculation and release policies';
-$string['outcomemap:managesnapshots'] = 'Manage accreditation snapshots';
-$string['outcomemap:exportaccreditation'] = 'Export accreditation data';
-$string['outcomemap:exportattainment'] = 'Export learner program-outcome attainment to the SIS';
-$string['outcomemap:overridecalculations'] = 'Override outcome calculations';
+$string['achievementminpercent_value'] = 'Achievement criterion: {$a}% per learner';
 
-$string['nav_dashboard'] = 'Dashboard';
-$string['nav_curriculum'] = 'Curriculum';
-$string['nav_programs'] = 'Programs';
-$string['nav_catalogcourses'] = 'Catalog courses';
-$string['nav_courseinstances'] = 'Course instances';
-$string['nav_frameworks'] = 'Outcomes & alignment';
-$string['nav_outcomes'] = 'Outcomes';
-$string['nav_relations'] = 'Outcome relations';
-$string['nav_policies'] = 'Outcome policies';
-$string['nav_approvalqueue'] = 'Approval queue';
-$string['nav_csvimport'] = 'CSV import';
+$string['actions'] = 'Actions';
 
-$string['dashboard_heading'] = 'Learning outcome mapping';
-$string['dashboard_summary'] = 'Governed programs, catalog courses, course instances, frameworks, outcomes, versions, and relationships.';
-$string['dashboard_subtitle'] = 'What stands between this site and a defensible accreditation report.';
+$string['addcatalogcourse'] = 'Add catalog course';
 
-// Dashboard gap tiles.
-$string['dash_tile_unaligned'] = 'Outcomes unaligned';
-$string['dash_tile_unaligned_unit'] = 'course outcomes';
-$string['dash_tile_unaligned_note'] = 'approved but related to no program outcome';
-$string['dash_tile_coverage'] = 'Coverage gaps';
-$string['dash_tile_coverage_unit'] = 'in confirmed deliveries';
-$string['dash_tile_coverage_note'] = '{$a->nocontent} with no content, {$a->notassessed} never assessed';
-$string['dash_tile_unframed'] = 'Courses without outcomes';
-$string['dash_tile_unframed_unit'] = 'catalog courses';
-$string['dash_tile_unframed_clear'] = 'every catalog course owns an approved outcome';
-$string['dash_tile_pending'] = 'Awaiting sign-off';
-$string['dash_tile_pending_unit'] = 'outcome versions';
-$string['dash_tile_pending_note'] = 'drafts govern no mapping or result until approved';
+$string['addcontentmapping'] = 'Add content mapping';
 
-// Dashboard work queue.
-$string['dash_tasks_heading'] = 'Needs your attention';
-$string['dash_tasks_subheading'] = 'Ordered by what blocks reporting first, not by size.';
-$string['dash_tasks_allclear'] = 'Nothing outstanding. Every approved course outcome rolls up to a program, every catalog course owns outcomes, and every outcome in a confirmed delivery is both taught and assessed.';
-$string['dash_severity_blocks'] = 'Blocks reporting';
-$string['dash_severity_needswork'] = 'Needs work';
-$string['dash_severity_review'] = 'Review';
-$string['dash_task_unaligned'] = '{$a} approved course outcomes roll up to no program outcome';
-$string['dash_task_unaligned_one'] = '1 approved course outcome rolls up to no program outcome';
-$string['dash_task_unaligned_detail'] = 'Nothing aggregates from these outcomes, so evidence collected against them can never reach an accreditation report.';
-$string['dash_task_unaligned_action'] = 'Align outcomes';
-$string['dash_task_unframed'] = '{$a->code} {$a->name} owns no approved outcome';
-$string['dash_task_unframed_detail'] = 'It reports against nothing. {$a} other catalog courses are in the same position.';
-$string['dash_task_unframed_detail_one'] = 'It reports against nothing, so no delivery of it can collect evidence.';
-$string['dash_task_unframed_action'] = 'Add outcomes';
-$string['dash_task_nocontent'] = '{$a->count} outcomes in {$a->code} have no mapped content at all';
-$string['dash_task_nocontent_one'] = '1 outcome in {$a->code} has no mapped content at all';
-$string['dash_task_nocontent_detail'] = 'No section or activity references them, so there is nothing for evidence to come from.';
-$string['dash_task_nocontent_action'] = 'Map content';
-$string['dash_task_notassessed'] = '{$a->count} outcomes in {$a->code} are taught but never assessed';
-$string['dash_task_notassessed_one'] = '1 outcome in {$a->code} is taught but never assessed';
-$string['dash_task_notassessed_detail'] = 'Teaching content is mapped but no assessing mapping is, so attainment cannot be calculated.';
-$string['dash_task_notassessed_action'] = 'Review coverage';
-$string['dash_task_pending'] = '{$a} outcome versions are awaiting sign-off';
-$string['dash_task_pending_one'] = '1 outcome version is awaiting sign-off';
-$string['dash_task_pending_detail'] = 'A draft statement governs no mapping, calculation, or result until it is approved.';
-$string['dash_task_pending_action_approve'] = 'Open approval queue';
-$string['dash_task_pending_action_finalize'] = 'Open frameworks';
+$string['addcourseinstance'] = 'Add course instance';
 
-// Dashboard program readiness.
-$string['dash_programs_heading'] = 'Program readiness';
-$string['dash_programs_subheading'] = 'Whether each program could produce an accreditation snapshot today.';
-$string['dash_programs_empty'] = 'No program has been created yet, so there is nothing to report against.';
-$string['dash_program_meta'] = '{$a->outcomes} program outcomes · {$a->courses} courses';
-$string['dash_program_noframework'] = 'No outcome framework · {$a->courses} courses';
-$string['dash_program_scope'] = '{$a->complete} of {$a->inscope} outcomes in its confirmed deliveries are both taught and assessed.';
-$string['dash_program_noscope'] = 'No confirmed delivery carries any of its outcomes yet.';
-$string['dash_ready_ready'] = 'Snapshot ready';
-$string['dash_ready_gaps'] = 'Gaps to fix';
-$string['dash_ready_none'] = 'Not started';
+$string['addframework'] = 'Add framework';
 
-// Dashboard activity feed.
-$string['dash_activity_heading'] = 'Recent changes';
-$string['dash_activity_empty'] = 'No governed change has been recorded yet.';
-$string['dash_activity_line'] = '{$a->count} {$a->object} {$a->action}';
-$string['dash_activity_line_one'] = '{$a->object} {$a->action}';
-$string['dash_action_create'] = 'created';
-$string['dash_action_update'] = 'updated';
-$string['dash_action_delete'] = 'deleted';
-$string['dash_action_submit_review'] = 'submitted';
-$string['dash_action_approve'] = 'approved';
-$string['dash_action_retire'] = 'retired';
-$string['dash_action_release'] = 'released';
-$string['dash_action_create_snapshot'] = 'captured';
-$string['dash_action_freeze_snapshot'] = 'frozen';
-$string['dash_action_correct_snapshot'] = 'corrected';
-$string['dash_action_delete_snapshot'] = 'deleted';
-$string['dash_object_program'] = 'program';
-$string['dash_object_program_many'] = 'programs';
-$string['dash_object_catalog_course'] = 'catalog course';
-$string['dash_object_catalog_course_many'] = 'catalog courses';
-$string['dash_object_course_instance'] = 'course instance';
-$string['dash_object_course_instance_many'] = 'course instances';
-$string['dash_object_framework'] = 'framework';
-$string['dash_object_framework_many'] = 'frameworks';
-$string['dash_object_outcome'] = 'outcome';
-$string['dash_object_outcome_many'] = 'outcomes';
-$string['dash_object_outcome_version'] = 'outcome version';
-$string['dash_object_outcome_version_many'] = 'outcome versions';
-$string['dash_object_relation'] = 'outcome relation';
-$string['dash_object_relation_many'] = 'outcome relations';
-$string['dash_object_content_mapping'] = 'content mapping';
-$string['dash_object_content_mapping_many'] = 'content mappings';
-$string['dash_object_question_mapping'] = 'question mapping';
-$string['dash_object_question_mapping_many'] = 'question mappings';
-$string['dash_object_policy'] = 'policy';
-$string['dash_object_policy_many'] = 'policies';
-$string['dash_object_snapshot'] = 'accreditation snapshot';
-$string['dash_object_snapshot_many'] = 'accreditation snapshots';
-$string['dash_object_remediation'] = 'recommendation';
-$string['dash_object_remediation_many'] = 'recommendations';
+$string['addoutcome'] = 'Add outcome';
 
-// Dashboard inventory.
-$string['dash_inventory_heading'] = 'Inventory';
-$string['dash_inventory_note'] = 'Counts reflect the current draft state, not a frozen snapshot.';
-// The navigation labels name destinations; an inventory row names a record type.
-$string['dash_inventory_programs'] = 'Programs';
-$string['dash_inventory_catalogcourses'] = 'Catalog courses';
-$string['dash_inventory_courseinstances'] = 'Course instances';
-$string['dash_inventory_frameworks'] = 'Frameworks';
-$string['dash_inventory_outcomes'] = 'Outcomes';
-$string['dash_inventory_relations'] = 'Outcome relations';
-$string['programs_heading'] = 'Programs';
-$string['catalogcourses_heading'] = 'Catalog courses';
-$string['courseinstances_heading'] = 'Course instances';
-$string['frameworks_heading'] = 'Frameworks and outcomes';
-$string['relations_heading'] = 'Outcome relations';
-$string['policies_heading'] = 'Outcome policies';
-$string['approvalqueue_heading'] = 'Approval queue';
-$string['csvimport_heading'] = 'Foundation CSV import';
+$string['addperformanceband'] = 'Add a performance band';
+
+$string['addpolicy'] = 'Add policy';
 
 $string['addprogram'] = 'Add program';
-$string['editprogram'] = 'Edit program';
-$string['programform_subtitle'] = 'Choose the program type first, then enter the governed program details.';
-$string['programtype'] = 'Program type';
-$string['programtype_graduate'] = 'Graduate degree';
-$string['programtype_graduate_desc'] = 'Graduate-level program built from graduate catalog courses.';
-$string['programtype_undergraduate'] = 'Undergraduate degree';
-$string['programtype_undergraduate_desc'] = 'Undergraduate-level program built from undergraduate catalog courses.';
-$string['programtype_specialization'] = 'Specialization';
-$string['programtype_specialization_desc'] = 'A focused course series that may award a certificate on completion.';
-$string['credentialawarded'] = 'Credential awarded';
-$string['credential_degree'] = 'Degree';
-$string['credential_certificate'] = 'Certificate';
-$string['programcode_placeholder'] = 'e.g. MBA or SP-MKT';
-$string['programname_placeholder'] = 'e.g. Master of Business Administration';
-$string['addcatalogcourse'] = 'Add catalog course';
-$string['editcatalogcourse'] = 'Edit catalog course';
-$string['addcourseinstance'] = 'Add course instance';
-$string['editcourseinstance'] = 'Edit course instance';
-$string['addprogramcourse'] = 'Add program-course membership';
-$string['programcoursememberships'] = 'Program-course memberships';
-$string['addframework'] = 'Add framework';
-$string['editframework'] = 'Edit framework';
-$string['addoutcome'] = 'Add outcome';
-$string['editoutcome'] = 'Edit outcome draft';
-$string['newoutcomeversion'] = 'Create new outcome version';
-$string['addrelation'] = 'Add relation';
-$string['editrelation'] = 'Edit relation draft';
-$string['newrelationversion'] = 'Create new relation version';
-$string['addpolicy'] = 'Add policy';
-$string['editpolicy'] = 'Edit policy draft';
-$string['newpolicyversion'] = 'Create new policy version';
-$string['submitreview'] = 'Submit for review';
-$string['finalize'] = 'Finalize';
-$string['approve'] = 'Approve';
-$string['retire'] = 'Retire';
-$string['confirm'] = 'Confirm';
-$string['actions'] = 'Actions';
-$string['view'] = 'View';
-$string['none'] = 'None';
-$string['all'] = 'All';
-$string['savechanges'] = 'Save changes';
 
-$string['uuid'] = 'UUID';
-$string['code'] = 'Code';
-$string['name'] = 'Name';
-$string['description'] = 'Description';
-$string['externalid'] = 'External ID';
-$string['siskey'] = 'SIS key';
-$string['status'] = 'Status';
-$string['createdby'] = 'Created by';
-$string['timecreated'] = 'Created';
-$string['timemodified'] = 'Modified';
-$string['program'] = 'Program';
-$string['catalogcourse'] = 'Catalog course';
-$string['moodlecourse'] = 'Moodle course';
-$string['periodcode'] = 'Reporting period code';
-$string['confirmed'] = 'Confirmed';
-$string['effectivefrom'] = 'Effective from';
-$string['effectiveto'] = 'Effective to';
-$string['framework'] = 'Framework';
-$string['ownertype'] = 'Owner type';
-$string['owner'] = 'Owner';
-$string['outcome'] = 'Outcome';
-$string['version'] = 'Version';
-$string['statement'] = 'Statement';
-$string['shortstatement'] = 'Short statement';
-$string['bloomlevel'] = 'Bloom level';
-$string['changereason'] = 'Change reason';
-$string['sourceoutcome'] = 'Source outcome';
-$string['targetoutcome'] = 'Target outcome';
-$string['relationtype'] = 'Relationship type';
-$string['weight'] = 'Contribution weight';
-$string['notes'] = 'Notes';
-$string['approvedby'] = 'Approved by';
+$string['addprogramcourse'] = 'Add program-course membership';
+
+$string['addrelation'] = 'Add relation';
+
+$string['addremediation'] = 'Add remediation recommendation';
+
+$string['aggregation_sum_numerators_denominators'] = 'Sum canonical numerators and denominators, then divide once';
+
+$string['aggregationmethod'] = 'Aggregation method';
+
+$string['all'] = 'All';
+
+$string['anyperformanceband'] = 'Any performance band';
+
+$string['apply_created'] = '{$a->count} mapping(s) created as {$a->role}.';
+
+$string['apply_heading'] = 'Apply outcomes';
+
+$string['apply_hint'] = 'Tick content on the left — a whole section or a single activity — then choose the outcomes to apply.';
+
+$string['apply_incomplete'] = 'Select at least one content item and at least one outcome.';
+
+$string['apply_note'] = 'New mappings are created as drafts.';
+
+$string['apply_skipped'] = '{$a} mapping(s) were skipped:';
+
+$string['apply_unavailable'] = 'You do not have permission to map content in this course, or the course has no approved, confirmed course instance.';
+
+$string['applymappings'] = 'Apply to selected content';
+
+$string['approval_creator_denied'] = 'Creators cannot approve their own governed records.';
+
+$string['approvalnotrequired'] = 'Independent approval is disabled. Submitting a valid draft finalizes it immediately, while all validation, audit history, explicit-weight rules, and approved-version immutability remain enforced. Existing pending records remain listed below.';
+
+$string['approvalqueue_heading'] = 'Approval queue';
+
+$string['approve'] = 'Approve';
+
+$string['approved'] = 'The record was approved.';
+
 $string['approvedat'] = 'Approved';
-$string['reason'] = 'Reason';
-$string['objecttype'] = 'Object type';
-$string['policytype'] = 'Policy type';
-$string['policyscope'] = 'Scope';
+
+$string['approvedby'] = 'Approved by';
+
+$string['approvedimmutable'] = 'Approved governed records are immutable. Create a new version instead.';
+
+$string['assessedweightrequired'] = 'An assesses mapping requires an explicit positive weight. Weights are never inferred.';
+
+$string['assessedweighttotalinvalid'] = 'Approved assessed weights for a question version must total exactly 1.0000000000; the resulting total is {$a->detail}.';
+
 $string['assessment'] = 'Assessment activity';
-$string['policyconfiguration'] = 'Policy configuration';
+
+$string['attainment_alignmentnote'] = 'Higher-level paths show how each measured outcome supports course and program outcomes. “Alignment only” is curriculum context, not proof of attainment; only an approved contributes-to path carries evidence into a calculated higher-level result.';
+
+$string['attainment_alignmentonly'] = 'Alignment only';
+
+$string['attainment_assessed'] = 'Assessed';
+
+$string['attainment_average'] = 'Average';
+
+$string['attainment_banddistribution'] = 'Band distribution';
+
+$string['attainment_cohort'] = 'Cohort';
+
+$string['attainment_evidencerollup'] = 'Evidence roll-up';
+
+$string['attainment_groupaverage'] = '{$a}% average';
+
+$string['attainment_groupby'] = 'Group by';
+
+$string['attainment_groupmeasured'] = '{$a->measured} of {$a->total} measured';
+
+$string['attainment_groupnoresults'] = 'No results yet';
+
+$string['attainment_groupsub'] = '{$a} outcome(s)';
+
+$string['attainment_groupunaligned'] = 'Not aligned to a higher-level outcome';
+
+$string['attainment_heading'] = 'Outcome attainment';
+
+$string['attainment_higheralignment'] = 'Higher-level alignment';
+
+$string['attainment_learners'] = 'Learners with a result row';
+
+$string['attainment_mapactivity'] = 'Map assessing content…';
+
+$string['attainment_nonecalculated'] = 'No calculated result';
+
+$string['attainment_noresults'] = 'No outcome results have been calculated for this course yet.';
+
+$string['attainment_note'] = 'Figures are the stored results the calculation engine produced under the approved calculation policy; nothing is recomputed for this page. Bands come from the policy version in force when each result was calculated. No small-cohort suppression is applied here, unlike accreditation exports.';
+
+$string['attainment_result'] = 'Result';
+
+$string['attainment_searchlabel'] = 'Search outcomes';
+
+$string['attainment_showpaths'] = 'Show alignment paths';
+
+$string['attainment_state'] = 'State';
+
+$string['attainment_subtitle'] = 'Cohort attainment stored by the calculation engine. {$a->learners} learner(s) with results; reporting period(s): {$a->periods}.';
+
+$string['attainment_why_noattempts'] = 'There are {$a->mappings} approved assessed mappings, but no learner has completed a mapped assessment yet.';
+
+$string['attainment_why_noinstance'] = 'This course has no approved, confirmed course instance, so nothing links it to a catalog course.';
+
+$string['attainment_why_nomappings'] = 'No approved assessed question mapping covers the questions learners answered here. Map the questions to outcomes, then approve the mappings.';
+
+$string['attainment_why_nopolicy'] = 'No approved policy governs this course for: {$a->policies}. The plugin calculates no official result without one.';
+
+$string['attainment_why_notinforce'] = 'All {$a->mappings} approved assessed mappings postdate the attempts. The earliest mapping takes effect {$a->from}, while the most recent of {$a->attempts} completed attempts finished {$a->finish} — so no mapping was in force when the assessments were taken, and evidence is attributed only to the mapping version in force at that moment. Backdate the mappings\' effective start to before the attempts to report on them.';
+
+$string['attainment_why_notreconciled'] = '{$a->inforce} of {$a->attempts} completed attempts are covered by a mapping in force at the time, but no evidence has been captured yet. The reconciliation task creates it on its next run.';
+
+$string['attainment_why_pendingcalculation'] = 'Evidence exists for this course but no course-scope result has been stored yet, which usually means manual grading is still outstanding under the governing calculation policy.';
+
+$string['attainment_why_unknown'] = 'The cause could not be determined from the stored evidence and mappings.';
+
+$string['attainment_whyheading'] = 'Why this is empty';
+
+$string['attainmentcard_average'] = 'Average attainment';
+
+$string['attainmentcard_measured'] = 'Outcomes with results';
+
+$string['attainmentcard_pending'] = 'Awaiting calculation';
+
+$string['attainmentcard_unassessed'] = 'Never assessed';
+
+$string['attainmentcardnote_average'] = 'Unweighted mean of the stored cohort averages.';
+
+$string['attainmentcardnote_measured'] = 'The rest hold no stored course-scope result yet.';
+
+$string['attainmentcardnote_pending'] = 'Assessing content is mapped but the engine has stored no result.';
+
+$string['attainmentcardnote_unassessed'] = 'These can never produce attainment data as mapped today.';
+
+$string['attainmentcardnote_unknowncoverage'] = 'Splitting these from outcomes awaiting calculation needs the view-definitions capability.';
+
+$string['attainmentcardof_average'] = 'across {$a} measured outcome(s)';
+
+$string['attainmentcardof_measured'] = 'of {$a} in scope';
+
+$string['attainmentcardof_pending'] = 'assessed, not yet scored';
+
+$string['attainmentcardof_unassessed'] = 'no assessing content mapped';
+
+$string['attainmentfilter_all'] = 'All';
+
+$string['attainmentfilter_attained'] = 'Mostly attained';
+
+$string['attainmentfilter_attention'] = 'Needs attention';
+
+$string['attainmentfilter_pending'] = 'Awaiting calculation';
+
+$string['attainmentfilter_unassessed'] = 'Never assessed';
+
+$string['attainmentgroup_aligned'] = 'Aligned outcome';
+
+$string['attainmentgroup_framework'] = 'Framework';
+
+$string['attainmentgroup_terminal'] = 'Top-level outcome';
+
+$string['attainmentgroupsub_aligned'] = 'Each outcome under the outcome one level up that it is approved to support.';
+
+$string['attainmentgroupsub_framework'] = 'Each outcome under its own framework, at the grain it was authored.';
+
+$string['attainmentgroupsub_terminal'] = 'Each outcome under the top-level outcome its approved alignment chain ends at.';
+
+$string['attainmentrate'] = 'Attainment rate';
+
+$string['attainmentrate_value'] = '{$a->met} of {$a->assessed} learners met the criterion ({$a->rate}%)';
+
+$string['attainmentreason_pending'] = 'Assessed — awaiting calculation';
+
+$string['attainmentreason_unassessed'] = 'Never assessed';
+
+$string['attainmentstate_attained'] = 'Mostly attained';
+
+$string['attainmentstate_attention'] = 'Needs attention';
+
+$string['attainmentstate_pending'] = 'Awaiting calculation';
+
+$string['attainmentstate_unassessed'] = 'Never assessed';
+
+$string['attemptmethod_all_completed'] = 'All completed attempts';
+
+$string['attemptmethod_first_completed'] = 'First completed attempt';
+
+$string['attemptmethod_highest_graded'] = 'Highest graded attempt';
+
+$string['attemptmethod_latest_completed'] = 'Latest completed attempt';
+
+$string['attemptmethod_quiz_grade'] = 'Moodle quiz-grade-selected attempt';
+
+$string['attemptselectionmethod'] = 'Attempt-selection method';
+
+$string['autocopyquestionmappings'] = 'Automatically copy question mappings to new versions (legacy opt-in)';
+
+$string['autocopyquestionmappings_desc'] = 'Optional compatibility behavior. When enabled, creation of a new question version immediately copies eligible approved mappings as drafts. Leave disabled to use the recommended explicit preview and copy action in the question bank. Copied drafts still require review and approval.';
+
+$string['autocopyquestionmappings_desc_finalization'] = 'Optional compatibility behavior. When enabled, creation of a new question version immediately copies eligible finalized mappings as drafts. Leave disabled to use the recommended explicit preview and copy action in the question bank. Copied drafts must still be explicitly finalized.';
+
+$string['autosubmitquestionmappings'] = 'Submit new question mappings automatically';
+
+$string['autosubmitquestionmappings_desc'] = 'When enabled, a new question mapping is submitted for review as soon as it is created, so no one has to submit it by hand. An assessed mapping can only be submitted once that question version\'s assessed weights total exactly 1.0000000000, so a question mapped to several outcomes stays a draft until its last mapping is added, then the whole set is submitted together. Mappings copied onto a new question version are never submitted automatically. Approval by a different user is still required.';
+
+$string['autosubmitquestionmappings_desc_finalization'] = 'When enabled, a new question mapping is finalized as soon as it is created, so no one has to submit or approve it by hand. An assessed mapping can only be finalized once that question version\'s assessed weights total exactly 1.0000000000, so a question mapped to several outcomes stays a draft until its last mapping is added, then the whole set is finalized together. Mappings copied onto a new question version are never finalized automatically. Because independent approval is disabled, mappings created this way become approved immediately and are then immutable.';
+
+$string['bandcode_number'] = 'Band code {no}';
+
+$string['banddescription_number'] = 'Band description {no}';
+
+$string['bandfeedback'] = 'Feedback';
+
+$string['bandmaximum_number'] = 'Maximum percentage {no}';
+
+$string['bandmaximuminclusive_number'] = 'Include maximum boundary {no}';
+
+$string['bandminimum_number'] = 'Minimum percentage {no}';
+
+$string['bandminimuminclusive_number'] = 'Include minimum boundary {no}';
+
+$string['bandname_number'] = 'Band name {no}';
+
+$string['bandnotapplicable'] = 'The selected performance band does not govern this course instance or effective range.';
+
+$string['bandnotavailable'] = 'Performance-band remediation becomes available when governed calculation policies are installed.';
+
+$string['bandrangeinvalid'] = 'The maximum must be greater than or equal to the minimum.';
+
+$string['bandsoverlap'] = 'Performance band ranges must not overlap: {$a->detail}';
+
+$string['benchmarkmet'] = 'Benchmark met';
+
+$string['benchmarkmet_no'] = 'Not met';
+
+$string['benchmarkmet_unknown'] = 'Not calculable';
+
+$string['benchmarkmet_yes'] = 'Met';
+
+$string['benchmarkpercent'] = 'Aggregate benchmark (percentage of learners)';
+
+$string['benchmarkpercent_help'] = 'The share of assessed learners expected to meet the achievement criterion for an outcome. Reported results are compared against this figure. Faculty set this figure; the plugin supplies no default.';
+
+$string['benchmarkpercent_value'] = 'Aggregate benchmark: {$a}% of learners';
+
+$string['blocker_contentmappings'] = '{$a} content mapping(s).';
+
+$string['blocker_evidence'] = '{$a} evidence row(s).';
+
+$string['blocker_policies'] = '{$a} policy/policies scoped to it.';
+
+$string['blocker_remediation'] = '{$a} remediation recommendation(s).';
+
+$string['blocker_results'] = '{$a} calculated result(s).';
+
+$string['blocker_snapshots'] = '{$a} frozen snapshot row(s).';
+
+$string['bloomlevel'] = 'Bloom level';
+
+$string['bulklocktimeout'] = 'Another mapping operation is updating question ID {$a->detail}. Wait and preview this bulk operation again.';
+
+$string['bulkmappingselectioninvalid'] = 'Mapping ID {$a} is not a mapping on one of the selected exact question versions.';
+
+$string['bulkmappingselectionrequired'] = 'Select at least one draft mapping for this bulk operation.';
+
+$string['bulkonlydrafts'] = 'Mapping ID {$a} is no longer a draft and cannot be changed by this operation.';
+
+$string['bulkpreviewinvalid'] = 'The bulk operation has validation errors and was not committed: {$a->detail}';
+
+$string['bulkpreviewstale'] = 'The selected questions or mappings changed after the preview. Preview the operation again before committing.';
+
+$string['calculationnotavailable'] = 'Not available';
+
+$string['calculationtimestamp'] = 'Calculated';
+
+$string['catalogcourse'] = 'Catalog course';
+
+$string['catalogcourses_action_edit'] = 'Edit course';
+
+$string['catalogcourses_action_instances'] = 'Course instances';
+
+$string['catalogcourses_action_outcomes'] = 'Outcomes and frameworks';
+
+$string['catalogcourses_addmembership'] = '+ Add membership';
+
+$string['catalogcourses_effective'] = '{$a->from} – {$a->to}';
+
+$string['catalogcourses_effective_open'] = 'From {$a}';
+
+$string['catalogcourses_empty'] = 'No catalog courses have been created.';
+
+$string['catalogcourses_filter_all'] = 'All courses';
+
+$string['catalogcourses_filter_label'] = 'Filter catalog courses';
+
+$string['catalogcourses_filter_nooutcomes'] = 'No outcomes';
+
+$string['catalogcourses_filter_noprogram'] = 'Not in a program';
+
+$string['catalogcourses_heading'] = 'Catalog courses';
+
+$string['catalogcourses_help'] = 'A catalog course is the stable definition that owns outcomes. The Moodle shells that deliver it, one per reporting period, are managed on the Course instances page.';
+
+$string['catalogcourses_instances'] = '{$a->total} course instances, {$a->confirmed} confirmed';
+
+$string['catalogcourses_instances_none'] = 'No course instances yet';
+
+$string['catalogcourses_instances_one'] = '1 course instance, {$a->confirmed} confirmed';
+
+$string['catalogcourses_memberships'] = 'Program memberships';
+
+$string['catalogcourses_meta'] = '{$a->courseoutcomes} course outcomes · {$a->unitoutcomes} unit outcomes';
+
+$string['catalogcourses_meta_noframework'] = 'No outcome framework yet';
+
+$string['catalogcourses_noprogram_chip'] = 'In no program';
+
+$string['catalogcourses_noprogram_warning'] = 'This course is not attached to any program, so its outcomes roll up nowhere.';
+
+$string['catalogcourses_noresults'] = 'No catalog courses match the current search and filter.';
+
+$string['catalogcourses_searchplaceholder'] = 'Search catalog codes, names, and programs…';
+
+$string['catalogcourses_statsline'] = '{$a->total} catalog courses · {$a->noprogram} in no program · {$a->nooutcomes} without outcomes';
+
+$string['catalogcourses_subtitle'] = 'Catalog courses with the programs they belong to and the outcomes they govern.';
+
+$string['changereason'] = 'Change reason';
+
+$string['code'] = 'Code';
+
+$string['cohort'] = 'Moodle cohort';
+
+$string['collapseall'] = 'Collapse all';
+
+$string['commitimport'] = 'Commit all rows';
+
+$string['confirm'] = 'Confirm';
+
+$string['confirmapprove'] = 'Approve this governed record? Approved versions are immutable.';
+
+$string['confirmdeletepolicy'] = 'Delete this draft policy? This cannot be undone.';
+
+$string['confirmdeletesnapshot'] = 'Permanently delete {$a->program} {$a->period} {$a->version} and the {$a->rows} rows it captured? A frozen version records what was reported, so delete it only if the capture should never have been taken; to report a corrected figure, create a correction version instead. The deletion is recorded in the audit history and cannot be undone.';
+
+$string['confirmed'] = 'Confirmed';
+
+$string['confirmfreezesnapshot'] = 'Freeze this verified snapshot? Frozen versions are immutable and corrections require a new version.';
+
+$string['confirmmanualrelease'] = 'Release learner feedback governed by this policy now? This action is audited and cannot be reversed.';
+
+$string['confirmretire'] = 'Retire this governed record?';
+
+$string['contentfilter_all'] = 'All';
+
+$string['contentfilter_assessments'] = 'Graded activities';
+
+$string['contentfilter_unmapped'] = 'Unmapped only';
+
+$string['contentmapping_heading'] = 'Course content mappings';
+
+$string['contentmapping_stats'] = '{$a->mapped} of {$a->total} content items have at least one outcome mapped.';
+
+$string['contentmapping_subtitle'] = 'Select content on the left, then apply outcomes on the right.';
+
+$string['contentnomatches'] = 'No content matches this filter.';
+
+$string['contentsearch'] = 'Search course content';
+
+$string['contentsearchplaceholder'] = 'Search course content…';
+
+$string['contributingitems'] = 'Contributing items';
+
+$string['correction_new_snapshot_version'] = 'Create a new linked snapshot version; never alter a frozen version';
+
+$string['correctionmethod'] = 'Correction method';
+
+$string['correctionreason'] = 'Correction reason';
+
+$string['correctsnapshot'] = 'Create correction version';
+
+$string['courseinstance'] = 'Course instance';
+
+$string['courseinstancedeleteconfirm'] = 'Remove the association between {$a->catalog} and reporting period {$a->period}? Nothing currently depends on it, so this only undoes the association itself. The removal is recorded in the audit history.';
+
+$string['courseinstanceexists'] = 'This Moodle course and reporting-period association already exists.';
+
+$string['courseinstanceinuse'] = 'This course instance cannot be removed because other records depend on it: {$a->detail}';
+
+$string['courseinstancenotconfirmed'] = 'The course-instance association must be approved and confirmed before it can be mapped.';
+
+$string['courseinstancenotremovable'] = 'Cannot remove: {$a}';
+
+$string['courseinstanceready'] = 'Course instance saved and confirmed. It can now govern mappings, calculations, and results.';
+
+$string['courseinstanceremoved'] = 'Course instance removed.';
+
+$string['courseinstances_coursevisibility'] = 'After confirmation, authorized course staff can use Course outcome mapping → Outcome coverage and Content mappings from the course navigation. Learners see only released Outcome results.';
+
+$string['courseinstances_heading'] = 'Course instances';
+
+$string['courseinstances_intro'] = 'Connect a Moodle course shell and reporting period to its stable catalog course. New associations appear immediately as Draft and unconfirmed, then must be submitted before they can govern mappings, calculations, or results. When independent approval is enabled, a different authorized user must confirm the association.';
+
+$string['courseinstances_intro_finalization'] = 'Connect a Moodle course shell and reporting period to its stable catalog course. Because independent approval is disabled, a new association is finalized as it is saved and can govern mappings, calculations, and results immediately. Remove one while nothing depends on it if you made a mistake.';
+
+$string['courseinstances_subtitle'] = 'Each Moodle course shell tied to its catalog course for one reporting period.';
+
+$string['coursemodule'] = 'Course activity or resource';
+
+$string['coursemodules'] = 'Activities and resources';
+
+$string['courseoutcomemapping'] = 'Course outcome mapping';
+
+$string['coursesection'] = 'Course section';
+
+$string['coursesections'] = 'Course sections';
+
+$string['coverage_assessedby'] = 'Assessed by';
+
+$string['coverage_clearsearch'] = 'Clear';
+
+$string['coverage_covered'] = 'Covered';
+
+$string['coverage_exportcsv'] = 'Export CSV';
+
+$string['coverage_heading'] = 'Course outcome coverage';
+
+$string['coverage_mapcontent'] = 'Map content…';
+
+$string['coverage_nomatches'] = 'No outcomes match this filter.';
+
+$string['coverage_notassessed'] = '— no assessment mapped';
+
+$string['coverage_nottaught'] = '— not in any section or activity';
+
+$string['coverage_questionmapping'] = '{$a->quiz} ({$a->count} mapped question(s))';
+
+$string['coverage_report'] = 'Report';
+
+$string['coverage_searchlabel'] = 'Search outcomes';
+
+$string['coverage_searchplaceholder'] = 'Search outcomes…';
+
+$string['coverage_subtitle'] = 'Where each outcome is taught and assessed in this course.';
+
+$string['coverage_taughtin'] = 'Taught in';
+
+$string['coverage_uncovered'] = 'Not yet mapped';
+
+$string['coveragecard_full'] = 'Fully covered';
+
+$string['coveragecard_none'] = 'Not covered';
+
+$string['coveragecard_taught'] = 'Incomplete coverage';
+
+$string['coveragecardof_full'] = 'of {$a} outcomes';
+
+$string['coveragecardof_none'] = 'no content at all';
+
+$string['coveragecardof_taught'] = 'need the other half';
+
+$string['coveragefilter_all'] = 'All outcomes';
+
+$string['coveragefilter_full'] = 'Fully covered';
+
+$string['coveragefilter_none'] = 'Not covered';
+
+$string['coveragefilter_taught'] = 'Incomplete';
+
+$string['coveragegroup_covered'] = '{$a->full} of {$a->total} covered';
+
+$string['coveragegroup_sub'] = '{$a} outcomes';
+
+$string['coveragenote_full'] = 'Mapped to teaching content and to an assessing activity.';
+
+$string['coveragenote_none'] = 'No section or activity references these outcomes.';
+
+$string['coveragenote_taught'] = 'Taught but not assessed, or assessed but not taught.';
+
+$string['coveragestatus'] = 'Coverage';
+
+$string['coveragestatus_assessedonly'] = 'Assessed only';
+
+$string['coveragestatus_full'] = 'Taught & assessed';
+
+$string['coveragestatus_none'] = 'Not covered';
+
+$string['coveragestatus_taught'] = 'Not assessed';
+
+$string['coveragesummary'] = '{$a->covered} of {$a->total} outcomes are mapped to course content. {$a->uncovered} still need mapping.';
+
+$string['createdby'] = 'Created by';
+
+$string['createsnapshot'] = 'Create snapshot draft';
+
+$string['creatorcannotapprove'] = 'The creator cannot approve their own record.';
+
+$string['credential_certificate'] = 'Certificate';
+
+$string['credential_degree'] = 'Degree';
+
+$string['credentialawarded'] = 'Credential awarded';
+
+$string['csvdelimiter'] = 'Delimiter';
+
+$string['csventity'] = 'Entity type';
+
+$string['csvfile'] = 'CSV file';
+
+$string['csvimport_heading'] = 'Foundation CSV import';
+
+$string['curriculum_addcourse'] = 'Add a course to';
+
+$string['curriculum_addframework'] = '+ Add outcome framework';
+
+$string['curriculum_addinstance'] = '+ Associate a Moodle course';
+
+$string['curriculum_allattached'] = 'Every catalog course is already in this program.';
+
+$string['curriculum_allinstances'] = 'All instances';
+
+$string['curriculum_alreadyin'] = 'In {$a}';
+
+$string['curriculum_alsoin'] = 'also in {$a}';
+
+$string['curriculum_attach'] = 'Attach';
+
+$string['curriculum_attention_draft'] = '{$a} unconfirmed instances';
+
+$string['curriculum_attention_draft_one'] = '1 unconfirmed instance';
+
+$string['curriculum_attention_none'] = 'Nothing';
+
+$string['curriculum_attention_noout'] = '{$a} courses without outcomes';
+
+$string['curriculum_attention_noout_one'] = '1 course without outcomes';
+
+$string['curriculum_coursehint'] = 'Expand a course to see the Moodle courses delivering it';
+
+$string['curriculum_courseoutcomes'] = 'Course outcomes';
+
+$string['curriculum_courses_heading'] = 'Courses in this program';
+
+$string['curriculum_delivery'] = 'Delivered in';
+
+$string['curriculum_editprogram'] = 'Edit program';
+
+$string['curriculum_empty'] = 'No programs have been created yet. A program is the top of the curriculum: create one, then attach catalog courses to it.';
+
+$string['curriculum_fact_attention'] = 'Needs attention';
+
+$string['curriculum_fact_courses'] = 'Courses';
+
+$string['curriculum_fact_credential'] = 'Credential';
+
+$string['curriculum_fact_nooutcomes'] = 'None yet';
+
+$string['curriculum_fact_outcomes'] = 'Program outcomes';
+
+$string['curriculum_fromcatalog'] = 'From the catalog';
+
+$string['curriculum_heading'] = 'Curriculum';
+
+$string['curriculum_indelivery'] = 'In delivery';
+
+$string['curriculum_navlabel'] = 'Choose a program';
+
+$string['curriculum_newprogram'] = '+ New program';
+
+$string['curriculum_nocourses'] = 'No catalog courses are attached to this program, so nothing it teaches rolls up to its outcomes. Attach one below.';
+
+$string['curriculum_nodelivery'] = 'Not delivered yet';
+
+$string['curriculum_nodelivery_help'] = 'No Moodle course is associated with this catalog course, so it captures no evidence yet.';
+
+$string['curriculum_notdelivered'] = 'Not in delivery';
+
+$string['curriculum_programoutcomes'] = 'Program outcomes';
+
+$string['curriculum_programs'] = 'Programs';
+
+$string['curriculum_statsline'] = '{$a->programs} programs · {$a->courses} catalog courses · {$a->attached} in a program · {$a->orphans} in none';
+
+$string['curriculum_statsline_one'] = '1 program · {$a->courses} catalog courses · {$a->attached} in a program · {$a->orphans} in none';
+
+$string['curriculum_subtitle'] = 'Each program with the catalog courses it contains and the Moodle courses delivering them.';
+
+$string['curriculum_typeline_graduate'] = 'Graduate degree program';
+
+$string['curriculum_typeline_specialization'] = 'Certificate-awarding course series';
+
+$string['curriculum_typeline_undergraduate'] = 'Undergraduate degree program';
+
+$string['cycle'] = 'Approving this relationship would create a cycle.';
+
+$string['dash_action_approve'] = 'approved';
+
+$string['dash_action_correct_snapshot'] = 'corrected';
+
+$string['dash_action_create'] = 'created';
+
+$string['dash_action_create_snapshot'] = 'captured';
+
+$string['dash_action_delete'] = 'deleted';
+
+$string['dash_action_delete_snapshot'] = 'deleted';
+
+$string['dash_action_freeze_snapshot'] = 'frozen';
+
+$string['dash_action_release'] = 'released';
+
+$string['dash_action_retire'] = 'retired';
+
+$string['dash_action_submit_review'] = 'submitted';
+
+$string['dash_action_update'] = 'updated';
+
+$string['dash_activity_empty'] = 'No governed change has been recorded yet.';
+
+$string['dash_activity_heading'] = 'Recent changes';
+
+$string['dash_activity_line'] = '{$a->count} {$a->object} {$a->action}';
+
+$string['dash_activity_line_one'] = '{$a->object} {$a->action}';
+
+$string['dash_inventory_catalogcourses'] = 'Catalog courses';
+
+$string['dash_inventory_courseinstances'] = 'Course instances';
+
+$string['dash_inventory_frameworks'] = 'Frameworks';
+
+$string['dash_inventory_heading'] = 'Inventory';
+
+$string['dash_inventory_note'] = 'Counts reflect the current draft state, not a frozen snapshot.';
+
+$string['dash_inventory_outcomes'] = 'Outcomes';
+
+$string['dash_inventory_programs'] = 'Programs';
+
+$string['dash_inventory_relations'] = 'Outcome relations';
+
+$string['dash_object_catalog_course'] = 'catalog course';
+
+$string['dash_object_catalog_course_many'] = 'catalog courses';
+
+$string['dash_object_content_mapping'] = 'content mapping';
+
+$string['dash_object_content_mapping_many'] = 'content mappings';
+
+$string['dash_object_course_instance'] = 'course instance';
+
+$string['dash_object_course_instance_many'] = 'course instances';
+
+$string['dash_object_framework'] = 'framework';
+
+$string['dash_object_framework_many'] = 'frameworks';
+
+$string['dash_object_outcome'] = 'outcome';
+
+$string['dash_object_outcome_many'] = 'outcomes';
+
+$string['dash_object_outcome_version'] = 'outcome version';
+
+$string['dash_object_outcome_version_many'] = 'outcome versions';
+
+$string['dash_object_policy'] = 'policy';
+
+$string['dash_object_policy_many'] = 'policies';
+
+$string['dash_object_program'] = 'program';
+
+$string['dash_object_program_many'] = 'programs';
+
+$string['dash_object_question_mapping'] = 'question mapping';
+
+$string['dash_object_question_mapping_many'] = 'question mappings';
+
+$string['dash_object_relation'] = 'outcome relation';
+
+$string['dash_object_relation_many'] = 'outcome relations';
+
+$string['dash_object_remediation'] = 'recommendation';
+
+$string['dash_object_remediation_many'] = 'recommendations';
+
+$string['dash_object_snapshot'] = 'accreditation snapshot';
+
+$string['dash_object_snapshot_many'] = 'accreditation snapshots';
+
+$string['dash_program_meta'] = '{$a->outcomes} program outcomes · {$a->courses} courses';
+
+$string['dash_program_noframework'] = 'No outcome framework · {$a->courses} courses';
+
+$string['dash_program_noscope'] = 'No confirmed delivery carries any of its outcomes yet.';
+
+$string['dash_program_scope'] = '{$a->complete} of {$a->inscope} outcomes in its confirmed deliveries are both taught and assessed.';
+
+$string['dash_programs_empty'] = 'No program has been created yet, so there is nothing to report against.';
+
+$string['dash_programs_heading'] = 'Program readiness';
+
+$string['dash_programs_subheading'] = 'Whether each program could produce an accreditation snapshot today.';
+
+$string['dash_ready_gaps'] = 'Gaps to fix';
+
+$string['dash_ready_none'] = 'Not started';
+
+$string['dash_ready_ready'] = 'Snapshot ready';
+
+$string['dash_severity_blocks'] = 'Blocks reporting';
+
+$string['dash_severity_needswork'] = 'Needs work';
+
+$string['dash_severity_review'] = 'Review';
+
+$string['dash_task_nocontent'] = '{$a->count} outcomes in {$a->code} have no mapped content at all';
+
+$string['dash_task_nocontent_action'] = 'Map content';
+
+$string['dash_task_nocontent_detail'] = 'No section or activity references them, so there is nothing for evidence to come from.';
+
+$string['dash_task_nocontent_one'] = '1 outcome in {$a->code} has no mapped content at all';
+
+$string['dash_task_notassessed'] = '{$a->count} outcomes in {$a->code} are taught but never assessed';
+
+$string['dash_task_notassessed_action'] = 'Review coverage';
+
+$string['dash_task_notassessed_detail'] = 'Teaching content is mapped but no assessing mapping is, so attainment cannot be calculated.';
+
+$string['dash_task_notassessed_one'] = '1 outcome in {$a->code} is taught but never assessed';
+
+$string['dash_task_pending'] = '{$a} outcome versions are awaiting sign-off';
+
+$string['dash_task_pending_action_approve'] = 'Open approval queue';
+
+$string['dash_task_pending_action_finalize'] = 'Open frameworks';
+
+$string['dash_task_pending_detail'] = 'A draft statement governs no mapping, calculation, or result until it is approved.';
+
+$string['dash_task_pending_one'] = '1 outcome version is awaiting sign-off';
+
+$string['dash_task_unaligned'] = '{$a} approved course outcomes roll up to no program outcome';
+
+$string['dash_task_unaligned_action'] = 'Align outcomes';
+
+$string['dash_task_unaligned_detail'] = 'Nothing aggregates from these outcomes, so evidence collected against them can never reach an accreditation report.';
+
+$string['dash_task_unaligned_one'] = '1 approved course outcome rolls up to no program outcome';
+
+$string['dash_task_unframed'] = '{$a->code} {$a->name} owns no approved outcome';
+
+$string['dash_task_unframed_action'] = 'Add outcomes';
+
+$string['dash_task_unframed_detail'] = 'It reports against nothing. {$a} other catalog courses are in the same position.';
+
+$string['dash_task_unframed_detail_one'] = 'It reports against nothing, so no delivery of it can collect evidence.';
+
+$string['dash_tasks_allclear'] = 'Nothing outstanding. Every approved course outcome rolls up to a program, every catalog course owns outcomes, and every outcome in a confirmed delivery is both taught and assessed.';
+
+$string['dash_tasks_heading'] = 'Needs your attention';
+
+$string['dash_tasks_subheading'] = 'Ordered by what blocks reporting first, not by size.';
+
+$string['dash_tile_coverage'] = 'Coverage gaps';
+
+$string['dash_tile_coverage_note'] = '{$a->nocontent} with no content, {$a->notassessed} never assessed';
+
+$string['dash_tile_coverage_unit'] = 'in confirmed deliveries';
+
+$string['dash_tile_pending'] = 'Awaiting sign-off';
+
+$string['dash_tile_pending_note'] = 'drafts govern no mapping or result until approved';
+
+$string['dash_tile_pending_unit'] = 'outcome versions';
+
+$string['dash_tile_unaligned'] = 'Outcomes unaligned';
+
+$string['dash_tile_unaligned_note'] = 'approved but related to no program outcome';
+
+$string['dash_tile_unaligned_unit'] = 'course outcomes';
+
+$string['dash_tile_unframed'] = 'Courses without outcomes';
+
+$string['dash_tile_unframed_clear'] = 'every catalog course owns an approved outcome';
+
+$string['dash_tile_unframed_unit'] = 'catalog courses';
+
+$string['dashboard_heading'] = 'Learning outcome mapping';
+
+$string['dashboard_subtitle'] = 'What stands between this site and a defensible accreditation report.';
+
+$string['dashboard_summary'] = 'Governed programs, catalog courses, course instances, frameworks, outcomes, versions, and relationships.';
+
+$string['deleteperformanceband'] = 'Delete performance band {no}';
+
+$string['deletesnapshot'] = 'Delete snapshot';
+
+$string['description'] = 'Description';
+
+$string['displayorder'] = 'Display order';
+
+$string['displayprecision'] = 'Displayed decimal places';
+
+$string['displayprecision_value'] = 'Displayed decimal places: {$a}';
+
+$string['divisionbyzero'] = 'A zero denominator never produces a percentage.';
+
+$string['downloadtemplate'] = 'Download template';
+
+$string['duplicatebandcode'] = 'Performance band codes must be unique: {$a->detail}';
+
+$string['duplicatecode'] = 'The code already exists in this scope.';
+
+$string['duplicatemapping'] = 'An approved mapping already covers this target, outcome version, role, and effective range.';
+
+$string['duplicateuuid'] = 'The UUID already exists.';
+
+$string['editcatalogcourse'] = 'Edit catalog course';
+
+$string['editcontentmapping'] = 'Edit content mapping draft';
+
+$string['editcourseinstance'] = 'Edit course instance';
+
+$string['editframework'] = 'Edit framework';
+
+$string['editoutcome'] = 'Edit outcome draft';
+
+$string['editpolicy'] = 'Edit policy draft';
+
+$string['editprogram'] = 'Edit program';
+
+$string['editrelation'] = 'Edit relation draft';
+
+$string['editremediation'] = 'Edit remediation draft';
+
 $string['effectivedates'] = 'Effective dates';
+
+$string['effectivefrom'] = 'Effective from';
+
 $string['effectiverange'] = 'Effective range';
 
-$string['status_draft'] = 'Draft';
-$string['status_needs_review'] = 'Needs review';
-$string['status_approved'] = 'Approved';
-$string['status_pending'] = 'Pending';
-$string['status_finalized'] = 'Finalized';
-$string['status_retired'] = 'Retired';
-$string['owner_institution'] = 'Institution';
-$string['owner_program'] = 'Program';
-$string['owner_catalog_course'] = 'Catalog course';
-$string['owner_choose'] = 'Choose…';
-$string['owner_required'] = 'Choose the record that owns this framework.';
+$string['effectiverangeinvalid'] = 'The effective end must be later than the effective start.';
+
+$string['effectiverangeoverlap'] = 'The approved effective range overlaps an existing approved record.';
+
+$string['effectiveto'] = 'Effective to';
+
+$string['emptytable'] = 'No records found.';
+
+$string['enableremediation'] = 'Enable remediation';
+
+$string['enableremediation_desc'] = 'When enabled, staff can curate remediation recommendations for an outcome and learners see the ones released to them. Disable to remove remediation from the plugin: the course Remediation page and its navigation entry, the recommendations shown on a learner\'s outcome results, remediation entries in the approval queue, and the remediation engagement report source all disappear. No stored recommendation or engagement record is deleted, so turning this back on restores exactly what was there. Subject-access export and deletion continue to cover existing remediation data either way.';
+
+$string['encoding'] = 'Encoding';
+
+$string['engagementevent_opened'] = 'Opened recommendation';
+
+$string['entity_course_instances'] = 'Course instances';
+
+$string['entity_courses'] = 'Catalog courses';
+
+$string['entity_frameworks'] = 'Frameworks';
+
+$string['entity_hierarchy'] = 'Outcome hierarchy (as exported)';
+
+$string['entity_outcomes'] = 'Outcomes and initial versions';
+
+$string['entity_program_courses'] = 'Program-course memberships';
+
+$string['entity_programs'] = 'Programs';
+
+$string['entity_relations'] = 'Outcome relations';
+
+$string['exampleseed_nosnapshotdata'] = 'No approved program and reporting period holds current course-scope results, so no example snapshot can be captured.';
+
+$string['exampleseed_policyname'] = 'Example accreditation reporting policy';
+
+$string['exampleseed_policyreason'] = 'Seeded by the outcome mapping example script so an example accreditation snapshot can be captured.';
+
+$string['exampleseed_policyunapproved'] = 'The seeded example accreditation policy {$a->detail} still needs independent approval before an example snapshot can be captured.';
+
+$string['exampleseed_replacereason'] = 'Withdrawn by the outcome mapping example script so the example snapshot could be captured again from current results.';
+
+$string['exampleseed_reportname'] = 'Example: {$a}';
+
+$string['exampleseed_snapshotnotes'] = 'Example accreditation snapshot seeded from the authoritative results this site already holds.';
+
+$string['exclusive'] = 'exclusive';
+
+$string['expandall'] = 'Expand all';
+
+$string['explanation'] = 'Explanation';
+
+$string['export'] = 'Export';
+
+$string['exportevidencedetail'] = 'Include de-identified subject evidence';
+
+$string['exportevidencedetail_help'] = 'Requires both accreditation-export and all-results capabilities. Summary exports omit subject rows for suppressed outcomes.';
+
+$string['exportnotfrozen'] = 'Only verified frozen snapshots can be exported.';
+
+$string['exportpackagejson'] = 'Canonical JSON package';
+
+$string['exportsnapshot'] = 'Export accreditation package';
+
+$string['exportsummarycsv'] = 'Summary CSV';
+
+$string['exportsuppressed'] = 'Suppressed';
+
+$string['externalid'] = 'External ID';
+
+$string['externalurl'] = 'External URL';
+
+$string['feedbackreleaseat'] = 'Release timestamp';
+
+$string['feedbackreleasemode'] = 'Feedback release mode';
+
+$string['filteroutcomes'] = 'Filter outcomes…';
+
+$string['finalize'] = 'Finalize';
+
+$string['finalized'] = 'Changes finalized.';
+
+$string['framework'] = 'Framework';
+
 $string['frameworkcode'] = 'Code';
+
 $string['frameworkcode_help'] = 'The code prefixes every outcome label in the framework, so MEI-PLO.PLO1 is outcome PLO1 of the MEI-PLO framework.
 
 The convention is the code of the owner followed by the kind of outcomes the framework holds: PLO for program outcomes, CLO for course outcomes, and ULO for unit outcomes. A code ending in ULO is what marks the unit-level set of a catalog course, so the suffix decides how the outcomes are grouped and counted.
 
 The code cannot be changed once the framework is finalized, because every accreditation snapshot that has captured it holds it verbatim.';
-$string['frameworkownerfixed_program'] = 'This framework will belong to the program above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
-$string['frameworkownerfixed_catalog_course'] = 'This framework will belong to the catalog course above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
-$string['frameworkdefaultname_program'] = '{$a} program learning outcomes';
+
 $string['frameworkdefaultname_catalog_course'] = '{$a} course learning outcomes';
-$string['relation_is_child_of'] = 'Is child of';
-$string['relation_aligns_to'] = 'Aligns to';
-$string['relation_contributes_to'] = 'Contributes to';
-$string['relation_replaced_by'] = 'Replaced by';
-$string['relation_related_to'] = 'Related to';
 
-$string['saved'] = 'Changes saved.';
-$string['submittedforreview'] = 'The record was submitted for review.';
-$string['finalized'] = 'Changes finalized.';
-$string['approved'] = 'The record was approved.';
-$string['retired'] = 'The record was retired.';
-$string['confirmapprove'] = 'Approve this governed record? Approved versions are immutable.';
-$string['confirmretire'] = 'Retire this governed record?';
-$string['emptytable'] = 'No records found.';
-$string['approval_creator_denied'] = 'Creators cannot approve their own governed records.';
-$string['confirmdeletepolicy'] = 'Delete this draft policy? This cannot be undone.';
-$string['policydeleted'] = 'The draft policy was deleted.';
+$string['frameworkdefaultname_program'] = '{$a} program learning outcomes';
 
-$string['csvfile'] = 'CSV file';
-$string['csventity'] = 'Entity type';
-$string['csvdelimiter'] = 'Delimiter';
-$string['encoding'] = 'Encoding';
-$string['preview'] = 'Preview';
-$string['commitimport'] = 'Commit all rows';
-$string['downloadtemplate'] = 'Download template';
-$string['importpreview'] = 'Import preview';
-$string['importvalid'] = 'All rows are valid. Review the preview before committing.';
-$string['importinvalid'] = 'The file contains validation errors. Nothing can be committed.';
-$string['importcommitted'] = '{$a} rows were committed in one transaction.';
-$string['importnotcommitted'] = 'Nothing was committed.';
-$string['rownumber'] = 'Row';
-$string['validation'] = 'Validation';
-$string['valid'] = 'Valid';
-$string['invalid'] = 'Invalid';
-$string['entity_programs'] = 'Programs';
-$string['entity_courses'] = 'Catalog courses';
-$string['entity_program_courses'] = 'Program-course memberships';
-$string['entity_course_instances'] = 'Course instances';
-$string['entity_frameworks'] = 'Frameworks';
-$string['entity_outcomes'] = 'Outcomes and initial versions';
-$string['entity_relations'] = 'Outcome relations';
+$string['frameworkownerfixed_catalog_course'] = 'This framework will belong to the catalog course above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
 
-$string['invalidstatus'] = 'Invalid workflow status "{$a->detail}".';
-$string['invalidtransition'] = 'Invalid workflow transition "{$a->detail}".';
-$string['invaliduuid'] = 'Invalid UUID "{$a->detail}".';
-$string['invalidjson'] = 'The {$a->field} value cannot be encoded as JSON: {$a->detail}';
-$string['requiredfield'] = 'The {$a->field} field is required.';
-$string['invalidfield'] = 'The {$a->field} field is invalid: {$a->detail}';
-$string['duplicatecode'] = 'The code already exists in this scope.';
-$string['duplicateuuid'] = 'The UUID already exists.';
-$string['recordnotfound'] = 'The requested {$a->field} record was not found.';
-$string['approvedimmutable'] = 'Approved governed records are immutable. Create a new version instead.';
-$string['creatorcannotapprove'] = 'The creator cannot approve their own record.';
-$string['effectiverangeinvalid'] = 'The effective end must be later than the effective start.';
-$string['effectiverangeoverlap'] = 'The approved effective range overlaps an existing approved record.';
-$string['invalidowner'] = 'The framework owner is invalid.';
-$string['invalidrelationtype'] = 'The relationship type is invalid.';
-$string['selfrelation'] = 'An outcome cannot relate to itself.';
-$string['weightnotallowed'] = 'Only contributes-to relationships may have a weight.';
-$string['weightrequired'] = 'A contributes-to relationship requires a positive decimal weight.';
-$string['cycle'] = 'Approving this relationship would create a cycle.';
-$string['moodlecoursenotfound'] = 'The selected Moodle course does not exist.';
-$string['courseinstanceexists'] = 'This Moodle course and reporting-period association already exists.';
-$string['invalidprogramtype'] = 'The selected program type is invalid.';
-$string['invalidcredential'] = 'The selected credential is invalid.';
-$string['entity_hierarchy'] = 'Outcome hierarchy (as exported)';
-$string['importhierarchy_noframework'] = 'No framework has the code "{$a}". Create the framework first, or correct the Framework column.';
-$string['importhierarchy_nocode'] = 'The Code column is required.';
-$string['importhierarchy_nostatement'] = 'The Statement column is required.';
-$string['importhierarchy_duplicate'] = 'The outcome {$a} appears more than once in this file.';
-$string['importhierarchy_notarget'] = 'The Maps to entry {$a} does not name an outcome in this file or on this site.';
-$string['importhierarchy_help'] = 'Import the file the Outcomes & alignment page exports. Frameworks must already exist; outcomes are matched on framework and code, so re-importing the same file changes nothing. The Version and Status columns are read for information only — governance is applied by the plugin, not asserted by the file.';
-$string['importheader'] = 'The CSV header is invalid. Expected exactly these columns: {$a->detail}';
-$string['importempty'] = 'The CSV file contains no data rows.';
-$string['importtoolarge'] = 'The CSV file is too large. The maximum accepted size is {$a->detail}.';
-$string['importtoomanyrows'] = 'The CSV file has too many data rows. The maximum is {$a->detail}.';
-$string['importexpired'] = 'The import preview expired. Upload and validate the file again.';
-$string['importchanged'] = 'The submitted import content does not match the validated preview.';
-$string['importerrors'] = 'The import contains validation errors and was not committed.';
-$string['invaliddate'] = 'The value must be a Unix timestamp or ISO date (YYYY-MM-DD).';
-$string['invalidboolean'] = 'The value must be 0 or 1.';
-$string['invalidinteger'] = 'The value must be an integer.';
-$string['invaliddecimal'] = 'The value must be a positive decimal number with at most 10 decimal places.';
+$string['frameworkownerfixed_program'] = 'This framework will belong to the program above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
+
+$string['frameworks_heading'] = 'Frameworks and outcomes';
+
+$string['freezesnapshot'] = 'Freeze snapshot';
 
 $string['hier_alreadymapped'] = 'Existing alignment. Manage or retire it on the Outcome relations page.';
+
 $string['hier_backtofull'] = 'Back to full view';
-$string['hier_byprogram'] = 'By program';
+
 $string['hier_bycourse'] = 'By course';
-$string['hier_view'] = 'Group outcomes by program or course';
+
+$string['hier_byprogram'] = 'By program';
+
 $string['hier_callout'] = '{$a} outcomes are not yet aligned to a parent outcome.';
+
 $string['hier_clobadge'] = 'CLO {$a}';
+
 $string['hier_coursecountline'] = '{$a->clos} course outcomes · {$a->ulos} unit outcomes';
+
 $string['hier_courseframeworks'] = 'Catalog course · frameworks {$a}';
+
 $string['hier_courseoutcomes'] = '{$a} course outcomes';
+
 $string['hier_courseoutcomes_one'] = '1 course outcome';
+
 $string['hier_csv_courseoutcome'] = 'Course outcome';
+
 $string['hier_csv_mapsto'] = 'Maps to';
+
 $string['hier_csv_programoutcome'] = 'Program outcome';
+
 $string['hier_csv_type'] = 'Type';
+
 $string['hier_csv_unitoutcome'] = 'Unit outcome';
+
 $string['hier_done'] = 'Done';
+
 $string['hier_editnote'] = 'Saving creates v{$a} with status Draft (submitted for approval)';
+
 $string['hier_editnote_finalization'] = 'Saving creates and finalizes v{$a}';
+
 $string['hier_editreason'] = 'Edited from the frameworks and outcomes page.';
+
 $string['hier_exportcsv'] = 'Export CSV';
+
 $string['hier_frameworkadmin'] = 'Framework administration';
-$string['hier_frameworklabel'] = 'Framework {$a->code} · {$a->status}';
-$string['hier_frameworksline'] = 'Frameworks: {$a}';
-$string['hier_frameworksline_allapproved'] = 'Frameworks: {$a} — all approved';
-$string['hier_frameworksline_allfinalized'] = 'Frameworks: {$a} — all finalized';
-$string['hier_grouplabel'] = '{$a} — Course learning outcomes';
-$string['hier_maplink'] = 'Map…';
-$string['hier_mapnone'] = 'No new alignments were selected.';
-$string['hier_maprelationnote'] = 'Created from the frameworks and outcomes page.';
-$string['hier_mapsaved'] = '{$a} draft alignment(s) created and submitted for review.';
-$string['hier_mapsaved_finalized'] = '{$a} alignment(s) created and finalized.';
-$string['hier_mapto_clo'] = 'Maps to course learning outcomes ({$a})';
-$string['hier_mapto_plo'] = 'Maps to program learning outcomes';
-$string['hier_noclos'] = 'No course outcomes are aligned to this program outcome.';
-$string['hier_nonemapped'] = 'Every outcome is aligned to a parent outcome.';
-$string['hier_noresults'] = 'No outcomes match the search.';
-$string['hier_notaligned'] = 'not yet aligned to any course outcome';
-$string['hier_noulos'] = 'No unit outcomes aligned to this course outcome yet.';
-$string['hier_programoutcomes'] = '{$a} program learning outcomes';
-$string['hier_programoutcomes_one'] = '1 program learning outcome';
-$string['hier_reviewunmapped'] = 'Review unmapped';
-$string['hier_savenewversion'] = 'Save as new version';
-$string['hier_searchplaceholder'] = 'Search outcomes and codes…';
-$string['hier_statsline'] = '{$a->plos} program outcomes · {$a->clos} course outcomes · {$a->ulos} unit outcomes';
-$string['hier_statusinfo'] = '{$a->status} · v{$a->version}';
-$string['hier_ulobadge'] = 'ULO {$a}';
-$string['hier_unitoutcomes'] = '{$a} unit outcomes';
-$string['hier_unitoutcomes_one'] = '1 unit outcome';
-$string['hier_unmappedbadge'] = 'Unmapped';
-$string['hier_unmappedchip'] = '{$a} unmapped';
-$string['hier_unmappedsubtitle'] = 'Outcomes with no alignment relation in any framework';
-$string['hier_unmappedtitle'] = 'Unmapped outcomes';
-$string['hier_unmappedunit_header'] = 'Unmapped unit outcomes';
-$string['hier_versionsaved'] = 'A new draft version was created and submitted for review.';
-$string['hier_versionsaved_finalized'] = 'A new version was created and finalized.';
 
-$string['privacy:metadata'] = 'The plugin stores governance actor identifiers and student-linked evidence and outcome results. Curated recommendations are selected from current results and access rules.';
-$string['privacy:metadata:local_outcomemap_audit'] = 'Append-only privacy-minimised institutional audit history.';
-$string['privacy:metadata:local_outcomemap_audit:actorid'] = 'The governance actor retained as institutional audit attribution.';
-$string['privacy:metadata:local_outcomemap_audit:timecreated'] = 'When the audited action occurred.';
-
-
-$string['courseoutcomemapping'] = 'Course outcome mapping';
-$string['nav_coverage'] = 'Outcome coverage';
-$string['nav_contentmapping'] = 'Content mappings';
-$string['nav_questionmapping'] = 'Question mappings';
-$string['nav_remediation'] = 'Remediation';
-$string['coverage_heading'] = 'Course outcome coverage';
-$string['coveragestatus'] = 'Coverage';
-$string['coverage_covered'] = 'Covered';
-$string['coverage_uncovered'] = 'Not yet mapped';
-$string['coveragesummary'] = '{$a->covered} of {$a->total} outcomes are mapped to course content. {$a->uncovered} still need mapping.';
-$string['coverage_subtitle'] = 'Where each outcome is taught and assessed in this course.';
-$string['coverage_report'] = 'Report';
-$string['coverage_exportcsv'] = 'Export CSV';
-$string['coverage_taughtin'] = 'Taught in';
-$string['coverage_assessedby'] = 'Assessed by';
-$string['coverage_nottaught'] = '— not in any section or activity';
-$string['coverage_notassessed'] = '— no assessment mapped';
-$string['coverage_questionmapping'] = '{$a->quiz} ({$a->count} mapped question(s))';
-$string['coverage_mapcontent'] = 'Map content…';
-$string['coverage_searchlabel'] = 'Search outcomes';
-$string['coverage_searchplaceholder'] = 'Search outcomes…';
-$string['coverage_clearsearch'] = 'Clear';
-$string['coverage_nomatches'] = 'No outcomes match this filter.';
-$string['coveragestatus_full'] = 'Taught & assessed';
-$string['coveragestatus_assessedonly'] = 'Assessed only';
-$string['coveragestatus_taught'] = 'Not assessed';
-$string['coveragestatus_none'] = 'Not covered';
-$string['coveragecard_full'] = 'Fully covered';
-$string['coveragecard_taught'] = 'Incomplete coverage';
-$string['coveragecard_none'] = 'Not covered';
-$string['coveragecardof_full'] = 'of {$a} outcomes';
-$string['coveragecardof_taught'] = 'need the other half';
-$string['coveragecardof_none'] = 'no content at all';
-$string['coveragenote_full'] = 'Mapped to teaching content and to an assessing activity.';
-$string['coveragenote_taught'] = 'Taught but not assessed, or assessed but not taught.';
-$string['coveragenote_none'] = 'No section or activity references these outcomes.';
-$string['coveragefilter_all'] = 'All outcomes';
-$string['coveragefilter_full'] = 'Fully covered';
-$string['coveragefilter_taught'] = 'Incomplete';
-$string['coveragefilter_none'] = 'Not covered';
-$string['coveragegroup_sub'] = '{$a} outcomes';
-$string['coveragegroup_covered'] = '{$a->full} of {$a->total} covered';
-$string['contentmapping_heading'] = 'Course content mappings';
-$string['mappedoutcomes'] = 'Mapped outcomes';
-$string['quickmap_courseoutcomes'] = 'Outcomes for this course';
-$string['quickmap_otheroutcomes'] = 'Other approved outcomes';
-$string['nocourseactivities'] = 'This course has no activities or resources to map yet.';
-$string['contentmapping_subtitle'] = 'Select content on the left, then apply outcomes on the right.';
-$string['contentmapping_stats'] = '{$a->mapped} of {$a->total} content items have at least one outcome mapped.';
-$string['contentsearch'] = 'Search course content';
-$string['contentsearchplaceholder'] = 'Search course content…';
-$string['contentfilter_all'] = 'All';
-$string['contentfilter_unmapped'] = 'Unmapped only';
-$string['contentfilter_assessments'] = 'Graded activities';
-$string['contentnomatches'] = 'No content matches this filter.';
-$string['collapseall'] = 'Collapse all';
-$string['expandall'] = 'Expand all';
-$string['notmapped'] = 'not mapped';
-$string['nitems'] = '{$a} items';
-$string['wholesection'] = 'Whole section: {$a}';
-$string['removemapping'] = 'Remove this draft mapping';
-$string['mappingremoved'] = 'Draft mapping removed.';
-$string['apply_heading'] = 'Apply outcomes';
-$string['apply_hint'] = 'Tick content on the left — a whole section or a single activity — then choose the outcomes to apply.';
-$string['apply_unavailable'] = 'You do not have permission to map content in this course, or the course has no approved, confirmed course instance.';
-$string['apply_note'] = 'New mappings are created as drafts.';
-$string['apply_incomplete'] = 'Select at least one content item and at least one outcome.';
-$string['apply_created'] = '{$a->count} mapping(s) created as {$a->role}.';
-$string['apply_skipped'] = '{$a} mapping(s) were skipped:';
-$string['applymappings'] = 'Apply to selected content';
-$string['outcomestoapply'] = 'Outcomes to apply';
-$string['filteroutcomes'] = 'Filter outcomes…';
-$string['nooutcomematches'] = 'No outcomes match this filter.';
-$string['periodandweight'] = 'Reporting period and weight';
-
-// Course outcome attainment.
-$string['attainment_heading'] = 'Outcome attainment';
-$string['attainment_subtitle'] = 'Cohort attainment stored by the calculation engine. {$a->learners} learner(s) with results; reporting period(s): {$a->periods}.';
-$string['attainment_noresults'] = 'No outcome results have been calculated for this course yet.';
-$string['attainment_why_noinstance'] = 'This course has no approved, confirmed course instance, so nothing links it to a catalog course.';
-$string['attainment_why_nopolicy'] = 'No approved policy governs this course for: {$a->policies}. The plugin calculates no official result without one.';
-$string['attainment_why_nomappings'] = 'No approved assessed question mapping covers the questions learners answered here. Map the questions to outcomes, then approve the mappings.';
-$string['attainment_why_noattempts'] = 'There are {$a->mappings} approved assessed mappings, but no learner has completed a mapped assessment yet.';
-$string['attainment_why_notinforce'] = 'All {$a->mappings} approved assessed mappings postdate the attempts. The earliest mapping takes effect {$a->from}, while the most recent of {$a->attempts} completed attempts finished {$a->finish} — so no mapping was in force when the assessments were taken, and evidence is attributed only to the mapping version in force at that moment. Backdate the mappings\' effective start to before the attempts to report on them.';
-$string['attainment_why_notreconciled'] = '{$a->inforce} of {$a->attempts} completed attempts are covered by a mapping in force at the time, but no evidence has been captured yet. The reconciliation task creates it on its next run.';
-$string['attainment_why_pendingcalculation'] = 'Evidence exists for this course but no course-scope result has been stored yet, which usually means manual grading is still outstanding under the governing calculation policy.';
-$string['attainment_why_unknown'] = 'The cause could not be determined from the stored evidence and mappings.';
-$string['attainment_whyheading'] = 'Why this is empty';
-$string['attainment_learners'] = 'Learners with a result row';
-$string['attainment_assessed'] = 'Assessed';
-$string['attainment_cohort'] = 'Cohort';
-$string['attainment_average'] = 'Average';
-$string['attainment_result'] = 'Result';
-$string['attainment_state'] = 'State';
-$string['attainment_banddistribution'] = 'Band distribution';
-$string['attainment_higheralignment'] = 'Higher-level alignment';
-$string['attainment_alignmentonly'] = 'Alignment only';
-$string['attainment_evidencerollup'] = 'Evidence roll-up';
-$string['attainment_alignmentnote'] = 'Higher-level paths show how each measured outcome supports course and program outcomes. “Alignment only” is curriculum context, not proof of attainment; only an approved contributes-to path carries evidence into a calculated higher-level result.';
-$string['attainment_showpaths'] = 'Show alignment paths';
-$string['attainment_nonecalculated'] = 'No calculated result';
-$string['attainment_groupby'] = 'Group by';
-$string['attainment_groupsub'] = '{$a} outcome(s)';
-$string['attainment_groupaverage'] = '{$a}% average';
-$string['attainment_groupmeasured'] = '{$a->measured} of {$a->total} measured';
-$string['attainment_groupnoresults'] = 'No results yet';
-$string['attainment_groupunaligned'] = 'Not aligned to a higher-level outcome';
-$string['attainment_mapactivity'] = 'Map assessing content…';
-$string['attainment_searchlabel'] = 'Search outcomes';
-$string['attainmentgroup_framework'] = 'Framework';
-$string['attainmentgroup_aligned'] = 'Aligned outcome';
-$string['attainmentgroup_terminal'] = 'Top-level outcome';
-$string['attainmentgroupsub_framework'] = 'Each outcome under its own framework, at the grain it was authored.';
-$string['attainmentgroupsub_aligned'] = 'Each outcome under the outcome one level up that it is approved to support.';
-$string['attainmentgroupsub_terminal'] = 'Each outcome under the top-level outcome its approved alignment chain ends at.';
-$string['attainmentfilter_all'] = 'All';
-$string['attainmentfilter_attention'] = 'Needs attention';
-$string['attainmentfilter_attained'] = 'Mostly attained';
-$string['attainmentfilter_pending'] = 'Awaiting calculation';
-$string['attainmentfilter_unassessed'] = 'Never assessed';
-$string['attainmentstate_attention'] = 'Needs attention';
-$string['attainmentstate_attained'] = 'Mostly attained';
-$string['attainmentstate_pending'] = 'Awaiting calculation';
-$string['attainmentstate_unassessed'] = 'Never assessed';
-$string['attainmentreason_pending'] = 'Assessed — awaiting calculation';
-$string['attainmentreason_unassessed'] = 'Never assessed';
-$string['attainmentcard_measured'] = 'Outcomes with results';
-$string['attainmentcardof_measured'] = 'of {$a} in scope';
-$string['attainmentcardnote_measured'] = 'The rest hold no stored course-scope result yet.';
-$string['attainmentcard_average'] = 'Average attainment';
-$string['attainmentcardof_average'] = 'across {$a} measured outcome(s)';
-$string['attainmentcardnote_average'] = 'Unweighted mean of the stored cohort averages.';
-$string['attainmentcard_pending'] = 'Awaiting calculation';
-$string['attainmentcardof_pending'] = 'assessed, not yet scored';
-$string['attainmentcardnote_pending'] = 'Assessing content is mapped but the engine has stored no result.';
-$string['attainmentcard_unassessed'] = 'Never assessed';
-$string['attainmentcardof_unassessed'] = 'no assessing content mapped';
-$string['attainmentcardnote_unassessed'] = 'These can never produce attainment data as mapped today.';
-$string['attainmentcardnote_unknowncoverage'] = 'Splitting these from outcomes awaiting calculation needs the view-definitions capability.';
-$string['attainment_note'] = 'Figures are the stored results the calculation engine produced under the approved calculation policy; nothing is recomputed for this page. Bands come from the policy version in force when each result was calculated. No small-cohort suppression is applied here, unlike accreditation exports.';
-$string['nav_attainment'] = 'Outcome attainment';
-
-// Course question mappings.
-$string['questionmapping_heading'] = 'Question outcome mappings';
-$string['questionmapping_subtitle'] = 'Choose a quiz to see the exact question versions it uses and the outcomes mapped to them.';
-$string['questionmapping_subtitle_quiz'] = 'Select questions on the left, then apply outcomes on the right.';
-$string['questionmapping_banks'] = 'Question bank:';
-$string['questionmapping_noquizzes'] = 'This course has no quizzes yet, so there are no questions to map.';
-$string['questionmapping_needsqbank'] = 'Question outcome mapping requires the Outcome mapping question bank plugin (qbank_outcomemap) to be installed and enabled.';
-$string['questionmapping_nomatches'] = 'No questions match this filter.';
-$string['questionmapping_allquizzes'] = 'All quizzes';
-$string['questionmapping_open'] = 'Open';
-$string['questionmapping_slots'] = 'Slots';
-$string['questionmapping_slotswithrandom'] = '{$a->slots} ({$a->random} random)';
-$string['questionmapping_slotlabel'] = 'Slot {$a}';
-$string['questionmapping_randomfrom'] = 'Random from “{$a}”';
-$string['questionmapping_maxmark'] = 'Max mark {$a}';
-$string['questionmapping_mapped'] = 'Mapped';
-$string['questionmapping_assessed'] = 'Assessed';
-$string['questionmapping_ofn'] = '{$a->count} of {$a->total}';
-$string['questionmapping_search'] = 'Search questions';
-$string['questionmapping_searchplaceholder'] = 'Search questions…';
-$string['questionfilter_all'] = 'All';
-$string['questionfilter_unmapped'] = 'Unmapped only';
-$string['questionfilter_assessed'] = 'Assessed only';
-$string['questionmapping_applyhint'] = 'Tick questions on the left, then choose the outcomes to apply. Random slots list the pool a draw can select from.';
-$string['questionmapping_weight'] = 'Assessed weight';
-$string['questionmapping_weighthelp'] = 'Required for the Assesses role, and applied to every selected question. A weight splits one question\'s marks across the outcomes that question assesses, so enter 1.0000000000 when the outcome is the only one each selected question assesses. It does not set how much a question counts towards the outcome overall — that comes from the question\'s maximum mark in the quiz.';
-$string['questionmapping_weightrequired'] = 'Enter an assessed weight before applying an Assesses mapping.';
-$string['questionmapping_pooltruncated'] = 'This pool is too large to list in full. Use the question bank to map the remaining questions.';
-$string['questionmapping_apply'] = 'Apply to selected questions';
-$string['questionmapping_applyunavailable'] = 'You do not have permission to map questions in this course, or no approved outcomes are available to apply.';
-$string['questionmapping_outcomestruncated'] = 'Showing {$a->shown} of {$a->total} outcomes available to this course. Use the filter above to reach the rest.';
-$string['questionmapping_missingquestion'] = 'This slot\'s question no longer exists and cannot be mapped.';
-
-$string['remediation_heading'] = 'Outcome remediation';
-$string['modulemapping_heading'] = 'Outcome mapping';
-$string['modulemapping_intro'] = 'Optionally add one explicit draft mapping for this activity. Manage additional mappings from the course content mappings page.';
-$string['addcontentmapping'] = 'Add content mapping';
-$string['editcontentmapping'] = 'Edit content mapping draft';
-$string['newmappingversion'] = 'Create new mapping version';
-$string['addremediation'] = 'Add remediation recommendation';
-$string['editremediation'] = 'Edit remediation draft';
-$string['newremediationversion'] = 'Create new remediation version';
-$string['courseinstance'] = 'Course instance';
-$string['target'] = 'Target';
-$string['targettype'] = 'Target type';
-$string['coursemodule'] = 'Course activity or resource';
-$string['coursemodules'] = 'Activities and resources';
-$string['coursesection'] = 'Course section';
-$string['coursesections'] = 'Course sections';
-$string['outcomeversion'] = 'Exact outcome version';
-$string['mappingrole'] = 'Mapping role';
-$string['mappingweight'] = 'Explicit weight';
-$string['mappingweight_help'] = 'Optional governed decimal weight. Leaving this blank does not assign an implicit or equal weight.';
-$string['priority'] = 'Priority';
-$string['externalurl'] = 'External URL';
-$string['title'] = 'Title';
-$string['explanation'] = 'Explanation';
-$string['requiredremediation'] = 'Required recommendation';
-$string['minpercent'] = 'Minimum percentage';
-$string['maxpercent'] = 'Maximum percentage';
-$string['target_course_module'] = 'Course activity or resource';
-$string['target_course_section'] = 'Course section';
-$string['target_external_url'] = 'External URL';
-$string['mappingrole_teaches'] = 'Teaches';
-$string['mappingrole_practices'] = 'Practices';
-$string['mappingrole_assesses'] = 'Assesses';
-$string['mappingrole_remediates'] = 'Remediates';
-$string['mappingrole_alignment_only'] = 'Alignment only';
-$string['nocourseinstance'] = 'This course has no approved, confirmed course-instance association.';
-$string['nocoveragemappings'] = 'No outcomes are associated with this course yet. Associate the course with a catalog course that owns an approved outcome framework, then map its outcomes to course content.';
-$string['invalidtargettype'] = 'The mapping target type is invalid.';
-$string['targetcoursemismatch'] = 'The selected target does not belong to the mapped course instance.';
-$string['courseinstancenotconfirmed'] = 'The course-instance association must be approved and confirmed before it can be mapped.';
-$string['outcomeversionnotapproved'] = 'Mappings must bind to an approved exact outcome version.';
-$string['mappingoutsideoutcomeversion'] = 'The mapping effective range must be contained within the exact outcome version range.';
-$string['invalidmappingrole'] = 'The mapping role is invalid.';
-$string['duplicatemapping'] = 'An approved mapping already covers this target, outcome version, role, and effective range.';
-$string['mappingunderreview'] = 'This mapping is under review and cannot be changed from the activity form.';
-$string['remediationtargetinvalid'] = 'Select exactly one valid internal target or external URL.';
-
-$string['nav_settings'] = 'Settings';
-$string['autocopyquestionmappings'] = 'Automatically copy question mappings to new versions (legacy opt-in)';
-$string['autocopyquestionmappings_desc'] = 'Optional compatibility behavior. When enabled, creation of a new question version immediately copies eligible approved mappings as drafts. Leave disabled to use the recommended explicit preview and copy action in the question bank. Copied drafts still require review and approval.';
-$string['autocopyquestionmappings_desc_finalization'] = 'Optional compatibility behavior. When enabled, creation of a new question version immediately copies eligible finalized mappings as drafts. Leave disabled to use the recommended explicit preview and copy action in the question bank. Copied drafts must still be explicitly finalized.';
-$string['enableremediation'] = 'Enable remediation';
-$string['enableremediation_desc'] = 'When enabled, staff can curate remediation recommendations for an outcome and learners see the ones released to them. Disable to remove remediation from the plugin: the course Remediation page and its navigation entry, the recommendations shown on a learner\'s outcome results, remediation entries in the approval queue, and the remediation engagement report source all disappear. No stored recommendation or engagement record is deleted, so turning this back on restores exactly what was there. Subject-access export and deletion continue to cover existing remediation data either way.';
-$string['remediationdisabled'] = 'Remediation is disabled for this site.';
-$string['autosubmitquestionmappings'] = 'Submit new question mappings automatically';
-$string['autosubmitquestionmappings_desc'] = 'When enabled, a new question mapping is submitted for review as soon as it is created, so no one has to submit it by hand. An assessed mapping can only be submitted once that question version\'s assessed weights total exactly 1.0000000000, so a question mapped to several outcomes stays a draft until its last mapping is added, then the whole set is submitted together. Mappings copied onto a new question version are never submitted automatically. Approval by a different user is still required.';
-$string['autosubmitquestionmappings_desc_finalization'] = 'When enabled, a new question mapping is finalized as soon as it is created, so no one has to submit or approve it by hand. An assessed mapping can only be finalized once that question version\'s assessed weights total exactly 1.0000000000, so a question mapped to several outcomes stays a draft until its last mapping is added, then the whole set is finalized together. Mappings copied onto a new question version are never finalized automatically. Because independent approval is disabled, mappings created this way become approved immediately and are then immutable.';
-$string['questionmapping'] = 'Question mapping';
-$string['questionversionmismatch'] = 'The question and question-version identifiers do not match the Moodle question bank.';
-$string['assessedweightrequired'] = 'An assesses mapping requires an explicit positive weight. Weights are never inferred.';
-$string['weightnotallowedforrole'] = 'Only assesses mappings carry an evidence weight; the "{$a->detail}" role must not have one.';
-$string['assessedweighttotalinvalid'] = 'Approved assessed weights for a question version must total exactly 1.0000000000; the resulting total is {$a->detail}.';
-$string['bulkmappingselectionrequired'] = 'Select at least one draft mapping for this bulk operation.';
-$string['bulkmappingselectioninvalid'] = 'Mapping ID {$a} is not a mapping on one of the selected exact question versions.';
-$string['bulkonlydrafts'] = 'Mapping ID {$a} is no longer a draft and cannot be changed by this operation.';
-$string['bulkpreviewinvalid'] = 'The bulk operation has validation errors and was not committed: {$a->detail}';
-$string['bulkpreviewstale'] = 'The selected questions or mappings changed after the preview. Preview the operation again before committing.';
-$string['bulklocktimeout'] = 'Another mapping operation is updating question ID {$a->detail}. Wait and preview this bulk operation again.';
-$string['privacysecretunavailable'] = 'The privacy subject secret could not be initialised ({$a->detail}). Try again shortly.';
-
-$string['taskreconcile'] = 'Reconcile outcome evidence and stale results';
-$string['invalidpolicyconfig'] = 'The policy configuration field {$a->field} is invalid: {$a->detail}';
-$string['bandsoverlap'] = 'Performance band ranges must not overlap: {$a->detail}';
-$string['duplicatebandcode'] = 'Performance band codes must be unique: {$a->detail}';
-$string['policyinuse'] = 'The draft policy is referenced by evidence or results and cannot be deleted.';
-$string['divisionbyzero'] = 'A zero denominator never produces a percentage.';
-$string['policy'] = 'Policy';
-$string['policytype_attempt_selection'] = 'Attempt selection';
-$string['policytype_calculation'] = 'Calculation and bands';
-$string['policies_intro'] = 'Create and edit draft attempt-selection, calculation, feedback-release, and accreditation policies here, then submit them to the approval queue. No institutional thresholds, populations, or other defaults are created automatically.';
-$string['policies_intro_finalization'] = 'Create and edit draft attempt-selection, calculation, feedback-release, and accreditation policies here, then finalize them. No institutional thresholds, populations, or other defaults are created automatically.';
-$string['policyscope_institution'] = 'Institution';
-$string['policyscope_catalog_course'] = 'Catalog course';
-$string['policyscope_course_instance'] = 'Course instance';
-$string['policyscope_assessment'] = 'Assessment';
-$string['unknownscope'] = 'Unavailable scope (#{$a})';
-$string['attemptselectionmethod'] = 'Attempt-selection method';
-$string['attemptmethod_first_completed'] = 'First completed attempt';
-$string['attemptmethod_latest_completed'] = 'Latest completed attempt';
-$string['attemptmethod_highest_graded'] = 'Highest graded attempt';
-$string['attemptmethod_quiz_grade'] = 'Moodle quiz-grade-selected attempt';
-$string['attemptmethod_all_completed'] = 'All completed attempts';
-$string['minimumdistinctitems'] = 'Minimum distinct assessment items';
-$string['minimumweightedpossible'] = 'Minimum weighted possible points';
-$string['requiremanualgrading'] = 'Require manual grading to be complete';
-$string['displayprecision'] = 'Displayed decimal places';
-$string['performancebands'] = 'Performance bands';
-$string['performancebands_help'] = 'Bands are optional. Enter them in ascending order with explicit boundaries; no pass threshold is supplied by default.';
-$string['performancebandnumber'] = 'Performance band {no}';
-$string['bandcode_number'] = 'Band code {no}';
-$string['bandname_number'] = 'Band name {no}';
-$string['banddescription_number'] = 'Band description {no}';
-$string['bandminimum_number'] = 'Minimum percentage {no}';
-$string['bandminimuminclusive_number'] = 'Include minimum boundary {no}';
-$string['bandmaximum_number'] = 'Maximum percentage {no}';
-$string['bandmaximuminclusive_number'] = 'Include maximum boundary {no}';
-$string['addperformanceband'] = 'Add a performance band';
-$string['deleteperformanceband'] = 'Delete performance band {no}';
-$string['invalidminimumitems'] = 'Enter an integer of at least 1.';
-$string['bandrangeinvalid'] = 'The maximum must be greater than or equal to the minimum.';
-$string['minimumdistinctitems_value'] = 'Minimum items: {$a}';
-$string['minimumweightedpossible_value'] = 'Minimum weighted possible: {$a}';
-$string['displayprecision_value'] = 'Displayed decimal places: {$a}';
-$string['manualgrading_value'] = 'Manual grading complete: {$a}';
-$string['performancebandcount'] = 'Bands: {$a}';
-$string['noenddate'] = 'No end date';
-$string['minimum'] = 'Minimum';
-$string['maximum'] = 'Maximum';
-$string['inclusive'] = 'inclusive';
-$string['exclusive'] = 'exclusive';
-$string['bandnotavailable'] = 'Performance-band remediation becomes available when governed calculation policies are installed.';
-$string['percentagerangeinvalid'] = 'The maximum percentage must be greater than or equal to the minimum percentage.';
-$string['invalidexternalurl'] = 'Enter a valid HTTP or HTTPS URL.';
-$string['invalidpercentage'] = 'Enter a percentage from 0 to 100 with at most 10 decimal places.';
-
-$string['policytype_release'] = 'Student feedback release';
-$string['feedbackreleasemode'] = 'Feedback release mode';
-$string['feedbackreleaseat'] = 'Release timestamp';
-$string['releasemode_fully_graded'] = 'Immediately after every contributing attempt is fully graded';
-$string['releasemode_grade_visible'] = 'When every contributing Moodle quiz grade is visible';
-$string['releasemode_quiz_closed'] = 'When every contributing quiz closes for the learner';
-$string['releasemode_scheduled'] = 'At an instructor-selected timestamp';
-$string['releasemode_manual'] = 'Manual release after a separate authorized action';
-$string['manualrelease'] = 'Release learner feedback now';
-$string['nav_manualrelease'] = 'Manual feedback release';
-$string['manualrelease_heading'] = 'Manual feedback release';
-$string['manualrelease_intro'] = 'Release feedback for the effective manual policies that govern this course. Each release is audited and cannot be reversed.';
-$string['manualrelease_caption'] = 'Manual feedback-release policies governing this course';
-$string['manualrelease_empty'] = 'No effective manual feedback-release policies can be released from this course.';
-$string['confirmmanualrelease'] = 'Release learner feedback governed by this policy now? This action is audited and cannot be reversed.';
-$string['manualreleased'] = 'Learner feedback was manually released.';
-$string['manualrelease_pending'] = 'Not manually released';
-$string['manualrelease_at'] = 'Manually released {$a}';
-
-$string['performanceband'] = 'Performance band';
-$string['anyperformanceband'] = 'Any performance band';
-$string['displayorder'] = 'Display order';
-$string['remediationpurpose'] = 'Recommendation purpose';
-$string['remediationpurpose_review'] = 'Review';
-$string['remediationpurpose_practice'] = 'Practice';
-$string['remediationpurpose_reassessment'] = 'Reassessment';
-$string['bandnotapplicable'] = 'The selected performance band does not govern this course instance or effective range.';
-
-$string['nav_outcomeresults'] = 'Outcome results';
-$string['outcomeresults_heading'] = 'Outcome results';
-$string['outcomeresults_intro'] = 'These outcome-level results contain no question text, responses, correctness, or answer keys.';
-$string['outcomeresults_empty'] = 'No approved course learning outcomes are configured for this course.';
-$string['outcomeresults_caption'] = 'Your current course learning outcome results and curated recommendations';
-$string['resultcolumn_outcome'] = 'Course learning outcome';
-$string['resultcolumn_result'] = 'Result';
-$string['resultcolumn_bandstate'] = 'Band or state';
-$string['resultcolumn_scope'] = 'Scope';
-$string['resultcolumn_calculation'] = 'Calculation summary';
-$string['resultcolumn_remediation'] = 'Review recommendations';
-$string['resultdetails'] = 'Show calculation summary';
-$string['resultpercentage'] = '{$a}%';
-$string['resultstate_not_assessed'] = 'Not assessed';
-$string['resultstate_insufficient_evidence'] = 'Insufficient evidence';
-$string['resultstate_calculation_pending'] = 'Calculation pending';
-$string['resultstate_stale'] = 'Recalculation pending (stale)';
-$string['resultstate_not_released'] = 'Not yet released';
-$string['resultstate_calculated'] = 'Calculated';
-$string['resultscope_course'] = 'Course to date';
-$string['resultscope_assessment'] = 'Assessment';
-$string['resultscope_assessment_named'] = 'Assessment: {$a}';
-$string['contributingitems'] = 'Contributing items';
-$string['weightedpossiblepoints'] = 'Weighted possible points';
-$string['calculationtimestamp'] = 'Calculated';
-$string['calculationnotavailable'] = 'Not available';
-$string['bandfeedback'] = 'Feedback';
-$string['remediation_required'] = 'Required';
-$string['remediation_recommended'] = 'Recommended';
-$string['noremediation'] = 'No curated recommendations apply.';
-
-// Learner outcome progress page (results.php). The page speaks to a student
-// about their own work, so these strings avoid governance vocabulary: a course
-// learning outcome is a "course skill", a unit learning outcome a "unit
-// outcome", and a programme learning outcome a "degree promise". The glossary
-// at the foot of the page maps each back to its formal name.
-$string['sr_hero_title'] = 'You are on track in {$a->ontrack} of your {$a->total} course skills';
-$string['sr_hero_title_partial'] = 'You are on track in {$a->ontrack} of the {$a->measured} course skills measured so far';
-$string['sr_hero_title_plain'] = 'You have results in {$a->measured} of your {$a->total} course skills';
-$string['sr_hero_title_none'] = 'None of your {$a->total} course skills has a result yet';
-$string['sr_hero_lede'] = 'This course asks you to demonstrate {$a->total} skills. You have cleared the {$a->expectedpct}% mark on {$a->ontrack} of them, and {$a->strong} of those reach {$a->strongpct}% or above. {$a->below} sit below the mark, and working out what they have in common is the useful part of this page.';
-$string['sr_hero_lede_nostrong'] = 'This course asks you to demonstrate {$a->total} skills. You have cleared the {$a->expectedpct}% mark on {$a->ontrack} of them, and {$a->below} sit below it. Working out what those have in common is the useful part of this page.';
-$string['sr_hero_lede_plain'] = 'This course asks you to demonstrate {$a->total} skills. Your score for each one is listed below. This course has no achievement bands set, so the page reports your figures without judging them against a mark.';
-$string['sr_hero_lede_none'] = 'This course asks you to demonstrate {$a->total} skills. None of them can be scored yet, which is normal early in a course: a skill needs a certain amount of graded work behind it before a figure means anything.';
-$string['sr_hero_blanks'] = 'A blank row is not a low score. It is either work that has not been graded yet, or a result your instructor has not published. Both are listed separately further down so you can tell them apart at a glance.';
-
-$string['sr_standing_title'] = 'Your {$a} course skills';
-$string['sr_standing_strong'] = 'At {$a}% or above';
-$string['sr_standing_ontrack'] = 'Comfortably past the {$a}% mark';
-$string['sr_standing_below'] = 'Below the {$a}% mark';
-$string['sr_standing_unmeasured'] = 'Not measured yet';
-$string['sr_standing_note'] = 'These are results so far, not a final grade. Your course grade is separate, and clearing {$a}% on a skill is a floor rather than a finish line.';
-
-$string['sr_actions_title'] = 'Start here';
-$string['sr_actions_intro'] = 'These {$a} things are holding your results down. Work through them in this order.';
-$string['sr_actions_intro_one'] = 'One thing is holding your results down.';
-$string['sr_actionstep'] = 'Step {$a}';
-$string['sr_action_below'] = 'This skill is at {$a->score}, below the {$a->expected}% mark.';
-$string['sr_action_weakunits'] = 'The weakness is specific: {$a->count} of the unit outcomes underneath it are below the mark, starting with {$a->names}.';
-$string['sr_action_nounits'] = 'None of its {$a} unit outcomes has been measured, so this figure rests entirely on work counted at course level. Expect it to move as unit results come in.';
-$string['sr_action_someunits'] = '{$a->unmeasured} of its {$a->total} unit outcomes are still unmeasured, so this figure will keep shifting.';
-$string['sr_action_soleroute'] = 'This is also the one place a low score reaches your degree: it is the only route this course offers to "{$a->name}", which sits at {$a->score}.';
-$string['sr_action_hidden_title'] = 'One weak spot inside {$a}';
-$string['sr_action_hidden'] = '{$a->skill} sits at {$a->skillscore} overall, but the unit outcome "{$a->unit}" inside it is at {$a->unitscore}. The average hides it. Worth revisiting, because a strong average will not protect you if that specific thing comes up again.';
-$string['sr_action_links'] = 'Go back to';
-
-$string['sr_skills_title'] = 'Every skill in this course';
-$string['sr_skills_intro'] = 'Your score against the {$a}% mark this course expects. Open a skill to see the unit-by-unit detail behind it.';
-$string['sr_skills_intro_plain'] = 'Your score for each skill. Open a skill to see the unit-by-unit detail behind it.';
-$string['sr_showdetail'] = 'What is behind this figure';
-$string['sr_units'] = 'The {$a} unit outcomes behind this skill';
-$string['sr_units_one'] = 'The one unit outcome behind this skill';
-$string['sr_noscore'] = 'Not measured yet';
-$string['sr_bar_mark'] = '{$a}% expected';
-$string['sr_evidence'] = 'Scored across {$a} graded items';
-$string['sr_evidence_one'] = 'Scored on a single graded item';
-$string['sr_unit_ontrack'] = '{$a} — on track';
-$string['sr_unit_below'] = '{$a} — below the mark';
-$string['sr_unit_awaiting'] = 'Result not published yet';
-$string['sr_unit_nowork'] = 'No graded work here yet';
-$string['sr_explain_direct'] = 'This skill is scored directly from your graded work rather than from separate unit outcomes.';
-$string['sr_explain_nonemeasured'] = 'None of the {$a->total} unit outcomes here has a result yet, so your {$a->score} comes entirely from graded work counted at course level. Expect this figure to move as unit results come in.';
-$string['sr_explain_measured'] = '{$a->measured} of {$a->total} unit outcomes here have results, so your {$a->score} will keep shifting until the rest are measured.';
-$string['sr_explain_awaiting'] = '{$a} are waiting on your instructor.';
-$string['sr_explain_nowork'] = '{$a} have no graded work yet.';
-
-$string['sr_filter_legend'] = 'Show only';
-$string['sr_filter_all'] = 'All {$a}';
-$string['sr_filter_below'] = 'Needs work ({$a})';
-$string['sr_filter_ontrack'] = 'On track ({$a})';
-$string['sr_filter_strong'] = 'Strong ({$a})';
-$string['sr_filter_unmeasured'] = 'Not measured ({$a})';
-$string['sr_filter_empty'] = 'No skills match that filter.';
-
-$string['sr_blanks_title'] = 'Not a grade — just not measured yet';
-$string['sr_blanks_intro'] = 'Most blank rows on this page are one of two things. Neither counts against you.';
-$string['sr_blank_nowork_title'] = 'No graded work yet';
-$string['sr_blank_nowork'] = 'You have not completed enough graded work in these areas for a result to be calculated. They are not counted as zero and they are not dragging your scores down — there is simply nothing to measure yet.';
-$string['sr_blank_nowork_next'] = 'These fill in as you work through the course. Nothing to do but keep going.';
-$string['sr_blank_awaiting_title'] = 'Waiting to be published';
-$string['sr_blank_awaiting'] = 'Your work here is in, but the results have not been published to you yet. Nothing in this group needs action from you.';
-$string['sr_blank_awaiting_next'] = 'Ask your instructor if these stay blank after an assessment has closed.';
-
-$string['sr_strengths_title'] = 'What you are strong at';
-$string['sr_strengths_intro'] = 'Worth knowing, and worth saying out loud in an interview.';
-
-$string['sr_degree_title'] = 'How this course counts toward your degree';
-$string['sr_degree_intro'] = 'Your degree makes {$a} promises about what you can do. Each of your course skills feeds one of them, so a gap here shows up there.';
-$string['sr_degree_fedby'] = 'Fed by:';
-$string['sr_degree_strong'] = 'Well clear of the {$a}% mark. This course is contributing strongly to this promise.';
-$string['sr_degree_ontrack'] = 'Past the {$a}% mark. Lifting your weaker skills would move this comfortably clear.';
-$string['sr_degree_below'] = 'Below the {$a}% mark. The course skills feeding it are where this gets decided.';
-$string['sr_degree_below_sole'] = 'Below the mark, and this course decides it through one skill only — "{$a}". Nothing else here offsets it.';
-$string['sr_degree_none'] = 'Not measured yet against the {$a}% mark.';
-$string['sr_degree_unmeasured'] = 'Not measured yet. This fills in once the course skills feeding it have results.';
-$string['sr_degree_plain'] = 'Fed by {$a} of your course skills.';
-
-$string['sr_faq_title'] = 'Questions you might have';
-$string['sr_faq_grade_q'] = 'Is this my grade?';
-$string['sr_faq_grade_a'] = 'No. This shows which skills you have demonstrated; your grade is on the Grades page. You can be on track on most skills and still need more points overall to complete the course.';
-$string['sr_faq_changed_q'] = 'Why did a score change?';
-$string['sr_faq_changed_a'] = 'Each skill is recalculated as new graded work comes in. An early score rests on very few items, so it moves a lot — a skill measured on three items can swing thirty points on one quiz.';
-$string['sr_faq_record_q'] = 'Does a low score stay on my record?';
-$string['sr_faq_record_a'] = 'No. These are a running picture of where you are now, not a permanent mark. Later work replaces the picture.';
-$string['sr_faq_hundred_q'] = 'Why is a skill at 100% when I got questions wrong?';
-$string['sr_faq_hundred_a'] = 'A skill only counts the questions mapped to it. Questions you missed may have been counted against a different skill.';
-$string['sr_faq_disagree_q'] = 'What if I disagree with a result?';
-$string['sr_faq_disagree_a'] = 'Open the skill to see which unit outcomes it was built from, then raise that specific outcome with your instructor. It is far more actionable than querying the overall figure.';
-
-$string['sr_glossary_title'] = 'What the words mean';
-$string['sr_glossary_skill_term'] = 'Course skill';
-$string['sr_glossary_skill_def'] = 'One of the things this course promises you will be able to do. Formally, a course learning outcome.';
-$string['sr_glossary_unit_term'] = 'Unit outcome';
-$string['sr_glossary_unit_def'] = 'A smaller, more specific step. Several of these build up to one course skill. Formally, a unit learning outcome.';
-$string['sr_glossary_mark_term'] = 'The {$a}% mark';
-$string['sr_glossary_mark_def'] = 'The level this course treats as having demonstrated a skill. Formally, "meets expectations".';
-$string['sr_glossary_strong_term'] = 'Strong';
-$string['sr_glossary_strong_def'] = '{$a}% or above. Formally, "exceeds expectations".';
-$string['sr_glossary_degree_term'] = 'Degree promise';
-$string['sr_glossary_degree_def'] = 'One of the things your whole programme claims you can do. Several courses feed each one. Formally, a program learning outcome.';
-
-$string['sr_listsep'] = ', ';
-$string['sr_andmore'] = '{$a->names}, and {$a->count} more';
-$string['sr_footnote'] = 'Calculated {$a} from your graded work in this course to date. Figures cover this course only and update automatically as more work is graded.';
-
-
-// Redesigned Programs page.
-$string['programs_subtitle'] = 'Degree and certificate programs grouped by program type.';
-$string['programs_filter_type'] = 'Filter programs by program type';
-$string['programs_searchplaceholder'] = 'Search programs and codes…';
-$string['programs_group_graduate'] = 'Graduate degree programs';
-$string['programs_group_graduate_desc'] = 'Graduate-level degrees and certificates';
-$string['programs_group_undergraduate'] = 'Undergraduate degree programs';
-$string['programs_group_undergraduate_desc'] = 'Undergraduate-level degrees and certificates';
-$string['programs_group_specialization'] = 'Specializations';
-$string['programs_group_specialization_desc'] = 'Focused course series and certificate programs';
-$string['programs_nodescription'] = 'No description provided.';
-$string['programs_courses'] = '{$a} catalog courses';
-$string['programs_courses_one'] = '1 catalog course';
-$string['programs_outcomes'] = '{$a} program outcomes';
-$string['programs_outcomes_one'] = '1 program outcome';
-$string['programs_frameworks'] = '{$a} outcome frameworks';
-$string['programs_frameworks_one'] = '1 outcome framework';
-$string['programs_count'] = '{$a} programs';
-$string['programs_count_one'] = '1 program';
-$string['programs_statsline'] = '{$a->total} programs · {$a->graduate} graduate · {$a->undergraduate} undergraduate · {$a->specialization} specializations';
-$string['programs_outcomes_action'] = 'Outcomes';
-$string['programs_noresults'] = 'No programs match the current search and program-type filter.';
-$string['programs_empty'] = 'No program definitions have been created.';
-$string['programs_specialization_help'] = 'Specializations are focused catalog-course series that can award a certificate; their outcome frameworks remain governed like other program frameworks.';
-
-// Redesigned Outcome relations page.
-$string['relations_subtitle'] = 'Every governed relationship between outcome frameworks, grouped by source and target.';
-$string['relations_view'] = 'Outcome relation view';
-$string['relations_grouped'] = 'Grouped';
-$string['relations_matrix'] = 'Matrix';
-$string['relations_searchplaceholder'] = 'Search outcomes, statements, and codes…';
-$string['relations_newversion_short'] = 'New version';
-$string['relations_version_short'] = 'v{$a}';
-$string['relations_weight_short'] = 'weight {$a}';
-$string['relations_matrix_existing'] = '{$a->source} to {$a->target}: {$a->status}, version {$a->version}';
-$string['relations_matrix_empty'] = 'Add a relation from {$a->source} to {$a->target}';
-$string['relations_group_title'] = '{$a->source} → {$a->target}';
-$string['relations_group_subtitle'] = 'Relationship: {$a}';
-$string['relations_count'] = '{$a} relation versions';
-$string['relations_count_one'] = '1 relation version';
-$string['relations_statsline'] = '{$a->active} active relationships · {$a->versions} versions · {$a->review} awaiting review · {$a->draft} draft';
-$string['relations_statsline_finalization'] = '{$a->active} active relationships · {$a->versions} versions · {$a->review} pending finalization · {$a->draft} draft';
-$string['relations_noresults'] = 'No relations match the current search.';
-$string['relations_aligns_to_short'] = 'relates to';
-$string['relations_matrix_help'] = 'Select an empty cell to prefill a new draft relation. Existing cells open the permitted governed edit or new-version workflow.';
-$string['relations_matrix_legend'] = 'Relation status legend';
-$string['relations_empty'] = 'No outcome relations have been created.';
-
-// Milestone 6 accreditation policies, reporting, and immutable snapshots.
-$string['policytype_accreditation'] = 'Accreditation reporting';
-$string['policyscope_program'] = 'Program';
-$string['minimumcohortsize'] = 'Minimum cohort size before disclosure';
-$string['minimumcohortsize_value'] = 'Suppression threshold: {$a} subjects';
-$string['invalidminimumcohortsize'] = 'Enter an integer of at least 1. No default threshold is supplied.';
-$string['invalidaccreditationscope'] = 'Accreditation policies must use program or institution scope, not "{$a->detail}".';
-$string['populationsource'] = 'Population source';
-$string['population_active_enrolments_at_freeze'] = 'Active enrolled users in included courses at the data freeze';
-$string['population_moodle_cohort_at_freeze'] = 'Selected Moodle cohort membership at the data freeze';
-$string['retentionbasis'] = 'Retention basis';
-$string['retention_institutional_record_anonymised'] = 'Retain frozen institutional records with cryptographic subject de-linking';
-$string['retention_privacy_deletion'] = 'Cryptographically de-link subjects on approved privacy erasure (retain frozen rows)';
-$string['achievementminpercent'] = 'Achievement criterion (percentage per learner)';
-$string['achievementminpercent_help'] = 'The percentage a learner must reach on the assessment items mapped to an outcome to be counted as having achieved it. Faculty set this figure; the plugin supplies no default.';
-$string['achievementminpercent_value'] = 'Achievement criterion: {$a}% per learner';
-$string['invalidachievementminpercent'] = 'Enter a percentage between 0 and 100. No default criterion is supplied.';
-$string['benchmarkpercent'] = 'Aggregate benchmark (percentage of learners)';
-$string['benchmarkpercent_help'] = 'The share of assessed learners expected to meet the achievement criterion for an outcome. Reported results are compared against this figure. Faculty set this figure; the plugin supplies no default.';
-$string['benchmarkpercent_value'] = 'Aggregate benchmark: {$a}% of learners';
-$string['invalidbenchmarkpercent'] = 'Enter a percentage between 0 and 100. No default benchmark is supplied.';
-$string['attainmentrate'] = 'Attainment rate';
-$string['attainmentrate_value'] = '{$a->met} of {$a->assessed} learners met the criterion ({$a->rate}%)';
-$string['benchmarkmet'] = 'Benchmark met';
-$string['benchmarkmet_yes'] = 'Met';
-$string['benchmarkmet_no'] = 'Not met';
-$string['benchmarkmet_unknown'] = 'Not calculable';
-$string['aggregationmethod'] = 'Aggregation method';
-$string['aggregation_sum_numerators_denominators'] = 'Sum canonical numerators and denominators, then divide once';
-$string['correctionmethod'] = 'Correction method';
-$string['correction_new_snapshot_version'] = 'Create a new linked snapshot version; never alter a frozen version';
-$string['nav_snapshots'] = 'Accreditation snapshots';
-$string['nav_reports'] = 'Outcome reports';
-$string['snapshots_heading'] = 'Accreditation snapshots';
-$string['snapshots_intro'] = 'Capture a governed reporting population and immutable calculation lineage. Drafts require independent review before freezing.';
-$string['createsnapshot'] = 'Create snapshot draft';
-$string['correctsnapshot'] = 'Create correction version';
-$string['freezesnapshot'] = 'Freeze snapshot';
-$string['snapshot'] = 'Snapshot';
-$string['snapshotuuid'] = 'Snapshot UUID';
-$string['snapshotstatus_draft'] = 'Draft';
-$string['snapshotstatus_frozen'] = 'Frozen';
-$string['snapshotversion'] = 'Snapshot version';
-$string['previoussnapshot'] = 'Previous snapshot';
-$string['cohort'] = 'Moodle cohort';
-$string['populationat'] = 'Data freeze time';
-$string['populationcount'] = 'Population size';
-$string['suppressionthreshold'] = 'Suppression threshold';
-$string['correctionreason'] = 'Correction reason';
-$string['snapshotnotes'] = 'Reviewer notes';
-$string['payloadhash'] = 'Payload hash';
-$string['manifesthash'] = 'Manifest hash';
-$string['itemcount'] = 'Captured rows';
-$string['confirmfreezesnapshot'] = 'Freeze this verified snapshot? Frozen versions are immutable and corrections require a new version.';
-$string['deletesnapshot'] = 'Delete snapshot';
-$string['confirmdeletesnapshot'] = 'Permanently delete {$a->program} {$a->period} {$a->version} and the {$a->rows} rows it captured? A frozen version records what was reported, so delete it only if the capture should never have been taken; to report a corrected figure, create a correction version instead. The deletion is recorded in the audit history and cannot be undone.';
-$string['snapshotcreated'] = 'The snapshot draft was created.';
-$string['snapshotfrozen'] = 'The snapshot was verified and frozen.';
-$string['snapshotdeleted'] = 'The snapshot version and every row it captured were deleted.';
-$string['snapshotdeletesuperseded'] = 'A correction version builds on this snapshot version. Delete the newest version of the snapshot first.';
-$string['snapshotintegrityfailure'] = 'Snapshot integrity verification failed for {$a->field}: {$a->detail}';
-$string['resultintegrityfailure'] = 'Result lineage verification failed for {$a->field}: {$a->detail}';
-$string['snapshotimmutable'] = 'Frozen snapshots cannot be modified.';
-$string['snapshotcreatorcannotapprove'] = 'The snapshot creator cannot freeze the same snapshot.';
-$string['snapshotpolicyrequired'] = 'An effective approved accreditation policy is required for this program. No suppression or population defaults are assumed.';
-$string['snapshotpopulationempty'] = 'The governed population is empty for the selected program, period, and population source.';
-$string['snapshotcoursesempty'] = 'No approved, confirmed course instances belong to this program and reporting period.';
-$string['snapshotcohortrequired'] = 'Select a Moodle cohort for the governed cohort population source.';
-$string['snapshotcohortnotallowed'] = 'A cohort must not be selected for the active-enrolment population source.';
-$string['snapshotcorrectionrequired'] = 'A correction reason is required for a new version of a frozen snapshot.';
-$string['snapshotpreviousinvalid'] = 'Corrections must reference a frozen snapshot version.';
-$string['snapshotpolicychanged'] = 'The approved accreditation policy changed before capture. Start a new snapshot draft.';
-$string['snapshotversionconflict'] = 'A newer correction version already exists. Reload the snapshot list.';
-$string['snapshotsubjecthashmethod'] = 'Snapshot-specific HMAC-SHA-256 using erasable per-user key material';
-$string['export'] = 'Export';
-$string['exportsnapshot'] = 'Export accreditation package';
-$string['exportsummarycsv'] = 'Summary CSV';
-$string['exportpackagejson'] = 'Canonical JSON package';
-$string['exportevidencedetail'] = 'Include de-identified subject evidence';
-$string['exportevidencedetail_help'] = 'Requires both accreditation-export and all-results capabilities. Summary exports omit subject rows for suppressed outcomes.';
-$string['exportsuppressed'] = 'Suppressed';
-$string['exportnotfrozen'] = 'Only verified frozen snapshots can be exported.';
-$string['reports_heading'] = 'Outcome Report Builder sources';
-$string['reports_intro'] = 'Create custom reports from the governed outcome-mapping data sources. Each source independently enforces its required capability.';
-$string['reportbuildernav'] = 'Open custom reports';
-$string['report_source_outcome_definitions'] = 'Outcome definitions and versions';
-$string['report_source_mapping_coverage'] = 'Mapping coverage';
-$string['report_source_assessment_coverage'] = 'Assessment and question coverage';
-$string['report_source_student_attainment'] = 'Student attainment';
-$string['report_source_course_aggregates'] = 'Course and cohort aggregates';
-$string['report_source_program_aggregates'] = 'Program aggregates';
-$string['report_source_remediation_engagement'] = 'Remediation recommendations and engagement';
-$string['report_source_audit_history'] = 'Mapping, calculation, and snapshot audit history';
-$string['reports_source'] = 'Data source';
-$string['reports_existing'] = 'Custom reports using this source';
-$string['reports_none'] = 'No custom report uses this source yet.';
-$string['reports_seedhint'] = 'One example report per source, and one example accreditation snapshot, can be seeded with the CLI script <code>local/outcomemap/cli/seed_examples.php</code>.';
-$string['exampleseed_reportname'] = 'Example: {$a}';
-$string['exampleseed_policyname'] = 'Example accreditation reporting policy';
-$string['exampleseed_policyreason'] = 'Seeded by the outcome mapping example script so an example accreditation snapshot can be captured.';
-$string['exampleseed_policyunapproved'] = 'The seeded example accreditation policy {$a->detail} still needs independent approval before an example snapshot can be captured.';
-$string['exampleseed_snapshotnotes'] = 'Example accreditation snapshot seeded from the authoritative results this site already holds.';
-$string['exampleseed_replacereason'] = 'Withdrawn by the outcome mapping example script so the example snapshot could be captured again from current results.';
-$string['exampleseed_nosnapshotdata'] = 'No approved program and reporting period holds current course-scope results, so no example snapshot can be captured.';
-$string['reportentity_outcome'] = 'Outcome mapping record';
-$string['reportcolumn_recordid'] = 'Record ID';
-$string['reportcolumn_recordtype'] = 'Record type';
-$string['reportcolumn_code'] = 'Code';
-$string['reportcolumn_label'] = 'Label';
-$string['reportcolumn_programid'] = 'Program ID';
-$string['reportcolumn_catalogcourseid'] = 'Catalog course ID';
-$string['reportcolumn_moodlecourseid'] = 'Moodle course ID';
-$string['reportcolumn_periodcode'] = 'Period';
-$string['reportcolumn_assessmentid'] = 'Assessment ID';
-$string['reportcolumn_cohortid'] = 'Cohort ID';
-$string['reportcolumn_outcomeversionid'] = 'Outcome version ID';
-$string['reportcolumn_state'] = 'State';
-$string['reportcolumn_band'] = 'Band';
-$string['reportcolumn_percentage'] = 'Percentage';
-$string['reportcolumn_numerator'] = 'Numerator';
-$string['reportcolumn_inputhash'] = 'Input hash';
-$string['reportcolumn_lineagehash'] = 'Lineage hash';
-$string['reportcolumn_beforejson'] = 'Before state';
-$string['reportcolumn_afterjson'] = 'After state';
-$string['reportcolumn_subjectcount'] = 'Subject count';
-$string['reportcolumn_assessedcount'] = 'Assessed learners';
-$string['reportcolumn_metcount'] = 'Learners meeting the criterion';
-$string['reportcolumn_suppressed'] = 'Suppressed';
-$string['reportcolumn_timecreated'] = 'Created';
-$string['snapshotcohort'] = 'Population cohort';
-$string['snapshotcohort_help'] = 'Select a cohort only when the effective approved accreditation policy uses the Moodle-cohort population source. Leave it empty for active enrolments.';
-$string['snapshotperiod'] = 'Reporting period code';
-$string['snapshotperiod_help'] = 'Reporting periods come from the course instances themselves, so only periods that resolve to approved, confirmed instances of the selected program are listed. A capture covers every course instance carrying the chosen period code — if each course carries its own code, a capture covers that one course.';
-$string['snapshotperiodcourse'] = '({$a} course)';
-$string['snapshotperiodcourses'] = '({$a} courses)';
-$string['snapshotperiodnonevalid'] = 'none — this program has no approved, confirmed course instances';
-$string['snapshotperiodunresolved'] = 'No approved, confirmed course instances of {$a->program} carry the reporting period "{$a->period}", so the capture would be empty. Periods available for this program: {$a->valid}.';
-$string['snapshotperiodcaptured'] = 'Reporting period "{$a->period}" is already captured by snapshot {$a->id} (version {$a->version}, {$a->status}). Creating another here would start a second, independent record of the same period, with nothing to say which one is authoritative. To revise the existing capture, use its Correct action instead.';
-$string['snapshotitems_caption'] = 'Immutable snapshot rows grouped by type';
-$string['snapshotlist_caption'] = 'Accreditation snapshot versions';
-
-$string['hier_frameworklocked'] = 'Code and owner are fixed once finalized';
-$string['hier_frameworkrename'] = 'Edit name';
 $string['hier_frameworkidentitylocked'] = 'This framework is finalized. Its name and description can still be changed; its code and owner cannot, because the code prefixes every outcome label and is frozen inside any accreditation snapshot that has already captured it.';
 
-// Redesigned Outcome policies page.
-$string['policies_subtitle'] = 'The rules that decide how outcome results are calculated, released, and reported.';
-$string['policies_view'] = 'Group policies by decision or by scope';
-$string['policies_bydecision'] = 'By decision';
-$string['policies_byscope'] = 'By scope';
-$string['policies_searchplaceholder'] = 'Search policies, scopes, and settings…';
-$string['policies_statsline'] = '{$a->versions} policy versions · {$a->inforce} in force · {$a->draft} draft · across {$a->decisions} decisions';
-$string['policies_gap'] = 'policy decisions have no institution-wide default, so any scope without its own policy has no rule in force: {$a}.';
-$string['policies_gap_one'] = 'policy decision has no institution-wide default, so any scope without its own policy has no rule in force: {$a}.';
-$string['policies_hasdefault'] = 'Institution default set';
-$string['policies_nodefault'] = 'No institution default';
-$string['policies_coversall'] = 'Settles all {$a} decisions';
-$string['policies_coverssome'] = 'Settles {$a->settled} of {$a->total} decisions';
-$string['policies_scopemissing'] = 'Nothing set at this scope for: {$a}. Whatever the resolution chain finds next applies instead.';
-$string['policies_nopolicies'] = 'No policy has been created for this decision.';
-$string['policies_chain'] = 'Resolved through: {$a}';
-$string['policies_uncovered'] = 'No rule is in force for these catalog courses: {$a}.';
-$string['policies_uncovered_one'] = 'No rule is in force for this catalog course: {$a}.';
-$string['policies_meta'] = 'v{$a->version} · from {$a->from}';
-$string['policies_noresults'] = 'No policies match this search.';
-$string['policies_empty'] = 'No outcome policy has been created. Until one is, no rule is in force and results cannot be calculated.';
-$string['policies_precedence_help'] = 'A scope uses the most specific policy that applies to it. Attempt selection, calculation, and release resolve through assessment, then course instance, then catalog course, then the institution default — a program-scoped version of those is never consulted. Accreditation resolves through program, then the institution default. Finalized versions cannot be edited; create a new version, which takes effect from its start date.';
-$string['policies_question_attempt_selection'] = 'When a learner has several attempts at an activity, which one counts towards the outcome?';
-$string['policies_question_calculation'] = 'How is a learner\'s outcome result computed, and what counts as meeting it?';
-$string['policies_question_release'] = 'When do learners see their outcome results?';
-$string['policies_question_accreditation'] = 'How are snapshots populated, aggregated, suppressed, and corrected?';
-$string['policyscopedesc_institution'] = 'Defaults inherited wherever nothing more specific applies';
-$string['policyscopedesc_program'] = 'Applies to accreditation reporting for this program';
-$string['policyscopedesc_catalog_course'] = 'Applies to every delivery of this catalog course';
-$string['policyscopedesc_course_instance'] = 'Applies to one Moodle course and reporting period';
-$string['policyscopedesc_assessment'] = 'Applies to one assessment only';
-$string['policies_setting_attempt'] = 'Attempt used';
-$string['policies_setting_release'] = 'Release';
-$string['policies_setting_releaseat'] = 'Scheduled for';
-$string['policies_setting_released'] = 'Released';
-$string['policies_setting_suppression'] = 'Suppression threshold';
-$string['policies_setting_population'] = 'Population';
-$string['policies_setting_retention'] = 'Retention';
-$string['policies_setting_criterion'] = 'Achievement criterion';
-$string['policies_setting_benchmark'] = 'Aggregate benchmark';
-$string['policies_setting_minitems'] = 'Minimum items';
-$string['policies_setting_minpossible'] = 'Minimum weighted possible';
-$string['policies_setting_decimals'] = 'Decimals';
-$string['policies_setting_manual'] = 'Needs manual grading';
-$string['policies_setting_bands'] = 'Bands';
+$string['hier_frameworklabel'] = 'Framework {$a->code} · {$a->status}';
 
-// Combined Outcomes and alignment page.
-$string['outcomes_heading'] = 'Outcomes & alignment';
-$string['outcomes_view'] = 'Group outcomes by program or course, or show the alignment matrix';
-$string['outcomes_matrixview'] = 'Matrix';
-$string['outcomes_hierarchyline'] = '{$a->alignments} alignments, {$a->unaligned} unaligned';
-$string['outcomes_exportoutcomes'] = 'Outcomes CSV';
-$string['outcomes_exportalignments'] = 'Alignments CSV';
-$string['outcomes_matrix_nogrid'] = 'This relationship has no outcomes on one of its two sides yet, so there is no grid to show.';
+$string['hier_frameworklocked'] = 'Code and owner are fixed once finalized';
 
-// Combined Curriculum page.
-$string['curriculum_heading'] = 'Curriculum';
-$string['curriculum_subtitle'] = 'Each program with the catalog courses it contains and the Moodle courses delivering them.';
-$string['curriculum_statsline'] = '{$a->programs} programs · {$a->courses} catalog courses · {$a->attached} in a program · {$a->orphans} in none';
-$string['curriculum_statsline_one'] = '1 program · {$a->courses} catalog courses · {$a->attached} in a program · {$a->orphans} in none';
-$string['curriculum_navlabel'] = 'Choose a program';
-$string['curriculum_programs'] = 'Programs';
-$string['curriculum_newprogram'] = '+ New program';
-$string['curriculum_empty'] = 'No programs have been created yet. A program is the top of the curriculum: create one, then attach catalog courses to it.';
-$string['curriculum_typeline_graduate'] = 'Graduate degree program';
-$string['curriculum_typeline_undergraduate'] = 'Undergraduate degree program';
-$string['curriculum_typeline_specialization'] = 'Certificate-awarding course series';
-$string['curriculum_programoutcomes'] = 'Program outcomes';
-$string['curriculum_addframework'] = '+ Add outcome framework';
-$string['curriculum_editprogram'] = 'Edit program';
-$string['curriculum_fact_credential'] = 'Credential';
-$string['curriculum_fact_courses'] = 'Courses';
-$string['curriculum_fact_outcomes'] = 'Program outcomes';
-$string['curriculum_fact_nooutcomes'] = 'None yet';
-$string['curriculum_fact_attention'] = 'Needs attention';
-$string['curriculum_attention_none'] = 'Nothing';
-$string['curriculum_attention_draft'] = '{$a} unconfirmed instances';
-$string['curriculum_attention_draft_one'] = '1 unconfirmed instance';
-$string['curriculum_attention_noout'] = '{$a} courses without outcomes';
-$string['curriculum_attention_noout_one'] = '1 course without outcomes';
-$string['curriculum_courses_heading'] = 'Courses in this program';
-$string['curriculum_coursehint'] = 'Expand a course to see the Moodle courses delivering it';
-$string['curriculum_nocourses'] = 'No catalog courses are attached to this program, so nothing it teaches rolls up to its outcomes. Attach one below.';
-$string['curriculum_delivery'] = 'Delivered in';
-$string['curriculum_nodelivery'] = 'Not delivered yet';
-$string['curriculum_nodelivery_help'] = 'No Moodle course is associated with this catalog course, so it captures no evidence yet.';
-$string['curriculum_indelivery'] = 'In delivery';
-$string['curriculum_notdelivered'] = 'Not in delivery';
-$string['curriculum_alsoin'] = 'also in {$a}';
-$string['curriculum_alreadyin'] = 'In {$a}';
-$string['curriculum_addinstance'] = '+ Associate a Moodle course';
-$string['curriculum_courseoutcomes'] = 'Course outcomes';
-$string['curriculum_allinstances'] = 'All instances';
-$string['curriculum_addcourse'] = 'Add a course to';
-$string['curriculum_fromcatalog'] = 'From the catalog';
-$string['curriculum_attach'] = 'Attach';
-$string['curriculum_allattached'] = 'Every catalog course is already in this program.';
-$string['membershipmove'] = 'Move';
-$string['membershipmovefrom'] = 'Currently in';
-$string['membershipmoveto'] = 'Move into';
-$string['membershipmovenotarget'] = 'Choose the program to move this course into.';
-$string['membershipmoved'] = 'The catalog course was moved. Its membership of the new program starts as a draft, like any other.';
-$string['membershipremoveaction'] = 'Remove';
-$string['membershipretireaction'] = 'Retire';
-$string['membershipremoveconfirm'] = 'Take {$a->course} out of {$a->program}? This membership is still a draft, so it governs nothing and is deleted outright. The removal is recorded in the audit history.';
-$string['membershipretireconfirm'] = 'Take {$a->course} out of {$a->program}? This membership is finalized and may already be captured in a frozen accreditation snapshot, so it is retired rather than deleted: it stops counting towards the program from now on, and the snapshots that recorded it keep what they reported. The change is recorded in the audit history.';
-$string['membershipremoved'] = '{$a->course} is no longer in {$a->program}.';
-$string['membershipsameprogram'] = 'That catalog course is already in this program.';
-$string['membershipalreadyintarget'] = 'That catalog course is already in the program you are moving it into.';
+$string['hier_frameworkrename'] = 'Edit name';
 
-// Redesigned Accreditation snapshots list.
-$string['snapshots_subtitle'] = 'Frozen, verifiable records of outcome attainment, grouped by the snapshot they correct.';
-$string['snapshots_searchplaceholder'] = 'Search programs, periods, and references…';
-$string['snapshots_statsline'] = '{$a->total} snapshot versions across {$a->lineages} snapshots · {$a->frozen} frozen · {$a->draft} draft';
-$string['snapshots_versioncount'] = '{$a} versions';
-$string['snapshots_versioncount_one'] = '1 version';
-$string['snapshots_periodlabel'] = 'Reporting period';
-$string['snapshots_correction'] = 'Correction';
-$string['snapshots_rowcount'] = '{$a} captured rows';
-$string['snapshots_openreport'] = 'Open report';
-$string['snapshots_noresults'] = 'No snapshots match the current search.';
-$string['snapshots_empty'] = 'No accreditation snapshot has been captured yet.';
+$string['hier_frameworksline'] = 'Frameworks: {$a}';
 
-// Redesigned accreditation snapshot report.
-$string['snapreport_heading'] = 'Accreditation snapshot';
-$string['snapreport_subtitle'] = 'A frozen, verifiable record of outcome attainment for one program and reporting period.';
-$string['snapreport_eyebrow'] = 'Accreditation evidence snapshot';
-$string['snapreport_versionline'] = 'Version {$a->version} · data frozen {$a->time} · reporting period {$a->period}';
-$string['snapreport_verified'] = 'Frozen and integrity verified';
-$string['snapreport_draftstate'] = 'Draft · not yet frozen';
-$string['snapreport_reference'] = 'Snapshot reference';
-$string['snapreport_shortref'] = '{$a->uuid}… v{$a->version}';
-$string['snapreport_shortversion'] = 'v{$a}';
-$string['snapreport_payloadshort'] = 'payload {$a}…';
-$string['snapreport_learners'] = '{$a} learners';
-$string['snapreport_learners_one'] = '1 learner';
-$string['snapreport_results'] = '{$a} results';
-$string['snapreport_results_one'] = '1 result';
-$string['snapreport_outcomes'] = '{$a} outcomes reported';
-$string['snapreport_outcomes_one'] = '1 outcome reported';
-$string['snapreport_scope'] = '1 program · {$a} course instances';
-$string['snapreport_scope_one'] = '1 program · 1 course instance';
-$string['snapreport_cohortnote'] = 'Cohort membership at the data freeze: {$a}';
-$string['snapreport_notfrozen'] = 'Not yet frozen';
-$string['snapreport_awaitingfreeze'] = 'Awaiting independent freeze';
-$string['snapreport_progress_heading'] = 'How the population is progressing';
-$string['snapreport_progress_sub'] = 'Each subject is judged once per course by pooling their captured course-scope points and comparing the result to the achievement criterion the snapshot recorded. A course a subject holds no calculable result in is not counted against them, so the three figures below add up to the population.';
-$string['snapreport_progress_nocriterion'] = 'This snapshot recorded no achievement criterion, so no pass or fail judgement can be read out of it.';
-$string['snapreport_progresspopulation'] = '{$a->count} subjects in the population ({$a->source})';
-$string['snapreport_progresscriterion'] = 'a course counts as passed at {$a}% or above';
-$string['snapreport_progress_passedall'] = 'Passing every course so far';
-$string['snapreport_progress_passedallnote'] = '{$a} of the population, judged in at least one course';
-$string['snapreport_progress_failedany'] = 'Failed at least one course';
-$string['snapreport_progress_failedanynote'] = '{$a} of the population missed the criterion somewhere';
-$string['snapreport_progress_unjudged'] = 'Not yet judged';
-$string['snapreport_progress_unjudgednote'] = '{$a} of the population holds no calculable course result';
-$string['snapreport_coursepassline'] = '{$a->passed} of {$a->graded} judged subjects passed';
-$string['snapreport_groupby'] = 'Group outcomes by';
-$string['snapreport_subjectsby'] = 'Subjects';
-$string['snapreport_group_framework'] = 'Unit outcome';
-$string['snapreport_group_course'] = 'Course outcome';
-$string['snapreport_group_program'] = 'Program outcome';
-$string['snapreport_groupsub_framework'] = 'Every captured outcome under its own framework, at the grain it was authored.';
-$string['snapreport_groupsub_course'] = 'Each captured outcome under the outcome one level up that it is approved to support.';
-$string['snapreport_groupsub_program'] = 'Each captured outcome under the top-level outcome its approved alignment chain ends at.';
-$string['snapreport_liverollup'] = 'This snapshot captured no alignment relationships, which happens when its evidence came from mappings made directly to these outcomes. The grouping below therefore reads the approved alignments in force at the data freeze ({$a}) from the live curriculum rather than from the capture, so it can shift if those alignments are revised. Every figure still comes from the frozen rows; only the grouping is drawn from outside them.';
-$string['snapreport_groupunaligned'] = 'Not aligned to a higher-level outcome';
-$string['snapreport_groupunknown'] = 'Outcome outside this capture';
-$string['snapreport_subjects_all'] = 'All subjects';
-$string['snapreport_subjects_passedall'] = 'Passed every course';
-$string['snapreport_subjects_failedany'] = 'Failed at least one';
-$string['snapreport_filternote'] = 'Filtered view: {$a->selected} of {$a->population} subjects ({$a->filter}). These figures are pooled from the same frozen learner rows, restricted to those subjects — they are reproducible from this capture but they are not the snapshot\'s governed aggregate, no benchmark verdict is claimed for them, and exports are unaffected. Small-cell suppression still applies at the recorded threshold.';
-$string['snapreport_attainment_heading'] = 'Outcome attainment at program scope';
-$string['snapreport_attainment_sub'] = 'Every captured outcome rolled up to program scope, with the catalog courses that supplied the evidence. Two separate figures are reported: the pooled score is achieved points over possible points, while the attainment rate is the share of assessed learners who met the achievement criterion and is the figure compared against the aggregate benchmark.';
-$string['snapreport_col_outcome'] = 'Outcome';
-$string['snapreport_col_statement'] = 'Statement';
-$string['snapreport_col_learners'] = 'Learners';
-$string['snapreport_col_results'] = 'Results';
-$string['snapreport_col_attainment'] = 'Pooled score';
-$string['snapreport_col_rate'] = 'Attainment rate';
-$string['snapreport_benchmarksmet'] = '{$a->met} of {$a->judged} outcomes met their benchmark';
-$string['snapreport_vsbenchmark'] = 'vs {$a}% benchmark';
-$string['snapreport_evidence'] = 'Evidence';
-$string['snapreport_programaggregate'] = 'Program aggregate';
-$string['snapreport_nooutcomes'] = 'This snapshot captured no program outcome aggregates.';
-$string['snapreport_courses_heading'] = 'Course evidence contributing to this snapshot';
-$string['snapreport_courses_sub'] = 'Each course instance whose learner results were captured, and the outcomes it reports against.';
-$string['snapreport_shell'] = '{$a->shell} · period {$a->period}';
-$string['snapreport_method_heading'] = 'How these figures were produced';
-$string['snapreport_method_sub'] = 'The governing rules in force at the data freeze. These cannot change for a frozen snapshot.';
-$string['snapreport_method_accreditation'] = 'Accreditation policy';
-$string['snapreport_method_policyvalue'] = '{$a->name}, version {$a->version}, in force since {$a->from}.';
-$string['snapreport_method_attainment'] = 'Attainment measure';
-$string['snapreport_method_attainmentvalue'] = 'Attainment is achieved points over possible points across the mapped, approved assessments, rolled up from unit to course to program outcomes. {$a->count} calculation policy version(s) governed the captured results.';
-$string['snapreport_method_attainmentvalue_nopolicy'] = 'Attainment is achieved points over possible points across the mapped, approved assessments, rolled up from unit to course to program outcomes.';
-$string['snapreport_method_populationvalue'] = '{$a->source}. {$a->count} learners were in scope at the freeze on {$a->time}.';
-$string['snapreport_method_suppression'] = 'Small-cell suppression';
-$string['snapreport_method_suppressionvalue'] = 'Any figure derived from fewer than {$a->threshold} learners is withheld. {$a->count} captured rows were suppressed.';
-$string['snapreport_method_suppressionvalue_none'] = 'Any figure derived from fewer than {$a->threshold} learners is withheld. No row in this snapshot required suppression.';
-$string['snapreport_method_algorithm'] = 'Algorithm and plugin version';
-$string['snapreport_method_algorithmvalue'] = 'Calculated by {$a->algo} running on plugin version {$a->plugin}.';
-$string['snapreport_provenance_heading'] = 'Provenance and integrity record';
-$string['snapreport_provenance_sub'] = 'Hashes, captured row counts, and approvals — for technical verification';
-$string['snapreport_band_below'] = 'below criterion';
-$string['snapreport_band_met'] = 'at or above criterion';
-$string['snapreport_band_near'] = 'within 10 points of criterion';
-$string['snapreport_contribution'] = '{$a} contributing courses';
-$string['snapreport_contribution_one'] = '1 contributing course';
-$string['snapreport_contribution_suppressed'] = 'withheld: fewer learners than the suppression threshold';
-$string['snapreport_contribution_withheld'] = '{$a} withheld';
-$string['snapreport_pooledscore'] = 'pooled {$a}%';
-$string['snapreport_capturedrows'] = 'Captured rows by object type';
-$string['snapreport_rowsline'] = '{$a->total} rows captured in total · {$a->suppressed} suppressed · suppression threshold {$a->threshold}.';
-$string['snapreport_originalversion'] = '{$a} (original — no correction versions issued)';
-$string['snapreport_correctionversion'] = '{$a->version} (correction — {$a->reason})';
-$string['snapreport_nomanifest'] = 'Not yet sealed — the manifest hash is written when the snapshot is frozen';
-$string['snapreport_subjectmethod'] = 'Subject de-identification method';
-$string['snapreport_actor'] = '{$a->name}, {$a->time}';
-$string['snapreport_unknownuser'] = 'Deleted user';
-$string['resultstate_superseded'] = 'Superseded';
-$string['resultstate_not_calculated'] = 'Not calculated';
-$string['resultscope_quiz_attempt'] = 'Quiz attempt';
+$string['hier_frameworksline_allapproved'] = 'Frameworks: {$a} — all approved';
 
-// Explicit remediation engagement reporting.
-$string['remediationnotavailable'] = 'This recommendation is no longer released or accessible.';
-$string['engagementevent_opened'] = 'Opened recommendation';
-$string['reportcolumn_engagementid'] = 'Engagement event ID';
-$string['reportcolumn_engagementuuid'] = 'Engagement event UUID';
-$string['reportcolumn_engagementtype'] = 'Engagement event';
-$string['reportcolumn_engagementtime'] = 'Engaged at';
-$string['reportcolumn_resultid'] = 'Result ID';
-$string['privacy:metadata:local_outcomemap_remed_event'] = 'Explicit learner interactions with released remediation recommendations.';
-$string['privacy:metadata:local_outcomemap_remed_event:userid'] = 'The learner who explicitly opened the recommendation.';
-$string['privacy:metadata:local_outcomemap_remed_event:remediationid'] = 'The exact governed recommendation version that was opened.';
-$string['privacy:metadata:local_outcomemap_remed_event:resultid'] = 'The exact released outcome-result version that caused the recommendation.';
-$string['privacy:metadata:local_outcomemap_remed_event:eventtype'] = 'The explicit learner action that occurred.';
-$string['privacy:metadata:local_outcomemap_remed_event:occurredat'] = 'When the explicit learner action occurred.';
+$string['hier_frameworksline_allfinalized'] = 'Frameworks: {$a} — all finalized';
 
-$string['courseinstances_intro'] = 'Connect a Moodle course shell and reporting period to its stable catalog course. New associations appear immediately as Draft and unconfirmed, then must be submitted before they can govern mappings, calculations, or results. When independent approval is enabled, a different authorized user must confirm the association.';
-$string['courseinstances_intro_finalization'] = 'Connect a Moodle course shell and reporting period to its stable catalog course. Because independent approval is disabled, a new association is finalized as it is saved and can govern mappings, calculations, and results immediately. Remove one while nothing depends on it if you made a mistake.';
-$string['courseinstanceready'] = 'Course instance saved and confirmed. It can now govern mappings, calculations, and results.';
-$string['courseinstanceremoved'] = 'Course instance removed.';
-$string['courseinstancedeleteconfirm'] = 'Remove the association between {$a->catalog} and reporting period {$a->period}? Nothing currently depends on it, so this only undoes the association itself. The removal is recorded in the audit history.';
-$string['courseinstancenotremovable'] = 'Cannot remove: {$a}';
-$string['courseinstanceinuse'] = 'This course instance cannot be removed because other records depend on it: {$a->detail}';
-$string['blocker_contentmappings'] = '{$a} content mapping(s).';
-$string['blocker_evidence'] = '{$a} evidence row(s).';
-$string['blocker_results'] = '{$a} calculated result(s).';
-$string['blocker_remediation'] = '{$a} remediation recommendation(s).';
-$string['blocker_snapshots'] = '{$a} frozen snapshot row(s).';
-$string['blocker_policies'] = '{$a} policy/policies scoped to it.';
-$string['courseinstances_coursevisibility'] = 'After confirmation, authorized course staff can use Course outcome mapping → Outcome coverage and Content mappings from the course navigation. Learners see only released Outcome results.';
+$string['hier_grouplabel'] = '{$a} — Course learning outcomes';
 
-// Redesigned Course instances page.
-$string['courseinstances_subtitle'] = 'Each Moodle course shell tied to its catalog course for one reporting period.';
-$string['instances_searchplaceholder'] = 'Search catalog courses, periods, and shells…';
-$string['instances_filter_label'] = 'Filter course instances by state';
-$string['instances_filter_active'] = 'Active';
-$string['instances_filter_draft'] = 'Awaiting confirmation';
-$string['instances_reviewdrafts'] = 'Review and confirm';
-$string['instances_draftnotice'] = '{$a} associations are not confirmed. Until they are, they cannot govern mappings, calculations, or results.';
-$string['instances_draftnotice_one'] = '1 association is not confirmed. Until it is, it cannot govern mappings, calculations, or results.';
-$string['instances_statsline'] = '{$a->total} associations across {$a->courses} catalog courses · {$a->active} active · {$a->draft} awaiting confirmation';
+$string['hier_maplink'] = 'Map…';
+
+$string['hier_mapnone'] = 'No new alignments were selected.';
+
+$string['hier_maprelationnote'] = 'Created from the frameworks and outcomes page.';
+
+$string['hier_mapsaved'] = '{$a} draft alignment(s) created and submitted for review.';
+
+$string['hier_mapsaved_finalized'] = '{$a} alignment(s) created and finalized.';
+
+$string['hier_mapto_clo'] = 'Maps to course learning outcomes ({$a})';
+
+$string['hier_mapto_plo'] = 'Maps to program learning outcomes';
+
+$string['hier_noclos'] = 'No course outcomes are aligned to this program outcome.';
+
+$string['hier_nonemapped'] = 'Every outcome is aligned to a parent outcome.';
+
+$string['hier_noresults'] = 'No outcomes match the search.';
+
+$string['hier_notaligned'] = 'not yet aligned to any course outcome';
+
+$string['hier_noulos'] = 'No unit outcomes aligned to this course outcome yet.';
+
+$string['hier_programoutcomes'] = '{$a} program learning outcomes';
+
+$string['hier_programoutcomes_one'] = '1 program learning outcome';
+
+$string['hier_reviewunmapped'] = 'Review unmapped';
+
+$string['hier_savenewversion'] = 'Save as new version';
+
+$string['hier_searchplaceholder'] = 'Search outcomes and codes…';
+
+$string['hier_statsline'] = '{$a->plos} program outcomes · {$a->clos} course outcomes · {$a->ulos} unit outcomes';
+
+$string['hier_statusinfo'] = '{$a->status} · v{$a->version}';
+
+$string['hier_ulobadge'] = 'ULO {$a}';
+
+$string['hier_unitoutcomes'] = '{$a} unit outcomes';
+
+$string['hier_unitoutcomes_one'] = '1 unit outcome';
+
+$string['hier_unmappedbadge'] = 'Unmapped';
+
+$string['hier_unmappedchip'] = '{$a} unmapped';
+
+$string['hier_unmappedsubtitle'] = 'Outcomes with no alignment relation in any framework';
+
+$string['hier_unmappedtitle'] = 'Unmapped outcomes';
+
+$string['hier_unmappedunit_header'] = 'Unmapped unit outcomes';
+
+$string['hier_versionsaved'] = 'A new draft version was created and submitted for review.';
+
+$string['hier_versionsaved_finalized'] = 'A new version was created and finalized.';
+
+$string['hier_view'] = 'Group outcomes by program or course';
+
+$string['importchanged'] = 'The submitted import content does not match the validated preview.';
+
+$string['importcommitted'] = '{$a} rows were committed in one transaction.';
+
+$string['importempty'] = 'The CSV file contains no data rows.';
+
+$string['importerrors'] = 'The import contains validation errors and was not committed.';
+
+$string['importexpired'] = 'The import preview expired. Upload and validate the file again.';
+
+$string['importheader'] = 'The CSV header is invalid. Expected exactly these columns: {$a->detail}';
+
+$string['importhierarchy_duplicate'] = 'The outcome {$a} appears more than once in this file.';
+
+$string['importhierarchy_help'] = 'Import the file the Outcomes & alignment page exports. Frameworks must already exist; outcomes are matched on framework and code, so re-importing the same file changes nothing. The Version and Status columns are read for information only — governance is applied by the plugin, not asserted by the file.';
+
+$string['importhierarchy_nocode'] = 'The Code column is required.';
+
+$string['importhierarchy_noframework'] = 'No framework has the code "{$a}". Create the framework first, or correct the Framework column.';
+
+$string['importhierarchy_nostatement'] = 'The Statement column is required.';
+
+$string['importhierarchy_notarget'] = 'The Maps to entry {$a} does not name an outcome in this file or on this site.';
+
+$string['importinvalid'] = 'The file contains validation errors. Nothing can be committed.';
+
+$string['importnotcommitted'] = 'Nothing was committed.';
+
+$string['importpreview'] = 'Import preview';
+
+$string['importtoolarge'] = 'The CSV file is too large. The maximum accepted size is {$a->detail}.';
+
+$string['importtoomanyrows'] = 'The CSV file has too many data rows. The maximum is {$a->detail}.';
+
+$string['importvalid'] = 'All rows are valid. Review the preview before committing.';
+
+$string['inclusive'] = 'inclusive';
+
 $string['instances_count'] = '{$a->total} instances · {$a->active} active';
+
 $string['instances_count_one'] = '1 instance · {$a->active} active';
-$string['instances_state'] = '{$a->status} · {$a->phase}';
-$string['instances_phase_active'] = 'active';
-$string['instances_phase_ended'] = 'ended';
-$string['instances_phase_upcoming'] = 'not yet started';
-$string['instances_phase_unconfirmed'] = 'unconfirmed';
-$string['instances_phase_awaiting'] = 'awaiting confirmation';
-$string['instances_window'] = '{$a->from} – {$a->to}';
-$string['instances_window_open'] = 'From {$a}';
-$string['instances_window_until'] = 'Until {$a}';
-$string['instances_window_none'] = 'No delivery window set';
-$string['instances_enrolled'] = '{$a} learners enrolled';
-$string['instances_enrolled_one'] = '1 learner enrolled';
-$string['instances_enrolled_none'] = 'No learners enrolled';
+
 $string['instances_coursehidden'] = 'Course hidden';
+
 $string['instances_coverage'] = 'Coverage';
-$string['instances_mappings'] = 'Content mappings';
-$string['instances_noresults'] = 'No course instances match the current search and state filter.';
+
+$string['instances_draftnotice'] = '{$a} associations are not confirmed. Until they are, they cannot govern mappings, calculations, or results.';
+
+$string['instances_draftnotice_one'] = '1 association is not confirmed. Until it is, it cannot govern mappings, calculations, or results.';
+
 $string['instances_empty'] = 'No Moodle course shell has been associated with a catalog course yet.';
 
-// Redesigned Catalog courses page.
-$string['catalogcourses_subtitle'] = 'Catalog courses with the programs they belong to and the outcomes they govern.';
-$string['catalogcourses_searchplaceholder'] = 'Search catalog codes, names, and programs…';
-$string['catalogcourses_filter_label'] = 'Filter catalog courses';
-$string['catalogcourses_filter_all'] = 'All courses';
-$string['catalogcourses_filter_noprogram'] = 'Not in a program';
-$string['catalogcourses_filter_nooutcomes'] = 'No outcomes';
-$string['catalogcourses_statsline'] = '{$a->total} catalog courses · {$a->noprogram} in no program · {$a->nooutcomes} without outcomes';
-$string['catalogcourses_meta'] = '{$a->courseoutcomes} course outcomes · {$a->unitoutcomes} unit outcomes';
-$string['catalogcourses_meta_noframework'] = 'No outcome framework yet';
-$string['catalogcourses_instances'] = '{$a->total} course instances, {$a->confirmed} confirmed';
-$string['catalogcourses_instances_one'] = '1 course instance, {$a->confirmed} confirmed';
-$string['catalogcourses_instances_none'] = 'No course instances yet';
-$string['catalogcourses_memberships'] = 'Program memberships';
-$string['catalogcourses_addmembership'] = '+ Add membership';
-$string['catalogcourses_noprogram_chip'] = 'In no program';
-$string['catalogcourses_noprogram_warning'] = 'This course is not attached to any program, so its outcomes roll up nowhere.';
-$string['catalogcourses_effective'] = '{$a->from} – {$a->to}';
-$string['catalogcourses_effective_open'] = 'From {$a}';
-$string['catalogcourses_action_outcomes'] = 'Outcomes and frameworks';
-$string['catalogcourses_action_instances'] = 'Course instances';
-$string['catalogcourses_action_edit'] = 'Edit course';
-$string['catalogcourses_noresults'] = 'No catalog courses match the current search and filter.';
-$string['catalogcourses_empty'] = 'No catalog courses have been created.';
-$string['catalogcourses_help'] = 'A catalog course is the stable definition that owns outcomes. The Moodle shells that deliver it, one per reporting period, are managed on the Course instances page.';
+$string['instances_enrolled'] = '{$a} learners enrolled';
 
-$string['privacy:metadata:userid'] = 'The Moodle user associated with this learner record.';
-$string['privacy:metadata:coursecontext'] = 'The governed course instance in which the learner record was created.';
-$string['privacy:metadata:time'] = 'The time associated with this record.';
-$string['privacy:metadata:local_outcomemap_evidence'] = 'Atomic scored observations used to calculate a learner’s outcome attainment.';
-$string['privacy:metadata:evidence:provenance'] = 'Technical assessment, attempt, question usage, and exact question-version provenance.';
-$string['privacy:metadata:evidence:score'] = 'The learner’s raw or weighted score for the evidence observation.';
-$string['privacy:metadata:local_outcomemap_result'] = 'Versioned calculated outcome results for a learner and reporting scope.';
-$string['privacy:metadata:result:scope'] = 'The course, assessment, outcome, or reporting-period scope of the result.';
-$string['privacy:metadata:result:score'] = 'The calculated numerator, denominator, percentage, and evidence count.';
-$string['privacy:metadata:result:state'] = 'The governed calculation state of the result.';
-$string['privacy:metadata:local_outcomemap_snapitem'] = 'Subject-level evidence and results retained in governed accreditation snapshots.';
-$string['privacy:metadata:snapshot:subjectref'] = 'A snapshot-specific pseudonymous reference derived for the learner.';
-$string['privacy:metadata:snapshot:payload'] = 'The exact frozen evidence, result, and calculation lineage for the referenced learner.';
-$string['privacy:metadata:audit:payload'] = 'The privacy-minimised governed transition summary recorded for the audited action.';
-$string['privacy:metadata:audit:reason'] = 'The institutional reason supplied by the governance actor and retained with the append-only event.';
-$string['privacy:metadata:governancerecord'] = 'A governed definition, mapping, policy, recommendation, course association, or immutable snapshot with user attribution.';
-$string['privacy:metadata:governance:createdby'] = 'The user who created the governed record; immutable snapshot attribution is retained as institutional history.';
-$string['privacy:metadata:governance:modifiedby'] = 'The user who last modified the governed record.';
-$string['privacy:metadata:governance:approvedby'] = 'The user who approved or finalized the governed record; immutable snapshot attribution is retained as institutional history.';
-$string['privacy:metadata:governance:confirmedby'] = 'The user who confirmed the governed course association.';
-$string['privacy:path:course'] = 'Outcome evidence, results, and remediation engagement';
-$string['privacy:path:system'] = 'Governance and frozen accreditation records';
-$string['privacy:path:audit'] = 'Outcome mapping audit history';
-$string['privacy:metadata:local_outcomemap_privkey'] = 'Erasable pseudonymisation key material used to link a learner to immutable accreditation snapshot rows.';
-$string['privacy:metadata:subjectkey:userid'] = 'The Moodle user identifier retained only while snapshot linkage is active; it is cleared on privacy erasure.';
-$string['privacy:metadata:subjectkey:userhash'] = 'A site-keyed one-way hash of the Moodle user identifier retained as an irreversible erasure marker.';
-$string['privacy:metadata:subjectkey:keyvalue'] = 'Random key material used to derive snapshot-specific subject references; it is destroyed on privacy erasure.';
-$string['privacy:metadata:subjectkey:legacyerased'] = 'Whether resolution of legacy site-secret snapshot references has been permanently blocked.';
+$string['instances_enrolled_none'] = 'No learners enrolled';
 
-// Course outcome attainment report — the redesigned attainment page.
-$string['oa_question'] = 'Are learners reaching the outcomes?';
-$string['oa_lede'] = 'One reading of {$a->learners} learner(s) with stored results, traced across {$a->levels} level(s) of outcome — {$a->outcomes} in all — up to {$a->top}.';
-$string['oa_kickerperiod'] = 'Reporting period {$a}';
-$string['oa_opensheets'] = 'Summary sheets';
+$string['instances_enrolled_one'] = '1 learner enrolled';
 
-$string['oa_level_institution'] = 'Institutional outcomes';
-$string['oa_level_program'] = 'Program outcomes';
-$string['oa_level_catalog_course'] = 'Course outcomes';
+$string['instances_filter_active'] = 'Active';
 
-$string['oa_headlinelabel'] = 'The headline, honestly';
-$string['oa_headlineof'] = 'of graded results at {$a} reached the standard or better';
-$string['oa_headlinesentence'] = 'At the level of {$a->top}, {$a->met} of {$a->judged} graded learner-outcome results {$a->cohort} reached the achievement standard. Weighted by the learners actually behind them, the mean score is {$a->mean}%.';
-$string['oa_headlinenone'] = 'Nothing has been calculated at the level of {$a} yet, so there is no rate to report.';
-$string['oa_evidencelabel'] = 'Evidence behind it';
-$string['oa_evidencerow'] = '{$a->measured} of {$a->outcomes} measured · {$a->metpct}';
-$string['oa_evidencegap'] = 'No assessing content mapped';
-$string['oa_carelabel'] = 'Read with care';
+$string['instances_filter_draft'] = 'Awaiting confirmation';
+
+$string['instances_filter_label'] = 'Filter course instances by state';
+
+$string['instances_mappings'] = 'Content mappings';
+
+$string['instances_noresults'] = 'No course instances match the current search and state filter.';
+
+$string['instances_phase_active'] = 'active';
+
+$string['instances_phase_awaiting'] = 'awaiting confirmation';
+
+$string['instances_phase_ended'] = 'ended';
+
+$string['instances_phase_unconfirmed'] = 'unconfirmed';
+
+$string['instances_phase_upcoming'] = 'not yet started';
+
+$string['instances_reviewdrafts'] = 'Review and confirm';
+
+$string['instances_searchplaceholder'] = 'Search catalog courses, periods, and shells…';
+
+$string['instances_state'] = '{$a->status} · {$a->phase}';
+
+$string['instances_statsline'] = '{$a->total} associations across {$a->courses} catalog courses · {$a->active} active · {$a->draft} awaiting confirmation';
+
+$string['instances_window'] = '{$a->from} – {$a->to}';
+
+$string['instances_window_none'] = 'No delivery window set';
+
+$string['instances_window_open'] = 'From {$a}';
+
+$string['instances_window_until'] = 'Until {$a}';
+
+$string['invalid'] = 'Invalid';
+
+$string['invalidaccreditationscope'] = 'Accreditation policies must use program or institution scope, not "{$a->detail}".';
+
+$string['invalidachievementminpercent'] = 'Enter a percentage between 0 and 100. No default criterion is supplied.';
+
+$string['invalidbenchmarkpercent'] = 'Enter a percentage between 0 and 100. No default benchmark is supplied.';
+
+$string['invalidboolean'] = 'The value must be 0 or 1.';
+
+$string['invalidcredential'] = 'The selected credential is invalid.';
+
+$string['invaliddate'] = 'The value must be a Unix timestamp or ISO date (YYYY-MM-DD).';
+
+$string['invaliddecimal'] = 'The value must be a positive decimal number with at most 10 decimal places.';
+
+$string['invalidexternalurl'] = 'Enter a valid HTTP or HTTPS URL.';
+
+$string['invalidfield'] = 'The {$a->field} field is invalid: {$a->detail}';
+
+$string['invalidinteger'] = 'The value must be an integer.';
+
+$string['invalidjson'] = 'The {$a->field} value cannot be encoded as JSON: {$a->detail}';
+
+$string['invalidmappingrole'] = 'The mapping role is invalid.';
+
+$string['invalidminimumcohortsize'] = 'Enter an integer of at least 1. No default threshold is supplied.';
+
+$string['invalidminimumitems'] = 'Enter an integer of at least 1.';
+
+$string['invalidowner'] = 'The framework owner is invalid.';
+
+$string['invalidpercentage'] = 'Enter a percentage from 0 to 100 with at most 10 decimal places.';
+
+$string['invalidpolicyconfig'] = 'The policy configuration field {$a->field} is invalid: {$a->detail}';
+
+$string['invalidprogramtype'] = 'The selected program type is invalid.';
+
+$string['invalidrelationtype'] = 'The relationship type is invalid.';
+
+$string['invalidstatus'] = 'Invalid workflow status "{$a->detail}".';
+
+$string['invalidtargettype'] = 'The mapping target type is invalid.';
+
+$string['invalidtransition'] = 'Invalid workflow transition "{$a->detail}".';
+
+$string['invaliduuid'] = 'Invalid UUID "{$a->detail}".';
+
+$string['itemcount'] = 'Captured rows';
+
+$string['manifesthash'] = 'Manifest hash';
+
+$string['manualgrading_value'] = 'Manual grading complete: {$a}';
+
+$string['manualrelease'] = 'Release learner feedback now';
+
+$string['manualrelease_at'] = 'Manually released {$a}';
+
+$string['manualrelease_caption'] = 'Manual feedback-release policies governing this course';
+
+$string['manualrelease_empty'] = 'No effective manual feedback-release policies can be released from this course.';
+
+$string['manualrelease_heading'] = 'Manual feedback release';
+
+$string['manualrelease_intro'] = 'Release feedback for the effective manual policies that govern this course. Each release is audited and cannot be reversed.';
+
+$string['manualrelease_pending'] = 'Not manually released';
+
+$string['manualreleased'] = 'Learner feedback was manually released.';
+
+$string['mappedoutcomes'] = 'Mapped outcomes';
+
+$string['mappingoutsideoutcomeversion'] = 'The mapping effective range must be contained within the exact outcome version range.';
+
+$string['mappingremoved'] = 'Draft mapping removed.';
+
+$string['mappingrole'] = 'Mapping role';
+
+$string['mappingrole_alignment_only'] = 'Alignment only';
+
+$string['mappingrole_assesses'] = 'Assesses';
+
+$string['mappingrole_practices'] = 'Practices';
+
+$string['mappingrole_remediates'] = 'Remediates';
+
+$string['mappingrole_teaches'] = 'Teaches';
+
+$string['mappingunderreview'] = 'This mapping is under review and cannot be changed from the activity form.';
+
+$string['mappingweight'] = 'Explicit weight';
+
+$string['mappingweight_help'] = 'Optional governed decimal weight. Leaving this blank does not assign an implicit or equal weight.';
+
+$string['maximum'] = 'Maximum';
+
+$string['maxpercent'] = 'Maximum percentage';
+
+$string['membershipalreadyintarget'] = 'That catalog course is already in the program you are moving it into.';
+
+$string['membershipmove'] = 'Move';
+
+$string['membershipmoved'] = 'The catalog course was moved. Its membership of the new program starts as a draft, like any other.';
+
+$string['membershipmovefrom'] = 'Currently in';
+
+$string['membershipmovenotarget'] = 'Choose the program to move this course into.';
+
+$string['membershipmoveto'] = 'Move into';
+
+$string['membershipremoveaction'] = 'Remove';
+
+$string['membershipremoveconfirm'] = 'Take {$a->course} out of {$a->program}? This membership is still a draft, so it governs nothing and is deleted outright. The removal is recorded in the audit history.';
+
+$string['membershipremoved'] = '{$a->course} is no longer in {$a->program}.';
+
+$string['membershipretireaction'] = 'Retire';
+
+$string['membershipretireconfirm'] = 'Take {$a->course} out of {$a->program}? This membership is finalized and may already be captured in a frozen accreditation snapshot, so it is retired rather than deleted: it stops counting towards the program from now on, and the snapshots that recorded it keep what they reported. The change is recorded in the audit history.';
+
+$string['membershipsameprogram'] = 'That catalog course is already in this program.';
+
+$string['minimum'] = 'Minimum';
+
+$string['minimumcohortsize'] = 'Minimum cohort size before disclosure';
+
+$string['minimumcohortsize_value'] = 'Suppression threshold: {$a} subjects';
+
+$string['minimumdistinctitems'] = 'Minimum distinct assessment items';
+
+$string['minimumdistinctitems_value'] = 'Minimum items: {$a}';
+
+$string['minimumweightedpossible'] = 'Minimum weighted possible points';
+
+$string['minimumweightedpossible_value'] = 'Minimum weighted possible: {$a}';
+
+$string['minpercent'] = 'Minimum percentage';
+
+$string['modulemapping_heading'] = 'Outcome mapping';
+
+$string['modulemapping_intro'] = 'Optionally add one explicit draft mapping for this activity. Manage additional mappings from the course content mappings page.';
+
+$string['moodlecourse'] = 'Moodle course';
+
+$string['moodlecoursenotfound'] = 'The selected Moodle course does not exist.';
+
+$string['name'] = 'Name';
+
+$string['nav_approvalqueue'] = 'Approval queue';
+
+$string['nav_attainment'] = 'Outcome attainment';
+
+$string['nav_catalogcourses'] = 'Catalog courses';
+
+$string['nav_contentmapping'] = 'Content mappings';
+
+$string['nav_courseinstances'] = 'Course instances';
+
+$string['nav_coverage'] = 'Outcome coverage';
+
+$string['nav_csvimport'] = 'CSV import';
+
+$string['nav_curriculum'] = 'Curriculum';
+
+$string['nav_dashboard'] = 'Dashboard';
+
+$string['nav_frameworks'] = 'Outcomes & alignment';
+
+$string['nav_manualrelease'] = 'Manual feedback release';
+
+$string['nav_outcomeresults'] = 'Outcome results';
+
+$string['nav_outcomes'] = 'Outcomes';
+
+$string['nav_policies'] = 'Outcome policies';
+
+$string['nav_programs'] = 'Programs';
+
+$string['nav_questionmapping'] = 'Question mappings';
+
+$string['nav_relations'] = 'Outcome relations';
+
+$string['nav_remediation'] = 'Remediation';
+
+$string['nav_reports'] = 'Outcome reports';
+
+$string['nav_settings'] = 'Settings';
+
+$string['nav_snapshots'] = 'Accreditation snapshots';
+
+$string['newmappingversion'] = 'Create new mapping version';
+
+$string['newoutcomeversion'] = 'Create new outcome version';
+
+$string['newpolicyversion'] = 'Create new policy version';
+
+$string['newrelationversion'] = 'Create new relation version';
+
+$string['newremediationversion'] = 'Create new remediation version';
+
+$string['nitems'] = '{$a} items';
+
+$string['nocourseactivities'] = 'This course has no activities or resources to map yet.';
+
+$string['nocourseinstance'] = 'This course has no approved, confirmed course-instance association.';
+
+$string['nocoveragemappings'] = 'No outcomes are associated with this course yet. Associate the course with a catalog course that owns an approved outcome framework, then map its outcomes to course content.';
+
+$string['noenddate'] = 'No end date';
+
+$string['none'] = 'None';
+
+$string['nooutcomematches'] = 'No outcomes match this filter.';
+
+$string['noremediation'] = 'No curated recommendations apply.';
+
+$string['notes'] = 'Notes';
+
+$string['notmapped'] = 'not mapped';
+
+$string['oa_bandwithheld'] = 'counts withheld · {$a->graded} graded, floor {$a->floor}';
+
+$string['oa_belowfloor'] = 'below the suppression floor';
+
+$string['oa_cardnone'] = 'no graded results in this cohort';
+
+$string['oa_cardsentence'] = '{$a->met} of {$a->judged} graded learners reached the standard · mean score {$a->mean}%';
+
 $string['oa_care'] = 'A single figure of <em>{$a->old}%</em> for this course would be an unweighted mean of {$a->outcomes} outcome averages spread over {$a->levels} level(s). An outcome measured on a handful of learners moves that number exactly as hard as one measured on the whole cohort, and levels that describe the same coursework two or three times over are blended into it. Everything below is reported per level and weighted by the learners actually behind it.';
+
+$string['oa_care_badpolicy'] = 'The approved accreditation policy for this program cannot be read, so there is no benchmark to compare against and no suppression floor to enforce. Reaching the standard means clearing the lowest band the calculation policy defined — a weaker statement than an approved criterion, and one that should not be quoted as one.';
+
 $string['oa_care_nomean'] = 'Nothing on this page is recomputed at view time: every figure is the result the calculation engine stored. Where an outcome has no stored result it is reported as absent, never as a zero.';
-$string['oa_care_policy'] = 'A learner reached the standard at {$a->criterion}% or above; an outcome meets the benchmark at {$a->target}% of graded learners; and a figure resting on fewer than {$a->floor} learners is withheld from the accreditation export.';
+
 $string['oa_care_nopolicy'] = 'No approved accreditation policy governs this course, so there is no benchmark to compare against and no suppression floor to enforce. Reaching the standard means clearing the lowest band the calculation policy defined.';
 
-$string['oa_controlview'] = 'View';
-$string['oa_controlcohort'] = 'Which learners';
-$string['oa_controllens'] = 'Reading as';
-$string['oa_view_summary'] = 'Summary';
-$string['oa_view_ledger'] = 'Full ledger';
-$string['oa_view_map'] = 'Alignment map';
-$string['oa_view_rollup'] = 'Program rollup';
+$string['oa_care_policy'] = 'A learner reached the standard at {$a->criterion}% or above; an outcome meets the benchmark at {$a->target}% of graded learners; and a figure resting on fewer than {$a->floor} learners is withheld from the accreditation export.';
 
-$string['oa_cohort_all'] = 'Everyone';
-$string['oa_cohort_completed'] = 'Completed';
-$string['oa_cohort_notcompleted'] = 'Did not complete';
-$string['oa_cohortphrase_all'] = 'across all {$a} learner(s) with a stored result';
-$string['oa_cohortphrase_completed'] = 'among the {$a} learner(s) who completed the course';
-$string['oa_cohortphrase_notcompleted'] = 'among the {$a} learner(s) who did not complete the course';
-$string['oa_cohortnote_all'] = 'All {$a->count} learner(s) holding a stored result, whether or not they finished. This is the number to quote for coverage rather than for course quality: it mixes learners who left in week two with those who completed.';
-$string['oa_cohortnote_completed'] = '{$a->count} of {$a->total} learner(s) counted as having completed the course ({$a->rule}). This is the cohort a credential vouches for. An outcome below the benchmark here means the course is certifying something it has not evidenced.';
-$string['oa_cohortnote_notcompleted'] = '{$a->count} of {$a->total} learner(s) who did not complete ({$a->rule}). Read this against the completers: outcomes where the two look alike are not the ones deciding who passes, and outcomes with a wide gap are the ones the course is really assessing.';
-$string['oa_rule_completion'] = 'Moodle course completion';
-$string['oa_rule_gradepass'] = 'a final course grade at or above the {$a}% pass mark';
+$string['oa_carelabel'] = 'Read with care';
 
-$string['oa_lens_educator'] = 'Educator';
-$string['oa_lens_program'] = 'Program director';
-$string['oa_lens_accreditation'] = 'Accreditation';
-$string['oa_lensnotelabel'] = 'Reading as {$a}';
-$string['oa_lensnote_educator'] = 'Diagnostic flags are on: outcomes where completers still fall short, and outcomes that fail to separate passing from failing. Thin results are shown with their sample size so you can judge them yourself.';
-$string['oa_lensnote_program'] = 'The ledger stops one level above the finest grain — the program does not act at unit level — and findings are framed as risk to a claim about {$a->top} rather than as teaching notes.';
-$string['oa_lensnote_accreditation'] = 'Suppression is enforced, not annotated: any outcome graded for fewer than {$a->floor} learners reads “withheld” wherever it appears, exactly as it would in a submission. Diagnostic flags are hidden — they are internal judgements, not evidence.';
-
-$string['oa_toplevelheading'] = 'The {$a->count} {$a->level}';
-$string['oa_targetline'] = 'Benchmark: {$a->target}% of graded learners at {$a->criterion}% or above';
-$string['oa_notarget'] = 'No approved benchmark — figures are reported without a target to compare against';
-$string['oa_gradedof'] = '{$a->graded} of {$a->total} graded';
-$string['oa_cardsentence'] = '{$a->met} of {$a->judged} graded learners reached the standard · mean score {$a->mean}%';
-$string['oa_cardnone'] = 'no graded results in this cohort';
-$string['oa_restson'] = 'Rests on {$a->count} outcome(s): {$a->codes}';
-$string['oa_restsonnothing'] = 'Nothing below it feeds this outcome';
-$string['oa_tracelink'] = 'Trace and evidence';
-
-$string['oa_withheld'] = 'withheld';
-$string['oa_withheldbar'] = 'Band counts withheld: fewer than {$a} graded learners';
-$string['oa_withheldsentence'] = 'withheld: {$a->graded} graded learner(s) is below the {$a->floor}-learner suppression floor, so no figure may be reported';
-$string['oa_bandwithheld'] = 'counts withheld · {$a->graded} graded, floor {$a->floor}';
-$string['oa_notmeasured'] = 'Not yet measured';
-$string['oa_notmeasuredshort'] = 'not measured';
-$string['oa_nobands'] = 'graded, but no band was assigned';
-$string['oa_graded'] = 'graded';
-$string['oa_gradedn'] = '{$a} graded';
-$string['oa_belowfloor'] = 'below the suppression floor';
-$string['oa_targetmarker'] = 'Benchmark {$a}%';
-$string['oa_targetshort'] = 'benchmark {$a}%';
-$string['oa_notargetshort'] = 'no benchmark set';
-$string['oa_nopolicyshort'] = 'no accreditation policy';
-
-$string['oa_flag_unassessed'] = 'No assessing content mapped';
-$string['oa_flag_pending'] = 'Awaiting calculation';
-$string['oa_flag_thin'] = 'Thin evidence · {$a->graded} graded, floor {$a->floor}';
-$string['oa_flag_withheld'] = 'Withheld from export';
-$string['oa_flag_belowtarget'] = 'Below benchmark';
-$string['oa_flag_completersshort'] = 'Completers fall short';
-$string['oa_flag_alike'] = 'Does not separate pass from fail';
-
-$string['oa_priorities_educator'] = 'What to look at first';
-$string['oa_prioritiessub_educator'] = 'Ranked by how much the result should change your teaching, not by how low the number is.';
-$string['oa_priorities_program'] = 'What this course does for the program';
-$string['oa_prioritiessub_program'] = 'Ranked by the risk each finding carries to a claim made above course level.';
-$string['oa_priorities_accreditation'] = 'Adequacy of the evidence';
-$string['oa_prioritiessub_accreditation'] = 'Ranked by how far each claim is from being defensible in a submission.';
-$string['oa_nopriorities'] = 'Nothing here is far enough from the benchmark, thin enough, or inconsistent enough to lead a review. Read the ledger for the detail.';
-
-$string['oa_gapsheading'] = 'Where the evidence runs out';
-$string['oa_gapsintro'] = '{$a->unassessed} of the {$a->total} outcomes at the finest grain have no assessing content mapped, so they can never produce attainment data. A further {$a->thin} rest on fewer learners than the suppression floor allows. Neither is a low score — both are silence, and silence is what a reviewer asks about.';
-$string['oa_gapcount'] = '{$a->missing} of {$a->total} empty';
-$string['oa_gaphollow'] = '{$a->missing} of the {$a->total} outcomes underneath {$a->code} have no stored result, so the claim it makes rests on less than half of what is supposed to evidence it.';
-$string['oa_gapunassessed'] = 'Outcomes nothing assesses';
-$string['oa_gapofall'] = '{$a->count} of {$a->total}';
-$string['oa_gapunassessedbody'] = 'These appear in the course as taught outcomes but no approved assessing mapping points at them, so the calculation engine has nothing to draw on. They are excluded from every rate on this page rather than counted as zero.';
-$string['oa_gapthin'] = 'Results resting on a handful of learners';
-$string['oa_gapthinbody'] = 'Measured, but on fewer than {$a} learners — one score moves these a long way. Shown here for faculty; withheld under the accreditation lens and in the accreditation export.';
-$string['oa_gapaffected'] = 'Affected: {$a}';
-$string['oa_nogaps'] = 'Every outcome in scope has assessing content mapped to it, and none rests on fewer learners than the floor allows.';
-
-$string['oa_ledgerheading'] = 'The full ledger, top down';
-$string['oa_ledgersub'] = 'Each outcome opens onto the outcomes one level down that are approved to support it.';
-$string['oa_col_outcome'] = 'Outcome';
-$string['oa_col_statement'] = 'What learners should be able to do';
-$string['oa_col_level'] = 'Level';
-$string['oa_col_graded'] = 'Learners graded';
-$string['oa_col_judged'] = 'Learners judged';
-$string['oa_col_met'] = 'Reached standard';
-$string['oa_col_metpct'] = 'Reached standard (%)';
-$string['oa_col_mean'] = 'Mean score (%)';
-$string['oa_col_landed'] = 'How they landed';
-$string['oa_col_reached'] = 'Reached standard';
-$string['oa_col_completedpct'] = 'Completers reached standard (%)';
-$string['oa_col_notcompletedpct'] = 'Non-completers reached standard (%)';
-$string['oa_detail'] = 'detail';
-
-$string['oa_mapheading'] = 'How the outcomes map upward';
-$string['oa_mapsub'] = 'Choose any outcome to trace its line. Unrelated outcomes fade; the connected ones stay lit.';
-$string['oa_mapcolsub'] = '{$a->total} at this level · {$a->measured} measured';
-$string['oa_mapupward'] = 'Supports {$a}';
-$string['oa_mapupwardnone'] = 'Supports nothing above it';
-$string['oa_tracenone'] = 'Nothing traced. The left edge of each outcome shows whether it is at the benchmark, below it, or never measured.';
-$string['oa_tracing'] = 'Tracing {$a->code} and the {$a->count} outcome(s) connected to it, above and below.';
 $string['oa_cleartrace'] = 'Clear trace';
 
-$string['oa_rollupheading'] = '{$a}: every course that claims these outcomes';
-$string['oa_rollupsub'] = 'A single course cannot evidence a program outcome on its own.';
-$string['oa_rollupthis'] = 'This course';
-$string['oa_rollupother'] = 'Same program, same reporting period';
-$string['oa_rollupn'] = 'n={$a}';
-$string['oa_rollupnotclaimed'] = 'not claimed';
-$string['oa_rollupnote1'] = 'Each cell is that course\'s own stored results for the outcome, never a share of a program total. Reading down a column tells you which courses carry a claim and which lean on the others.';
-$string['oa_rollupnote2'] = 'Courses are matched on this course\'s reporting period(s): {$a}. A course running in a different period is a different cohort and is not shown here.';
+$string['oa_cohort_all'] = 'Everyone';
 
-$string['oa_provenance'] = 'Provenance';
-$string['oa_provenancebody'] = 'Every figure is the result the calculation engine stored for reporting period(s) {$a->periods}, under the calculation policy in force when each result was calculated. Nothing on this page is recomputed at view time, and band thresholds come from the policy version current at calculation. Outcomes with no stored result are carried as rows and excluded from every rate; they are never counted as zero.';
-$string['oa_provenancepolicy'] = 'Reporting is governed by accreditation policy “{$a->name}” v{$a->version}, approved for {$a->program}: a learner reaches the standard at {$a->criterion}% or above, an outcome meets the benchmark at {$a->target}% of graded learners, and results resting on fewer than {$a->floor} learners are suppressed in the accreditation export.';
-$string['oa_provenancenopolicy'] = 'No approved accreditation policy governs this course, so no benchmark, achievement criterion or suppression floor is applied. Reaching the standard means clearing the lowest band the governing calculation policy defined, which is a weaker statement than an approved criterion and should not be quoted as one.';
+$string['oa_cohort_completed'] = 'Completed';
 
-$string['oa_definitions'] = 'Definitions';
-$string['oa_def_reached'] = 'Reached the standard';
-$string['oa_def_reached_policy'] = 'The share of graded learners whose stored percentage is {$a}% or above, the achievement criterion the approved accreditation policy sets. This is the figure shown large everywhere on this page.';
-$string['oa_def_reached_band'] = 'The share of graded learners placed above the lowest band the governing calculation policy defines. With no approved accreditation policy there is no criterion to apply, so this is the nearest defensible reading.';
-$string['oa_def_mean'] = 'Mean score';
-$string['oa_def_mean_body'] = 'The average stored percentage for this outcome and cohort. Useful for trend, misleading as a headline: it hides how many learners are behind it.';
-$string['oa_def_graded'] = 'Learners graded';
-$string['oa_def_graded_body'] = 'Learners for whom the engine produced a percentage. A learner with a result row but no percentage is counted as awaiting calculation, not as a failure.';
+$string['oa_cohort_notcompleted'] = 'Did not complete';
+
+$string['oa_cohortnote_all'] = 'All {$a->count} learner(s) holding a stored result, whether or not they finished. This is the number to quote for coverage rather than for course quality: it mixes learners who left in week two with those who completed.';
+
+$string['oa_cohortnote_completed'] = '{$a->count} of {$a->total} learner(s) counted as having completed the course ({$a->rule}). This is the cohort a credential vouches for. An outcome below the benchmark here means the course is certifying something it has not evidenced.';
+
+$string['oa_cohortnote_notcompleted'] = '{$a->count} of {$a->total} learner(s) who did not complete ({$a->rule}). Read this against the completers: outcomes where the two look alike are not the ones deciding who passes, and outcomes with a wide gap are the ones the course is really assessing.';
+
+$string['oa_cohortphrase_all'] = 'across all {$a} learner(s) with a stored result';
+
+$string['oa_cohortphrase_completed'] = 'among the {$a} learner(s) who completed the course';
+
+$string['oa_cohortphrase_notcompleted'] = 'among the {$a} learner(s) who did not complete the course';
+
+$string['oa_col_completedpct'] = 'Completers reached standard (%)';
+
+$string['oa_col_graded'] = 'Learners graded';
+
+$string['oa_col_judged'] = 'Learners judged';
+
+$string['oa_col_landed'] = 'How they landed';
+
+$string['oa_col_level'] = 'Level';
+
+$string['oa_col_mean'] = 'Mean score (%)';
+
+$string['oa_col_met'] = 'Reached standard';
+
+$string['oa_col_metpct'] = 'Reached standard (%)';
+
+$string['oa_col_notcompletedpct'] = 'Non-completers reached standard (%)';
+
+$string['oa_col_outcome'] = 'Outcome';
+
+$string['oa_col_reached'] = 'Reached standard';
+
+$string['oa_col_statement'] = 'What learners should be able to do';
+
+$string['oa_controlcohort'] = 'Which learners';
+
+$string['oa_controllens'] = 'Reading as';
+
+$string['oa_controlview'] = 'View';
+
 $string['oa_def_completed'] = 'Completed';
+
 $string['oa_def_completed_completion'] = 'Moodle records the learner as having completed this course.';
+
 $string['oa_def_completed_gradepass'] = 'A final course grade at or above the {$a}% pass mark set on the course grade item.';
+
+$string['oa_def_graded'] = 'Learners graded';
+
+$string['oa_def_graded_body'] = 'Learners for whom the engine produced a percentage. A learner with a result row but no percentage is counted as awaiting calculation, not as a failure.';
+
+$string['oa_def_mean'] = 'Mean score';
+
+$string['oa_def_mean_body'] = 'The average stored percentage for this outcome and cohort. Useful for trend, misleading as a headline: it hides how many learners are behind it.';
+
+$string['oa_def_reached'] = 'Reached the standard';
+
+$string['oa_def_reached_band'] = 'The share of graded learners placed above the lowest band the governing calculation policy defines. With no approved accreditation policy there is no criterion to apply, so this is the nearest defensible reading.';
+
+$string['oa_def_reached_policy'] = 'The share of graded learners whose stored percentage is {$a}% or above, the achievement criterion the approved accreditation policy sets. This is the figure shown large everywhere on this page.';
+
 $string['oa_def_thin'] = 'Thin evidence';
+
 $string['oa_def_thin_body'] = 'Fewer than {$a} graded learners. Reported here for faculty, withheld under the accreditation lens and in the accreditation export.';
+
 $string['oa_def_unassessed'] = 'No assessing content mapped';
+
 $string['oa_def_unassessed_body'] = 'The outcome exists in the course but no approved assessing mapping points at it. It cannot produce a result and is never counted as zero.';
 
-$string['oa_drawerkicker'] = '{$a->level} · {$a->code} · v{$a->version}';
-$string['oa_drawercohorts'] = 'Everyone, completers, non-completers';
+$string['oa_definitions'] = 'Definitions';
+
+$string['oa_detail'] = 'detail';
+
 $string['oa_drawercohortline'] = '{$a->graded} of {$a->total} graded · {$a->bands} · mean score {$a->mean}%';
+
+$string['oa_drawercohorts'] = 'Everyone, completers, non-completers';
+
+$string['oa_drawerkicker'] = '{$a->level} · {$a->code} · v{$a->version}';
+
 $string['oa_drawerreading'] = 'What this tells you';
+
 $string['oa_drawersources'] = 'Where the evidence comes from';
-$string['oa_srcquestions'] = '{$a} question(s)';
-$string['oa_srcnone'] = 'No assessing content is mapped to this outcome.';
-$string['oa_srcinherited'] = 'Nothing is mapped directly to this outcome. Its evidence is inherited from the outcomes underneath it.';
+
+$string['oa_evidencegap'] = 'No assessing content mapped';
+
+$string['oa_evidencelabel'] = 'Evidence behind it';
+
+$string['oa_evidencerow'] = '{$a->measured} of {$a->outcomes} measured · {$a->metpct}';
+
+$string['oa_flag_alike'] = 'Does not separate pass from fail';
+
+$string['oa_flag_belowtarget'] = 'Below benchmark';
+
+$string['oa_flag_completersshort'] = 'Completers fall short';
+
+$string['oa_flag_pending'] = 'Awaiting calculation';
+
+$string['oa_flag_thin'] = 'Thin evidence · {$a->graded} graded, floor {$a->floor}';
+
+$string['oa_flag_unassessed'] = 'No assessing content mapped';
+
+$string['oa_flag_withheld'] = 'Withheld from export';
+
+$string['oa_gapaffected'] = 'Affected: {$a}';
+
+$string['oa_gapcount'] = '{$a->missing} of {$a->total} empty';
+
+$string['oa_gaphollow'] = '{$a->missing} of the {$a->total} outcomes underneath {$a->code} have no stored result, so the claim it makes rests on less than half of what is supposed to evidence it.';
+
+$string['oa_gapofall'] = '{$a->count} of {$a->total}';
+
+$string['oa_gapsheading'] = 'Where the evidence runs out';
+
+$string['oa_gapsintro'] = '{$a->unassessed} of the {$a->total} outcomes at the finest grain have no assessing content mapped, so they can never produce attainment data. A further {$a->thin} rest on fewer learners than the suppression floor allows. Neither is a low score — both are silence, and silence is what a reviewer asks about.';
+
+$string['oa_gapthin'] = 'Results resting on a handful of learners';
+
+$string['oa_gapthinbody'] = 'Measured, but on fewer than {$a} learners — one score moves these a long way. Shown here for faculty; withheld under the accreditation lens and in the accreditation export.';
+
+$string['oa_gapunassessed'] = 'Outcomes nothing assesses';
+
+$string['oa_gapunassessedbody'] = 'These appear in the course as taught outcomes but no approved assessing mapping points at them, so the calculation engine has nothing to draw on. They are excluded from every rate on this page rather than counted as zero.';
+
+$string['oa_graded'] = 'graded';
+
+$string['oa_gradedn'] = '{$a} graded';
+
+$string['oa_gradedof'] = '{$a->graded} of {$a->total} graded';
+
+$string['oa_headlinelabel'] = 'The headline, honestly';
+
+$string['oa_headlinenone'] = 'Nothing has been calculated at the level of {$a} yet, so there is no rate to report.';
+
+$string['oa_headlineof'] = 'of graded results at {$a} reached the standard or better';
+
+$string['oa_headlinesentence'] = 'At the level of {$a->top}, {$a->met} of {$a->judged} graded learner-outcome results {$a->cohort} reached the achievement standard. Weighted by the learners actually behind them, the mean score is {$a->mean}%.';
+
+$string['oa_kickerperiod'] = 'Reporting period {$a}';
+
+$string['oa_lede'] = 'One reading of {$a->learners} learner(s) with stored results, traced across {$a->levels} level(s) of outcome — {$a->outcomes} in all — up to {$a->top}.';
+
+$string['oa_ledgerheading'] = 'The full ledger, top down';
+
+$string['oa_ledgersub'] = 'Each outcome opens onto the outcomes one level down that are approved to support it.';
+
+$string['oa_lens_accreditation'] = 'Accreditation';
+
+$string['oa_lens_educator'] = 'Educator';
+
+$string['oa_lens_program'] = 'Program director';
+
+$string['oa_lensnote_accreditation'] = 'Suppression is enforced, not annotated: any outcome graded for fewer than {$a->floor} learners reads “withheld” wherever it appears, exactly as it would in a submission. Diagnostic flags are hidden — they are internal judgements, not evidence.';
+
+$string['oa_lensnote_educator'] = 'Diagnostic flags are on: outcomes where completers still fall short, and outcomes that fail to separate passing from failing. Thin results are shown with their sample size so you can judge them yourself.';
+
+$string['oa_lensnote_program'] = 'The ledger stops one level above the finest grain — the program does not act at unit level — and findings are framed as risk to a claim about {$a->top} rather than as teaching notes.';
+
+$string['oa_lensnotelabel'] = 'Reading as {$a}';
+
+$string['oa_level_catalog_course'] = 'Course outcomes';
+
+$string['oa_level_institution'] = 'Institutional outcomes';
+
+$string['oa_level_program'] = 'Program outcomes';
+
 $string['oa_lineagedown'] = 'What it rests on';
-$string['oa_lineageup'] = 'What it supports';
+
 $string['oa_lineagenone'] = 'This outcome is not aligned to anything above or below it.';
 
-$string['oa_read_withheld'] = 'This outcome is graded for fewer than {$a} learners, so no figure, band count or cohort comparison may be reported under the suppression rule. Switch to the educator lens to inspect it internally.';
-$string['oa_read_nothing'] = 'There is no graded evidence for this outcome, so nothing can be concluded about any cohort. It is a coverage problem, not a performance problem.';
-$string['oa_read_nosplit'] = 'This course records neither completion nor a pass mark on its course grade item, so learners cannot be split into completers and non-completers. The rate is descriptive; whether it separates the learners the course passes from the ones it does not cannot be answered here.';
-$string['oa_read_onecohort'] = 'Only one of the two cohorts has graded results here, so the outcome cannot tell you what the other could or could not do. Treat the number as descriptive, not diagnostic.';
+$string['oa_lineageup'] = 'What it supports';
+
+$string['oa_mapcolsub'] = '{$a->total} at this level · {$a->measured} measured';
+
+$string['oa_mapheading'] = 'How the outcomes map upward';
+
+$string['oa_mapsub'] = 'Choose any outcome to trace its line. Unrelated outcomes fade; the connected ones stay lit.';
+
+$string['oa_mapupward'] = 'Supports {$a}';
+
+$string['oa_mapupwardnone'] = 'Supports nothing above it';
+
+$string['oa_nobands'] = 'graded, but no band was assigned';
+
+$string['oa_nogaps'] = 'Every outcome in scope has assessing content mapped to it, and none rests on fewer learners than the floor allows.';
+
+$string['oa_nopolicyshort'] = 'no accreditation policy';
+
+$string['oa_nopriorities'] = 'Nothing here is far enough from the benchmark, thin enough, or inconsistent enough to lead a review. Read the ledger for the detail.';
+
+$string['oa_notarget'] = 'No approved benchmark — figures are reported without a target to compare against';
+
+$string['oa_notargetshort'] = 'no benchmark set';
+
+$string['oa_notmeasured'] = 'Not yet measured';
+
+$string['oa_notmeasuredshort'] = 'not measured';
+
+$string['oa_opensheets'] = 'Summary sheets';
+
+$string['oa_policyfieldunknown'] = 'required setting';
+
+$string['oa_policyunreadable'] = 'An approved accreditation policy governs {$a->program}, but it cannot be applied: its stored configuration has no valid <em>{$a->field}</em>. This normally means the policy was approved before that field became required, and an approved policy cannot be edited in place. The attainment figures below are unaffected, but nothing can be compared to a benchmark and no suppression floor is enforced until a replacement version is approved.';
+
+$string['oa_priorities_accreditation'] = 'Adequacy of the evidence';
+
+$string['oa_priorities_educator'] = 'What to look at first';
+
+$string['oa_priorities_program'] = 'What this course does for the program';
+
+$string['oa_prioritiessub_accreditation'] = 'Ranked by how far each claim is from being defensible in a submission.';
+
+$string['oa_prioritiessub_educator'] = 'Ranked by how much the result should change your teaching, not by how low the number is.';
+
+$string['oa_prioritiessub_program'] = 'Ranked by the risk each finding carries to a claim made above course level.';
+
+$string['oa_provenance'] = 'Provenance';
+
+$string['oa_provenancebadpolicy'] = 'An approved accreditation policy exists for this program but could not be applied: its stored configuration has no valid {$a->field}. No benchmark, achievement criterion or suppression floor is in force on this page as a result, and reaching the standard means only clearing the lowest band the governing calculation policy defined. Approve a replacement policy version carrying the missing setting before quoting anything here in a submission.';
+
+$string['oa_provenancebody'] = 'Every figure is the result the calculation engine stored for reporting period(s) {$a->periods}, under the calculation policy in force when each result was calculated. Nothing on this page is recomputed at view time, and band thresholds come from the policy version current at calculation. Outcomes with no stored result are carried as rows and excluded from every rate; they are never counted as zero.';
+
+$string['oa_provenancenopolicy'] = 'No approved accreditation policy governs this course, so no benchmark, achievement criterion or suppression floor is applied. Reaching the standard means clearing the lowest band the governing calculation policy defined, which is a weaker statement than an approved criterion and should not be quoted as one.';
+
+$string['oa_provenancepolicy'] = 'Reporting is governed by accreditation policy “{$a->name}” v{$a->version}, approved for {$a->program}: a learner reaches the standard at {$a->criterion}% or above, an outcome meets the benchmark at {$a->target}% of graded learners, and results resting on fewer than {$a->floor} learners are suppressed in the accreditation export.';
+
+$string['oa_question'] = 'Are learners reaching the outcomes?';
+
 $string['oa_read_alike'] = 'Completers and non-completers perform almost identically on this outcome ({$a->completed}% against {$a->notcompleted}%). Whatever separates passing from failing in this course, it is not this: either the assessment does not discriminate, or the outcome is not really being tested.';
+
 $string['oa_read_completersshort'] = 'Even learners who completed the course fall short of the {$a->target}% benchmark here ({$a->completed}%). The course is passing people who have not demonstrated this outcome — the clearest signal on this page that instruction or assessment needs attention.';
+
+$string['oa_read_nosplit'] = 'This course records neither completion nor a pass mark on its course grade item, so learners cannot be split into completers and non-completers. The rate is descriptive; whether it separates the learners the course passes from the ones it does not cannot be answered here.';
+
+$string['oa_read_nothing'] = 'There is no graded evidence for this outcome, so nothing can be concluded about any cohort. It is a coverage problem, not a performance problem.';
+
+$string['oa_read_onecohort'] = 'Only one of the two cohorts has graded results here, so the outcome cannot tell you what the other could or could not do. Treat the number as descriptive, not diagnostic.';
+
 $string['oa_read_separates'] = 'Completers reach {$a->completed}% against {$a->notcompleted}% for non-completers, a {$a->spread}-point gap. This outcome behaves the way a well-aligned one should: passing the course means demonstrating it.';
 
-$string['oa_sheetsintro'] = 'One section per top-level outcome — the shape an accreditation reviewer asks for. Print this view to save it as a PDF.';
-$string['oa_sheetkicker'] = '{$a->code} · {$a->level}';
-$string['oa_sheetmeta'] = 'Period {$a->periods} · {$a->policy} · {$a->course}';
-$string['oa_sheet_meets'] = 'Attainment meets the benchmark for reporting period {$a}.';
+$string['oa_read_withheld'] = 'This outcome is graded for fewer than {$a} learners, so no figure, band count or cohort comparison may be reported under the suppression rule. Switch to the educator lens to inspect it internally.';
+
+$string['oa_restson'] = 'Rests on {$a->count} outcome(s): {$a->codes}';
+
+$string['oa_restsonnothing'] = 'Nothing below it feeds this outcome';
+
+$string['oa_rollupheading'] = '{$a}: every course that claims these outcomes';
+
+$string['oa_rollupn'] = 'n={$a}';
+
+$string['oa_rollupnotclaimed'] = 'not claimed';
+
+$string['oa_rollupnote1'] = 'Each cell is that course\'s own stored results for the outcome, never a share of a program total. Reading down a column tells you which courses carry a claim and which lean on the others.';
+
+$string['oa_rollupnote2'] = 'Courses are matched on this course\'s reporting period(s): {$a}. A course running in a different period is a different cohort and is not shown here.';
+
+$string['oa_rollupother'] = 'Same program, same reporting period';
+
+$string['oa_rollupsub'] = 'A single course cannot evidence a program outcome on its own.';
+
+$string['oa_rollupthis'] = 'This course';
+
+$string['oa_rule_completion'] = 'Moodle course completion';
+
+$string['oa_rule_gradepass'] = 'a final course grade at or above the {$a}% pass mark';
+
 $string['oa_sheet_below'] = 'Attainment is below the benchmark for reporting period {$a} and belongs on the faculty review agenda.';
+
+$string['oa_sheet_meets'] = 'Attainment meets the benchmark for reporting period {$a}.';
+
 $string['oa_sheet_none'] = 'No result has been calculated for this outcome, so no attainment is claimed for it in this period.';
+
 $string['oa_sheet_thin'] = 'The sample of {$a->graded} graded learner(s) is below the {$a->floor}-learner suppression floor. This result is for internal review only and is withheld from the accreditation submission.';
+
 $string['oa_sheetevidence'] = 'Evidence: {$a}.';
+
+$string['oa_sheetkicker'] = '{$a->code} · {$a->level}';
+
+$string['oa_sheetmeta'] = 'Period {$a->periods} · {$a->policy} · {$a->course}';
+
 $string['oa_sheetnoevidence'] = 'No assessing content is mapped anywhere beneath this outcome.';
 
-// Priority findings. Each is detected from the stored results, so a finding
-// that does not appear is one the data did not support.
-$string['oapri_belowbenchmark_headline'] = '{$a->code} is below the benchmark at {$a->metpct}%';
-$string['oapri_belowbenchmark_why'] = '{$a->met} of {$a->judged} graded learners reached the standard, against a benchmark of {$a->target}%. Of the {$a->children} outcome(s) underneath it, {$a->behind} are themselves below the benchmark.';
-$string['oapri_belowbenchmark_action_educator'] = 'Start with the outcomes underneath that are also short: the shortfall is theirs before it is this one\'s.';
-$string['oapri_belowbenchmark_action_program'] = 'Report this outcome with its course-level spread attached rather than as a single average.';
+$string['oa_sheetsintro'] = 'One section per top-level outcome — the shape an accreditation reviewer asks for. Print this view to save it as a PDF.';
+
+$string['oa_srcinherited'] = 'Nothing is mapped directly to this outcome. Its evidence is inherited from the outcomes underneath it.';
+
+$string['oa_srcnone'] = 'No assessing content is mapped to this outcome.';
+
+$string['oa_srcquestions'] = '{$a} question(s)';
+
+$string['oa_targetline'] = 'Benchmark: {$a->target}% of graded learners at {$a->criterion}% or above';
+
+$string['oa_targetmarker'] = 'Benchmark {$a}%';
+
+$string['oa_targetshort'] = 'benchmark {$a}%';
+
+$string['oa_toplevelheading'] = 'The {$a->count} {$a->level}';
+
+$string['oa_tracelink'] = 'Trace and evidence';
+
+$string['oa_tracenone'] = 'Nothing traced. The left edge of each outcome shows whether it is at the benchmark, below it, or never measured.';
+
+$string['oa_tracing'] = 'Tracing {$a->code} and the {$a->count} outcome(s) connected to it, above and below.';
+
+$string['oa_view_ledger'] = 'Full ledger';
+
+$string['oa_view_map'] = 'Alignment map';
+
+$string['oa_view_rollup'] = 'Program rollup';
+
+$string['oa_view_summary'] = 'Summary';
+
+$string['oa_withheld'] = 'withheld';
+
+$string['oa_withheldbar'] = 'Band counts withheld: fewer than {$a} graded learners';
+
+$string['oa_withheldsentence'] = 'withheld: {$a->graded} graded learner(s) is below the {$a->floor}-learner suppression floor, so no figure may be reported';
+
 $string['oapri_belowbenchmark_action_accreditation'] = 'State the shortfall and the response in the self-study. A benchmark missed and addressed reads far better than one presented as met.';
 
-$string['oapri_thinflattering_headline'] = '{$a->code} looks strong on {$a->graded} learners';
-$string['oapri_thinflattering_why'] = '{$a->metpct}% rests on {$a->graded} graded learner(s), below the {$a->floor}-learner floor, and it sits above the {$a->tier}% its own level averages — so it pulls the level up on the thinnest evidence on the page.';
-$string['oapri_thinflattering_action_educator'] = 'Map assessing content so this outcome is graded for the whole cohort, or stop claiming it for this course.';
-$string['oapri_thinflattering_action_program'] = 'Weight this outcome by sample size before it reaches any program dashboard, or exclude this course from the claim.';
-$string['oapri_thinflattering_action_accreditation'] = 'Not reportable as it stands. Either widen the assessment coverage or drop the claim from the submission.';
+$string['oapri_belowbenchmark_action_educator'] = 'Start with the outcomes underneath that are also short: the shortfall is theirs before it is this one\'s.';
 
-$string['oapri_nodiscrimination_headline'] = '{$a->code} does not separate the learners who passed from the ones who did not';
-$string['oapri_nodiscrimination_why'] = 'Completers reach {$a->completed}% and non-completers {$a->notcompleted}% — close enough that this outcome is not part of what decides who passes the course.';
-$string['oapri_nodiscrimination_action_educator'] = 'Look at the assessment before the outcome. A measure that everybody clears is not measuring the thing the outcome describes.';
-$string['oapri_nodiscrimination_action_program'] = 'Treat this as coverage rather than evidence of attainment until the assessment discriminates.';
-$string['oapri_nodiscrimination_action_accreditation'] = 'Do not lead with this outcome. A reviewer who compares the two cohorts will ask the same question.';
+$string['oapri_belowbenchmark_action_program'] = 'Report this outcome with its course-level spread attached rather than as a single average.';
 
-$string['oapri_widestgap_headline'] = '{$a->code} is doing most of the sorting';
-$string['oapri_widestgap_why'] = 'Completers reach {$a->completed}% against {$a->notcompleted}% for non-completers, a {$a->spread}-point gap — the widest on the page. This is where the course actually decides who passes.';
-$string['oapri_widestgap_action_educator'] = 'Confirm this is intentional. If this outcome is meant to be a gate, say so in the syllabus; if not, its assessment carries more weight than the outcome warrants.';
-$string['oapri_widestgap_action_program'] = 'This is the outcome the course\'s credential rests on. Any change to its assessment changes what the qualification means.';
-$string['oapri_widestgap_action_accreditation'] = 'A wide, explained gap is strong evidence. Include the cohort split rather than the pooled figure.';
+$string['oapri_belowbenchmark_headline'] = '{$a->code} is below the benchmark at {$a->metpct}%';
 
-$string['oapri_completersshortfall_headline'] = 'Learners who completed still fall short on {$a->code}';
-$string['oapri_completersshortfall_why'] = 'Completers reach only {$a->completed}% against the {$a->target}% benchmark, on {$a->judged} graded learner(s). The course is passing people who have not demonstrated this outcome.';
-$string['oapri_completersshortfall_action_educator'] = 'This is the most actionable finding on the page: instruction or assessment for this outcome needs attention before the next cohort.';
-$string['oapri_completersshortfall_action_program'] = 'Any claim resting on this outcome is weaker than its headline rate suggests. Check what else in the program evidences it.';
+$string['oapri_belowbenchmark_why'] = '{$a->met} of {$a->judged} graded learners reached the standard, against a benchmark of {$a->target}%. Of the {$a->children} outcome(s) underneath it, {$a->behind} are themselves below the benchmark.';
+
 $string['oapri_completersshortfall_action_accreditation'] = 'Disclose this. A completion standard and an attainment standard that disagree is exactly what a reviewer looks for.';
 
-$string['oapri_hollowclaim_headline'] = '{$a->code} rests on outcomes that produced nothing';
-$string['oapri_hollowclaim_why'] = '{$a->missing} of the {$a->children} outcomes underneath it have no stored result ({$a->codes}), so the claim is carried by less than half of what is supposed to evidence it.';
-$string['oapri_hollowclaim_action_educator'] = 'Map assessing content to the empty outcomes, or retire them from the course if they are no longer taught.';
-$string['oapri_hollowclaim_action_program'] = 'Treat this claim as provisional until the alignment chain underneath it produces evidence.';
+$string['oapri_completersshortfall_action_educator'] = 'This is the most actionable finding on the page: instruction or assessment for this outcome needs attention before the next cohort.';
+
+$string['oapri_completersshortfall_action_program'] = 'Any claim resting on this outcome is weaker than its headline rate suggests. Check what else in the program evidences it.';
+
+$string['oapri_completersshortfall_headline'] = 'Learners who completed still fall short on {$a->code}';
+
+$string['oapri_completersshortfall_why'] = 'Completers reach only {$a->completed}% against the {$a->target}% benchmark, on {$a->judged} graded learner(s). The course is passing people who have not demonstrated this outcome.';
+
 $string['oapri_hollowclaim_action_accreditation'] = 'Document the gap in the self-study alongside the coverage table. Absence explained is far stronger than absence discovered.';
 
-// An approved accreditation policy that predates a now-required field.
-$string['oa_policyunreadable'] = 'An approved accreditation policy governs {$a->program}, but it cannot be applied: its stored configuration has no valid <em>{$a->field}</em>. This normally means the policy was approved before that field became required, and an approved policy cannot be edited in place. The attainment figures below are unaffected, but nothing can be compared to a benchmark and no suppression floor is enforced until a replacement version is approved.';
-$string['oa_policyfieldunknown'] = 'required setting';
-$string['oa_care_badpolicy'] = 'The approved accreditation policy for this program cannot be read, so there is no benchmark to compare against and no suppression floor to enforce. Reaching the standard means clearing the lowest band the calculation policy defined — a weaker statement than an approved criterion, and one that should not be quoted as one.';
-$string['oa_provenancebadpolicy'] = 'An approved accreditation policy exists for this program but could not be applied: its stored configuration has no valid {$a->field}. No benchmark, achievement criterion or suppression floor is in force on this page as a result, and reaching the standard means only clearing the lowest band the governing calculation policy defined. Approve a replacement policy version carrying the missing setting before quoting anything here in a submission.';
+$string['oapri_hollowclaim_action_educator'] = 'Map assessing content to the empty outcomes, or retire them from the course if they are no longer taught.';
+
+$string['oapri_hollowclaim_action_program'] = 'Treat this claim as provisional until the alignment chain underneath it produces evidence.';
+
+$string['oapri_hollowclaim_headline'] = '{$a->code} rests on outcomes that produced nothing';
+
+$string['oapri_hollowclaim_why'] = '{$a->missing} of the {$a->children} outcomes underneath it have no stored result ({$a->codes}), so the claim is carried by less than half of what is supposed to evidence it.';
+
+$string['oapri_nodiscrimination_action_accreditation'] = 'Do not lead with this outcome. A reviewer who compares the two cohorts will ask the same question.';
+
+$string['oapri_nodiscrimination_action_educator'] = 'Look at the assessment before the outcome. A measure that everybody clears is not measuring the thing the outcome describes.';
+
+$string['oapri_nodiscrimination_action_program'] = 'Treat this as coverage rather than evidence of attainment until the assessment discriminates.';
+
+$string['oapri_nodiscrimination_headline'] = '{$a->code} does not separate the learners who passed from the ones who did not';
+
+$string['oapri_nodiscrimination_why'] = 'Completers reach {$a->completed}% and non-completers {$a->notcompleted}% — close enough that this outcome is not part of what decides who passes the course.';
+
+$string['oapri_thinflattering_action_accreditation'] = 'Not reportable as it stands. Either widen the assessment coverage or drop the claim from the submission.';
+
+$string['oapri_thinflattering_action_educator'] = 'Map assessing content so this outcome is graded for the whole cohort, or stop claiming it for this course.';
+
+$string['oapri_thinflattering_action_program'] = 'Weight this outcome by sample size before it reaches any program dashboard, or exclude this course from the claim.';
+
+$string['oapri_thinflattering_headline'] = '{$a->code} looks strong on {$a->graded} learners';
+
+$string['oapri_thinflattering_why'] = '{$a->metpct}% rests on {$a->graded} graded learner(s), below the {$a->floor}-learner floor, and it sits above the {$a->tier}% its own level averages — so it pulls the level up on the thinnest evidence on the page.';
+
+$string['oapri_widestgap_action_accreditation'] = 'A wide, explained gap is strong evidence. Include the cohort split rather than the pooled figure.';
+
+$string['oapri_widestgap_action_educator'] = 'Confirm this is intentional. If this outcome is meant to be a gate, say so in the syllabus; if not, its assessment carries more weight than the outcome warrants.';
+
+$string['oapri_widestgap_action_program'] = 'This is the outcome the course\'s credential rests on. Any change to its assessment changes what the qualification means.';
+
+$string['oapri_widestgap_headline'] = '{$a->code} is doing most of the sorting';
+
+$string['oapri_widestgap_why'] = 'Completers reach {$a->completed}% against {$a->notcompleted}% for non-completers, a {$a->spread}-point gap — the widest on the page. This is where the course actually decides who passes.';
+
+$string['objecttype'] = 'Object type';
+
+$string['outcome'] = 'Outcome';
+
+$string['outcomemap:approve'] = 'Approve governed outcome records';
+
+$string['outcomemap:exportaccreditation'] = 'Export accreditation data';
+
+$string['outcomemap:exportattainment'] = 'Export learner program-outcome attainment to the SIS';
+
+$string['outcomemap:managecatalogcourses'] = 'Manage catalog courses and course-instance associations';
+
+$string['outcomemap:manageframeworks'] = 'Manage frameworks, outcomes, versions, and relations';
+
+$string['outcomemap:managepolicies'] = 'Manage calculation and release policies';
+
+$string['outcomemap:manageprograms'] = 'Manage programs and program-course memberships';
+
+$string['outcomemap:managesnapshots'] = 'Manage accreditation snapshots';
+
+$string['outcomemap:mapactivities'] = 'Map course activities, resources, and sections';
+
+$string['outcomemap:mapcourse'] = 'Map and confirm a course instance';
+
+$string['outcomemap:mapquestions'] = 'Map question versions';
+
+$string['outcomemap:overridecalculations'] = 'Override outcome calculations';
+
+$string['outcomemap:viewallresults'] = 'View all authorized outcome results';
+
+$string['outcomemap:viewdefinitions'] = 'View outcome definitions';
+
+$string['outcomemap:viewownresults'] = 'View own outcome results';
+
+$string['outcomeresults_caption'] = 'Your current course learning outcome results and curated recommendations';
+
+$string['outcomeresults_empty'] = 'No approved course learning outcomes are configured for this course.';
+
+$string['outcomeresults_heading'] = 'Outcome results';
+
+$string['outcomeresults_intro'] = 'These outcome-level results contain no question text, responses, correctness, or answer keys.';
+
+$string['outcomes_exportalignments'] = 'Alignments CSV';
+
+$string['outcomes_exportoutcomes'] = 'Outcomes CSV';
+
+$string['outcomes_heading'] = 'Outcomes & alignment';
+
+$string['outcomes_hierarchyline'] = '{$a->alignments} alignments, {$a->unaligned} unaligned';
+
+$string['outcomes_matrix_nogrid'] = 'This relationship has no outcomes on one of its two sides yet, so there is no grid to show.';
+
+$string['outcomes_matrixview'] = 'Matrix';
+
+$string['outcomes_view'] = 'Group outcomes by program or course, or show the alignment matrix';
+
+$string['outcomestoapply'] = 'Outcomes to apply';
+
+$string['outcomeversion'] = 'Exact outcome version';
+
+$string['outcomeversionnotapproved'] = 'Mappings must bind to an approved exact outcome version.';
+
+$string['owner'] = 'Owner';
+
+$string['owner_catalog_course'] = 'Catalog course';
+
+$string['owner_choose'] = 'Choose…';
+
+$string['owner_institution'] = 'Institution';
+
+$string['owner_program'] = 'Program';
+
+$string['owner_required'] = 'Choose the record that owns this framework.';
+
+$string['ownertype'] = 'Owner type';
+
+$string['payloadhash'] = 'Payload hash';
+
+$string['percentagerangeinvalid'] = 'The maximum percentage must be greater than or equal to the minimum percentage.';
+
+$string['performanceband'] = 'Performance band';
+
+$string['performancebandcount'] = 'Bands: {$a}';
+
+$string['performancebandnumber'] = 'Performance band {no}';
+
+$string['performancebands'] = 'Performance bands';
+
+$string['performancebands_help'] = 'Bands are optional. Enter them in ascending order with explicit boundaries; no pass threshold is supplied by default.';
+
+$string['periodandweight'] = 'Reporting period and weight';
+
+$string['periodcode'] = 'Reporting period code';
+
+$string['pluginname'] = 'Learning outcome mapping';
+
+$string['policies_bydecision'] = 'By decision';
+
+$string['policies_byscope'] = 'By scope';
+
+$string['policies_chain'] = 'Resolved through: {$a}';
+
+$string['policies_coversall'] = 'Settles all {$a} decisions';
+
+$string['policies_coverssome'] = 'Settles {$a->settled} of {$a->total} decisions';
+
+$string['policies_empty'] = 'No outcome policy has been created. Until one is, no rule is in force and results cannot be calculated.';
+
+$string['policies_gap'] = 'policy decisions have no institution-wide default, so any scope without its own policy has no rule in force: {$a}.';
+
+$string['policies_gap_one'] = 'policy decision has no institution-wide default, so any scope without its own policy has no rule in force: {$a}.';
+
+$string['policies_hasdefault'] = 'Institution default set';
+
+$string['policies_heading'] = 'Outcome policies';
+
+$string['policies_intro'] = 'Create and edit draft attempt-selection, calculation, feedback-release, and accreditation policies here, then submit them to the approval queue. No institutional thresholds, populations, or other defaults are created automatically.';
+
+$string['policies_intro_finalization'] = 'Create and edit draft attempt-selection, calculation, feedback-release, and accreditation policies here, then finalize them. No institutional thresholds, populations, or other defaults are created automatically.';
+
+$string['policies_meta'] = 'v{$a->version} · from {$a->from}';
+
+$string['policies_nodefault'] = 'No institution default';
+
+$string['policies_nopolicies'] = 'No policy has been created for this decision.';
+
+$string['policies_noresults'] = 'No policies match this search.';
+
+$string['policies_precedence_help'] = 'A scope uses the most specific policy that applies to it. Attempt selection, calculation, and release resolve through assessment, then course instance, then catalog course, then the institution default — a program-scoped version of those is never consulted. Accreditation resolves through program, then the institution default. Finalized versions cannot be edited; create a new version, which takes effect from its start date.';
+
+$string['policies_question_accreditation'] = 'How are snapshots populated, aggregated, suppressed, and corrected?';
+
+$string['policies_question_attempt_selection'] = 'When a learner has several attempts at an activity, which one counts towards the outcome?';
+
+$string['policies_question_calculation'] = 'How is a learner\'s outcome result computed, and what counts as meeting it?';
+
+$string['policies_question_release'] = 'When do learners see their outcome results?';
+
+$string['policies_scopemissing'] = 'Nothing set at this scope for: {$a}. Whatever the resolution chain finds next applies instead.';
+
+$string['policies_searchplaceholder'] = 'Search policies, scopes, and settings…';
+
+$string['policies_setting_attempt'] = 'Attempt used';
+
+$string['policies_setting_bands'] = 'Bands';
+
+$string['policies_setting_benchmark'] = 'Aggregate benchmark';
+
+$string['policies_setting_criterion'] = 'Achievement criterion';
+
+$string['policies_setting_decimals'] = 'Decimals';
+
+$string['policies_setting_manual'] = 'Needs manual grading';
+
+$string['policies_setting_minitems'] = 'Minimum items';
+
+$string['policies_setting_minpossible'] = 'Minimum weighted possible';
+
+$string['policies_setting_population'] = 'Population';
+
+$string['policies_setting_release'] = 'Release';
+
+$string['policies_setting_releaseat'] = 'Scheduled for';
+
+$string['policies_setting_released'] = 'Released';
+
+$string['policies_setting_retention'] = 'Retention';
+
+$string['policies_setting_suppression'] = 'Suppression threshold';
+
+$string['policies_statsline'] = '{$a->versions} policy versions · {$a->inforce} in force · {$a->draft} draft · across {$a->decisions} decisions';
+
+$string['policies_subtitle'] = 'The rules that decide how outcome results are calculated, released, and reported.';
+
+$string['policies_uncovered'] = 'No rule is in force for these catalog courses: {$a}.';
+
+$string['policies_uncovered_one'] = 'No rule is in force for this catalog course: {$a}.';
+
+$string['policies_view'] = 'Group policies by decision or by scope';
+
+$string['policy'] = 'Policy';
+
+$string['policyconfiguration'] = 'Policy configuration';
+
+$string['policydeleted'] = 'The draft policy was deleted.';
+
+$string['policyinuse'] = 'The draft policy is referenced by evidence or results and cannot be deleted.';
+
+$string['policyscope'] = 'Scope';
+
+$string['policyscope_assessment'] = 'Assessment';
+
+$string['policyscope_catalog_course'] = 'Catalog course';
+
+$string['policyscope_course_instance'] = 'Course instance';
+
+$string['policyscope_institution'] = 'Institution';
+
+$string['policyscope_program'] = 'Program';
+
+$string['policyscopedesc_assessment'] = 'Applies to one assessment only';
+
+$string['policyscopedesc_catalog_course'] = 'Applies to every delivery of this catalog course';
+
+$string['policyscopedesc_course_instance'] = 'Applies to one Moodle course and reporting period';
+
+$string['policyscopedesc_institution'] = 'Defaults inherited wherever nothing more specific applies';
+
+$string['policyscopedesc_program'] = 'Applies to accreditation reporting for this program';
+
+$string['policytype'] = 'Policy type';
+
+$string['policytype_accreditation'] = 'Accreditation reporting';
+
+$string['policytype_attempt_selection'] = 'Attempt selection';
+
+$string['policytype_calculation'] = 'Calculation and bands';
+
+$string['policytype_release'] = 'Student feedback release';
+
+$string['population_active_enrolments_at_freeze'] = 'Active enrolled users in included courses at the data freeze';
+
+$string['population_moodle_cohort_at_freeze'] = 'Selected Moodle cohort membership at the data freeze';
+
+$string['populationat'] = 'Data freeze time';
+
+$string['populationcount'] = 'Population size';
+
+$string['populationsource'] = 'Population source';
+
+$string['preview'] = 'Preview';
+
+$string['previoussnapshot'] = 'Previous snapshot';
+
+$string['priority'] = 'Priority';
+
+$string['privacy:metadata'] = 'The plugin stores governance actor identifiers and student-linked evidence and outcome results. Curated recommendations are selected from current results and access rules.';
+
+$string['privacy:metadata:audit:payload'] = 'The privacy-minimised governed transition summary recorded for the audited action.';
+
+$string['privacy:metadata:audit:reason'] = 'The institutional reason supplied by the governance actor and retained with the append-only event.';
+
+$string['privacy:metadata:coursecontext'] = 'The governed course instance in which the learner record was created.';
+
+$string['privacy:metadata:evidence:provenance'] = 'Technical assessment, attempt, question usage, and exact question-version provenance.';
+
+$string['privacy:metadata:evidence:score'] = 'The learner’s raw or weighted score for the evidence observation.';
+
+$string['privacy:metadata:governance:approvedby'] = 'The user who approved or finalized the governed record; immutable snapshot attribution is retained as institutional history.';
+
+$string['privacy:metadata:governance:confirmedby'] = 'The user who confirmed the governed course association.';
+
+$string['privacy:metadata:governance:createdby'] = 'The user who created the governed record; immutable snapshot attribution is retained as institutional history.';
+
+$string['privacy:metadata:governance:modifiedby'] = 'The user who last modified the governed record.';
+
+$string['privacy:metadata:governancerecord'] = 'A governed definition, mapping, policy, recommendation, course association, or immutable snapshot with user attribution.';
+
+$string['privacy:metadata:local_outcomemap_audit'] = 'Append-only privacy-minimised institutional audit history.';
+
+$string['privacy:metadata:local_outcomemap_audit:actorid'] = 'The governance actor retained as institutional audit attribution.';
+
+$string['privacy:metadata:local_outcomemap_audit:timecreated'] = 'When the audited action occurred.';
+
+$string['privacy:metadata:local_outcomemap_evidence'] = 'Atomic scored observations used to calculate a learner’s outcome attainment.';
+
+$string['privacy:metadata:local_outcomemap_privkey'] = 'Erasable pseudonymisation key material used to link a learner to immutable accreditation snapshot rows.';
+
+$string['privacy:metadata:local_outcomemap_remed_event'] = 'Explicit learner interactions with released remediation recommendations.';
+
+$string['privacy:metadata:local_outcomemap_remed_event:eventtype'] = 'The explicit learner action that occurred.';
+
+$string['privacy:metadata:local_outcomemap_remed_event:occurredat'] = 'When the explicit learner action occurred.';
+
+$string['privacy:metadata:local_outcomemap_remed_event:remediationid'] = 'The exact governed recommendation version that was opened.';
+
+$string['privacy:metadata:local_outcomemap_remed_event:resultid'] = 'The exact released outcome-result version that caused the recommendation.';
+
+$string['privacy:metadata:local_outcomemap_remed_event:userid'] = 'The learner who explicitly opened the recommendation.';
+
+$string['privacy:metadata:local_outcomemap_result'] = 'Versioned calculated outcome results for a learner and reporting scope.';
+
+$string['privacy:metadata:local_outcomemap_snapitem'] = 'Subject-level evidence and results retained in governed accreditation snapshots.';
+
+$string['privacy:metadata:result:scope'] = 'The course, assessment, outcome, or reporting-period scope of the result.';
+
+$string['privacy:metadata:result:score'] = 'The calculated numerator, denominator, percentage, and evidence count.';
+
+$string['privacy:metadata:result:state'] = 'The governed calculation state of the result.';
+
+$string['privacy:metadata:snapshot:payload'] = 'The exact frozen evidence, result, and calculation lineage for the referenced learner.';
+
+$string['privacy:metadata:snapshot:subjectref'] = 'A snapshot-specific pseudonymous reference derived for the learner.';
+
+$string['privacy:metadata:subjectkey:keyvalue'] = 'Random key material used to derive snapshot-specific subject references; it is destroyed on privacy erasure.';
+
+$string['privacy:metadata:subjectkey:legacyerased'] = 'Whether resolution of legacy site-secret snapshot references has been permanently blocked.';
+
+$string['privacy:metadata:subjectkey:userhash'] = 'A site-keyed one-way hash of the Moodle user identifier retained as an irreversible erasure marker.';
+
+$string['privacy:metadata:subjectkey:userid'] = 'The Moodle user identifier retained only while snapshot linkage is active; it is cleared on privacy erasure.';
+
+$string['privacy:metadata:time'] = 'The time associated with this record.';
+
+$string['privacy:metadata:userid'] = 'The Moodle user associated with this learner record.';
+
+$string['privacy:path:audit'] = 'Outcome mapping audit history';
+
+$string['privacy:path:course'] = 'Outcome evidence, results, and remediation engagement';
+
+$string['privacy:path:system'] = 'Governance and frozen accreditation records';
+
+$string['privacysecretunavailable'] = 'The privacy subject secret could not be initialised ({$a->detail}). Try again shortly.';
+
+$string['program'] = 'Program';
+
+$string['programcode_placeholder'] = 'e.g. MBA or SP-MKT';
+
+$string['programcoursememberships'] = 'Program-course memberships';
+
+$string['programform_subtitle'] = 'Choose the program type first, then enter the governed program details.';
+
+$string['programname_placeholder'] = 'e.g. Master of Business Administration';
+
+$string['programs_count'] = '{$a} programs';
+
+$string['programs_count_one'] = '1 program';
+
+$string['programs_courses'] = '{$a} catalog courses';
+
+$string['programs_courses_one'] = '1 catalog course';
+
+$string['programs_empty'] = 'No program definitions have been created.';
+
+$string['programs_filter_type'] = 'Filter programs by program type';
+
+$string['programs_frameworks'] = '{$a} outcome frameworks';
+
+$string['programs_frameworks_one'] = '1 outcome framework';
+
+$string['programs_group_graduate'] = 'Graduate degree programs';
+
+$string['programs_group_graduate_desc'] = 'Graduate-level degrees and certificates';
+
+$string['programs_group_specialization'] = 'Specializations';
+
+$string['programs_group_specialization_desc'] = 'Focused course series and certificate programs';
+
+$string['programs_group_undergraduate'] = 'Undergraduate degree programs';
+
+$string['programs_group_undergraduate_desc'] = 'Undergraduate-level degrees and certificates';
+
+$string['programs_heading'] = 'Programs';
+
+$string['programs_nodescription'] = 'No description provided.';
+
+$string['programs_noresults'] = 'No programs match the current search and program-type filter.';
+
+$string['programs_outcomes'] = '{$a} program outcomes';
+
+$string['programs_outcomes_action'] = 'Outcomes';
+
+$string['programs_outcomes_one'] = '1 program outcome';
+
+$string['programs_searchplaceholder'] = 'Search programs and codes…';
+
+$string['programs_specialization_help'] = 'Specializations are focused catalog-course series that can award a certificate; their outcome frameworks remain governed like other program frameworks.';
+
+$string['programs_statsline'] = '{$a->total} programs · {$a->graduate} graduate · {$a->undergraduate} undergraduate · {$a->specialization} specializations';
+
+$string['programs_subtitle'] = 'Degree and certificate programs grouped by program type.';
+
+$string['programtype'] = 'Program type';
+
+$string['programtype_graduate'] = 'Graduate degree';
+
+$string['programtype_graduate_desc'] = 'Graduate-level program built from graduate catalog courses.';
+
+$string['programtype_specialization'] = 'Specialization';
+
+$string['programtype_specialization_desc'] = 'A focused course series that may award a certificate on completion.';
+
+$string['programtype_undergraduate'] = 'Undergraduate degree';
+
+$string['programtype_undergraduate_desc'] = 'Undergraduate-level program built from undergraduate catalog courses.';
+
+$string['questionfilter_all'] = 'All';
+
+$string['questionfilter_assessed'] = 'Assessed only';
+
+$string['questionfilter_unmapped'] = 'Unmapped only';
+
+$string['questionmapping'] = 'Question mapping';
+
+$string['questionmapping_allquizzes'] = 'All quizzes';
+
+$string['questionmapping_apply'] = 'Apply to selected questions';
+
+$string['questionmapping_applyhint'] = 'Tick questions on the left, then choose the outcomes to apply. Random slots list the pool a draw can select from.';
+
+$string['questionmapping_applyunavailable'] = 'You do not have permission to map questions in this course, or no approved outcomes are available to apply.';
+
+$string['questionmapping_assessed'] = 'Assessed';
+
+$string['questionmapping_banks'] = 'Question bank:';
+
+$string['questionmapping_heading'] = 'Question outcome mappings';
+
+$string['questionmapping_mapped'] = 'Mapped';
+
+$string['questionmapping_maxmark'] = 'Max mark {$a}';
+
+$string['questionmapping_missingquestion'] = 'This slot\'s question no longer exists and cannot be mapped.';
+
+$string['questionmapping_needsqbank'] = 'Question outcome mapping requires the Outcome mapping question bank plugin (qbank_outcomemap) to be installed and enabled.';
+
+$string['questionmapping_nomatches'] = 'No questions match this filter.';
+
+$string['questionmapping_noquizzes'] = 'This course has no quizzes yet, so there are no questions to map.';
+
+$string['questionmapping_ofn'] = '{$a->count} of {$a->total}';
+
+$string['questionmapping_open'] = 'Open';
+
+$string['questionmapping_outcomestruncated'] = 'Showing {$a->shown} of {$a->total} outcomes available to this course. Use the filter above to reach the rest.';
+
+$string['questionmapping_pooltruncated'] = 'This pool is too large to list in full. Use the question bank to map the remaining questions.';
+
+$string['questionmapping_randomfrom'] = 'Random from “{$a}”';
+
+$string['questionmapping_search'] = 'Search questions';
+
+$string['questionmapping_searchplaceholder'] = 'Search questions…';
+
+$string['questionmapping_slotlabel'] = 'Slot {$a}';
+
+$string['questionmapping_slots'] = 'Slots';
+
+$string['questionmapping_slotswithrandom'] = '{$a->slots} ({$a->random} random)';
+
+$string['questionmapping_subtitle'] = 'Choose a quiz to see the exact question versions it uses and the outcomes mapped to them.';
+
+$string['questionmapping_subtitle_quiz'] = 'Select questions on the left, then apply outcomes on the right.';
+
+$string['questionmapping_weight'] = 'Assessed weight';
+
+$string['questionmapping_weighthelp'] = 'Required for the Assesses role, and applied to every selected question. A weight splits one question\'s marks across the outcomes that question assesses, so enter 1.0000000000 when the outcome is the only one each selected question assesses. It does not set how much a question counts towards the outcome overall — that comes from the question\'s maximum mark in the quiz.';
+
+$string['questionmapping_weightrequired'] = 'Enter an assessed weight before applying an Assesses mapping.';
+
+$string['questionversionmismatch'] = 'The question and question-version identifiers do not match the Moodle question bank.';
+
+$string['quickmap_courseoutcomes'] = 'Outcomes for this course';
+
+$string['quickmap_otheroutcomes'] = 'Other approved outcomes';
+
+$string['reason'] = 'Reason';
+
+$string['recordnotfound'] = 'The requested {$a->field} record was not found.';
+
+$string['relation_aligns_to'] = 'Aligns to';
+
+$string['relation_contributes_to'] = 'Contributes to';
+
+$string['relation_is_child_of'] = 'Is child of';
+
+$string['relation_related_to'] = 'Related to';
+
+$string['relation_replaced_by'] = 'Replaced by';
+
+$string['relations_aligns_to_short'] = 'relates to';
+
+$string['relations_count'] = '{$a} relation versions';
+
+$string['relations_count_one'] = '1 relation version';
+
+$string['relations_empty'] = 'No outcome relations have been created.';
+
+$string['relations_group_subtitle'] = 'Relationship: {$a}';
+
+$string['relations_group_title'] = '{$a->source} → {$a->target}';
+
+$string['relations_grouped'] = 'Grouped';
+
+$string['relations_heading'] = 'Outcome relations';
+
+$string['relations_matrix'] = 'Matrix';
+
+$string['relations_matrix_empty'] = 'Add a relation from {$a->source} to {$a->target}';
+
+$string['relations_matrix_existing'] = '{$a->source} to {$a->target}: {$a->status}, version {$a->version}';
+
+$string['relations_matrix_help'] = 'Select an empty cell to prefill a new draft relation. Existing cells open the permitted governed edit or new-version workflow.';
+
+$string['relations_matrix_legend'] = 'Relation status legend';
+
+$string['relations_newversion_short'] = 'New version';
+
+$string['relations_noresults'] = 'No relations match the current search.';
+
+$string['relations_searchplaceholder'] = 'Search outcomes, statements, and codes…';
+
+$string['relations_statsline'] = '{$a->active} active relationships · {$a->versions} versions · {$a->review} awaiting review · {$a->draft} draft';
+
+$string['relations_statsline_finalization'] = '{$a->active} active relationships · {$a->versions} versions · {$a->review} pending finalization · {$a->draft} draft';
+
+$string['relations_subtitle'] = 'Every governed relationship between outcome frameworks, grouped by source and target.';
+
+$string['relations_version_short'] = 'v{$a}';
+
+$string['relations_view'] = 'Outcome relation view';
+
+$string['relations_weight_short'] = 'weight {$a}';
+
+$string['relationtype'] = 'Relationship type';
+
+$string['releasemode_fully_graded'] = 'Immediately after every contributing attempt is fully graded';
+
+$string['releasemode_grade_visible'] = 'When every contributing Moodle quiz grade is visible';
+
+$string['releasemode_manual'] = 'Manual release after a separate authorized action';
+
+$string['releasemode_quiz_closed'] = 'When every contributing quiz closes for the learner';
+
+$string['releasemode_scheduled'] = 'At an instructor-selected timestamp';
+
+$string['remediation_heading'] = 'Outcome remediation';
+
+$string['remediation_recommended'] = 'Recommended';
+
+$string['remediation_required'] = 'Required';
+
+$string['remediationdisabled'] = 'Remediation is disabled for this site.';
+
+$string['remediationnotavailable'] = 'This recommendation is no longer released or accessible.';
+
+$string['remediationpurpose'] = 'Recommendation purpose';
+
+$string['remediationpurpose_practice'] = 'Practice';
+
+$string['remediationpurpose_reassessment'] = 'Reassessment';
+
+$string['remediationpurpose_review'] = 'Review';
+
+$string['remediationtargetinvalid'] = 'Select exactly one valid internal target or external URL.';
+
+$string['removemapping'] = 'Remove this draft mapping';
+
+$string['report_source_assessment_coverage'] = 'Assessment and question coverage';
+
+$string['report_source_audit_history'] = 'Mapping, calculation, and snapshot audit history';
+
+$string['report_source_course_aggregates'] = 'Course and cohort aggregates';
+
+$string['report_source_mapping_coverage'] = 'Mapping coverage';
+
+$string['report_source_outcome_definitions'] = 'Outcome definitions and versions';
+
+$string['report_source_program_aggregates'] = 'Program aggregates';
+
+$string['report_source_remediation_engagement'] = 'Remediation recommendations and engagement';
+
+$string['report_source_student_attainment'] = 'Student attainment';
+
+$string['reportbuildernav'] = 'Open custom reports';
+
+$string['reportcolumn_afterjson'] = 'After state';
+
+$string['reportcolumn_assessedcount'] = 'Assessed learners';
+
+$string['reportcolumn_assessmentid'] = 'Assessment ID';
+
+$string['reportcolumn_band'] = 'Band';
+
+$string['reportcolumn_beforejson'] = 'Before state';
+
+$string['reportcolumn_catalogcourseid'] = 'Catalog course ID';
+
+$string['reportcolumn_code'] = 'Code';
+
+$string['reportcolumn_cohortid'] = 'Cohort ID';
+
+$string['reportcolumn_engagementid'] = 'Engagement event ID';
+
+$string['reportcolumn_engagementtime'] = 'Engaged at';
+
+$string['reportcolumn_engagementtype'] = 'Engagement event';
+
+$string['reportcolumn_engagementuuid'] = 'Engagement event UUID';
+
+$string['reportcolumn_inputhash'] = 'Input hash';
+
+$string['reportcolumn_label'] = 'Label';
+
+$string['reportcolumn_lineagehash'] = 'Lineage hash';
+
+$string['reportcolumn_metcount'] = 'Learners meeting the criterion';
+
+$string['reportcolumn_moodlecourseid'] = 'Moodle course ID';
+
+$string['reportcolumn_numerator'] = 'Numerator';
+
+$string['reportcolumn_outcomeversionid'] = 'Outcome version ID';
+
+$string['reportcolumn_percentage'] = 'Percentage';
+
+$string['reportcolumn_periodcode'] = 'Period';
+
+$string['reportcolumn_programid'] = 'Program ID';
+
+$string['reportcolumn_recordid'] = 'Record ID';
+
+$string['reportcolumn_recordtype'] = 'Record type';
+
+$string['reportcolumn_resultid'] = 'Result ID';
+
+$string['reportcolumn_state'] = 'State';
+
+$string['reportcolumn_subjectcount'] = 'Subject count';
+
+$string['reportcolumn_suppressed'] = 'Suppressed';
+
+$string['reportcolumn_timecreated'] = 'Created';
+
+$string['reportentity_outcome'] = 'Outcome mapping record';
+
+$string['reports_existing'] = 'Custom reports using this source';
+
+$string['reports_heading'] = 'Outcome Report Builder sources';
+
+$string['reports_intro'] = 'Create custom reports from the governed outcome-mapping data sources. Each source independently enforces its required capability.';
+
+$string['reports_none'] = 'No custom report uses this source yet.';
+
+$string['reports_seedhint'] = 'One example report per source, and one example accreditation snapshot, can be seeded with the CLI script <code>local/outcomemap/cli/seed_examples.php</code>.';
+
+$string['reports_source'] = 'Data source';
+
+$string['requireapproval'] = 'Require independent approval';
+
+$string['requireapproval_desc'] = 'When enabled, a governed record must be approved by a different user with the approval capability. When disabled, submitting a record finalizes it immediately through the same validation and audit workflow using the editor\'s normal management or mapping capabilities. Existing pending records are not changed automatically, approved versions remain immutable, and copied question mappings remain drafts until explicitly submitted.';
+
+$string['requiredfield'] = 'The {$a->field} field is required.';
+
+$string['requiredremediation'] = 'Required recommendation';
+
+$string['requiremanualgrading'] = 'Require manual grading to be complete';
+
+$string['resultcolumn_bandstate'] = 'Band or state';
+
+$string['resultcolumn_calculation'] = 'Calculation summary';
+
+$string['resultcolumn_outcome'] = 'Course learning outcome';
+
+$string['resultcolumn_remediation'] = 'Review recommendations';
+
+$string['resultcolumn_result'] = 'Result';
+
+$string['resultcolumn_scope'] = 'Scope';
+
+$string['resultdetails'] = 'Show calculation summary';
+
+$string['resultintegrityfailure'] = 'Result lineage verification failed for {$a->field}: {$a->detail}';
+
+$string['resultpercentage'] = '{$a}%';
+
+$string['resultscope_assessment'] = 'Assessment';
+
+$string['resultscope_assessment_named'] = 'Assessment: {$a}';
+
+$string['resultscope_course'] = 'Course to date';
+
+$string['resultscope_quiz_attempt'] = 'Quiz attempt';
+
+$string['resultstate_calculated'] = 'Calculated';
+
+$string['resultstate_calculation_pending'] = 'Calculation pending';
+
+$string['resultstate_insufficient_evidence'] = 'Insufficient evidence';
+
+$string['resultstate_not_assessed'] = 'Not assessed';
+
+$string['resultstate_not_calculated'] = 'Not calculated';
+
+$string['resultstate_not_released'] = 'Not yet released';
+
+$string['resultstate_stale'] = 'Recalculation pending (stale)';
+
+$string['resultstate_superseded'] = 'Superseded';
+
+$string['retention_institutional_record_anonymised'] = 'Retain frozen institutional records with cryptographic subject de-linking';
+
+$string['retention_privacy_deletion'] = 'Cryptographically de-link subjects on approved privacy erasure (retain frozen rows)';
+
+$string['retentionbasis'] = 'Retention basis';
+
+$string['retire'] = 'Retire';
+
+$string['retired'] = 'The record was retired.';
+
+$string['rownumber'] = 'Row';
+
+$string['savechanges'] = 'Save changes';
+
+$string['saved'] = 'Changes saved.';
+
+$string['selfrelation'] = 'An outcome cannot relate to itself.';
+
+$string['shortstatement'] = 'Short statement';
+
+$string['siskey'] = 'SIS key';
+
+$string['snapreport_actor'] = '{$a->name}, {$a->time}';
+
+$string['snapreport_attainment_heading'] = 'Outcome attainment at program scope';
+
+$string['snapreport_attainment_sub'] = 'Every captured outcome rolled up to program scope, with the catalog courses that supplied the evidence. Two separate figures are reported: the pooled score is achieved points over possible points, while the attainment rate is the share of assessed learners who met the achievement criterion and is the figure compared against the aggregate benchmark.';
+
+$string['snapreport_awaitingfreeze'] = 'Awaiting independent freeze';
+
+$string['snapreport_band_below'] = 'below criterion';
+
+$string['snapreport_band_met'] = 'at or above criterion';
+
+$string['snapreport_band_near'] = 'within 10 points of criterion';
+
+$string['snapreport_benchmarksmet'] = '{$a->met} of {$a->judged} outcomes met their benchmark';
+
+$string['snapreport_capturedrows'] = 'Captured rows by object type';
+
+$string['snapreport_cohortnote'] = 'Cohort membership at the data freeze: {$a}';
+
+$string['snapreport_col_attainment'] = 'Pooled score';
+
+$string['snapreport_col_learners'] = 'Learners';
+
+$string['snapreport_col_outcome'] = 'Outcome';
+
+$string['snapreport_col_rate'] = 'Attainment rate';
+
+$string['snapreport_col_results'] = 'Results';
+
+$string['snapreport_col_statement'] = 'Statement';
+
+$string['snapreport_contribution'] = '{$a} contributing courses';
+
+$string['snapreport_contribution_one'] = '1 contributing course';
+
+$string['snapreport_contribution_suppressed'] = 'withheld: fewer learners than the suppression threshold';
+
+$string['snapreport_contribution_withheld'] = '{$a} withheld';
+
+$string['snapreport_correctionversion'] = '{$a->version} (correction — {$a->reason})';
+
+$string['snapreport_coursepassline'] = '{$a->passed} of {$a->graded} judged subjects passed';
+
+$string['snapreport_courses_heading'] = 'Course evidence contributing to this snapshot';
+
+$string['snapreport_courses_sub'] = 'Each course instance whose learner results were captured, and the outcomes it reports against.';
+
+$string['snapreport_draftstate'] = 'Draft · not yet frozen';
+
+$string['snapreport_evidence'] = 'Evidence';
+
+$string['snapreport_eyebrow'] = 'Accreditation evidence snapshot';
+
+$string['snapreport_filternote'] = 'Filtered view: {$a->selected} of {$a->population} subjects ({$a->filter}). These figures are pooled from the same frozen learner rows, restricted to those subjects — they are reproducible from this capture but they are not the snapshot\'s governed aggregate, no benchmark verdict is claimed for them, and exports are unaffected. Small-cell suppression still applies at the recorded threshold.';
+
+$string['snapreport_group_course'] = 'Course outcome';
+
+$string['snapreport_group_framework'] = 'Unit outcome';
+
+$string['snapreport_group_program'] = 'Program outcome';
+
+$string['snapreport_groupby'] = 'Group outcomes by';
+
+$string['snapreport_groupsub_course'] = 'Each captured outcome under the outcome one level up that it is approved to support.';
+
+$string['snapreport_groupsub_framework'] = 'Every captured outcome under its own framework, at the grain it was authored.';
+
+$string['snapreport_groupsub_program'] = 'Each captured outcome under the top-level outcome its approved alignment chain ends at.';
+
+$string['snapreport_groupunaligned'] = 'Not aligned to a higher-level outcome';
+
+$string['snapreport_groupunknown'] = 'Outcome outside this capture';
+
+$string['snapreport_heading'] = 'Accreditation snapshot';
+
+$string['snapreport_learners'] = '{$a} learners';
+
+$string['snapreport_learners_one'] = '1 learner';
+
+$string['snapreport_liverollup'] = 'This snapshot captured no alignment relationships, which happens when its evidence came from mappings made directly to these outcomes. The grouping below therefore reads the approved alignments in force at the data freeze ({$a}) from the live curriculum rather than from the capture, so it can shift if those alignments are revised. Every figure still comes from the frozen rows; only the grouping is drawn from outside them.';
+
+$string['snapreport_method_accreditation'] = 'Accreditation policy';
+
+$string['snapreport_method_algorithm'] = 'Algorithm and plugin version';
+
+$string['snapreport_method_algorithmvalue'] = 'Calculated by {$a->algo} running on plugin version {$a->plugin}.';
+
+$string['snapreport_method_attainment'] = 'Attainment measure';
+
+$string['snapreport_method_attainmentvalue'] = 'Attainment is achieved points over possible points across the mapped, approved assessments, rolled up from unit to course to program outcomes. {$a->count} calculation policy version(s) governed the captured results.';
+
+$string['snapreport_method_attainmentvalue_nopolicy'] = 'Attainment is achieved points over possible points across the mapped, approved assessments, rolled up from unit to course to program outcomes.';
+
+$string['snapreport_method_heading'] = 'How these figures were produced';
+
+$string['snapreport_method_policyvalue'] = '{$a->name}, version {$a->version}, in force since {$a->from}.';
+
+$string['snapreport_method_populationvalue'] = '{$a->source}. {$a->count} learners were in scope at the freeze on {$a->time}.';
+
+$string['snapreport_method_sub'] = 'The governing rules in force at the data freeze. These cannot change for a frozen snapshot.';
+
+$string['snapreport_method_suppression'] = 'Small-cell suppression';
+
+$string['snapreport_method_suppressionvalue'] = 'Any figure derived from fewer than {$a->threshold} learners is withheld. {$a->count} captured rows were suppressed.';
+
+$string['snapreport_method_suppressionvalue_none'] = 'Any figure derived from fewer than {$a->threshold} learners is withheld. No row in this snapshot required suppression.';
+
+$string['snapreport_nomanifest'] = 'Not yet sealed — the manifest hash is written when the snapshot is frozen';
+
+$string['snapreport_nooutcomes'] = 'This snapshot captured no program outcome aggregates.';
+
+$string['snapreport_notfrozen'] = 'Not yet frozen';
+
+$string['snapreport_originalversion'] = '{$a} (original — no correction versions issued)';
+
+$string['snapreport_outcomes'] = '{$a} outcomes reported';
+
+$string['snapreport_outcomes_one'] = '1 outcome reported';
+
+$string['snapreport_payloadshort'] = 'payload {$a}…';
+
+$string['snapreport_pooledscore'] = 'pooled {$a}%';
+
+$string['snapreport_programaggregate'] = 'Program aggregate';
+
+$string['snapreport_progress_failedany'] = 'Failed at least one course';
+
+$string['snapreport_progress_failedanynote'] = '{$a} of the population missed the criterion somewhere';
+
+$string['snapreport_progress_heading'] = 'How the population is progressing';
+
+$string['snapreport_progress_nocriterion'] = 'This snapshot recorded no achievement criterion, so no pass or fail judgement can be read out of it.';
+
+$string['snapreport_progress_passedall'] = 'Passing every course so far';
+
+$string['snapreport_progress_passedallnote'] = '{$a} of the population, judged in at least one course';
+
+$string['snapreport_progress_sub'] = 'Each subject is judged once per course by pooling their captured course-scope points and comparing the result to the achievement criterion the snapshot recorded. A course a subject holds no calculable result in is not counted against them, so the three figures below add up to the population.';
+
+$string['snapreport_progress_unjudged'] = 'Not yet judged';
+
+$string['snapreport_progress_unjudgednote'] = '{$a} of the population holds no calculable course result';
+
+$string['snapreport_progresscriterion'] = 'a course counts as passed at {$a}% or above';
+
+$string['snapreport_progresspopulation'] = '{$a->count} subjects in the population ({$a->source})';
+
+$string['snapreport_provenance_heading'] = 'Provenance and integrity record';
+
+$string['snapreport_provenance_sub'] = 'Hashes, captured row counts, and approvals — for technical verification';
+
+$string['snapreport_reference'] = 'Snapshot reference';
+
+$string['snapreport_results'] = '{$a} results';
+
+$string['snapreport_results_one'] = '1 result';
+
+$string['snapreport_rowsline'] = '{$a->total} rows captured in total · {$a->suppressed} suppressed · suppression threshold {$a->threshold}.';
+
+$string['snapreport_scope'] = '1 program · {$a} course instances';
+
+$string['snapreport_scope_one'] = '1 program · 1 course instance';
+
+$string['snapreport_shell'] = '{$a->shell} · period {$a->period}';
+
+$string['snapreport_shortref'] = '{$a->uuid}… v{$a->version}';
+
+$string['snapreport_shortversion'] = 'v{$a}';
+
+$string['snapreport_subjectmethod'] = 'Subject de-identification method';
+
+$string['snapreport_subjects_all'] = 'All subjects';
+
+$string['snapreport_subjects_failedany'] = 'Failed at least one';
+
+$string['snapreport_subjects_passedall'] = 'Passed every course';
+
+$string['snapreport_subjectsby'] = 'Subjects';
+
+$string['snapreport_subtitle'] = 'A frozen, verifiable record of outcome attainment for one program and reporting period.';
+
+$string['snapreport_unknownuser'] = 'Deleted user';
+
+$string['snapreport_verified'] = 'Frozen and integrity verified';
+
+$string['snapreport_versionline'] = 'Version {$a->version} · data frozen {$a->time} · reporting period {$a->period}';
+
+$string['snapreport_vsbenchmark'] = 'vs {$a}% benchmark';
+
+$string['snapshot'] = 'Snapshot';
+
+$string['snapshotcohort'] = 'Population cohort';
+
+$string['snapshotcohort_help'] = 'Select a cohort only when the effective approved accreditation policy uses the Moodle-cohort population source. Leave it empty for active enrolments.';
+
+$string['snapshotcohortnotallowed'] = 'A cohort must not be selected for the active-enrolment population source.';
+
+$string['snapshotcohortrequired'] = 'Select a Moodle cohort for the governed cohort population source.';
+
+$string['snapshotcorrectionrequired'] = 'A correction reason is required for a new version of a frozen snapshot.';
+
+$string['snapshotcoursesempty'] = 'No approved, confirmed course instances belong to this program and reporting period.';
+
+$string['snapshotcreated'] = 'The snapshot draft was created.';
+
+$string['snapshotcreatorcannotapprove'] = 'The snapshot creator cannot freeze the same snapshot.';
+
+$string['snapshotdeleted'] = 'The snapshot version and every row it captured were deleted.';
+
+$string['snapshotdeletesuperseded'] = 'A correction version builds on this snapshot version. Delete the newest version of the snapshot first.';
+
+$string['snapshotfrozen'] = 'The snapshot was verified and frozen.';
+
+$string['snapshotimmutable'] = 'Frozen snapshots cannot be modified.';
+
+$string['snapshotintegrityfailure'] = 'Snapshot integrity verification failed for {$a->field}: {$a->detail}';
+
+$string['snapshotitems_caption'] = 'Immutable snapshot rows grouped by type';
+
+$string['snapshotlist_caption'] = 'Accreditation snapshot versions';
+
+$string['snapshotnotes'] = 'Reviewer notes';
+
+$string['snapshotperiod'] = 'Reporting period code';
+
+$string['snapshotperiod_help'] = 'Reporting periods come from the course instances themselves, so only periods that resolve to approved, confirmed instances of the selected program are listed. A capture covers every course instance carrying the chosen period code — if each course carries its own code, a capture covers that one course.';
+
+$string['snapshotperiodcaptured'] = 'Reporting period "{$a->period}" is already captured by snapshot {$a->id} (version {$a->version}, {$a->status}). Creating another here would start a second, independent record of the same period, with nothing to say which one is authoritative. To revise the existing capture, use its Correct action instead.';
+
+$string['snapshotperiodcourse'] = '({$a} course)';
+
+$string['snapshotperiodcourses'] = '({$a} courses)';
+
+$string['snapshotperiodnonevalid'] = 'none — this program has no approved, confirmed course instances';
+
+$string['snapshotperiodunresolved'] = 'No approved, confirmed course instances of {$a->program} carry the reporting period "{$a->period}", so the capture would be empty. Periods available for this program: {$a->valid}.';
+
+$string['snapshotpolicychanged'] = 'The approved accreditation policy changed before capture. Start a new snapshot draft.';
+
+$string['snapshotpolicyrequired'] = 'An effective approved accreditation policy is required for this program. No suppression or population defaults are assumed.';
+
+$string['snapshotpopulationempty'] = 'The governed population is empty for the selected program, period, and population source.';
+
+$string['snapshotpreviousinvalid'] = 'Corrections must reference a frozen snapshot version.';
+
+$string['snapshots_correction'] = 'Correction';
+
+$string['snapshots_empty'] = 'No accreditation snapshot has been captured yet.';
+
+$string['snapshots_heading'] = 'Accreditation snapshots';
+
+$string['snapshots_intro'] = 'Capture a governed reporting population and immutable calculation lineage. Drafts require independent review before freezing.';
+
+$string['snapshots_noresults'] = 'No snapshots match the current search.';
+
+$string['snapshots_openreport'] = 'Open report';
+
+$string['snapshots_periodlabel'] = 'Reporting period';
+
+$string['snapshots_rowcount'] = '{$a} captured rows';
+
+$string['snapshots_searchplaceholder'] = 'Search programs, periods, and references…';
+
+$string['snapshots_statsline'] = '{$a->total} snapshot versions across {$a->lineages} snapshots · {$a->frozen} frozen · {$a->draft} draft';
+
+$string['snapshots_subtitle'] = 'Frozen, verifiable records of outcome attainment, grouped by the snapshot they correct.';
+
+$string['snapshots_versioncount'] = '{$a} versions';
+
+$string['snapshots_versioncount_one'] = '1 version';
+
+$string['snapshotstatus_draft'] = 'Draft';
+
+$string['snapshotstatus_frozen'] = 'Frozen';
+
+$string['snapshotsubjecthashmethod'] = 'Snapshot-specific HMAC-SHA-256 using erasable per-user key material';
+
+$string['snapshotuuid'] = 'Snapshot UUID';
+
+$string['snapshotversion'] = 'Snapshot version';
+
+$string['snapshotversionconflict'] = 'A newer correction version already exists. Reload the snapshot list.';
+
+$string['sourceoutcome'] = 'Source outcome';
+
+$string['sr_action_below'] = 'This skill is at {$a->score}, below the {$a->expected}% mark.';
+
+$string['sr_action_hidden'] = '{$a->skill} sits at {$a->skillscore} overall, but the unit outcome "{$a->unit}" inside it is at {$a->unitscore}. The average hides it. Worth revisiting, because a strong average will not protect you if that specific thing comes up again.';
+
+$string['sr_action_hidden_title'] = 'One weak spot inside {$a}';
+
+$string['sr_action_links'] = 'Go back to';
+
+$string['sr_action_nounits'] = 'None of its {$a} unit outcomes has been measured, so this figure rests entirely on work counted at course level. Expect it to move as unit results come in.';
+
+$string['sr_action_soleroute'] = 'This is also the one place a low score reaches your degree: it is the only route this course offers to "{$a->name}", which sits at {$a->score}.';
+
+$string['sr_action_someunits'] = '{$a->unmeasured} of its {$a->total} unit outcomes are still unmeasured, so this figure will keep shifting.';
+
+$string['sr_action_weakunits'] = 'The weakness is specific: {$a->count} of the unit outcomes underneath it are below the mark, starting with {$a->names}.';
+
+$string['sr_actions_intro'] = 'These {$a} things are holding your results down. Work through them in this order.';
+
+$string['sr_actions_intro_one'] = 'One thing is holding your results down.';
+
+$string['sr_actions_title'] = 'Start here';
+
+$string['sr_actionstep'] = 'Step {$a}';
+
+$string['sr_andmore'] = '{$a->names}, and {$a->count} more';
+
+$string['sr_bar_mark'] = '{$a}% expected';
+
+$string['sr_blank_awaiting'] = 'Your work here is in, but the results have not been published to you yet. Nothing in this group needs action from you.';
+
+$string['sr_blank_awaiting_next'] = 'Ask your instructor if these stay blank after an assessment has closed.';
+
+$string['sr_blank_awaiting_title'] = 'Waiting to be published';
+
+$string['sr_blank_nowork'] = 'You have not completed enough graded work in these areas for a result to be calculated. They are not counted as zero and they are not dragging your scores down — there is simply nothing to measure yet.';
+
+$string['sr_blank_nowork_next'] = 'These fill in as you work through the course. Nothing to do but keep going.';
+
+$string['sr_blank_nowork_title'] = 'No graded work yet';
+
+$string['sr_blanks_intro'] = 'Most blank rows on this page are one of two things. Neither counts against you.';
+
+$string['sr_blanks_title'] = 'Not a grade — just not measured yet';
+
+$string['sr_degree_below'] = 'Below the {$a}% mark. The course skills feeding it are where this gets decided.';
+
+$string['sr_degree_below_sole'] = 'Below the mark, and this course decides it through one skill only — "{$a}". Nothing else here offsets it.';
+
+$string['sr_degree_fedby'] = 'Fed by:';
+
+$string['sr_degree_intro'] = 'Your degree makes {$a} promises about what you can do. Each of your course skills feeds one of them, so a gap here shows up there.';
+
+$string['sr_degree_none'] = 'Not measured yet against the {$a}% mark.';
+
+$string['sr_degree_ontrack'] = 'Past the {$a}% mark. Lifting your weaker skills would move this comfortably clear.';
+
+$string['sr_degree_plain'] = 'Fed by {$a} of your course skills.';
+
+$string['sr_degree_strong'] = 'Well clear of the {$a}% mark. This course is contributing strongly to this promise.';
+
+$string['sr_degree_title'] = 'How this course counts toward your degree';
+
+$string['sr_degree_unmeasured'] = 'Not measured yet. This fills in once the course skills feeding it have results.';
+
+$string['sr_evidence'] = 'Scored across {$a} graded items';
+
+$string['sr_evidence_one'] = 'Scored on a single graded item';
+
+$string['sr_explain_awaiting'] = '{$a} are waiting on your instructor.';
+
+$string['sr_explain_direct'] = 'This skill is scored directly from your graded work rather than from separate unit outcomes.';
+
+$string['sr_explain_measured'] = '{$a->measured} of {$a->total} unit outcomes here have results, so your {$a->score} will keep shifting until the rest are measured.';
+
+$string['sr_explain_nonemeasured'] = 'None of the {$a->total} unit outcomes here has a result yet, so your {$a->score} comes entirely from graded work counted at course level. Expect this figure to move as unit results come in.';
+
+$string['sr_explain_nowork'] = '{$a} have no graded work yet.';
+
+$string['sr_faq_changed_a'] = 'Each skill is recalculated as new graded work comes in. An early score rests on very few items, so it moves a lot — a skill measured on three items can swing thirty points on one quiz.';
+
+$string['sr_faq_changed_q'] = 'Why did a score change?';
+
+$string['sr_faq_disagree_a'] = 'Open the skill to see which unit outcomes it was built from, then raise that specific outcome with your instructor. It is far more actionable than querying the overall figure.';
+
+$string['sr_faq_disagree_q'] = 'What if I disagree with a result?';
+
+$string['sr_faq_grade_a'] = 'No. This shows which skills you have demonstrated; your grade is on the Grades page. You can be on track on most skills and still need more points overall to complete the course.';
+
+$string['sr_faq_grade_q'] = 'Is this my grade?';
+
+$string['sr_faq_hundred_a'] = 'A skill only counts the questions mapped to it. Questions you missed may have been counted against a different skill.';
+
+$string['sr_faq_hundred_q'] = 'Why is a skill at 100% when I got questions wrong?';
+
+$string['sr_faq_record_a'] = 'No. These are a running picture of where you are now, not a permanent mark. Later work replaces the picture.';
+
+$string['sr_faq_record_q'] = 'Does a low score stay on my record?';
+
+$string['sr_faq_title'] = 'Questions you might have';
+
+$string['sr_filter_all'] = 'All {$a}';
+
+$string['sr_filter_below'] = 'Needs work ({$a})';
+
+$string['sr_filter_empty'] = 'No skills match that filter.';
+
+$string['sr_filter_legend'] = 'Show only';
+
+$string['sr_filter_ontrack'] = 'On track ({$a})';
+
+$string['sr_filter_strong'] = 'Strong ({$a})';
+
+$string['sr_filter_unmeasured'] = 'Not measured ({$a})';
+
+$string['sr_footnote'] = 'Calculated {$a} from your graded work in this course to date. Figures cover this course only and update automatically as more work is graded.';
+
+$string['sr_glossary_degree_def'] = 'One of the things your whole programme claims you can do. Several courses feed each one. Formally, a program learning outcome.';
+
+$string['sr_glossary_degree_term'] = 'Degree promise';
+
+$string['sr_glossary_mark_def'] = 'The level this course treats as having demonstrated a skill. Formally, "meets expectations".';
+
+$string['sr_glossary_mark_term'] = 'The {$a}% mark';
+
+$string['sr_glossary_skill_def'] = 'One of the things this course promises you will be able to do. Formally, a course learning outcome.';
+
+$string['sr_glossary_skill_term'] = 'Course skill';
+
+$string['sr_glossary_strong_def'] = '{$a}% or above. Formally, "exceeds expectations".';
+
+$string['sr_glossary_strong_term'] = 'Strong';
+
+$string['sr_glossary_title'] = 'What the words mean';
+
+$string['sr_glossary_unit_def'] = 'A smaller, more specific step. Several of these build up to one course skill. Formally, a unit learning outcome.';
+
+$string['sr_glossary_unit_term'] = 'Unit outcome';
+
+$string['sr_hero_blanks'] = 'A blank row is not a low score. It is either work that has not been graded yet, or a result your instructor has not published. Both are listed separately further down so you can tell them apart at a glance.';
+
+$string['sr_hero_lede'] = 'This course asks you to demonstrate {$a->total} skills. You have cleared the {$a->expectedpct}% mark on {$a->ontrack} of them, and {$a->strong} of those reach {$a->strongpct}% or above. {$a->below} sit below the mark, and working out what they have in common is the useful part of this page.';
+
+$string['sr_hero_lede_none'] = 'This course asks you to demonstrate {$a->total} skills. None of them can be scored yet, which is normal early in a course: a skill needs a certain amount of graded work behind it before a figure means anything.';
+
+$string['sr_hero_lede_nostrong'] = 'This course asks you to demonstrate {$a->total} skills. You have cleared the {$a->expectedpct}% mark on {$a->ontrack} of them, and {$a->below} sit below it. Working out what those have in common is the useful part of this page.';
+
+$string['sr_hero_lede_plain'] = 'This course asks you to demonstrate {$a->total} skills. Your score for each one is listed below. This course has no achievement bands set, so the page reports your figures without judging them against a mark.';
+
+$string['sr_hero_title'] = 'You are on track in {$a->ontrack} of your {$a->total} course skills';
+
+$string['sr_hero_title_none'] = 'None of your {$a->total} course skills has a result yet';
+
+$string['sr_hero_title_partial'] = 'You are on track in {$a->ontrack} of the {$a->measured} course skills measured so far';
+
+$string['sr_hero_title_plain'] = 'You have results in {$a->measured} of your {$a->total} course skills';
+
+$string['sr_listsep'] = ', ';
+
+$string['sr_noscore'] = 'Not measured yet';
+
+$string['sr_showdetail'] = 'What is behind this figure';
+
+$string['sr_skills_intro'] = 'Your score against the {$a}% mark this course expects. Open a skill to see the unit-by-unit detail behind it.';
+
+$string['sr_skills_intro_plain'] = 'Your score for each skill. Open a skill to see the unit-by-unit detail behind it.';
+
+$string['sr_skills_title'] = 'Every skill in this course';
+
+$string['sr_standing_below'] = 'Below the {$a}% mark';
+
+$string['sr_standing_note'] = 'These are results so far, not a final grade. Your course grade is separate, and clearing {$a}% on a skill is a floor rather than a finish line.';
+
+$string['sr_standing_ontrack'] = 'Comfortably past the {$a}% mark';
+
+$string['sr_standing_strong'] = 'At {$a}% or above';
+
+$string['sr_standing_title'] = 'Your {$a} course skills';
+
+$string['sr_standing_unmeasured'] = 'Not measured yet';
+
+$string['sr_strengths_intro'] = 'Worth knowing, and worth saying out loud in an interview.';
+
+$string['sr_strengths_title'] = 'What you are strong at';
+
+$string['sr_unit_awaiting'] = 'Result not published yet';
+
+$string['sr_unit_below'] = '{$a} — below the mark';
+
+$string['sr_unit_nowork'] = 'No graded work here yet';
+
+$string['sr_unit_ontrack'] = '{$a} — on track';
+
+$string['sr_units'] = 'The {$a} unit outcomes behind this skill';
+
+$string['sr_units_one'] = 'The one unit outcome behind this skill';
+
+$string['statement'] = 'Statement';
+
+$string['status'] = 'Status';
+
+$string['status_approved'] = 'Approved';
+
+$string['status_draft'] = 'Draft';
+
+$string['status_finalized'] = 'Finalized';
+
+$string['status_needs_review'] = 'Needs review';
+
+$string['status_pending'] = 'Pending';
+
+$string['status_retired'] = 'Retired';
+
+$string['submitreview'] = 'Submit for review';
+
+$string['submittedforreview'] = 'The record was submitted for review.';
+
+$string['suppressionthreshold'] = 'Suppression threshold';
+
+$string['target'] = 'Target';
+
+$string['target_course_module'] = 'Course activity or resource';
+
+$string['target_course_section'] = 'Course section';
+
+$string['target_external_url'] = 'External URL';
+
+$string['targetcoursemismatch'] = 'The selected target does not belong to the mapped course instance.';
+
+$string['targetoutcome'] = 'Target outcome';
+
+$string['targettype'] = 'Target type';
+
+$string['taskreconcile'] = 'Reconcile outcome evidence and stale results';
+
+$string['timecreated'] = 'Created';
+
+$string['timemodified'] = 'Modified';
+
+$string['title'] = 'Title';
+
+$string['unknownscope'] = 'Unavailable scope (#{$a})';
+
+$string['uuid'] = 'UUID';
+
+$string['valid'] = 'Valid';
+
+$string['validation'] = 'Validation';
+
+$string['version'] = 'Version';
+
+$string['view'] = 'View';
+
+$string['weight'] = 'Contribution weight';
+
+$string['weightedpossiblepoints'] = 'Weighted possible points';
+
+$string['weightnotallowed'] = 'Only contributes-to relationships may have a weight.';
+
+$string['weightnotallowedforrole'] = 'Only assesses mappings carry an evidence weight; the "{$a->detail}" role must not have one.';
+
+$string['weightrequired'] = 'A contributes-to relationship requires a positive decimal weight.';
+
+$string['wholesection'] = 'Whole section: {$a}';
