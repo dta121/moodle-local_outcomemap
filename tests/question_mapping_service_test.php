@@ -977,9 +977,6 @@ final class question_mapping_service_test extends \advanced_testcase {
                 'effectivefrom' => self::EFFECTIVEFROM,
             ]);
         }
-        // Autosubmit reports each row it has to leave as a draft while the set's
-        // weights are still short of 1.0, so three notices are expected here.
-        $this->assertDebuggingCalledCount(3);
         foreach ($ids as $id) {
             $this->assertSame(workflow::APPROVED, question_mapping_service::get($id)->status);
         }
@@ -1070,6 +1067,7 @@ final class question_mapping_service_test extends \advanced_testcase {
         $this->resetAfterTest(true);
         $this->setAdminUser();
         set_config('requireapproval', 0, 'local_outcomemap');
+        set_config('autosubmitquestionmappings', 0, 'local_outcomemap');
         $reviewer = $this->create_reviewer();
         $itemverids = $this->create_outcomes($reviewer, ['CLO1']);
         $question = $this->create_question();

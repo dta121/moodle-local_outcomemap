@@ -93,10 +93,9 @@ final class question_mapping_service extends base_service {
         }
         try {
             self::submit_for_review($id, $reason);
-        } catch (validation_exception $e) {
+        } catch (validation_exception) {
             // The set is not complete yet; the mapping stays a draft.
-            debugging('local_outcomemap: question mapping ' . $id . ' left as a draft by autosubmit: '
-                . $e->getMessage(), DEBUG_DEVELOPER);
+            return;
         }
     }
 

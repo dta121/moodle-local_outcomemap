@@ -14,7 +14,7 @@ Feature: Site administrators govern calculation policies
 
   Scenario: A calculation policy is drafted, edited, and independently approved
     Given I log in as "admin"
-    And I navigate to "Plugins > Learning outcome mapping > Calculation policies" in site administration
+    And I navigate to "Learning outcome mapping > Calculation policies" in site administration
     And I click on "Add policy" "button"
     And I set the following fields to these values:
       | Name                              | Institution calculation policy |
@@ -33,8 +33,8 @@ Feature: Site administrators govern calculation policies
     And I click on "Submit for review" "link" in the "Institution calculation policy 2026" "table_row"
     And I log out
     And I log in as "reviewer"
-    And I navigate to "Plugins > Learning outcome mapping > Approval queue" in site administration
+    And I navigate to "Learning outcome mapping > Approval queue" in site administration
     And I click on "Approve" "link" in the "Institution calculation policy 2026" "table_row"
     And I press "Continue"
-    And I navigate to "Plugins > Learning outcome mapping > Calculation policies" in site administration
+    And I navigate to "Learning outcome mapping > Calculation policies" in site administration
     Then I should see "Approved" in the "Institution calculation policy 2026" "table_row"

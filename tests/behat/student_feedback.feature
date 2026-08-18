@@ -42,7 +42,7 @@ Feature: Students see governed outcome feedback and accessible remediation
     Given the M5 learner "student1" has completed the mapped quiz in "MBA614" with feedback "manual"
     And I log in as "manager1"
     And I am on "MBA614" course homepage
-    When I click on "Manual feedback release" "link"
+    When I am on the "MBA614" course "Manual feedback release" outcome page
     Then I should see "M5 manual feedback release"
     And I should see "Not manually released"
     When I click on "Release learner feedback now" "link"

@@ -20,7 +20,7 @@ Feature: Governed accreditation reporting
 
   Scenario: A snapshot creator and independent reviewer complete the export workflow
     Given I log in as "admin"
-    And I navigate to "Plugins > Learning outcome mapping > Accreditation snapshots" in site administration
+    And I navigate to "Learning outcome mapping > Accreditation snapshots" in site administration
     And I press "Create snapshot draft"
     And I set the following fields to these values:
       | Program               | M6-PROGRAM — M6 reporting program                     |
@@ -32,7 +32,7 @@ Feature: Governed accreditation reporting
     And I should see "Draft" in the "M6-PROGRAM" "table_row"
     And I log out
     And I log in as "reviewer"
-    And I navigate to "Plugins > Learning outcome mapping > Accreditation snapshots" in site administration
+    And I navigate to "Learning outcome mapping > Accreditation snapshots" in site administration
     And I click on "Freeze snapshot" "link" in the "M6-PROGRAM" "table_row"
     And I press "Continue"
     Then I should see "The snapshot was verified and frozen."
@@ -42,14 +42,14 @@ Feature: Governed accreditation reporting
     And I should see "Suppression threshold"
     And I should see "Payload hash"
     And I should see "Manifest hash"
-    And I should see "Canonical JSON package" "button"
-    And I should see "Summary CSV" "button"
-    And I should see "Include de-identified subject evidence" "button"
+    And the "Canonical JSON package" "button" should exist
+    And the "Summary CSV" "button" should exist
+    And the "Include de-identified subject evidence" "button" should exist
     And the latest frozen accreditation export for "reviewer" reconstructs "85.0000000000" percent
 
   Scenario: Authorized staff can discover every governed Report Builder source
     Given I log in as "reviewer"
-    When I navigate to "Plugins > Learning outcome mapping > Outcome reports" in site administration
+    When I navigate to "Learning outcome mapping > Outcome reports" in site administration
     Then I should see "Outcome definitions and versions"
     And I should see "Mapping coverage"
     And I should see "Assessment and question coverage"
@@ -58,4 +58,4 @@ Feature: Governed accreditation reporting
     And I should see "Program aggregates"
     And I should see "Remediation recommendations and engagement"
     And I should see "Mapping, calculation, and snapshot audit history"
-    And I should see "Open custom reports" "button"
+    And the "Open custom reports" "button" should exist

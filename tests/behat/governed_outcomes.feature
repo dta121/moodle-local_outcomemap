@@ -14,7 +14,7 @@ Feature: Administrators govern frameworks and outcome versions
 
   Scenario: A framework and outcome are created and independently approved
     Given I log in as "admin"
-    And I navigate to "Plugins > Learning outcome mapping > Frameworks and outcomes" in site administration
+    And I navigate to "Learning outcome mapping > Frameworks and outcomes" in site administration
     And I click on "Add framework" "button"
     And I set the following fields to these values:
       | Code       | MBA614          |
@@ -24,12 +24,12 @@ Feature: Administrators govern frameworks and outcome versions
     And I click on "Submit for review" "link" in the "MBA614" "table_row"
     And I log out
     And I log in as "reviewer"
-    And I navigate to "Plugins > Learning outcome mapping > Approval queue" in site administration
+    And I navigate to "Learning outcome mapping > Approval queue" in site administration
     And I click on "Approve" "link" in the "MBA614" "table_row"
     And I press "Continue"
     And I log out
     And I log in as "admin"
-    And I navigate to "Plugins > Learning outcome mapping > Frameworks and outcomes" in site administration
+    And I navigate to "Learning outcome mapping > Frameworks and outcomes" in site administration
     And I click on "Add outcome" "button"
     And I set the following fields to these values:
       | Framework      | MBA614                              |
@@ -40,16 +40,16 @@ Feature: Administrators govern frameworks and outcome versions
     And I click on "Submit for review" "link" in the "CLO1" "table_row"
     And I log out
     And I log in as "reviewer"
-    And I navigate to "Plugins > Learning outcome mapping > Approval queue" in site administration
+    And I navigate to "Learning outcome mapping > Approval queue" in site administration
     And I click on "Approve" "link" in the "CLO1" "table_row"
     And I press "Continue"
     Then I should see "The record was approved."
-    And I navigate to "Plugins > Learning outcome mapping > Frameworks and outcomes" in site administration
+    And I navigate to "Learning outcome mapping > Frameworks and outcomes" in site administration
     And I should see "Approved" in the "CLO1" "table_row"
 
   Scenario: An administrator creates a typed program with a generic credential
     Given I log in as "admin"
-    And I navigate to "Plugins > Learning outcome mapping > Programs" in site administration
+    And I navigate to "Learning outcome mapping > Programs" in site administration
     When I click on "Add program" "link"
     Then I should see "Graduate degree"
     And I should see "Undergraduate degree"

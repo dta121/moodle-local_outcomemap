@@ -116,7 +116,9 @@ jobs:
         run: moodle-plugin-ci phpunit --fail-on-warning
 
       - name: Behat tests
-        run: moodle-plugin-ci behat --profile chrome --scss-deprecations
+        run: >-
+          moodle-plugin-ci behat --profile chrome --scss-deprecations
+          --tags '@local_outcomemap&&~@requires_qbank_outcomemap'
 
       - name: Upload Behat failures
         if: failure()

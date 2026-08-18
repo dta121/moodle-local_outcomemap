@@ -707,6 +707,32 @@ class behat_local_outcomemap extends behat_base {
     }
 
     /**
+     * Opens one of the plugin's nested course outcome pages directly.
+     *
+     * Nested course-navigation children are not present in Moodle's non-JavaScript
+     * DOM, so acceptance tests use the same canonical URL the navigation exposes.
+     *
+     * @When /^I am on the "([^"]+)" course "([^"]+)" outcome page$/
+     * @param string $courseshortname Moodle course shortname.
+     * @param string $pagelabel Human-readable outcome page label.
+     */
+    public function i_am_on_the_course_outcome_page(string $courseshortname, string $pagelabel): void {
+        global $DB;
+        $pages = [
+            'Content mappings' => 'contentmapping',
+            'Remediation' => 'remediation',
+            'Manual feedback release' => 'manualrelease',
+        ];
+        if (!isset($pages[$pagelabel])) {
+            throw new \InvalidArgumentException("Unknown course outcome page: {$pagelabel}");
+        }
+        $courseid = (int) $DB->get_field('course', 'id', ['shortname' => $courseshortname], MUST_EXIST);
+        $this->execute('behat_general::i_visit', [
+            new moodle_url('/local/outcomemap/' . $pages[$pagelabel] . '.php', ['courseid' => $courseid]),
+        ]);
+    }
+
+    /**
      * Opens the course question mapping page already drilled into one quiz.
      *
      * @When /^I am on the "([^"]+)" course question mapping page for quiz "([^"]+)"$/

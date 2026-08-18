@@ -29,19 +29,19 @@ Feature: Course staff map content to governed outcome versions
   Scenario: Definition readers do not see mapping mutation controls
     Given I log in as "readonly"
     And I am on "Strategic Leadership" course homepage
-    When I click on "Content mappings" "link"
+    When I am on the "MBA614" course "Content mappings" outcome page
     Then I should see "Course content mappings"
     And "Add content mapping" "button" should not exist
     And "Submit for review" "button" should not exist
     When I am on "Strategic Leadership" course homepage
-    And I click on "Remediation" "link"
+    And I am on the "MBA614" course "Remediation" outcome page
     Then I should see "Outcome remediation"
     And "Add remediation recommendation" "button" should not exist
     And "Submit for review" "button" should not exist
 
   Scenario: An activity mapping is drafted and independently approved
     Given I log in as "admin"
-    And I navigate to "Plugins > Learning outcome mapping > Curriculum" in site administration
+    And I navigate to "Learning outcome mapping > Curriculum" in site administration
     And I click on "Add catalog course" "link"
     And I set the following fields to these values:
       | Code | MBA614               |
@@ -56,12 +56,12 @@ Feature: Course staff map content to governed outcome versions
     And I click on "Submit for review" "link" in the ".lom-instance-row" "css_element"
     And I log out
     And I log in as "reviewer"
-    And I navigate to "Plugins > Learning outcome mapping > Approval queue" in site administration
+    And I navigate to "Learning outcome mapping > Approval queue" in site administration
     And I click on "Approve" "link" in the "MBA614 / 2026-T1" "table_row"
     And I press "Continue"
     And I log out
     And I log in as "admin"
-    And I navigate to "Plugins > Learning outcome mapping > Frameworks and outcomes" in site administration
+    And I navigate to "Learning outcome mapping > Frameworks and outcomes" in site administration
     And I click on "Add framework" "button"
     And I set the following fields to these values:
       | Code       | MBA614-FW          |
@@ -71,12 +71,12 @@ Feature: Course staff map content to governed outcome versions
     And I click on "Submit for review" "link" in the "MBA614-FW" "table_row"
     And I log out
     And I log in as "reviewer"
-    And I navigate to "Plugins > Learning outcome mapping > Approval queue" in site administration
+    And I navigate to "Learning outcome mapping > Approval queue" in site administration
     And I click on "Approve" "link" in the "MBA614-FW" "table_row"
     And I press "Continue"
     And I log out
     And I log in as "admin"
-    And I navigate to "Plugins > Learning outcome mapping > Frameworks and outcomes" in site administration
+    And I navigate to "Learning outcome mapping > Frameworks and outcomes" in site administration
     And I click on "Add outcome" "button"
     And I set the following fields to these values:
       | Framework      | MBA614-FW                         |
@@ -87,13 +87,13 @@ Feature: Course staff map content to governed outcome versions
     And I click on "Submit for review" "link" in the "CLO1" "table_row"
     And I log out
     And I log in as "reviewer"
-    And I navigate to "Plugins > Learning outcome mapping > Approval queue" in site administration
+    And I navigate to "Learning outcome mapping > Approval queue" in site administration
     And I click on "Approve" "link" in the "CLO1" "table_row"
     And I press "Continue"
     And I log out
     And I log in as "admin"
     And I am on "Strategic Leadership" course homepage
-    And I click on "Content mappings" "link"
+    And I am on the "MBA614" course "Content mappings" outcome page
     And I click on "Add content mapping" "button"
     And I set the following fields to these values:
       | Course instance            | 2026-T1                 |
@@ -106,7 +106,7 @@ Feature: Course staff map content to governed outcome versions
     And I click on "Submit for review" "button" in the "Evidence workshop" "table_row"
     And I log out
     And I log in as "reviewer"
-    And I navigate to "Plugins > Learning outcome mapping > Approval queue" in site administration
+    And I navigate to "Learning outcome mapping > Approval queue" in site administration
     And I click on "Approve" "link" in the "MBA614-FW.CLO1 / assesses" "table_row"
     And I press "Continue"
     Then I should see "The record was approved."

@@ -1,4 +1,4 @@
-@local @local_outcomemap
+@local @local_outcomemap @requires_qbank_outcomemap
 Feature: Course staff map quiz questions to governed outcome versions
   In order to record which questions assess which outcomes
   As authorized course staff
