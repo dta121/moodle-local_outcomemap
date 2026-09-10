@@ -309,6 +309,179 @@ final class question_mapping_service extends base_service {
     }
 
     /**
+     * End approved mappings at a stated moment.
+     *
+     * An approved mapping is immutable and a later version may not overlap it,
+     * so an open-ended mapping has no governed way to stop applying — which is
+     * what removing an outcome from a question means once attempts exist.
+     * Ending it records the moment it ceased to govern; evidence already
+     * attributed to it stands for the attempts it covered, and results built
+     * from later attempts are marked stale for recalculation. A reason is
+     * mandatory and every row is audited.
+     *
+     * Assessed sets are ended whole: after the end date, the mappings that
+     * remain in force on each question version must still total exactly one,
+     * or nothing at all, so a partial removal cannot leave a question whose
+     * marks are only partly attributed.
+     *
+     * @param int[] $ids Approved mapping record IDs to end together.
+     * @param int $effectiveto Moment from which the mappings no longer apply.
+     * @param string $reason Why they stop applying.
+     * @return int Number of mappings ended.
+     */
+    public static function end_mappings(array $ids, int $effectiveto, string $reason): int {
+        global $DB, $USER;
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new validation_exception('requiredfield', 'reason');
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+        if (!$ids) {
+            return 0;
+        }
+        $records = [];
+        $questionids = [];
+        foreach ($ids as $id) {
+            $record = self::get_required(self::TABLE, $id, 'question_mapping');
+            if ($record->status !== workflow::APPROVED) {
+                throw new validation_exception('invalidtransition', 'status', $record->status . ':end');
+            }
+            if ($record->effectiveto !== null) {
+                throw new validation_exception('mappingalreadyended', 'effectiveto', $id);
+            }
+            $records[$id] = $record;
+            $questionids[(int) $record->questionid] = (int) $record->questionid;
+        }
+        $locks = self::acquire_bulk_locks(array_values($questionids));
+        try {
+            $ended = [];
+            $assessedbyversion = [];
+            foreach ($records as $id => $before) {
+                self::require_mutation_capabilities((int) $before->questionversionid, (int) $before->questionid);
+                effective_dates::validate((int) $before->effectivefrom, $effectiveto);
+                $after = clone $before;
+                $after->effectiveto = $effectiveto;
+                $after->timemodified = time();
+                $ended[$id] = $after;
+                if ($after->role === content_mapping_service::ROLE_ASSESSES) {
+                    $assessedbyversion[(int) $after->questionversionid][$id] = $after;
+                }
+            }
+            foreach ($assessedbyversion as $questionversionid => $batch) {
+                self::require_remaining_assessed_total($questionversionid, $batch, $effectiveto);
+            }
+            $actorid = (int) $USER->id;
+            $transaction = $DB->start_delegated_transaction();
+            try {
+                foreach ($ended as $id => $after) {
+                    $DB->update_record(self::TABLE, $after);
+                    audit_writer::write(
+                        'end',
+                        'question_mapping',
+                        $id,
+                        $after->mappinguuid,
+                        $records[$id],
+                        $after,
+                        $reason,
+                        context_resolver::for_question_version((int) $after->questionversionid),
+                        $actorid
+                    );
+                }
+                foreach (array_keys($assessedbyversion) as $questionversionid) {
+                    calculation_service::mark_stale_for_question_version((int) $questionversionid);
+                }
+                $transaction->allow_commit();
+            } catch (\Throwable $e) {
+                self::rollback($transaction, $e);
+            }
+            return count($ended);
+        } finally {
+            foreach (array_reverse($locks) as $lock) {
+                $lock->release();
+            }
+        }
+    }
+
+    /**
+     * End every approved mapping in force on some question versions and drop their drafts.
+     *
+     * This is the "replace" primitive: the page ends what currently governs
+     * the selected questions at one moment and then applies the new set from
+     * the same moment. A mapping awaiting review is refused rather than
+     * silently discarded, because someone has asked for a decision on it.
+     *
+     * @param int[] $questionversionids Exact question versions.
+     * @param int $at Moment the current mappings stop applying.
+     * @param string $reason Why they stop applying.
+     * @return \stdClass ended and draftsdeleted counts.
+     */
+    public static function end_in_force_for_question_versions(array $questionversionids, int $at, string $reason): \stdClass {
+        global $DB;
+        $questionversionids = array_values(array_unique(array_filter(array_map('intval', $questionversionids))));
+        $result = (object) ['ended' => 0, 'draftsdeleted' => 0];
+        if (!$questionversionids) {
+            return $result;
+        }
+        [$insql, $params] = $DB->get_in_or_equal($questionversionids, SQL_PARAMS_NAMED, 'qv');
+        $records = $DB->get_records_select(self::TABLE, "questionversionid $insql", $params, 'id ASC');
+        $toend = [];
+        $drafts = [];
+        foreach ($records as $record) {
+            if ($record->status === workflow::NEEDS_REVIEW) {
+                throw new validation_exception('replacependingreview', 'question_mapping', (int) $record->id);
+            }
+            if ($record->status === workflow::DRAFT) {
+                $drafts[] = (int) $record->id;
+            } else if (
+                $record->status === workflow::APPROVED
+                    && (int) $record->effectivefrom < $at
+                    && ($record->effectiveto === null || (int) $record->effectiveto > $at)
+            ) {
+                $toend[] = (int) $record->id;
+            }
+        }
+        $result->ended = self::end_mappings($toend, $at, $reason);
+        foreach ($drafts as $draftid) {
+            self::delete_draft($draftid, $reason);
+            $result->draftsdeleted++;
+        }
+        return $result;
+    }
+
+    /**
+     * Require that ending a batch leaves a question version's assessed set whole.
+     *
+     * @param int $questionversionid Question version whose set is being ended.
+     * @param array $ended Records being ended, keyed by ID.
+     * @param int $at Moment they stop applying.
+     */
+    private static function require_remaining_assessed_total(int $questionversionid, array $ended, int $at): void {
+        global $DB;
+        $approved = $DB->get_records(self::TABLE, [
+            'questionversionid' => $questionversionid,
+            'role' => content_mapping_service::ROLE_ASSESSES,
+            'status' => workflow::APPROVED,
+        ]);
+        $total = decimal::ZERO;
+        $remaining = 0;
+        foreach ($approved as $record) {
+            if (isset($ended[(int) $record->id])) {
+                continue;
+            }
+            if (
+                (int) $record->effectivefrom <= $at
+                    && ($record->effectiveto === null || (int) $record->effectiveto > $at)
+            ) {
+                $remaining++;
+                $total = decimal::add($total, decimal::require_canonical((string) $record->weight, 'weight'));
+            }
+        }
+        if ($remaining > 0 && $total !== decimal::ONE) {
+            throw new validation_exception('assessedweighttotalinvalid', 'weight', $total);
+        }
+    }
+
+    /**
      * Create the next draft version of an approved mapping.
      *
      * @param int $id Approved mapping record ID.

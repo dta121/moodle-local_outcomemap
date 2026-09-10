@@ -107,3 +107,30 @@ Feature: Course staff map quiz questions to governed outcome versions
     Given I log in as "admin"
     And I am on the "MBA614" course question mapping page for quiz "Final exam"
     Then "Correct effective date…" "link" should not exist
+
+  Scenario: The current mappings of selected questions are replaced as a set
+    Given question "Question 1" has an approved "assesses" mapping to outcome "CLO1"
+    And question "Question 2" has an approved "assesses" mapping to outcome "CLO1"
+    And I log in as "admin"
+    And I am on the "MBA614" course question mapping page for quiz "Final exam"
+    When I select question "Question 1" for outcome mapping
+    And I select question "Question 2" for outcome mapping
+    And I select outcome "CLO2" for question mapping
+    And I set the field with xpath "//input[@name='role' and @value='assesses']" to "assesses"
+    And I set the field "Assessed weight" to "1.0000000000"
+    And I set the field "Replace the selected questions’ current mappings" to "1"
+    And I press "Apply to selected questions"
+    Then I should see "Enter a reason before replacing existing mappings"
+    When I select question "Question 1" for outcome mapping
+    And I select question "Question 2" for outcome mapping
+    And I select outcome "CLO2" for question mapping
+    And I set the field with xpath "//input[@name='role' and @value='assesses']" to "assesses"
+    And I set the field "Assessed weight" to "1.0000000000"
+    And I set the field "Replace the selected questions’ current mappings" to "1"
+    And I set the field "Reason for ending the current mappings" to "The exam now assesses CLO2"
+    And I press "Apply to selected questions"
+    Then I should see "2 mapping(s) ended as of"
+    And I should see "2 mapping(s) created as Assesses"
+    And I should see "QB-BEHAT.CLO2"
+    And the approved mappings of question "Question 1" to outcome "CLO1" have an end date
+    And the approved mappings of question "Question 2" to outcome "CLO1" have an end date

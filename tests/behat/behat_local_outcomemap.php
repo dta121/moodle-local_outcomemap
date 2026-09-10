@@ -969,4 +969,37 @@ class behat_local_outcomemap extends behat_base {
             \core\session\manager::set_user($previoususer);
         }
     }
+    /**
+     * Asserts every approved mapping from a question to one outcome has been ended.
+     *
+     * @Then /^the approved mappings of question "([^"]+)" to outcome "([^"]+)" have an end date$/
+     * @param string $questionname Question name.
+     * @param string $outcomecode Outcome code.
+     */
+    public function the_approved_mappings_of_question_to_outcome_have_an_end_date(
+        string $questionname,
+        string $outcomecode
+    ): void {
+        global $DB;
+        $ends = $DB->get_fieldset_sql(
+            "SELECT m.effectiveto
+               FROM {local_outcomemap_qmap} m
+               JOIN {question} q ON q.id = m.questionid
+               JOIN {local_outcomemap_itemver} v ON v.id = m.itemverid
+               JOIN {local_outcomemap_item} i ON i.id = v.itemid
+              WHERE q.name = :name AND i.code = :code AND m.status = :status",
+            ['name' => $questionname, 'code' => $outcomecode, 'status' => workflow::APPROVED]
+        );
+        if (!$ends) {
+            throw new ExpectationException("No approved mappings from {$questionname} to {$outcomecode}", $this->getSession());
+        }
+        foreach ($ends as $end) {
+            if ($end === null || (int) $end === 0) {
+                throw new ExpectationException(
+                    "A mapping from {$questionname} to {$outcomecode} is still open-ended",
+                    $this->getSession()
+                );
+            }
+        }
+    }
 }

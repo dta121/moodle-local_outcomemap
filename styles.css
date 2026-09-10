@@ -3531,6 +3531,16 @@ a.lom-matrix-cell:hover {
     opacity: 1;
     text-decoration: none;
 }
+.lom-map-chip-ended {
+    opacity: 0.55;
+    text-decoration: line-through;
+}
+.lom-map-chip-ended .lom-map-chip-remove {
+    text-decoration: none;
+}
+.lom-q-replacebox .lom-map-label {
+    margin-top: 10px;
+}
 .lom-map-unmapped {
     color: #5f6874;
     font-size: var(--lom-fs-2xs);

@@ -1093,4 +1093,100 @@ final class question_mapping_service_test extends \advanced_testcase {
         ]);
         $this->assertSame(workflow::DRAFT, question_mapping_service::get($copyid)->status);
     }
+    /**
+     * An approved assessed set can be ended as a whole, never in part, and the
+     * end is audited; the replace primitive then ends what is in force and
+     * drops drafts.
+     */
+    public function test_end_mappings_closes_a_whole_assessed_set(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+        set_config('autosubmitquestionmappings', 1, 'local_outcomemap');
+        $reviewer = $this->create_reviewer();
+        $itemverids = $this->create_outcomes($reviewer, ['CLO1', 'CLO2']);
+        $question = $this->create_question();
+
+        $first = question_mapping_service::create([
+            'questionversionid' => $question->versionid,
+            'itemverid' => $itemverids['CLO1'],
+            'role' => 'assesses',
+            'weight' => '0.5',
+            'effectivefrom' => self::EFFECTIVEFROM,
+        ]);
+        $second = question_mapping_service::create([
+            'questionversionid' => $question->versionid,
+            'itemverid' => $itemverids['CLO2'],
+            'role' => 'assesses',
+            'weight' => '0.5',
+            'effectivefrom' => self::EFFECTIVEFROM,
+        ]);
+        $this->assertSame(workflow::APPROVED, question_mapping_service::get($first)->status);
+        $this->assertSame(workflow::APPROVED, question_mapping_service::get($second)->status);
+
+        $endat = self::EFFECTIVEFROM + (86400 * 30);
+        try {
+            question_mapping_service::end_mappings([$first], $endat, 'Only half of the set.');
+            $this->fail('Ending half of an assessed set leaves the question partly attributed.');
+        } catch (validation_exception $e) {
+            $this->assertSame('assessedweighttotalinvalid', $e->errorcode);
+        }
+        try {
+            question_mapping_service::end_mappings([$first, $second], $endat, '');
+            $this->fail('A reason is mandatory.');
+        } catch (validation_exception $e) {
+            $this->assertSame('requiredfield', $e->errorcode);
+        }
+
+        $this->assertSame(2, question_mapping_service::end_mappings(
+            [$first, $second],
+            $endat,
+            'The exam was rewritten against new outcomes.'
+        ));
+        foreach ([$first, $second] as $id) {
+            $record = question_mapping_service::get($id);
+            $this->assertSame($endat, (int) $record->effectiveto, 'The end must be stored.');
+            $this->assertSame(workflow::APPROVED, $record->status, 'An ended mapping remains approved history.');
+        }
+        $this->assertCount(2, $DB->get_records('local_outcomemap_audit', [
+            'objecttype' => 'question_mapping',
+            'action' => 'end',
+        ]));
+        try {
+            question_mapping_service::end_mappings([$first], $endat + 1, 'Again.');
+            $this->fail('An ended mapping cannot be ended twice.');
+        } catch (validation_exception $e) {
+            $this->assertSame('mappingalreadyended', $e->errorcode);
+        }
+
+        // Replace: a fresh in-force set plus a draft. The set is ended, the draft dropped.
+        set_config('autosubmitquestionmappings', 0, 'local_outcomemap');
+        $draft = question_mapping_service::create([
+            'questionversionid' => $question->versionid,
+            'itemverid' => $itemverids['CLO1'],
+            'role' => 'teaches',
+            'effectivefrom' => $endat,
+        ]);
+        $this->assertSame(workflow::DRAFT, question_mapping_service::get($draft)->status);
+        set_config('autosubmitquestionmappings', 1, 'local_outcomemap');
+        $third = question_mapping_service::create([
+            'questionversionid' => $question->versionid,
+            'itemverid' => $itemverids['CLO2'],
+            'role' => 'assesses',
+            'weight' => '1',
+            'effectivefrom' => $endat,
+        ]);
+        $this->assertSame(workflow::APPROVED, question_mapping_service::get($third)->status);
+
+        $result = question_mapping_service::end_in_force_for_question_versions(
+            [$question->versionid],
+            $endat + 86400,
+            'Replaced from the course page.'
+        );
+        $this->assertSame(1, $result->ended, 'Only the mapping in force is ended; the ended pair is left alone.');
+        $this->assertSame(1, $result->draftsdeleted);
+        $this->assertSame($endat + 86400, (int) question_mapping_service::get($third)->effectiveto);
+        $this->assertFalse($DB->record_exists('local_outcomemap_qmap', ['id' => $draft]));
+    }
 }

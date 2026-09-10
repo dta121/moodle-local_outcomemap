@@ -133,6 +133,8 @@ if ($action === 'apply') {
     $outcomeuuids = array_unique(optional_param_array('outcomes', [], PARAM_ALPHANUMEXT));
     $role = required_param('role', PARAM_ALPHANUMEXT);
     $weight = trim(optional_param('weight', '', PARAM_RAW));
+    $replace = optional_param('replace', 0, PARAM_BOOL);
+    $reason = trim(optional_param('reason', '', PARAM_TEXT));
 
     // The role names a language string in the result message, so reject an
     // unknown value here rather than failing later on a missing string.
@@ -140,7 +142,8 @@ if ($action === 'apply') {
         throw new moodle_exception('invalidmappingrole', 'local_outcomemap', '', $role);
     }
 
-    if (!$selected || !$outcomeuuids) {
+    // Replacing with no outcome ticked is how a question is unmapped entirely.
+    if (!$selected || (!$outcomeuuids && !$replace)) {
         redirect(
             $stateurl,
             get_string('apply_incomplete', 'local_outcomemap'),
@@ -151,10 +154,18 @@ if ($action === 'apply') {
     // A weight is never inferred for an assessed mapping: the operator states it
     // once, and the service still rejects any question whose assessed weights
     // would not total exactly 1.0000000000 on approval.
-    if ($role === content_mapping_service::ROLE_ASSESSES && $weight === '') {
+    if ($outcomeuuids && $role === content_mapping_service::ROLE_ASSESSES && $weight === '') {
         redirect(
             $stateurl,
             get_string('questionmapping_weightrequired', 'local_outcomemap'),
+            null,
+            \core\output\notification::NOTIFY_WARNING
+        );
+    }
+    if ($replace && $reason === '') {
+        redirect(
+            $stateurl,
+            get_string('questionmapping_replacereasonrequired', 'local_outcomemap'),
             null,
             \core\output\notification::NOTIFY_WARNING
         );
@@ -163,6 +174,31 @@ if ($action === 'apply') {
     $created = 0;
     $failures = [];
     $effectivefrom = time();
+    $questionversionids = [];
+    foreach ($selected as $value) {
+        if (preg_match('/^qv-([0-9]+)$/', (string) $value, $matches)) {
+            $questionversionids[] = (int) $matches[1];
+        }
+    }
+    $endedmessage = '';
+    if ($replace) {
+        // What governs the selected questions stops at the same moment the
+        // new set starts, so no attempt falls between the two.
+        try {
+            $ended = question_mapping_service::end_in_force_for_question_versions(
+                $questionversionids,
+                $effectivefrom,
+                $reason
+            );
+        } catch (moodle_exception $e) {
+            redirect($stateurl, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+        }
+        $endedmessage = get_string('questionmapping_replaced', 'local_outcomemap', (object) [
+            'ended' => $ended->ended,
+            'drafts' => $ended->draftsdeleted,
+            'date' => userdate($effectivefrom),
+        ]) . ' ';
+    }
     foreach ($selected as $value) {
         // Values are rendered as qv-<questionversionid>; anything else is ignored.
         if (!preg_match('/^qv-([0-9]+)$/', (string) $value, $matches)) {
@@ -196,10 +232,12 @@ if ($action === 'apply') {
             }
         }
     }
-    $message = get_string('apply_created', 'local_outcomemap', (object) [
-        'count' => $created,
-        'role' => get_string('mappingrole_' . $role, 'local_outcomemap'),
-    ]);
+    $message = $endedmessage . ($outcomeuuids
+        ? get_string('apply_created', 'local_outcomemap', (object) [
+            'count' => $created,
+            'role' => get_string('mappingrole_' . $role, 'local_outcomemap'),
+        ])
+        : '');
     if ($failures) {
         $message .= ' ' . get_string('apply_skipped', 'local_outcomemap', count($failures))
             . ' ' . implode(' ', array_unique($failures));
@@ -324,6 +362,10 @@ function local_outcomemap_question_chips(array $records, bool $canedit, moodle_u
         if ($record->weight !== null) {
             $title .= ' · ' . get_string('weight', 'local_outcomemap') . ' ' . $record->weight;
         }
+        $isended = $record->effectiveto !== null && (int) $record->effectiveto <= time();
+        if ($isended) {
+            $title .= ' · ' . get_string('questionmapping_endedat', 'local_outcomemap', userdate((int) $record->effectiveto));
+        }
         $inner = s($record->frameworkcode . '.' . $record->outcomecode)
             . html_writer::span(core_text::substr($rolelabel, 0, 1), 'lom-map-chip-role');
         // Only a draft can be removed or submitted; approved mappings are history.
@@ -357,7 +399,8 @@ function local_outcomemap_question_chips(array $records, bool $canedit, moodle_u
         }
         $chips .= html_writer::span(
             $inner,
-            'lom-map-chip ' . ($isassess ? 'lom-map-chip-assess' : 'lom-map-chip-teach'),
+            'lom-map-chip ' . ($isassess ? 'lom-map-chip-assess' : 'lom-map-chip-teach')
+                . ($isended ? ' lom-map-chip-ended' : ''),
             ['title' => $title]
         );
     }
@@ -785,6 +828,35 @@ if (!$canapply) {
         )
         . html_writer::div(get_string('questionmapping_weighthelp', 'local_outcomemap'), 'lom-map-apply-hint'),
         'lom-q-weightbox'
+    );
+
+    echo html_writer::div(
+        html_writer::tag(
+            'label',
+            html_writer::empty_tag('input', [
+                'type' => 'checkbox',
+                'name' => 'replace',
+                'value' => 1,
+                'id' => 'lom-q-replace',
+                'class' => 'lom-map-check',
+            ])
+            . html_writer::span(get_string('questionmapping_replace', 'local_outcomemap'), 'lom-map-role-text'),
+            ['class' => 'lom-map-role', 'for' => 'lom-q-replace']
+        )
+        . html_writer::div(get_string('questionmapping_replacehelp', 'local_outcomemap'), 'lom-map-apply-hint')
+        . html_writer::tag(
+            'label',
+            html_writer::span(get_string('questionmapping_replacereason', 'local_outcomemap'), 'lom-map-label')
+                . html_writer::empty_tag('input', [
+                    'type' => 'text',
+                    'name' => 'reason',
+                    'id' => 'lom-q-reason',
+                    'class' => 'form-control form-control-sm',
+                    'maxlength' => 255,
+                ]),
+            ['for' => 'lom-q-reason']
+        ),
+        'lom-map-apply-section lom-q-replacebox'
     );
 
     $backdate = local_outcomemap_backdate_summary($detail);

@@ -1318,6 +1318,8 @@ $string['mappedoutcomes'] = 'Mapped outcomes';
 
 $string['mappingoutsideoutcomeversion'] = 'The mapping effective range must be contained within the exact outcome version range.';
 
+$string['mappingalreadyended'] = 'Mapping ID {$a->detail} already has an end date.';
+
 $string['mappingremoved'] = 'Draft mapping removed.';
 
 $string['mappingrole'] = 'Mapping role';
@@ -2300,6 +2302,8 @@ $string['questionmapping_backdated'] = '{$a->count} mapping(s) now take effect f
 
 $string['questionmapping_banks'] = 'Question bank:';
 
+$string['questionmapping_endedat'] = 'ended {$a}';
+
 $string['questionmapping_heading'] = 'Question outcome mappings';
 
 $string['questionmapping_mapped'] = 'Mapped';
@@ -2323,6 +2327,16 @@ $string['questionmapping_outcomestruncated'] = 'Showing {$a->shown} of {$a->tota
 $string['questionmapping_pooltruncated'] = 'This pool is too large to list in full. Use the question bank to map the remaining questions.';
 
 $string['questionmapping_randomfrom'] = 'Random from “{$a}”';
+
+$string['questionmapping_replace'] = 'Replace the selected questions’ current mappings';
+
+$string['questionmapping_replaced'] = '{$a->ended} mapping(s) ended as of {$a->date} and {$a->drafts} draft(s) removed.';
+
+$string['questionmapping_replacehelp'] = 'Ends every approved mapping now in force on the selected questions as of this moment, removes their drafts, then applies the outcomes ticked above from the same moment. Tick no outcome to unmap the questions entirely. Ended mappings stay on record for the attempts they governed.';
+
+$string['questionmapping_replacereason'] = 'Reason for ending the current mappings';
+
+$string['questionmapping_replacereasonrequired'] = 'Enter a reason before replacing existing mappings.';
 
 $string['questionmapping_search'] = 'Search questions';
 
@@ -2457,6 +2471,8 @@ $string['report_source_program_aggregates'] = 'Program aggregates';
 $string['report_source_remediation_engagement'] = 'Remediation recommendations and engagement';
 
 $string['report_source_student_attainment'] = 'Student attainment';
+
+$string['replacependingreview'] = 'Mapping ID {$a->detail} is awaiting review. Approve or remove it before replacing this question’s mappings.';
 
 $string['reportbuildernav'] = 'Open custom reports';
 
