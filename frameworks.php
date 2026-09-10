@@ -24,6 +24,7 @@
 
 use local_outcomemap\form\framework_form;
 use local_outcomemap\form\outcome_form;
+use local_outcomemap\form\outcome_version_backdate_form;
 use local_outcomemap\local\csv_safety;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\outcome_service;
@@ -157,6 +158,122 @@ if ($action === 'savenewversion') {
     } catch (validation_exception $e) {
         redirect($url, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
     }
+}
+
+/**
+ * Summarise the approved outcome versions whose start one correction can move.
+ *
+ * Only single-version lineages are eligible: the service refuses to move one
+ * start inside a lineage, because it would overlap the version beside it.
+ *
+ * @param int[] $frameworkids Frameworks in scope.
+ * @return \stdClass versions (id => effectivefrom), items, skipped, earliest, latest.
+ */
+function local_outcomemap_version_backdate_summary(array $frameworkids): \stdClass {
+    global $DB;
+    $summary = (object) [
+        'versions' => [],
+        'count' => 0,
+        'items' => 0,
+        'skipped' => 0,
+        'earliestts' => 0,
+        'earliest' => '',
+        'latest' => '',
+    ];
+    if (!$frameworkids) {
+        return $summary;
+    }
+    [$insql, $params] = $DB->get_in_or_equal($frameworkids, SQL_PARAMS_NAMED, 'fw');
+    $params += ['istatus' => workflow::APPROVED, 'vstatus' => workflow::APPROVED];
+    $records = $DB->get_records_sql(
+        "SELECT v.id, v.itemid, v.effectivefrom,
+                (SELECT COUNT(1) FROM {local_outcomemap_itemver} v2 WHERE v2.itemid = v.itemid) AS nversions
+           FROM {local_outcomemap_itemver} v
+           JOIN {local_outcomemap_item} i ON i.id = v.itemid
+          WHERE i.frameworkid $insql AND i.status = :istatus AND v.status = :vstatus",
+        $params
+    );
+    $earliest = null;
+    $latest = null;
+    foreach ($records as $record) {
+        if ((int) $record->nversions > 1) {
+            $summary->skipped++;
+            continue;
+        }
+        $from = (int) $record->effectivefrom;
+        $summary->versions[(int) $record->id] = $from;
+        $summary->items++;
+        $earliest = $earliest === null ? $from : min($earliest, $from);
+        $latest = $latest === null ? $from : max($latest, $from);
+    }
+    $summary->count = count($summary->versions);
+    $summary->earliestts = $earliest ?? 0;
+    $summary->earliest = $earliest === null ? '' : userdate($earliest);
+    $summary->latest = $latest === null ? '' : userdate($latest);
+    return $summary;
+}
+
+// Correct the effective start of the approved outcome versions in one framework,
+// or in every framework. Propagation resolves the target version in force when
+// an attempt finished, so outcomes created after the assessments were sat roll
+// nothing up until their versions are held to have governed from the right date.
+if ($action === 'correctdates') {
+    require_capability('local/outcomemap:manageframeworks', context_system::instance());
+    if ($id) {
+        $framework = $DB->get_record('local_outcomemap_fw', ['id' => $id], '*', MUST_EXIST);
+        $frameworkids = [(int) $framework->id];
+        $scopename = $framework->code;
+    } else {
+        $frameworkids = array_map('intval', array_keys($DB->get_records_select(
+            'local_outcomemap_fw',
+            'status <> :retired',
+            ['retired' => workflow::RETIRED],
+            '',
+            'id'
+        )));
+        $scopename = get_string('hier_correctdates_allframeworks', 'local_outcomemap');
+    }
+    $summary = local_outcomemap_version_backdate_summary($frameworkids);
+    if ($summary->count === 0) {
+        redirect(
+            $url,
+            get_string('hier_correctdates_none', 'local_outcomemap'),
+            null,
+            \core\output\notification::NOTIFY_WARNING
+        );
+    }
+    $formurl = new moodle_url($url, ['action' => 'correctdates', 'id' => $id]);
+    $form = new outcome_version_backdate_form($formurl, ['summary' => $summary]);
+    $form->set_data(['id' => $id, 'effectivefrom' => $summary->earliestts]);
+    if ($form->is_cancelled()) {
+        redirect($url);
+    }
+    if ($data = $form->get_data()) {
+        // Versions already in force by the corrected date are left where they are.
+        $ids = array_keys(array_filter(
+            $summary->versions,
+            static fn(int $from): bool => $from > (int) $data->effectivefrom
+        ));
+        try {
+            $count = outcome_service::correct_effectivefrom($ids, (int) $data->effectivefrom, $data->reason);
+        } catch (validation_exception $e) {
+            redirect($url, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+        }
+        $message = get_string('hier_correctdates_done', 'local_outcomemap', (object) [
+            'count' => $count,
+            'date' => userdate((int) $data->effectivefrom),
+        ]);
+        if ($summary->skipped > 0) {
+            $message .= ' ' . get_string('hier_correctdates_skipped', 'local_outcomemap', $summary->skipped);
+        }
+        redirect($url, $message, null, \core\output\notification::NOTIFY_SUCCESS);
+    }
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('hier_correctdates_heading', 'local_outcomemap', s($scopename)));
+    echo html_writer::div(get_string('hier_correctdates_hint', 'local_outcomemap'), 'lom-cov-subtitle');
+    $form->display();
+    echo $OUTPUT->footer();
+    exit;
 }
 
 if ($action === 'exportcsv') {

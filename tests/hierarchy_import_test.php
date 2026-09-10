@@ -127,6 +127,14 @@ final class hierarchy_import_test extends \advanced_testcase {
             'local_outcomemap_rel',
             ['type' => relation_service::ALIGNS_TO]
         ));
+        // Each alignment is mirrored as a uniform-weight contribution, so the
+        // calculation engine can roll unit results up without a second import.
+        $contributions = $DB->get_records('local_outcomemap_rel', ['type' => relation_service::CONTRIBUTES_TO]);
+        $this->assertCount(3, $contributions);
+        foreach ($contributions as $contribution) {
+            $this->assertSame('1.0000000000', $contribution->weight);
+            $this->assertSame(workflow::APPROVED, $contribution->status);
+        }
     }
 
     /**

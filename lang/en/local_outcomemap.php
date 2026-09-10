@@ -474,6 +474,8 @@ $string['coverage_exportcsv'] = 'Export CSV';
 
 $string['coverage_heading'] = 'Course outcome coverage';
 
+$string['coverage_inheritedvia'] = 'via {$a}';
+
 $string['coverage_mapcontent'] = 'Map content…';
 
 $string['coverage_nomatches'] = 'No outcomes match this filter.';
@@ -498,11 +500,15 @@ $string['coverage_uncovered'] = 'Not yet mapped';
 
 $string['coveragecard_full'] = 'Fully covered';
 
+$string['coveragecard_inherited'] = 'Covered through alignment';
+
 $string['coveragecard_none'] = 'Not covered';
 
 $string['coveragecard_taught'] = 'Incomplete coverage';
 
 $string['coveragecardof_full'] = 'of {$a} outcomes';
+
+$string['coveragecardof_inherited'] = 'via aligned outcomes';
 
 $string['coveragecardof_none'] = 'no content at all';
 
@@ -511,6 +517,8 @@ $string['coveragecardof_taught'] = 'need the other half';
 $string['coveragefilter_all'] = 'All outcomes';
 
 $string['coveragefilter_full'] = 'Fully covered';
+
+$string['coveragefilter_inherited'] = 'Through alignment';
 
 $string['coveragefilter_none'] = 'Not covered';
 
@@ -522,6 +530,8 @@ $string['coveragegroup_sub'] = '{$a} outcomes';
 
 $string['coveragenote_full'] = 'Mapped to teaching content and to an assessing activity.';
 
+$string['coveragenote_inherited'] = 'Nothing maps to these outcomes directly, but outcomes aligned to them are mapped, so results roll up.';
+
 $string['coveragenote_none'] = 'No section or activity references these outcomes.';
 
 $string['coveragenote_taught'] = 'Taught but not assessed, or assessed but not taught.';
@@ -531,6 +541,8 @@ $string['coveragestatus'] = 'Coverage';
 $string['coveragestatus_assessedonly'] = 'Assessed only';
 
 $string['coveragestatus_full'] = 'Taught & assessed';
+
+$string['coveragestatus_inherited'] = 'Covered through alignment';
 
 $string['coveragestatus_none'] = 'Not covered';
 
@@ -1004,6 +1016,32 @@ $string['hier_callout'] = '{$a} outcomes are not yet aligned to a parent outcome
 
 $string['hier_clobadge'] = 'CLO {$a}';
 
+$string['hier_correctdates'] = 'Correct effective date…';
+
+$string['hier_correctdates_all'] = 'Correct effective dates…';
+
+$string['hier_correctdates_allframeworks'] = 'All frameworks';
+
+$string['hier_correctdates_date'] = 'Corrected effective date';
+
+$string['hier_correctdates_date_help'] = 'The date from which these outcome versions are held to have governed — normally when the curriculum they describe took effect. Course and program results are rolled up only for attempts finished while the target outcome version was in force, so outcomes created after learners sat their assessments produce no roll-up until this is corrected. Only versions that currently start later than this date are moved; each move is audited with your reason.';
+
+$string['hier_correctdates_done'] = '{$a->count} outcome version(s) now take effect from {$a->date}.';
+
+$string['hier_correctdates_heading'] = 'Correct effective date: {$a}';
+
+$string['hier_correctdates_hint'] = 'Moves the start of every approved outcome version in scope that begins after the date you choose. Outcomes with more than one version are left unchanged, because a start cannot move inside a lineage without overlapping its neighbour.';
+
+$string['hier_correctdates_none'] = 'There are no approved outcome versions to correct.';
+
+$string['hier_correctdates_notearlier'] = 'Choose a date earlier than {$a}, the earliest current effective date in scope; nothing would move otherwise.';
+
+$string['hier_correctdates_skipped'] = '{$a} outcome(s) carry more than one version and were left unchanged.';
+
+$string['hier_correctdates_submit'] = 'Correct effective date';
+
+$string['hier_correctdates_summary'] = '{$a->count} approved outcome version(s) currently take effect between {$a->earliest} and {$a->latest}.';
+
 $string['hier_coursecountline'] = '{$a->clos} course outcomes · {$a->ulos} unit outcomes';
 
 $string['hier_courseframeworks'] = 'Catalog course · frameworks {$a}';
@@ -1122,9 +1160,11 @@ $string['importexpired'] = 'The import preview expired. Upload and validate the 
 
 $string['importheader'] = 'The CSV header is invalid. Expected exactly these columns: {$a->detail}';
 
+$string['importhierarchy_contributesnote'] = 'Mirrors the declared alignment so unit results roll up to course and program outcomes; uniform weight.';
+
 $string['importhierarchy_duplicate'] = 'The outcome {$a} appears more than once in this file.';
 
-$string['importhierarchy_help'] = 'Import the file the Outcomes & alignment page exports. Frameworks must already exist; outcomes are matched on framework and code, so re-importing the same file changes nothing. The Version and Status columns are read for information only — governance is applied by the plugin, not asserted by the file.';
+$string['importhierarchy_help'] = 'Import the file the Outcomes & alignment page exports. Frameworks must already exist; outcomes are matched on framework and code, so re-importing the same file changes nothing. Each entry in Maps to becomes an alignment and a uniform-weight contribution, so results roll up without a separate relations import. The Version and Status columns are read for information only — governance is applied by the plugin, not asserted by the file.';
 
 $string['importhierarchy_nocode'] = 'The Code column is required.';
 
@@ -2233,6 +2273,30 @@ $string['questionmapping_applyhint'] = 'Tick questions on the left, then choose 
 $string['questionmapping_applyunavailable'] = 'You do not have permission to map questions in this course, or no approved outcomes are available to apply.';
 
 $string['questionmapping_assessed'] = 'Assessed';
+
+$string['questionmapping_backdate'] = 'Correct effective date…';
+
+$string['questionmapping_backdate_current'] = '{$a->mappings} approved mapping(s) on {$a->questions} question(s) currently take effect from {$a->earliest}. Attempts finished before then produce no evidence.';
+
+$string['questionmapping_backdate_date'] = 'Corrected effective date';
+
+$string['questionmapping_backdate_date_help'] = 'The date from which these mappings are held to have governed the quiz — normally the day the exam went live. Attempts finished before a mapping\'s effective date produce no outcome evidence, so mappings made after learners sat the exam report nothing until this is corrected. Only mappings that currently start later than this date are moved; the correction is audited with your reason and results are recalculated on the next reconciliation run.';
+
+$string['questionmapping_backdate_heading'] = 'Correct effective date: {$a}';
+
+$string['questionmapping_backdate_hint'] = 'Moves the start of every approved mapping on this quiz that begins after the date you choose. A multi-outcome question\'s mappings move together so its assessed weights stay complete at every date.';
+
+$string['questionmapping_backdate_label'] = 'Effective date';
+
+$string['questionmapping_backdate_nomappings'] = 'This quiz has no approved mappings to correct.';
+
+$string['questionmapping_backdate_notearlier'] = 'Choose a date earlier than {$a}, the earliest current effective date on this quiz; nothing would move otherwise.';
+
+$string['questionmapping_backdate_submit'] = 'Correct effective date';
+
+$string['questionmapping_backdate_summary'] = '{$a->mappings} approved mapping(s) on {$a->questions} question(s) in this quiz currently take effect between {$a->earliest} and {$a->latest}.';
+
+$string['questionmapping_backdated'] = '{$a->count} mapping(s) now take effect from {$a->date}. Results are recalculated on the next reconciliation run.';
 
 $string['questionmapping_banks'] = 'Question bank:';
 

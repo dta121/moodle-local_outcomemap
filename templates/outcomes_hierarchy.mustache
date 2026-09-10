@@ -43,6 +43,7 @@
         <div class="lom-toolbar-right">
             <a class="lom-btn" href="{{exporturl}}">{{#str}} outcomes_exportoutcomes, local_outcomemap {{/str}}</a>
             <a class="lom-btn" href="{{alignmentexporturl}}">{{#str}} outcomes_exportalignments, local_outcomemap {{/str}}</a>
+            {{#canmanage}}<a class="lom-btn" href="{{correctalldatesurl}}">{{#str}} hier_correctdates_all, local_outcomemap {{/str}}</a>{{/canmanage}}
             {{#canmanage}}
             {{#ismatrix}}<a class="lom-btn" href="{{addalignmenturl}}">{{#str}} addrelation, local_outcomemap {{/str}}</a>{{/ismatrix}}
             <a class="lom-btn" href="{{addframeworkurl}}">{{#str}} addframework, local_outcomemap {{/str}}</a>
@@ -156,6 +157,7 @@
                 <span class="lom-fwbar-actions">
                     {{#canedit}}<a href="{{editurl}}">{{editlabel}}</a>{{/canedit}}
                     {{#cansubmit}}<a href="{{submiturl}}">{{submitlabel}}</a>{{/cansubmit}}
+                    {{#cancorrectdates}}<a href="{{correctdatesurl}}">{{correctdateslabel}}</a>{{/cancorrectdates}}
                     {{#locked}}<span class="lom-fwbar-locked">{{lockedreason}}</span>{{/locked}}
                 </span>
             </div>
@@ -218,6 +220,7 @@
                 <span class="lom-fwbar-actions">
                     {{#canedit}}<a href="{{editurl}}">{{editlabel}}</a>{{/canedit}}
                     {{#cansubmit}}<a href="{{submiturl}}">{{submitlabel}}</a>{{/cansubmit}}
+                    {{#cancorrectdates}}<a href="{{correctdatesurl}}">{{correctdateslabel}}</a>{{/cancorrectdates}}
                     {{#locked}}<span class="lom-fwbar-locked">{{lockedreason}}</span>{{/locked}}
                 </span>
             </div>

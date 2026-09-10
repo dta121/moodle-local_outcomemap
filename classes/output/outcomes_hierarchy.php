@@ -532,6 +532,7 @@ class outcomes_hierarchy implements renderable, templatable {
             'addframeworkurl' => (new moodle_url($this->baseurl, ['action' => 'addframework']))->out(false),
             'addoutcomeurl' => (new moodle_url($this->baseurl, ['action' => 'addoutcome']))->out(false),
             'exporturl' => (new moodle_url($this->baseurl, ['action' => 'exportcsv']))->out(false),
+            'correctalldatesurl' => (new moodle_url($this->baseurl, ['action' => 'correctdates']))->out(false),
             'alignmentexporturl' => (new moodle_url($relationsurl, ['action' => 'exportcsv']))->out(false),
             'addalignmenturl' => (new moodle_url($relationsurl, ['action' => 'add']))->out(false),
             'viewtabs' => $this->viewtabs($ismatrix),
@@ -617,7 +618,29 @@ class outcomes_hierarchy implements renderable, templatable {
             ]))->out(false),
             'locked' => $canmanage && $isapproved,
             'lockedreason' => get_string('hier_frameworklocked', 'local_outcomemap'),
+            // An approved framework holding approved outcomes can have their
+            // effective start corrected as one set.
+            'cancorrectdates' => $canmanage && $isapproved && $this->has_approved_items($id),
+            'correctdateslabel' => get_string('hier_correctdates', 'local_outcomemap'),
+            'correctdatesurl' => (new moodle_url($this->baseurl, [
+                'action' => 'correctdates',
+                'id' => $id,
+            ]))->out(false),
         ];
+    }
+
+    /**
+     * Whether a framework holds at least one approved outcome.
+     *
+     * @param int $frameworkid Framework id.
+     */
+    private function has_approved_items(int $frameworkid): bool {
+        foreach ($this->items as $item) {
+            if ((int) $item->frameworkid === $frameworkid && $item->itemstatus === workflow::APPROVED) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

@@ -3010,8 +3010,13 @@ a.lom-matrix-cell:hover {
 .lom-cov-cards {
     display: grid;
     gap: 12px;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     margin-bottom: 8px;
+}
+@media (max-width: 1100px) {
+    .lom-cov-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 @media (max-width: 760px) {
@@ -3061,6 +3066,12 @@ a.lom-matrix-cell:hover {
 }
 .lom-cov-card-partial .lom-cov-bar-fill {
     background: #b45309;
+}
+.lom-cov-card-inherited .lom-cov-card-value {
+    color: #1d4ed8;
+}
+.lom-cov-card-inherited .lom-cov-bar-fill {
+    background: #1d4ed8;
 }
 .lom-cov-card-none .lom-cov-card-value {
     color: #991b1b;
@@ -3285,6 +3296,24 @@ a.lom-matrix-cell:hover {
 .lom-cov-badge-none {
     background: #fee2e2;
     color: #991b1b;
+}
+.lom-cov-badge-inherited {
+    background: #dbeafe;
+    color: #1e40af;
+}
+.lom-cov-via {
+    font-size: var(--lom-fs-2xs);
+    line-height: 1.6;
+}
+.lom-cov-via-chip {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 4px;
+    color: #1e40af;
+    display: inline-block;
+    margin: 1px 3px 1px 0;
+    padding: 0 5px;
+    white-space: nowrap;
 }
 .lom-cov-entry {
     font-size: var(--lom-fs-2xs);
@@ -3636,6 +3665,15 @@ a.lom-matrix-cell:hover {
     font-size: var(--lom-fs-2xs);
     margin-top: 7px;
     text-align: center;
+}
+.lom-map-apply-section {
+    border-top: 1px solid #dbe3ec;
+    margin-top: 14px;
+    padding-top: 12px;
+}
+.lom-map-backdate-btn {
+    margin-top: 8px;
+    width: 100%;
 }
 
 /* ---------------------------------------------------------------------------

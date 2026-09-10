@@ -28,6 +28,8 @@
 use local_outcomemap\api\context_resolver;
 use local_outcomemap\api\outcome_search;
 use local_outcomemap\api\question_mappings;
+use local_outcomemap\form\question_mapping_backdate_form;
+use local_outcomemap\api\validation_exception;
 use local_outcomemap\local\service\content_mapping_service;
 use local_outcomemap\local\service\question_browser_service;
 use local_outcomemap\local\service\question_mapping_service;
@@ -208,6 +210,97 @@ if ($action === 'apply') {
         null,
         $failures ? \core\output\notification::NOTIFY_WARNING : \core\output\notification::NOTIFY_SUCCESS
     );
+}
+
+/**
+ * Summarise the approved mappings on one quiz for the effective-date correction.
+ *
+ * @param \stdClass $detail Quiz detail from the browser service.
+ * @return \stdClass ids, mapping and question counts, earliest and latest start.
+ */
+function local_outcomemap_backdate_summary(\stdClass $detail): \stdClass {
+    $ids = [];
+    $questions = [];
+    $earliest = null;
+    $latest = null;
+    foreach ($detail->slots as $slot) {
+        foreach ($slot->questions as $question) {
+            foreach ($question->mappings as $record) {
+                if ($record->status !== workflow::APPROVED) {
+                    continue;
+                }
+                $ids[(int) $record->id] = (int) $record->effectivefrom;
+                $questions[(int) $question->questionversionid] = true;
+                $from = (int) $record->effectivefrom;
+                $earliest = $earliest === null ? $from : min($earliest, $from);
+                $latest = $latest === null ? $from : max($latest, $from);
+            }
+        }
+    }
+    return (object) [
+        'ids' => $ids,
+        'mappings' => count($ids),
+        'questions' => count($questions),
+        'earliestts' => $earliest ?? 0,
+        'earliest' => $earliest === null ? '' : userdate($earliest),
+        'latest' => $latest === null ? '' : userdate($latest),
+    ];
+}
+
+// Correct the effective start of every approved mapping on this quiz. The
+// mappings the page creates take effect when they are made, so an exam sat
+// earlier yields no evidence until its mappings are held to have governed it.
+if ($action === 'backdate') {
+    if (!$canmap) {
+        throw new required_capability_exception($context, 'local/outcomemap:mapquestions', 'nopermissions', '');
+    }
+    if (!$cmid) {
+        redirect($url);
+    }
+    $detail = question_browser_service::quiz_detail($courseid, $cmid);
+    $summary = local_outcomemap_backdate_summary($detail);
+    if ($summary->mappings === 0) {
+        redirect(
+            $stateurl,
+            get_string('questionmapping_backdate_nomappings', 'local_outcomemap'),
+            null,
+            \core\output\notification::NOTIFY_WARNING
+        );
+    }
+    $formurl = new moodle_url($url, ['cmid' => $cmid, 'action' => 'backdate']);
+    $form = new question_mapping_backdate_form($formurl, ['summary' => $summary]);
+    $form->set_data(['courseid' => $courseid, 'cmid' => $cmid, 'effectivefrom' => $summary->earliestts]);
+    if ($form->is_cancelled()) {
+        redirect($stateurl);
+    }
+    if ($data = $form->get_data()) {
+        // Only mappings that start after the corrected date move; one that
+        // already governed the attempts is left where it is.
+        $ids = array_keys(array_filter(
+            $summary->ids,
+            static fn(int $from): bool => $from > (int) $data->effectivefrom
+        ));
+        try {
+            $count = question_mapping_service::correct_effectivefrom($ids, (int) $data->effectivefrom, $data->reason);
+        } catch (validation_exception $e) {
+            redirect($stateurl, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+        }
+        redirect(
+            $stateurl,
+            get_string('questionmapping_backdated', 'local_outcomemap', (object) [
+                'count' => $count,
+                'date' => userdate((int) $data->effectivefrom),
+            ]),
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
+    }
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('questionmapping_backdate_heading', 'local_outcomemap', format_string($detail->name)));
+    echo html_writer::div(get_string('questionmapping_backdate_hint', 'local_outcomemap'), 'lom-cov-subtitle');
+    $form->display();
+    echo $OUTPUT->footer();
+    exit;
 }
 
 /**
@@ -693,6 +786,23 @@ if (!$canapply) {
         . html_writer::div(get_string('questionmapping_weighthelp', 'local_outcomemap'), 'lom-map-apply-hint'),
         'lom-q-weightbox'
     );
+
+    $backdate = local_outcomemap_backdate_summary($detail);
+    if ($backdate->mappings > 0) {
+        echo html_writer::div(
+            html_writer::div(get_string('questionmapping_backdate_label', 'local_outcomemap'), 'lom-map-label')
+            . html_writer::div(
+                get_string('questionmapping_backdate_current', 'local_outcomemap', $backdate),
+                'lom-map-apply-hint'
+            )
+            . html_writer::link(
+                new moodle_url($url, ['cmid' => $cmid, 'action' => 'backdate']),
+                get_string('questionmapping_backdate', 'local_outcomemap'),
+                ['class' => 'btn btn-outline-secondary btn-sm lom-map-backdate-btn']
+            ),
+            'lom-map-apply-section'
+        );
+    }
 
     echo html_writer::tag('button', get_string('questionmapping_apply', 'local_outcomemap'), [
         'type' => 'submit',

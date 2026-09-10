@@ -82,3 +82,28 @@ Feature: Course staff map quiz questions to governed outcome versions
     Then I should see "Question 1"
     And I should see "You do not have permission to map questions in this course"
     And "Apply to selected questions" "button" should not exist
+
+  Scenario: The effective date of a quiz's approved mappings is corrected as a set
+    Given question "Question 1" has an approved "assesses" mapping to outcome "CLO1"
+    And question "Question 2" has an approved "assesses" mapping to outcome "CLO1"
+    And I log in as "admin"
+    And I am on the "MBA614" course question mapping page for quiz "Final exam"
+    Then I should see "2 approved mapping(s) on 2 question(s) currently take effect from"
+    When I click on "Correct effective date…" "link"
+    Then I should see "Correct effective date: Final exam"
+    And I should see "2 approved mapping(s) on 2 question(s) in this quiz currently take effect between"
+    # A start that moves nothing is refused before the service is asked.
+    When I set the field "Correction reason" to "Exam went live before it was mapped"
+    And I set the field "effectivefrom[year]" to "2030"
+    And I press "Correct effective date"
+    Then I should see "Choose a date earlier than"
+    When I set the field "effectivefrom[year]" to "2024"
+    And I press "Correct effective date"
+    Then I should see "2 mapping(s) now take effect from"
+    And the approved mappings of question "Question 1" take effect in year "2024"
+    And the approved mappings of question "Question 2" take effect in year "2024"
+
+  Scenario: A quiz with no approved mappings offers no effective-date correction
+    Given I log in as "admin"
+    And I am on the "MBA614" course question mapping page for quiz "Final exam"
+    Then "Correct effective date…" "link" should not exist

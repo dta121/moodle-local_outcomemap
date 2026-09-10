@@ -125,6 +125,15 @@ final class foundation_import_service extends base_service {
     private const HIERARCHY_RELATION = relation_service::ALIGNS_TO;
 
     /**
+     * @var string Uniform weight of the contribution edge written beside each alignment.
+     *
+     * A relation weight multiplies both the earned and the possible marks, so a
+     * uniform weight cancels out of every percentage: it asserts no curriculum
+     * proportion, only that the parent's figure pools all the work beneath it.
+     */
+    private const HIERARCHY_CONTRIBUTION_WEIGHT = '1.0000000000';
+
+    /**
      * Exact CSV headers for each import entity.
      *
      * @var array<string, string[]>
@@ -420,6 +429,7 @@ final class foundation_import_service extends base_service {
             }
 
             $aligned = 0;
+            $contributed = 0;
             foreach ($rows as $row) {
                 $source = $items[trim($row['Framework']) . '.' . trim($row['Code'])] ?? null;
                 if ($source === null || $source->status !== workflow::APPROVED) {
@@ -433,17 +443,32 @@ final class foundation_import_service extends base_service {
                     ) {
                         continue;
                     }
-                    if (self::alignment_exists((int) $source->id, (int) $target->id)) {
-                        continue;
+                    if (!self::relation_exists((int) $source->id, (int) $target->id, self::HIERARCHY_RELATION)) {
+                        $relationid = relation_service::create([
+                            'sourceitemid' => (int) $source->id,
+                            'targetitemid' => (int) $target->id,
+                            'type' => self::HIERARCHY_RELATION,
+                            'effectivefrom' => $now,
+                        ]);
+                        relation_service::submit_for_review($relationid);
+                        $aligned++;
                     }
-                    $relationid = relation_service::create([
-                        'sourceitemid' => (int) $source->id,
-                        'targetitemid' => (int) $target->id,
-                        'type' => self::HIERARCHY_RELATION,
-                        'effectivefrom' => $now,
-                    ]);
-                    relation_service::submit_for_review($relationid);
-                    $aligned++;
+                    // Alignment records the curriculum; contribution is what the
+                    // calculation engine walks to roll unit results up to course
+                    // and program outcomes. Without it a hierarchy reports at unit
+                    // level only, so every alignment is mirrored as a contribution.
+                    if (!self::relation_exists((int) $source->id, (int) $target->id, relation_service::CONTRIBUTES_TO)) {
+                        $relationid = relation_service::create([
+                            'sourceitemid' => (int) $source->id,
+                            'targetitemid' => (int) $target->id,
+                            'type' => relation_service::CONTRIBUTES_TO,
+                            'weight' => self::HIERARCHY_CONTRIBUTION_WEIGHT,
+                            'effectivefrom' => $now,
+                            'notes' => get_string('importhierarchy_contributesnote', 'local_outcomemap'),
+                        ]);
+                        relation_service::submit_for_review($relationid);
+                        $contributed++;
+                    }
                 }
             }
 
@@ -451,6 +476,7 @@ final class foundation_import_service extends base_service {
                 'entity' => self::HIERARCHY,
                 'rowcount' => count($rows),
                 'alignments' => $aligned,
+                'contributions' => $contributed,
                 'previewhash' => $preview->hash,
             ], null, \context_system::instance(), $actorid);
             $transaction->allow_commit();
@@ -511,13 +537,14 @@ final class foundation_import_service extends base_service {
     }
 
     /**
-     * Whether a live alignment already joins two outcomes.
+     * Whether a live relation of one type already joins two outcomes.
      *
      * @param int $sourceid Source outcome item id.
      * @param int $targetid Target outcome item id.
+     * @param string $type Relation type.
      * @return bool
      */
-    private static function alignment_exists(int $sourceid, int $targetid): bool {
+    private static function relation_exists(int $sourceid, int $targetid, string $type): bool {
         global $DB;
         return $DB->record_exists_select(
             'local_outcomemap_rel',
@@ -525,7 +552,7 @@ final class foundation_import_service extends base_service {
             [
                 'source' => $sourceid,
                 'target' => $targetid,
-                'type' => self::HIERARCHY_RELATION,
+                'type' => $type,
                 'retired' => workflow::RETIRED,
             ]
         );
@@ -800,7 +827,12 @@ final class foundation_import_service extends base_service {
                 outcome_service::create($data);
                 return;
             case self::RELATIONS:
-                relation_service::create($data);
+                // A relation only matters once it is approved, and a file can
+                // carry hundreds of them, so each one is carried through the
+                // submission boundary the same way hierarchy alignments are.
+                // Where the site requires independent approval it stops at
+                // needs_review; otherwise it is finalized here.
+                relation_service::submit_for_review(relation_service::create($data));
                 return;
         }
     }

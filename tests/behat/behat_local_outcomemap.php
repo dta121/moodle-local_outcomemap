@@ -14,7 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
+use Behat\Mink\Exception\ExpectationException;
 use local_outcomemap\local\service\calculation_service;
+use local_outcomemap\local\service\catalog_course_service;
+use local_outcomemap\local\service\content_mapping_service;
+use local_outcomemap\local\service\course_instance_service;
+use local_outcomemap\local\service\outcome_service;
+use local_outcomemap\local\service\relation_service;
 use local_outcomemap\local\service\framework_service;
 use local_outcomemap\local\service\policy_service;
 use local_outcomemap\local\service\remediation_service;
@@ -720,6 +726,7 @@ class behat_local_outcomemap extends behat_base {
         global $DB;
         $pages = [
             'Content mappings' => 'contentmapping',
+            'Outcome coverage' => 'coverage',
             'Remediation' => 'remediation',
             'Manual feedback release' => 'manualrelease',
         ];
@@ -805,5 +812,161 @@ class behat_local_outcomemap extends behat_base {
             "//input[@name='outcomes[]' and @value='{$uuid}']",
             '1',
         ]);
+    }
+    /**
+     * Asserts the year every approved mapping on a question now starts in.
+     *
+     * @Then /^the approved mappings of question "([^"]+)" take effect in year "([0-9]{4})"$/
+     * @param string $questionname Question name.
+     * @param string $year Expected four-digit year of effectivefrom.
+     */
+    public function the_approved_mappings_of_question_take_effect_in_year(string $questionname, string $year): void {
+        global $DB;
+        $starts = $DB->get_fieldset_sql(
+            "SELECT m.effectivefrom
+               FROM {local_outcomemap_qmap} m
+               JOIN {question} q ON q.id = m.questionid
+              WHERE q.name = :name AND m.status = :status",
+            ['name' => $questionname, 'status' => workflow::APPROVED]
+        );
+        if (!$starts) {
+            throw new ExpectationException("No approved mappings found on question {$questionname}", $this->getSession());
+        }
+        foreach ($starts as $start) {
+            $actual = date('Y', (int) $start);
+            if ($actual !== $year) {
+                throw new ExpectationException(
+                    "Mapping on {$questionname} takes effect in {$actual}, expected {$year}",
+                    $this->getSession()
+                );
+            }
+        }
+    }
+    /**
+     * Seed approved outcomes in the generator's institution framework.
+     *
+     * @Given /^the approved outcomes "([^"]+)" exist$/
+     * @param string $codes Comma-separated outcome codes.
+     */
+    public function the_approved_outcomes_exist(string $codes): void {
+        $generator = behat_util::get_data_generator()->get_plugin_generator('local_outcomemap');
+        $generator->create_approved_outcomes(array_filter(array_map('trim', explode(',', $codes))));
+    }
+
+    /**
+     * Asserts the year every approved version of an outcome now starts in.
+     *
+     * @Then /^the approved versions of outcome "([^"]+)" take effect in year "([0-9]{4})"$/
+     * @param string $code Outcome code.
+     * @param string $year Expected four-digit year of effectivefrom.
+     */
+    public function the_approved_versions_of_outcome_take_effect_in_year(string $code, string $year): void {
+        global $DB;
+        $starts = $DB->get_fieldset_sql(
+            "SELECT v.effectivefrom
+               FROM {local_outcomemap_itemver} v
+               JOIN {local_outcomemap_item} i ON i.id = v.itemid
+              WHERE i.code = :code AND v.status = :status",
+            ['code' => $code, 'status' => workflow::APPROVED]
+        );
+        if (!$starts) {
+            throw new ExpectationException("No approved versions found for outcome {$code}", $this->getSession());
+        }
+        foreach ($starts as $start) {
+            $actual = date('Y', (int) $start);
+            if ($actual !== $year) {
+                throw new ExpectationException(
+                    "Outcome {$code} takes effect in {$actual}, expected {$year}",
+                    $this->getSession()
+                );
+            }
+        }
+    }
+    /**
+     * Build a course whose unit outcome is aligned to a course outcome and taught by one activity.
+     *
+     * Everything is created through the governed services with independent
+     * approval switched off, so the fixture is exactly what an administrator
+     * would produce through the pages: an approved, confirmed course instance,
+     * two catalog-course frameworks, one alignment, and one teaching mapping.
+     *
+     * @Given /^the "([^"]+)" course has unit outcome "([^"]+)" aligned to course outcome "([^"]+)" and taught by "([^"]+)"$/
+     * @param string $courseshortname Course shortname.
+     * @param string $ulocode Unit outcome code.
+     * @param string $clocode Course outcome code.
+     * @param string $activityname Activity name in the course.
+     */
+    public function the_course_has_an_aligned_unit_outcome_taught_by(
+        string $courseshortname,
+        string $ulocode,
+        string $clocode,
+        string $activityname
+    ): void {
+        global $DB, $USER;
+        $course = $DB->get_record('course', ['shortname' => $courseshortname], '*', MUST_EXIST);
+        $cm = null;
+        foreach (get_fast_modinfo($course)->get_cms() as $candidate) {
+            if ($candidate->name === $activityname) {
+                $cm = $candidate;
+                break;
+            }
+        }
+        if ($cm === null) {
+            throw new \InvalidArgumentException("No activity named {$activityname} in {$courseshortname}");
+        }
+        $previoususer = $USER;
+        \core\session\manager::set_user(get_admin());
+        set_config('requireapproval', 0, 'local_outcomemap');
+        try {
+            $catalogid = catalog_course_service::create(['code' => 'COV-' . $course->id, 'name' => 'Coverage ' . $courseshortname]);
+            catalog_course_service::submit_for_review($catalogid);
+            $cinstid = course_instance_service::create([
+                'courseid' => $catalogid,
+                'moodlecourseid' => (int) $course->id,
+                'periodcode' => 'COV-' . $course->id,
+            ]);
+            course_instance_service::submit_for_review($cinstid);
+            if (!$DB->get_field('local_outcomemap_cinst', 'confirmed', ['id' => $cinstid])) {
+                course_instance_service::confirm($cinstid);
+            }
+            $versions = [];
+            $items = [];
+            foreach (['COV-CLO' => $clocode, 'COV-ULO' => $ulocode] as $fwcode => $code) {
+                $frameworkid = framework_service::create([
+                    'code' => $fwcode,
+                    'name' => $fwcode,
+                    'ownertype' => framework_service::OWNER_COURSE,
+                    'ownerid' => $catalogid,
+                ]);
+                framework_service::submit_for_review($frameworkid);
+                $itemid = outcome_service::create([
+                    'frameworkid' => $frameworkid,
+                    'code' => $code,
+                    'statement' => 'Outcome ' . $fwcode . '.' . $code,
+                    'effectivefrom' => 1704067200,
+                ]);
+                $versionid = (int) $DB->get_field('local_outcomemap_itemver', 'id', ['itemid' => $itemid], MUST_EXIST);
+                outcome_service::submit_for_review($versionid);
+                $items[$fwcode] = $itemid;
+                $versions[$fwcode] = $versionid;
+            }
+            $relationid = relation_service::create([
+                'sourceitemid' => $items['COV-ULO'],
+                'targetitemid' => $items['COV-CLO'],
+                'type' => relation_service::ALIGNS_TO,
+                'effectivefrom' => 1704067200,
+            ]);
+            relation_service::submit_for_review($relationid);
+            $mappingid = content_mapping_service::create_course_module([
+                'cinstid' => $cinstid,
+                'cmid' => (int) $cm->id,
+                'itemverid' => $versions['COV-ULO'],
+                'role' => content_mapping_service::ROLE_TEACHES,
+                'effectivefrom' => 1704067200,
+            ]);
+            content_mapping_service::submit_for_review(content_mapping_service::TARGET_MODULE, $mappingid);
+        } finally {
+            \core\session\manager::set_user($previoususer);
+        }
     }
 }
