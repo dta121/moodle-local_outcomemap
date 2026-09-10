@@ -648,8 +648,8 @@ final class foundation_import_service extends base_service {
                 return $data;
 
             case self::PROGRAM_COURSES:
-                $program = self::record_by_uuid('local_outcomemap_program', $row['programuuid'], 'program');
-                $course = self::record_by_uuid('local_outcomemap_course', $row['courseuuid'], 'catalog_course');
+                $program = self::record_by_reference('local_outcomemap_program', $row['programuuid'], 'program');
+                $course = self::record_by_reference('local_outcomemap_course', $row['courseuuid'], 'catalog_course');
                 $from = self::parse_date($row['effectivefrom'], 'effectivefrom');
                 $to = self::parse_optional_date($row['effectiveto'], 'effectiveto');
                 effective_dates::validate($from, $to);
@@ -672,7 +672,7 @@ final class foundation_import_service extends base_service {
                 return $data;
 
             case self::COURSE_INSTANCES:
-                $course = self::record_by_uuid('local_outcomemap_course', $row['catalogcourseuuid'], 'catalog_course');
+                $course = self::record_by_reference('local_outcomemap_course', $row['catalogcourseuuid'], 'catalog_course');
                 $moodlecourseid = input::positive_int($row['moodlecourseid'], 'moodlecourseid');
                 if (!$DB->record_exists('course', ['id' => $moodlecourseid])) {
                     throw new validation_exception('moodlecoursenotfound', 'moodlecourseid', $moodlecourseid);
@@ -700,9 +700,9 @@ final class foundation_import_service extends base_service {
                 $ownertype = input::required_text($row['ownertype'], 'ownertype', 20);
                 $ownerid = null;
                 if ($ownertype === framework_service::OWNER_PROGRAM) {
-                    $ownerid = self::record_by_uuid('local_outcomemap_program', $row['owneruuid'], 'program')->id;
+                    $ownerid = self::record_by_reference('local_outcomemap_program', $row['owneruuid'], 'program')->id;
                 } else if ($ownertype === framework_service::OWNER_COURSE) {
-                    $ownerid = self::record_by_uuid('local_outcomemap_course', $row['owneruuid'], 'catalog_course')->id;
+                    $ownerid = self::record_by_reference('local_outcomemap_course', $row['owneruuid'], 'catalog_course')->id;
                 } else if ($ownertype !== framework_service::OWNER_INSTITUTION || trim($row['owneruuid']) !== '') {
                     throw new validation_exception('invalidowner', 'ownertype', $ownertype);
                 }
@@ -731,7 +731,7 @@ final class foundation_import_service extends base_service {
                 return $data;
 
             case self::OUTCOMES:
-                $framework = self::record_by_uuid('local_outcomemap_fw', $row['frameworkuuid'], 'framework');
+                $framework = self::record_by_reference('local_outcomemap_fw', $row['frameworkuuid'], 'framework');
                 $code = input::required_text($row['code'], 'code', 100);
                 self::unique_seen($seen, $framework->id . ':' . $code);
                 if ($DB->record_exists('local_outcomemap_item', ['frameworkid' => $framework->id, 'code' => $code])) {
@@ -757,8 +757,8 @@ final class foundation_import_service extends base_service {
                 return $data;
 
             case self::RELATIONS:
-                $source = self::record_by_uuid('local_outcomemap_item', $row['sourceuuid'], 'source_outcome');
-                $target = self::record_by_uuid('local_outcomemap_item', $row['targetuuid'], 'target_outcome');
+                $source = self::outcome_by_reference($row['sourceuuid'], 'source_outcome');
+                $target = self::outcome_by_reference($row['targetuuid'], 'target_outcome');
                 if ($source->id === $target->id) {
                     throw new validation_exception('selfrelation', 'targetuuid');
                 }
@@ -902,6 +902,93 @@ final class foundation_import_service extends base_service {
             throw new validation_exception('recordnotfound', $type, $value);
         }
         return $record;
+    }
+
+    /**
+     * Resolve a referenced program, catalog course or framework by UUID or by code.
+     *
+     * A file written on one site names records by UUID, which another site
+     * cannot share once it has created the same records itself. Codes are
+     * what people actually know a program, course or framework by, so a
+     * value that is not a UUID is looked up as a code instead. A code that
+     * matches more than one live record — a framework code reused across
+     * owners, say — is refused rather than guessed.
+     *
+     * @param string $table Database table.
+     * @param string $value UUID or code.
+     * @param string $type Record type named in the error.
+     * @return \stdClass
+     */
+    private static function record_by_reference(string $table, string $value, string $type): \stdClass {
+        global $DB;
+        $value = trim($value);
+        if (self::looks_like_uuid($value)) {
+            return self::record_by_uuid($table, $value, $type);
+        }
+        if ($value === '') {
+            throw new validation_exception('recordnotfound', $type, $value);
+        }
+        $matches = $DB->get_records_select(
+            $table,
+            'code = :code AND status <> :retired',
+            ['code' => $value, 'retired' => workflow::RETIRED]
+        );
+        if (count($matches) > 1) {
+            throw new validation_exception('ambiguouscode', $type, $value);
+        }
+        if (!$matches) {
+            throw new validation_exception('recordnotfound', $type, $value);
+        }
+        return reset($matches);
+    }
+
+    /**
+     * Resolve an outcome by UUID or by its FRAMEWORK.CODE label.
+     *
+     * The label is the one the hierarchy export writes in its Maps to column,
+     * so a relations file can name outcomes the same way.
+     *
+     * @param string $value UUID or label.
+     * @param string $type Record type named in the error.
+     * @return \stdClass Outcome item.
+     */
+    private static function outcome_by_reference(string $value, string $type): \stdClass {
+        global $DB;
+        $value = trim($value);
+        if (self::looks_like_uuid($value)) {
+            return self::record_by_uuid('local_outcomemap_item', $value, $type);
+        }
+        $dot = strpos($value, '.');
+        if ($dot === false || $dot === 0 || $dot === strlen($value) - 1) {
+            throw new validation_exception('recordnotfound', $type, $value);
+        }
+        $matches = $DB->get_records_sql(
+            "SELECT i.*
+               FROM {local_outcomemap_item} i
+               JOIN {local_outcomemap_fw} fw ON fw.id = i.frameworkid
+              WHERE fw.code = :fwcode AND i.code = :code AND fw.status <> :retired",
+            [
+                'fwcode' => substr($value, 0, $dot),
+                'code' => substr($value, $dot + 1),
+                'retired' => workflow::RETIRED,
+            ]
+        );
+        if (count($matches) > 1) {
+            throw new validation_exception('ambiguouscode', $type, $value);
+        }
+        if (!$matches) {
+            throw new validation_exception('recordnotfound', $type, $value);
+        }
+        return reset($matches);
+    }
+
+    /**
+     * Whether a value has the shape of a UUID, so it is resolved as one.
+     *
+     * @param string $value Trimmed cell value.
+     */
+    private static function looks_like_uuid(string $value): bool {
+        return (bool) preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iD', $value);
     }
 
     /**

@@ -40,6 +40,10 @@ Review role overrides after changing archetypes. In particular, a course or modu
 7. Confirm Moodle cron is running. Quiz events enqueue lightweight recalculation work; scheduled reconciliation repairs missing or stale evidence/results.
 8. Grant custom reviewer and accreditation roles only the capabilities and contexts they require.
 
+### Foundation CSV import
+
+Every import entity's reference columns — `programuuid`, `courseuuid`, `catalogcourseuuid`, `owneruuid`, `frameworkuuid`, `sourceuuid`, `targetuuid` — accept either a UUID or the code the record is known by: program, catalog course and framework codes, or an outcome's `FRAMEWORK.CODE` label as the hierarchy export writes it. Files can therefore be authored by hand, or moved between sites that created the same records independently, without copying UUIDs. A code matching more than one live record is refused; use the UUID for that row.
+
 ## Instructor workflow
 
 1. Open **Course outcome mapping > Outcome coverage** to inspect the exact approved outcome versions and mapped course content. Coverage is reported per exact outcome version: an outcome nothing maps to directly but whose aligned outcomes are mapped — typically a course outcome reached through its unit outcomes — is reported as *covered through alignment*, naming the outcomes it comes through.

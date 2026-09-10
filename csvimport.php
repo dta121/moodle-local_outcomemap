@@ -108,6 +108,7 @@ if ($preview === null) {
         );
     }
     echo html_writer::alist($links);
+    echo html_writer::div(get_string('csvimport_references', 'local_outcomemap'), 'lom-cov-subtitle');
 } else {
     echo $OUTPUT->heading(get_string('importpreview', 'local_outcomemap'), 3);
     $table = new html_table();

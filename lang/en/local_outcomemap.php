@@ -60,6 +60,8 @@ $string['all'] = 'All';
 
 $string['anyperformanceband'] = 'Any performance band';
 
+$string['ambiguouscode'] = 'The code "{$a->detail}" matches more than one {$a->field} record. Use its UUID instead.';
+
 $string['apply_created'] = '{$a->count} mapping(s) created as {$a->role}.';
 
 $string['apply_heading'] = 'Apply outcomes';
@@ -569,6 +571,8 @@ $string['csventity'] = 'Entity type';
 $string['csvfile'] = 'CSV file';
 
 $string['csvimport_heading'] = 'Foundation CSV import';
+
+$string['csvimport_references'] = 'Reference columns (programuuid, courseuuid, catalogcourseuuid, owneruuid, frameworkuuid, sourceuuid, targetuuid) accept either the record’s UUID or the code people know it by: a program, catalog course or framework code, or an outcome’s FRAMEWORK.CODE label as written in the hierarchy export. A code that matches more than one record is refused.';
 
 $string['curriculum_addcourse'] = 'Add a course to';
 
