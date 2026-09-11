@@ -169,7 +169,7 @@ final class coverage_service extends base_service {
      * `inheritedfrom` (label and assessed flag per covered source) and
      * `inheritedassessed`; a row nothing aligns to gets an empty list.
      *
-     * @param array<int,object> $rows Matrix rows keyed by outcome-version id.
+     * @param array $rows Matrix rows keyed by outcome-version id.
      * @param int $at Effective timestamp for the report.
      */
     private static function attach_inherited_coverage(array $rows, int $at): void {
