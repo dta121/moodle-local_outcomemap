@@ -3013,6 +3013,7 @@ a.lom-matrix-cell:hover {
     grid-template-columns: repeat(4, 1fr);
     margin-bottom: 8px;
 }
+
 @media (max-width: 1100px) {
     .lom-cov-cards {
         grid-template-columns: repeat(2, 1fr);
