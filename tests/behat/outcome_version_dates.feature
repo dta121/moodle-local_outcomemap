@@ -1,0 +1,43 @@
+@local @local_outcomemap
+Feature: Administrators correct the effective date of approved outcome versions
+  In order to roll up results for assessments sat before the outcomes were recorded
+  As authorized governance staff
+  I need to move the approved outcome versions of a framework back to the date the curriculum took effect
+
+  Scenario: The effective date of every approved outcome version is corrected as a set
+    Given the approved outcomes "CLO1,CLO2" exist
+    And I log in as "admin"
+    And I navigate to "Learning outcome mapping > Outcomes & alignment" in site administration
+    When I click on "Correct effective dates…" "link"
+    Then I should see "Correct effective date: All frameworks"
+    And I should see "2 approved outcome version(s) currently take effect between"
+    # A start that moves nothing is refused before the service is asked.
+    When I set the field "Correction reason" to "The curriculum took effect in 2024"
+    And I set the field "effectivefrom[year]" to "2030"
+    And I press "Correct effective date"
+    Then I should see "Choose a date earlier than"
+    When I set the field "effectivefrom[year]" to "2024"
+    And I press "Correct effective date"
+    Then I should see "2 outcome version(s) now take effect from"
+    And the approved versions of outcome "CLO1" take effect in year "2024"
+    And the approved versions of outcome "CLO2" take effect in year "2024"
+
+  Scenario: A site with no approved outcomes offers nothing to correct
+    Given I log in as "admin"
+    And I navigate to "Learning outcome mapping > Outcomes & alignment" in site administration
+    When I click on "Correct effective dates…" "link"
+    Then I should see "There are no approved outcome versions to correct."
+
+  Scenario: An empty draft framework can be deleted, and a finalized one cannot
+    Given the draft framework "TEST" exists
+    And the approved outcomes "CLO1" exist
+    And I log in as "admin"
+    And I navigate to "Learning outcome mapping > Outcomes & alignment" in site administration
+    Then I should see "TEST"
+    And "Delete" "link" should exist in the "//div[contains(@class,'lom-fwbar')][.//span[text()='TEST']]" "xpath_element"
+    And "Delete" "link" should not exist in the "//div[contains(@class,'lom-fwbar')][.//span[text()='QB-BEHAT']]" "xpath_element"
+    When I click on "Delete" "link" in the "//div[contains(@class,'lom-fwbar')][.//span[text()='TEST']]" "xpath_element"
+    Then I should see "Delete the draft framework TEST"
+    When I press "Continue"
+    Then I should see "Draft framework TEST deleted."
+    And I should not see "Framework TEST"

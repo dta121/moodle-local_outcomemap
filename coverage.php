@@ -49,7 +49,13 @@ require_login($course);
 $context = context_course::instance($courseid);
 require_capability('local/outcomemap:viewdefinitions', $context);
 
-$validfilters = ['all', coverage_service::STATUS_NONE, coverage_service::STATUS_TAUGHT, coverage_service::STATUS_FULL];
+$validfilters = [
+    'all',
+    coverage_service::STATUS_NONE,
+    coverage_service::STATUS_TAUGHT,
+    coverage_service::STATUS_INHERITED,
+    coverage_service::STATUS_FULL,
+];
 if (!in_array($filter, $validfilters, true)) {
     $filter = 'all';
 }
@@ -80,6 +86,36 @@ function local_outcomemap_mapping_label(\stdClass $mapping, int $courseid, cours
     return $name;
 }
 
+/**
+ * Render the aligned outcomes coverage comes through as chips.
+ *
+ * @param array $entries Inherited-coverage entries carrying a label.
+ * @return string HTML.
+ */
+function local_outcomemap_inherited_html(array $entries): string {
+    $chips = '';
+    foreach ($entries as $entry) {
+        $chips .= html_writer::span(s($entry->label), 'lom-cov-via-chip');
+    }
+    return html_writer::div(
+        html_writer::span(get_string('coverage_inheritedvia', 'local_outcomemap', ''), 'lom-cov-meta') . $chips,
+        'lom-cov-via'
+    );
+}
+
+/**
+ * Name the aligned outcomes coverage comes through, or nothing when there are none.
+ *
+ * @param array $entries Inherited-coverage entries carrying a label.
+ * @return string Plain text.
+ */
+function local_outcomemap_inherited_note(array $entries): string {
+    if (!$entries) {
+        return '';
+    }
+    return get_string('coverage_inheritedvia', 'local_outcomemap', implode(', ', array_map(fn($e) => $e->label, $entries)));
+}
+
 // Project the matrix into display rows once so the counts, the filtered table,
 // and the CSV export can never disagree about an outcome's status.
 $rows = [];
@@ -107,6 +143,8 @@ foreach ($matrix as $itemverid => $row) {
         'statusid' => coverage_service::row_status($row),
         'taught' => $taught,
         'assessed' => $assessed,
+        'inheritedfrom' => $row->inheritedfrom ?? [],
+        'inheritedassessed' => !empty($row->inheritedassessed),
     ];
 }
 
@@ -114,11 +152,14 @@ $counts = [
     'all' => count($rows),
     coverage_service::STATUS_FULL => 0,
     coverage_service::STATUS_TAUGHT => 0,
+    coverage_service::STATUS_INHERITED => 0,
     coverage_service::STATUS_NONE => 0,
 ];
 foreach ($rows as $row) {
     if ($row->statusid === coverage_service::STATUS_FULL) {
         $counts[coverage_service::STATUS_FULL]++;
+    } else if ($row->statusid === coverage_service::STATUS_INHERITED) {
+        $counts[coverage_service::STATUS_INHERITED]++;
     } else if ($row->statusid === coverage_service::STATUS_NONE) {
         $counts[coverage_service::STATUS_NONE]++;
     } else {
@@ -134,6 +175,9 @@ foreach ($rows as $itemverid => $row) {
         continue;
     }
     if ($filter === coverage_service::STATUS_NONE && $row->statusid !== coverage_service::STATUS_NONE) {
+        continue;
+    }
+    if ($filter === coverage_service::STATUS_INHERITED && $row->statusid !== coverage_service::STATUS_INHERITED) {
         continue;
     }
     if (
@@ -171,8 +215,12 @@ if ($action === 'export') {
             'v' . $row->version,
             $row->statement,
             get_string('coveragestatus_' . $row->statusid, 'local_outcomemap'),
-            implode('; ', array_map(fn($e) => $e->label, $row->taught)),
-            implode('; ', array_map(fn($e) => $e->label, $row->assessed)),
+            $row->taught
+                ? implode('; ', array_map(fn($e) => $e->label, $row->taught))
+                : local_outcomemap_inherited_note($row->inheritedfrom),
+            $row->assessed
+                ? implode('; ', array_map(fn($e) => $e->label, $row->assessed))
+                : local_outcomemap_inherited_note(array_filter($row->inheritedfrom, fn($e) => $e->assessed)),
         ]));
     }
     $exporter->download_file();
@@ -191,6 +239,7 @@ $statusmeta = [
     coverage_service::STATUS_FULL => 'lom-cov-badge-full',
     coverage_service::STATUS_ASSESSED_ONLY => 'lom-cov-badge-partial',
     coverage_service::STATUS_TAUGHT => 'lom-cov-badge-partial',
+    coverage_service::STATUS_INHERITED => 'lom-cov-badge-inherited',
     coverage_service::STATUS_NONE => 'lom-cov-badge-none',
 ];
 
@@ -240,6 +289,7 @@ $total = $counts['all'];
 $cards = [
     [coverage_service::STATUS_FULL, 'lom-cov-card-full', $counts[coverage_service::STATUS_FULL]],
     [coverage_service::STATUS_TAUGHT, 'lom-cov-card-partial', $counts[coverage_service::STATUS_TAUGHT]],
+    [coverage_service::STATUS_INHERITED, 'lom-cov-card-inherited', $counts[coverage_service::STATUS_INHERITED]],
     [coverage_service::STATUS_NONE, 'lom-cov-card-none', $counts[coverage_service::STATUS_NONE]],
 ];
 $cardhtml = '';
@@ -267,7 +317,7 @@ echo html_writer::div($cardhtml, 'lom-cov-cards');
 
 // Filter chips and search, as one GET form so both survive a page load.
 $chips = '';
-foreach (['all', coverage_service::STATUS_NONE, coverage_service::STATUS_TAUGHT, coverage_service::STATUS_FULL] as $key) {
+foreach ($validfilters as $key) {
     $chipurl = new moodle_url($url, ['filter' => $key, 'q' => $search]);
     $chips .= html_writer::link(
         $chipurl,
@@ -327,7 +377,7 @@ foreach ($visible as $row) {
 $grouptotals = [];
 foreach ($rows as $row) {
     $grouptotals[$row->frameworkcode]['total'] = ($grouptotals[$row->frameworkcode]['total'] ?? 0) + 1;
-    if ($row->statusid === coverage_service::STATUS_FULL) {
+    if (in_array($row->statusid, [coverage_service::STATUS_FULL, coverage_service::STATUS_INHERITED], true)) {
         $grouptotals[$row->frameworkcode]['full'] = ($grouptotals[$row->frameworkcode]['full'] ?? 0) + 1;
     }
 }
@@ -382,7 +432,9 @@ foreach ($groups as $frameworkcode => $grouprows) {
             );
         }
         if (!$row->taught) {
-            $taughthtml = html_writer::span(get_string('coverage_nottaught', 'local_outcomemap'), 'lom-cov-missing');
+            $taughthtml = $row->inheritedfrom
+                ? local_outcomemap_inherited_html($row->inheritedfrom)
+                : html_writer::span(get_string('coverage_nottaught', 'local_outcomemap'), 'lom-cov-missing');
         }
         $assessedhtml = '';
         foreach ($row->assessed as $entry) {
@@ -392,7 +444,10 @@ foreach ($groups as $frameworkcode => $grouprows) {
                 'lom-cov-entry'
             );
         }
-        if (!$row->assessed) {
+        $inheritedassessed = array_values(array_filter($row->inheritedfrom, fn($e) => $e->assessed));
+        if (!$row->assessed && $inheritedassessed) {
+            $assessedhtml = local_outcomemap_inherited_html($inheritedassessed);
+        } else if (!$row->assessed) {
             $assessedhtml = has_capability('local/outcomemap:mapactivities', $context)
                 ? html_writer::link(
                     new moodle_url('/local/outcomemap/contentmapping.php', ['courseid' => $courseid]),

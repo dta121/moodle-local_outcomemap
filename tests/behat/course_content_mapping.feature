@@ -108,3 +108,13 @@ Feature: Course staff map content to governed outcome versions
     And I click on "Approve" "link" in the "MBA614-FW.CLO1 / assesses" "table_row"
     And I press "Continue"
     Then I should see "The record was approved."
+
+  Scenario: A course outcome nothing maps to is reported as covered through its aligned unit outcome
+    Given the "MBA614" course has unit outcome "1a" aligned to course outcome "0a" and taught by "Evidence workshop"
+    And I log in as "admin"
+    When I am on the "MBA614" course "Outcome coverage" outcome page
+    Then I should see "Course outcome coverage"
+    And I should see "Covered through alignment"
+    And I should see "COV-ULO.1a"
+    And I should see "Not assessed"
+    And I should see "Through alignment"

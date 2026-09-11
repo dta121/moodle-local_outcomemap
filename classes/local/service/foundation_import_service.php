@@ -97,6 +97,27 @@ final class foundation_import_service extends base_service {
     public const RELATIONS = 'relations';
 
     /**
+     * Question mapping transfer entity, in the shape the question mapping page exports.
+     *
+     * @var string
+     */
+    public const QUESTION_MAPPINGS = 'question_mappings';
+
+    /**
+     * Content mapping transfer entity, in the shape the content mapping page exports.
+     *
+     * @var string
+     */
+    public const CONTENT_MAPPINGS = 'content_mappings';
+
+    /**
+     * Outcome hierarchy import entity, in the shape the hierarchy CSV exports.
+     *
+     * @var string
+     */
+    public const HIERARCHY = 'hierarchy';
+
+    /**
      * Supported import entities.
      *
      * @var string[]
@@ -110,19 +131,23 @@ final class foundation_import_service extends base_service {
         self::OUTCOMES,
         self::RELATIONS,
         self::HIERARCHY,
+        self::QUESTION_MAPPINGS,
+        self::CONTENT_MAPPINGS,
     ];
-
-    /**
-     * Outcome hierarchy import entity, in the shape the hierarchy CSV exports.
-     *
-     * @var string
-     */
-    public const HIERARCHY = 'hierarchy';
 
     /**
      * @var string Relationship the Maps to column expresses.
      */
     private const HIERARCHY_RELATION = relation_service::ALIGNS_TO;
+
+    /**
+     * @var string Uniform weight of the contribution edge written beside each alignment.
+     *
+     * A relation weight multiplies both the earned and the possible marks, so a
+     * uniform weight cancels out of every percentage: it asserts no curriculum
+     * proportion, only that the parent's figure pools all the work beneath it.
+     */
+    private const HIERARCHY_CONTRIBUTION_WEIGHT = '1.0000000000';
 
     /**
      * Exact CSV headers for each import entity.
@@ -146,13 +171,24 @@ final class foundation_import_service extends base_service {
         ],
         // Exactly the columns the outcome hierarchy exports, so a file taken out
         // of the plugin can be read back into it.
-        self::HIERARCHY => ['Type', 'Framework', 'Code', 'Statement', 'Maps to', 'Version', 'Status'],
+        self::HIERARCHY => [
+            'Type', 'Framework', 'Code', 'Statement', 'Maps to', 'Version', 'Status', 'Effective from', 'Effective to',
+        ],
+        self::QUESTION_MAPPINGS => mapping_transfer_service::QUESTION_HEADERS,
+        self::CONTENT_MAPPINGS => mapping_transfer_service::CONTENT_HEADERS,
     ];
 
     /**
      * @var string[] Previous Programs header retained for backward-compatible imports.
      */
     private const LEGACY_PROGRAM_HEADERS = ['uuid', 'code', 'name', 'description', 'externalid'];
+
+    /**
+     * @var string[] Hierarchy header emitted before effective dates were transferable.
+     */
+    private const LEGACY_HIERARCHY_HEADERS = [
+        'Type', 'Framework', 'Code', 'Statement', 'Maps to', 'Version', 'Status',
+    ];
 
     /**
      * Store uploaded CSV content using Moodle's temporary CSV reader.
@@ -211,6 +247,9 @@ final class foundation_import_service extends base_service {
         if ($entity === self::HIERARCHY) {
             return self::preview_hierarchy($importid);
         }
+        if (self::is_mapping_entity($entity)) {
+            return self::preview_mappings($importid, $entity);
+        }
         $rows = self::read_rows($importid, $entity);
         $seen = [];
         $previewrows = [];
@@ -255,6 +294,9 @@ final class foundation_import_service extends base_service {
         $actorid = self::require_system('local/outcomemap:manageframeworks');
         if ($entity === self::HIERARCHY) {
             return self::commit_hierarchy($importid, $expectedhash, $actorid);
+        }
+        if (self::is_mapping_entity($entity)) {
+            return self::commit_mappings($importid, $entity, $expectedhash, $actorid);
         }
         $preview = self::preview($importid, $entity);
         if (!hash_equals($preview->hash, strtolower($expectedhash))) {
@@ -320,6 +362,11 @@ final class foundation_import_service extends base_service {
             }
             if (trim($row['Statement']) === '') {
                 $errors[] = get_string('importhierarchy_nostatement', 'local_outcomemap');
+            }
+            try {
+                self::hierarchy_period($row, time());
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
             }
             $label = $frameworkcode . '.' . $code;
             if ($errors === []) {
@@ -389,6 +436,11 @@ final class foundation_import_service extends base_service {
         $rows = array_map(static fn($row) => $row->data, $preview->rows);
         $frameworks = self::frameworks_by_code();
         $now = time();
+        $periods = [];
+        foreach ($rows as $row) {
+            $label = trim($row['Framework']) . '.' . trim($row['Code']);
+            $periods[$label] = self::hierarchy_period($row, $now);
+        }
         $transaction = $DB->start_delegated_transaction();
         try {
             $items = self::outcomes_by_label();
@@ -396,6 +448,7 @@ final class foundation_import_service extends base_service {
                 $frameworkcode = trim($row['Framework']);
                 $code = trim($row['Code']);
                 $label = $frameworkcode . '.' . $code;
+                [$effectivefrom, $effectiveto] = $periods[$label];
                 if (isset($items[$label])) {
                     continue;
                 }
@@ -403,7 +456,8 @@ final class foundation_import_service extends base_service {
                     'frameworkid' => (int) $frameworks[$frameworkcode]->id,
                     'code' => $code,
                     'statement' => trim($row['Statement']),
-                    'effectivefrom' => $now,
+                    'effectivefrom' => $effectivefrom,
+                    'effectiveto' => $effectiveto,
                 ]);
                 $versionid = (int) $DB->get_field(
                     'local_outcomemap_itemver',
@@ -420,11 +474,14 @@ final class foundation_import_service extends base_service {
             }
 
             $aligned = 0;
+            $contributed = 0;
             foreach ($rows as $row) {
-                $source = $items[trim($row['Framework']) . '.' . trim($row['Code'])] ?? null;
+                $sourcelabel = trim($row['Framework']) . '.' . trim($row['Code']);
+                $source = $items[$sourcelabel] ?? null;
                 if ($source === null || $source->status !== workflow::APPROVED) {
                     continue;
                 }
+                [$effectivefrom, $effectiveto] = $periods[$sourcelabel];
                 foreach (self::hierarchy_targets($row['Maps to']) as $targetlabel) {
                     $target = $items[$targetlabel] ?? null;
                     if (
@@ -433,17 +490,34 @@ final class foundation_import_service extends base_service {
                     ) {
                         continue;
                     }
-                    if (self::alignment_exists((int) $source->id, (int) $target->id)) {
-                        continue;
+                    if (!self::relation_exists((int) $source->id, (int) $target->id, self::HIERARCHY_RELATION)) {
+                        $relationid = relation_service::create([
+                            'sourceitemid' => (int) $source->id,
+                            'targetitemid' => (int) $target->id,
+                            'type' => self::HIERARCHY_RELATION,
+                            'effectivefrom' => $effectivefrom,
+                            'effectiveto' => $effectiveto,
+                        ]);
+                        relation_service::submit_for_review($relationid);
+                        $aligned++;
                     }
-                    $relationid = relation_service::create([
-                        'sourceitemid' => (int) $source->id,
-                        'targetitemid' => (int) $target->id,
-                        'type' => self::HIERARCHY_RELATION,
-                        'effectivefrom' => $now,
-                    ]);
-                    relation_service::submit_for_review($relationid);
-                    $aligned++;
+                    // Alignment records the curriculum; contribution is what the
+                    // calculation engine walks to roll unit results up to course
+                    // and program outcomes. Without it a hierarchy reports at unit
+                    // level only, so every alignment is mirrored as a contribution.
+                    if (!self::relation_exists((int) $source->id, (int) $target->id, relation_service::CONTRIBUTES_TO)) {
+                        $relationid = relation_service::create([
+                            'sourceitemid' => (int) $source->id,
+                            'targetitemid' => (int) $target->id,
+                            'type' => relation_service::CONTRIBUTES_TO,
+                            'weight' => self::HIERARCHY_CONTRIBUTION_WEIGHT,
+                            'effectivefrom' => $effectivefrom,
+                            'effectiveto' => $effectiveto,
+                            'notes' => get_string('importhierarchy_contributesnote', 'local_outcomemap'),
+                        ]);
+                        relation_service::submit_for_review($relationid);
+                        $contributed++;
+                    }
                 }
             }
 
@@ -451,6 +525,77 @@ final class foundation_import_service extends base_service {
                 'entity' => self::HIERARCHY,
                 'rowcount' => count($rows),
                 'alignments' => $aligned,
+                'contributions' => $contributed,
+                'previewhash' => $preview->hash,
+            ], null, \context_system::instance(), $actorid);
+            $transaction->allow_commit();
+            return count($rows);
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+    }
+
+    /**
+     * Whether an entity is one of the two course mapping transfer files.
+     *
+     * @param string $entity Import entity.
+     */
+    private static function is_mapping_entity(string $entity): bool {
+        return $entity === self::QUESTION_MAPPINGS || $entity === self::CONTENT_MAPPINGS;
+    }
+
+    /**
+     * Preview a mapping transfer file.
+     *
+     * @param int $importid Import identifier.
+     * @param string $entity Mapping entity.
+     * @return import_preview
+     */
+    private static function preview_mappings(int $importid, string $entity): import_preview {
+        $rows = self::read_rows($importid, $entity);
+        [$previewrows, $valid] = $entity === self::QUESTION_MAPPINGS
+            ? mapping_transfer_service::preview_question_rows($rows)
+            : mapping_transfer_service::preview_content_rows($rows);
+        $hash = hash('sha256', canonical_json::encode([
+            'entity' => $entity,
+            'headers' => self::HEADERS[$entity],
+            'rows' => $rows,
+        ]));
+        return new import_preview($previewrows, $hash, $valid);
+    }
+
+    /**
+     * Create the mappings a validated transfer file describes.
+     *
+     * Rows whose mapping already exists are skipped, so re-importing a file
+     * changes nothing. Each new mapping is offered to the submission boundary
+     * the way the course pages do it.
+     *
+     * @param int $importid Import identifier.
+     * @param string $entity Mapping entity.
+     * @param string $expectedhash Expected preview hash.
+     * @param int $actorid Acting user.
+     * @return int Number of committed data rows.
+     */
+    private static function commit_mappings(int $importid, string $entity, string $expectedhash, int $actorid): int {
+        global $DB;
+        $preview = self::preview_mappings($importid, $entity);
+        if (!hash_equals($preview->hash, strtolower($expectedhash))) {
+            throw new validation_exception('importchanged', 'previewhash');
+        }
+        if (!$preview->valid) {
+            throw new validation_exception('importerrors', 'csvfile');
+        }
+        $rows = array_map(static fn($row) => $row->data, $preview->rows);
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $created = $entity === self::QUESTION_MAPPINGS
+                ? mapping_transfer_service::commit_question_rows($rows)
+                : mapping_transfer_service::commit_content_rows($rows);
+            audit_writer::write('import', 'foundation_import', null, null, null, [
+                'entity' => $entity,
+                'rowcount' => count($rows),
+                'created' => $created,
                 'previewhash' => $preview->hash,
             ], null, \context_system::instance(), $actorid);
             $transaction->allow_commit();
@@ -475,6 +620,26 @@ final class foundation_import_service extends base_service {
             }
         }
         return array_values(array_unique($targets));
+    }
+
+    /**
+     * Resolve the period represented by one hierarchy row.
+     *
+     * Legacy exports did not include dates and retain their historical import-time
+     * default. Current exports carry the exact outcome-version period so generated
+     * alignments and contributions govern the same assessments as the outcome.
+     *
+     * @param array $row Hierarchy row.
+     * @param int $defaultfrom Import timestamp for a legacy row.
+     * @return array{0:int,1:int|null} Effective start and end.
+     */
+    private static function hierarchy_period(array $row, int $defaultfrom): array {
+        $from = trim((string) ($row['Effective from'] ?? '')) === ''
+            ? $defaultfrom
+            : self::parse_date((string) $row['Effective from'], 'Effective from');
+        $to = self::parse_optional_date((string) ($row['Effective to'] ?? ''), 'Effective to');
+        effective_dates::validate($from, $to);
+        return [$from, $to];
     }
 
     /**
@@ -511,13 +676,14 @@ final class foundation_import_service extends base_service {
     }
 
     /**
-     * Whether a live alignment already joins two outcomes.
+     * Whether a live relation of one type already joins two outcomes.
      *
      * @param int $sourceid Source outcome item id.
      * @param int $targetid Target outcome item id.
+     * @param string $type Relation type.
      * @return bool
      */
-    private static function alignment_exists(int $sourceid, int $targetid): bool {
+    private static function relation_exists(int $sourceid, int $targetid, string $type): bool {
         global $DB;
         return $DB->record_exists_select(
             'local_outcomemap_rel',
@@ -525,7 +691,7 @@ final class foundation_import_service extends base_service {
             [
                 'source' => $sourceid,
                 'target' => $targetid,
-                'type' => self::HIERARCHY_RELATION,
+                'type' => $type,
                 'retired' => workflow::RETIRED,
             ]
         );
@@ -558,7 +724,8 @@ final class foundation_import_service extends base_service {
         $columns = $reader->get_columns();
         $columnlist = $columns === false ? [] : array_values($columns);
         $legacyprogram = $entity === self::PROGRAMS && $columnlist === self::LEGACY_PROGRAM_HEADERS;
-        if ($columnlist !== self::HEADERS[$entity] && !$legacyprogram) {
+        $legacyhierarchy = $entity === self::HIERARCHY && $columnlist === self::LEGACY_HIERARCHY_HEADERS;
+        if ($columnlist !== self::HEADERS[$entity] && !$legacyprogram && !$legacyhierarchy) {
             throw new validation_exception('importheader', 'csvfile', implode(',', self::HEADERS[$entity]));
         }
         $reader->init();
@@ -621,8 +788,8 @@ final class foundation_import_service extends base_service {
                 return $data;
 
             case self::PROGRAM_COURSES:
-                $program = self::record_by_uuid('local_outcomemap_program', $row['programuuid'], 'program');
-                $course = self::record_by_uuid('local_outcomemap_course', $row['courseuuid'], 'catalog_course');
+                $program = self::record_by_reference('local_outcomemap_program', $row['programuuid'], 'program');
+                $course = self::record_by_reference('local_outcomemap_course', $row['courseuuid'], 'catalog_course');
                 $from = self::parse_date($row['effectivefrom'], 'effectivefrom');
                 $to = self::parse_optional_date($row['effectiveto'], 'effectiveto');
                 effective_dates::validate($from, $to);
@@ -645,7 +812,7 @@ final class foundation_import_service extends base_service {
                 return $data;
 
             case self::COURSE_INSTANCES:
-                $course = self::record_by_uuid('local_outcomemap_course', $row['catalogcourseuuid'], 'catalog_course');
+                $course = self::record_by_reference('local_outcomemap_course', $row['catalogcourseuuid'], 'catalog_course');
                 $moodlecourseid = input::positive_int($row['moodlecourseid'], 'moodlecourseid');
                 if (!$DB->record_exists('course', ['id' => $moodlecourseid])) {
                     throw new validation_exception('moodlecoursenotfound', 'moodlecourseid', $moodlecourseid);
@@ -673,9 +840,9 @@ final class foundation_import_service extends base_service {
                 $ownertype = input::required_text($row['ownertype'], 'ownertype', 20);
                 $ownerid = null;
                 if ($ownertype === framework_service::OWNER_PROGRAM) {
-                    $ownerid = self::record_by_uuid('local_outcomemap_program', $row['owneruuid'], 'program')->id;
+                    $ownerid = self::record_by_reference('local_outcomemap_program', $row['owneruuid'], 'program')->id;
                 } else if ($ownertype === framework_service::OWNER_COURSE) {
-                    $ownerid = self::record_by_uuid('local_outcomemap_course', $row['owneruuid'], 'catalog_course')->id;
+                    $ownerid = self::record_by_reference('local_outcomemap_course', $row['owneruuid'], 'catalog_course')->id;
                 } else if ($ownertype !== framework_service::OWNER_INSTITUTION || trim($row['owneruuid']) !== '') {
                     throw new validation_exception('invalidowner', 'ownertype', $ownertype);
                 }
@@ -704,7 +871,7 @@ final class foundation_import_service extends base_service {
                 return $data;
 
             case self::OUTCOMES:
-                $framework = self::record_by_uuid('local_outcomemap_fw', $row['frameworkuuid'], 'framework');
+                $framework = self::record_by_reference('local_outcomemap_fw', $row['frameworkuuid'], 'framework');
                 $code = input::required_text($row['code'], 'code', 100);
                 self::unique_seen($seen, $framework->id . ':' . $code);
                 if ($DB->record_exists('local_outcomemap_item', ['frameworkid' => $framework->id, 'code' => $code])) {
@@ -730,8 +897,8 @@ final class foundation_import_service extends base_service {
                 return $data;
 
             case self::RELATIONS:
-                $source = self::record_by_uuid('local_outcomemap_item', $row['sourceuuid'], 'source_outcome');
-                $target = self::record_by_uuid('local_outcomemap_item', $row['targetuuid'], 'target_outcome');
+                $source = self::outcome_by_reference($row['sourceuuid'], 'source_outcome');
+                $target = self::outcome_by_reference($row['targetuuid'], 'target_outcome');
                 if ($source->id === $target->id) {
                     throw new validation_exception('selfrelation', 'targetuuid');
                 }
@@ -800,7 +967,12 @@ final class foundation_import_service extends base_service {
                 outcome_service::create($data);
                 return;
             case self::RELATIONS:
-                relation_service::create($data);
+                // A relation only matters once it is approved, and a file can
+                // carry hundreds of them, so each one is carried through the
+                // submission boundary the same way hierarchy alignments are.
+                // Where the site requires independent approval it stops at
+                // needs_review; otherwise it is finalized here.
+                relation_service::submit_for_review(relation_service::create($data));
                 return;
         }
     }
@@ -873,6 +1045,93 @@ final class foundation_import_service extends base_service {
     }
 
     /**
+     * Resolve a referenced program, catalog course or framework by UUID or by code.
+     *
+     * A file written on one site names records by UUID, which another site
+     * cannot share once it has created the same records itself. Codes are
+     * what people actually know a program, course or framework by, so a
+     * value that is not a UUID is looked up as a code instead. A code that
+     * matches more than one live record — a framework code reused across
+     * owners, say — is refused rather than guessed.
+     *
+     * @param string $table Database table.
+     * @param string $value UUID or code.
+     * @param string $type Record type named in the error.
+     * @return \stdClass
+     */
+    private static function record_by_reference(string $table, string $value, string $type): \stdClass {
+        global $DB;
+        $value = trim($value);
+        if (self::looks_like_uuid($value)) {
+            return self::record_by_uuid($table, $value, $type);
+        }
+        if ($value === '') {
+            throw new validation_exception('recordnotfound', $type, $value);
+        }
+        $matches = $DB->get_records_select(
+            $table,
+            'code = :code AND status <> :retired',
+            ['code' => $value, 'retired' => workflow::RETIRED]
+        );
+        if (count($matches) > 1) {
+            throw new validation_exception('ambiguouscode', $type, $value);
+        }
+        if (!$matches) {
+            throw new validation_exception('recordnotfound', $type, $value);
+        }
+        return reset($matches);
+    }
+
+    /**
+     * Resolve an outcome by UUID or by its FRAMEWORK.CODE label.
+     *
+     * The label is the one the hierarchy export writes in its Maps to column,
+     * so a relations file can name outcomes the same way.
+     *
+     * @param string $value UUID or label.
+     * @param string $type Record type named in the error.
+     * @return \stdClass Outcome item.
+     */
+    private static function outcome_by_reference(string $value, string $type): \stdClass {
+        global $DB;
+        $value = trim($value);
+        if (self::looks_like_uuid($value)) {
+            return self::record_by_uuid('local_outcomemap_item', $value, $type);
+        }
+        $dot = strpos($value, '.');
+        if ($dot === false || $dot === 0 || $dot === strlen($value) - 1) {
+            throw new validation_exception('recordnotfound', $type, $value);
+        }
+        $matches = $DB->get_records_sql(
+            "SELECT i.*
+               FROM {local_outcomemap_item} i
+               JOIN {local_outcomemap_fw} fw ON fw.id = i.frameworkid
+              WHERE fw.code = :fwcode AND i.code = :code AND fw.status <> :retired",
+            [
+                'fwcode' => substr($value, 0, $dot),
+                'code' => substr($value, $dot + 1),
+                'retired' => workflow::RETIRED,
+            ]
+        );
+        if (count($matches) > 1) {
+            throw new validation_exception('ambiguouscode', $type, $value);
+        }
+        if (!$matches) {
+            throw new validation_exception('recordnotfound', $type, $value);
+        }
+        return reset($matches);
+    }
+
+    /**
+     * Whether a value has the shape of a UUID, so it is resolved as one.
+     *
+     * @param string $value Trimmed cell value.
+     */
+    private static function looks_like_uuid(string $value): bool {
+        return (bool) preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iD', $value);
+    }
+
+    /**
      * Require a key to be unique within the current import.
      *
      * @param array $seen Keys already seen in this import.
@@ -892,7 +1151,7 @@ final class foundation_import_service extends base_service {
      * @param string $field Validation field name.
      * @return int Unix timestamp.
      */
-    private static function parse_date(string $value, string $field): int {
+    public static function parse_date(string $value, string $field): int {
         $value = trim($value);
         if (preg_match('/^[1-9]\d*$/D', $value)) {
             return input::positive_int($value, $field);
@@ -911,7 +1170,7 @@ final class foundation_import_service extends base_service {
      * @param string $field Validation field name.
      * @return int|null Unix timestamp, or null for an empty value.
      */
-    private static function parse_optional_date(string $value, string $field): ?int {
+    public static function parse_optional_date(string $value, string $field): ?int {
         return trim($value) === '' ? null : self::parse_date($value, $field);
     }
 

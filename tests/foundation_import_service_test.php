@@ -25,8 +25,12 @@
 namespace local_outcomemap;
 
 use local_outcomemap\local\service\foundation_import_service;
+use local_outcomemap\local\service\outcome_service;
+use local_outcomemap\local\service\framework_service;
+use local_outcomemap\local\service\catalog_course_service;
 use local_outcomemap\local\service\program_service;
 use local_outcomemap\local\validation_exception;
+use local_outcomemap\local\workflow;
 
 /**
  * Tests for CSV preview binding and all-or-nothing commit.
@@ -153,5 +157,86 @@ final class foundation_import_service_test extends \advanced_testcase {
             foundation_import_service::cleanup($importid);
         }
         $this->assertEquals(0, $DB->count_records('local_outcomemap_program'));
+    }
+    /**
+     * Reference columns resolve codes as well as UUIDs, and refuse an ambiguous code.
+     */
+    public function test_reference_columns_accept_codes(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+
+        $programid = program_service::create(['code' => 'MBA', 'name' => 'Master of Business Administration']);
+        $courseid = catalog_course_service::create(['code' => 'MBA601', 'name' => 'Financial Management']);
+
+        // Frameworks owned by code rather than UUID.
+        $csv = "uuid,code,name,description,ownertype,owneruuid\n"
+            . ",MBA-PLO,Program outcomes,,program,MBA\n"
+            . ",MBA601-CLO,Course outcomes,,catalog_course,MBA601\n";
+        $importid = foundation_import_service::load($csv, 'UTF-8', 'comma');
+        $preview = foundation_import_service::preview($importid, foundation_import_service::FRAMEWORKS);
+        $this->assertTrue($preview->valid, json_encode(array_map(static fn($r) => $r->errors, $preview->rows)));
+        $this->assertSame(2, foundation_import_service::commit(
+            $importid,
+            foundation_import_service::FRAMEWORKS,
+            $preview->hash
+        ));
+        $plo = $DB->get_record('local_outcomemap_fw', ['code' => 'MBA-PLO'], '*', MUST_EXIST);
+        $this->assertSame('program', $plo->ownertype);
+        $this->assertSame($programid, (int) $plo->ownerid);
+        $clo = $DB->get_record('local_outcomemap_fw', ['code' => 'MBA601-CLO'], '*', MUST_EXIST);
+        $this->assertSame($courseid, (int) $clo->ownerid);
+
+        // Memberships by code, mixed with a UUID on the same row.
+        $courseuuid = $DB->get_field('local_outcomemap_course', 'uuid', ['id' => $courseid]);
+        $csv = "uuid,programuuid,courseuuid,effectivefrom,effectiveto\n"
+            . ",MBA,{$courseuuid},2026-01-01,\n";
+        $importid = foundation_import_service::load($csv, 'UTF-8', 'comma');
+        $preview = foundation_import_service::preview($importid, foundation_import_service::PROGRAM_COURSES);
+        $this->assertTrue($preview->valid);
+        foundation_import_service::commit($importid, foundation_import_service::PROGRAM_COURSES, $preview->hash);
+        $this->assertTrue($DB->record_exists('local_outcomemap_progcourse', [
+            'programid' => $programid,
+            'courseid' => $courseid,
+        ]));
+
+        // Relations by FRAMEWORK.CODE label.
+        foreach (['PLO1', 'PLO2'] as $code) {
+            outcome_service::create([
+                'frameworkid' => (int) $plo->id,
+                'code' => $code,
+                'statement' => 'Outcome ' . $code,
+                'effectivefrom' => 1704067200,
+            ]);
+        }
+        $csv = "relationuuid,sourceuuid,targetuuid,type,weight,effectivefrom,effectiveto,notes\n"
+            . ",MBA-PLO.PLO2,MBA-PLO.PLO1,aligns_to,,2026-01-01,,\n";
+        $importid = foundation_import_service::load($csv, 'UTF-8', 'comma');
+        $preview = foundation_import_service::preview($importid, foundation_import_service::RELATIONS);
+        $this->assertTrue($preview->valid, json_encode(array_map(static fn($r) => $r->errors, $preview->rows)));
+        foundation_import_service::commit($importid, foundation_import_service::RELATIONS, $preview->hash);
+        $this->assertSame(1, $DB->count_records('local_outcomemap_rel', ['type' => 'aligns_to']));
+
+        // A framework code reused under another owner is ambiguous, so the row is refused.
+        framework_service::create([
+            'code' => 'MBA601-CLO',
+            'name' => 'Same code, program owner',
+            'ownertype' => framework_service::OWNER_PROGRAM,
+            'ownerid' => $programid,
+        ]);
+        $csv = "uuid,versionuuid,frameworkuuid,code,statement,shortstatement,bloomlevel,effectivefrom,effectiveto,changereason\n"
+            . ",,MBA601-CLO,0a,Demonstrate financial literacy,,,2026-01-01,,\n";
+        $importid = foundation_import_service::load($csv, 'UTF-8', 'comma');
+        $preview = foundation_import_service::preview($importid, foundation_import_service::OUTCOMES);
+        $this->assertFalse($preview->valid);
+        $this->assertStringContainsString('more than one', implode(' ', $preview->rows[0]->errors));
+
+        // An unknown code names itself in the error.
+        $csv = "uuid,code,name,description,ownertype,owneruuid\n"
+            . ",MBA602-CLO,Course outcomes,,catalog_course,MBA602\n";
+        $importid = foundation_import_service::load($csv, 'UTF-8', 'comma');
+        $preview = foundation_import_service::preview($importid, foundation_import_service::FRAMEWORKS);
+        $this->assertFalse($preview->valid);
+        $this->assertStringContainsString('catalog_course', implode(' ', $preview->rows[0]->errors));
     }
 }

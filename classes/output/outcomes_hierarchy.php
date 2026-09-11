@@ -103,7 +103,7 @@ class outcomes_hierarchy implements renderable, templatable {
         }
         $versions = $DB->get_records_sql("
             SELECT v.id AS versionid, v.version, v.statement, v.status AS versionstatus,
-                   v.shortstatement, v.bloomlevel,
+                   v.shortstatement, v.bloomlevel, v.effectivefrom, v.effectiveto,
                    i.id AS itemid, i.code, i.frameworkid, i.status AS itemstatus
               FROM {local_outcomemap_itemver} v
               JOIN {local_outcomemap_item} i ON i.id = v.itemid
@@ -532,6 +532,7 @@ class outcomes_hierarchy implements renderable, templatable {
             'addframeworkurl' => (new moodle_url($this->baseurl, ['action' => 'addframework']))->out(false),
             'addoutcomeurl' => (new moodle_url($this->baseurl, ['action' => 'addoutcome']))->out(false),
             'exporturl' => (new moodle_url($this->baseurl, ['action' => 'exportcsv']))->out(false),
+            'correctalldatesurl' => (new moodle_url($this->baseurl, ['action' => 'correctdates']))->out(false),
             'alignmentexporturl' => (new moodle_url($relationsurl, ['action' => 'exportcsv']))->out(false),
             'addalignmenturl' => (new moodle_url($relationsurl, ['action' => 'add']))->out(false),
             'viewtabs' => $this->viewtabs($ismatrix),
@@ -617,11 +618,54 @@ class outcomes_hierarchy implements renderable, templatable {
             ]))->out(false),
             'locked' => $canmanage && $isapproved,
             'lockedreason' => get_string('hier_frameworklocked', 'local_outcomemap'),
+            // An approved framework holding approved outcomes can have their
+            // effective start corrected as one set.
+            'cancorrectdates' => $canmanage && $isapproved && $this->has_approved_items($id),
+            // Only a draft that holds nothing can be removed; anything else is record.
+            'candelete' => $canmanage && $isdraft && !$this->has_items($id),
+            'deletelabel' => get_string('hier_deleteframework', 'local_outcomemap'),
+            'deleteurl' => (new moodle_url($this->baseurl, [
+                'action' => 'deleteframework',
+                'id' => $id,
+            ]))->out(false),
+            'correctdateslabel' => get_string('hier_correctdates', 'local_outcomemap'),
+            'correctdatesurl' => (new moodle_url($this->baseurl, [
+                'action' => 'correctdates',
+                'id' => $id,
+            ]))->out(false),
         ];
     }
 
     /**
-     * Rows for the CSV export: type, framework, code, statement, maps to, version, status.
+     * Whether a framework holds any outcome at all.
+     *
+     * @param int $frameworkid Framework id.
+     */
+    private function has_items(int $frameworkid): bool {
+        foreach ($this->items as $item) {
+            if ((int) $item->frameworkid === $frameworkid) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether a framework holds at least one approved outcome.
+     *
+     * @param int $frameworkid Framework id.
+     */
+    private function has_approved_items(int $frameworkid): bool {
+        foreach ($this->items as $item) {
+            if ((int) $item->frameworkid === $frameworkid && $item->itemstatus === workflow::APPROVED) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Rows for the CSV export, including the exact outcome-version period.
      */
     public function csv_rows(): array {
         $rows = [[
@@ -632,6 +676,8 @@ class outcomes_hierarchy implements renderable, templatable {
             get_string('hier_csv_mapsto', 'local_outcomemap'),
             get_string('version', 'local_outcomemap'),
             get_string('status', 'local_outcomemap'),
+            get_string('effectivefrom', 'local_outcomemap'),
+            get_string('effectiveto', 'local_outcomemap'),
         ]];
         $typenames = [
             'program' => get_string('hier_csv_programoutcome', 'local_outcomemap'),
@@ -654,6 +700,8 @@ class outcomes_hierarchy implements renderable, templatable {
                     implode('; ', $mapsto),
                     (int) $item->version,
                     get_string('status_' . $item->versionstatus, 'local_outcomemap'),
+                    (string) (int) $item->effectivefrom,
+                    $item->effectiveto === null ? '' : (string) (int) $item->effectiveto,
                 ];
             }
         }

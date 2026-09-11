@@ -275,6 +275,39 @@ final class question_mappings {
     }
 
     /**
+     * Atomically replace current mappings on exact question versions.
+     *
+     * @param int[] $questionversionids Exact question-version IDs.
+     * @param string[] $outcomeversionuuids Exact approved outcome-version UUIDs.
+     * @param string $role Mapping role for the replacement set.
+     * @param string|null $weight Explicit weight for every replacement mapping.
+     * @param int $effectivefrom Shared replacement boundary.
+     * @param string $reason Required replacement reason.
+     * @return \stdClass ended, draftsdeleted, and created counts.
+     */
+    public static function replace_for_question_versions(
+        array $questionversionids,
+        array $outcomeversionuuids,
+        string $role,
+        ?string $weight,
+        int $effectivefrom,
+        string $reason
+    ): \stdClass {
+        $itemverids = [];
+        foreach (array_values(array_unique($outcomeversionuuids)) as $outcomeversionuuid) {
+            $itemverids[] = self::resolve_outcome_version((string) $outcomeversionuuid);
+        }
+        return question_mapping_service::replace_for_question_versions(
+            $questionversionids,
+            $itemverids,
+            $role,
+            $weight,
+            $effectivefrom,
+            $reason
+        );
+    }
+
+    /**
      * Update a draft mapping.
      *
      * @param int $mappingid Draft mapping ID.

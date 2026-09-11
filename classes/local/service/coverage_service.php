@@ -51,6 +51,16 @@ final class coverage_service extends base_service {
     public const STATUS_NONE = 'none';
 
     /**
+     * Nothing maps to the outcome itself, but an outcome aligned to it is covered.
+     *
+     * A course outcome is normally reached through the unit outcomes aligned
+     * to it rather than mapped directly, so its coverage is the coverage of
+     * those outcomes. Reported apart from direct coverage because it says
+     * where to look, not that the outcome is unreachable.
+     */
+    public const STATUS_INHERITED = 'inherited';
+
+    /**
      * Classify one matrix row by the roles of the content mapped to it.
      *
      * The assessing role is what makes an outcome measurable, so it is the axis
@@ -76,7 +86,10 @@ final class coverage_service extends base_service {
         if ($assessed) {
             return self::STATUS_ASSESSED_ONLY;
         }
-        return $taught ? self::STATUS_TAUGHT : self::STATUS_NONE;
+        if ($taught) {
+            return self::STATUS_TAUGHT;
+        }
+        return ($row->inheritedfrom ?? []) !== [] ? self::STATUS_INHERITED : self::STATUS_NONE;
     }
 
     /**
@@ -88,10 +101,12 @@ final class coverage_service extends base_service {
      * can distinguish "no mapping" from "not applicable".
      *
      * @param int $courseid Moodle course identifier.
+     * @param int|null $at Effective timestamp, defaulting to now.
      * @return array<int,object> Rows keyed by exact outcome-version ID.
      */
-    public static function matrix(int $courseid): array {
-        $rows = self::course_outcome_baseline($courseid);
+    public static function matrix(int $courseid, ?int $at = null): array {
+        $at = $at ?? time();
+        $rows = self::course_outcome_baseline($courseid, $at);
         $mappings = content_mapping_service::list_for_course($courseid);
         foreach (['sections', 'modules'] as $collection) {
             foreach ($mappings[$collection] as $mapping) {
@@ -115,7 +130,7 @@ final class coverage_service extends base_service {
                 $rows[$itemverid]->covered = true;
             }
         }
-        foreach (question_browser_service::assessment_coverage($courseid) as $itemverid => $questionmappings) {
+        foreach (question_browser_service::assessment_coverage($courseid, $at) as $itemverid => $questionmappings) {
             if (!isset($rows[$itemverid])) {
                 $mapping = reset($questionmappings);
                 $rows[$itemverid] = (object) [
@@ -136,11 +151,137 @@ final class coverage_service extends base_service {
             );
             $rows[$itemverid]->covered = true;
         }
+        self::attach_inherited_coverage($rows, $at);
         uasort($rows, static function (\stdClass $a, \stdClass $b): int {
             return [$a->frameworkcode, $a->outcomecode, $a->outcomeversion]
                 <=> [$b->frameworkcode, $b->outcomecode, $b->outcomeversion];
         });
         return $rows;
+    }
+
+    /**
+     * Record, on each row, the covered outcomes aligned to it.
+     *
+     * Walks approved, current alignments whose target is in the matrix. An
+     * outcome counts as covered through alignment when a source outcome is
+     * covered directly or, in turn, through its own alignments, so a course
+     * outcome sees the unit outcomes beneath it. Every row gains
+     * `inheritedfrom` (label and assessed flag per covered source) and
+     * `inheritedassessed`; a row nothing aligns to gets an empty list.
+     *
+     * @param array $rows Matrix rows keyed by outcome-version id.
+     * @param int $at Effective timestamp for the report.
+     */
+    private static function attach_inherited_coverage(array $rows, int $at): void {
+        global $DB;
+        foreach ($rows as $row) {
+            $row->inheritedfrom = [];
+            $row->inheritedassessed = false;
+        }
+        if (!$rows) {
+            return;
+        }
+        [$insql, $params] = $DB->get_in_or_equal(array_keys($rows), SQL_PARAMS_NAMED, 'iv');
+        $itemids = $DB->get_records_sql_menu(
+            "SELECT id, itemid FROM {local_outcomemap_itemver} WHERE id $insql",
+            $params
+        );
+        $rowsbyitem = [];
+        foreach ($rows as $itemverid => $row) {
+            if (isset($itemids[$itemverid])) {
+                $rowsbyitem[(int) $itemids[$itemverid]][] = $row;
+            }
+        }
+        if (!$rowsbyitem) {
+            return;
+        }
+        [$insql, $params] = $DB->get_in_or_equal(array_keys($rowsbyitem), SQL_PARAMS_NAMED, 'ti');
+        $params += [
+            'type' => relation_service::ALIGNS_TO,
+            'status' => workflow::APPROVED,
+            'at1' => $at,
+            'at2' => $at,
+        ];
+        $relations = $DB->get_records_sql(
+            "SELECT r.id, r.sourceitemid, r.targetitemid
+               FROM {local_outcomemap_rel} r
+              WHERE r.type = :type AND r.status = :status AND r.targetitemid $insql
+                AND r.effectivefrom <= :at1
+                AND (r.effectiveto IS NULL OR r.effectiveto > :at2)
+                AND r.version = (SELECT MAX(r2.version)
+                                   FROM {local_outcomemap_rel} r2
+                                  WHERE r2.relationuuid = r.relationuuid)",
+            $params
+        );
+        $sources = [];
+        foreach ($relations as $relation) {
+            $sources[(int) $relation->targetitemid][(int) $relation->sourceitemid] = true;
+        }
+        if (!$sources) {
+            return;
+        }
+
+        // Direct coverage per item, from the rows already built.
+        $direct = [];
+        foreach ($rowsbyitem as $itemid => $itemrows) {
+            $covered = false;
+            $assessed = false;
+            $label = '';
+            foreach ($itemrows as $row) {
+                $label = $row->frameworkcode . '.' . $row->outcomecode;
+                foreach (array_merge($row->sections, $row->modules, $row->questions ?? []) as $mapping) {
+                    $covered = true;
+                    $assessed = $assessed || $mapping->role === content_mapping_service::ROLE_ASSESSES;
+                }
+            }
+            $direct[$itemid] = (object) ['covered' => $covered, 'assessed' => $assessed, 'label' => $label];
+        }
+
+        // Resolve each item once; the alignment graph is walked with a guard so
+        // a cycle in unapproved data cannot recurse forever.
+        $memo = [];
+        $resolve = static function (int $itemid, array $visiting) use (&$resolve, &$memo, $sources, $direct): array {
+            if (isset($memo[$itemid])) {
+                return $memo[$itemid];
+            }
+            $from = [];
+            $visiting[$itemid] = true;
+            foreach (array_keys($sources[$itemid] ?? []) as $sourceid) {
+                if (!isset($direct[$sourceid]) || isset($visiting[$sourceid])) {
+                    continue;
+                }
+                $source = $direct[$sourceid];
+                if ($source->covered) {
+                    $from[$sourceid] = (object) ['label' => $source->label, 'assessed' => $source->assessed];
+                    continue;
+                }
+                $inherited = $resolve($sourceid, $visiting);
+                if ($inherited !== []) {
+                    $assessed = false;
+                    foreach ($inherited as $entry) {
+                        $assessed = $assessed || $entry->assessed;
+                    }
+                    $from[$sourceid] = (object) ['label' => $source->label, 'assessed' => $assessed];
+                }
+            }
+            uasort($from, static fn($a, $b) => strnatcasecmp($a->label, $b->label));
+            $memo[$itemid] = array_values($from);
+            return $memo[$itemid];
+        };
+        foreach ($rowsbyitem as $itemid => $itemrows) {
+            $from = $resolve($itemid, []);
+            if ($from === []) {
+                continue;
+            }
+            $assessed = false;
+            foreach ($from as $entry) {
+                $assessed = $assessed || $entry->assessed;
+            }
+            foreach ($itemrows as $row) {
+                $row->inheritedfrom = $from;
+                $row->inheritedassessed = $assessed;
+            }
+        }
     }
 
     /**
@@ -151,12 +292,13 @@ final class coverage_service extends base_service {
      * the same association that makes a mapping valid in the first place.
      *
      * @param int $courseid Moodle course identifier.
+     * @param int|null $at Effective timestamp, defaulting to now.
      * @return array<int,object> Uncovered baseline rows keyed by outcome-version ID.
      */
-    public static function course_outcome_baseline(int $courseid): array {
+    public static function course_outcome_baseline(int $courseid, ?int $at = null): array {
         global $DB;
 
-        $now = time();
+        $at = $at ?? time();
         $records = $DB->get_records_sql(
             "SELECT v.id AS itemverid, f.code AS frameworkcode, i.code AS outcomecode,
                     v.version AS outcomeversion, v.statement AS outcomestatement
@@ -181,8 +323,8 @@ final class coverage_service extends base_service {
                 'fstatus' => workflow::APPROVED,
                 'istatus' => workflow::APPROVED,
                 'vstatus' => workflow::APPROVED,
-                'at1' => $now,
-                'at2' => $now,
+                'at1' => $at,
+                'at2' => $at,
             ]
         );
         $rows = [];

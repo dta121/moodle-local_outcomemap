@@ -248,6 +248,55 @@ final class calculation_service extends base_service {
     }
 
     /**
+     * Queue attempts whose propagation graph changed after an outcome backdate.
+     *
+     * The corrected outcome may be reached through more than one effective-
+     * dated relation path, so every direct observation in the newly covered
+     * interval is conservatively recalculated. Existing mutable results for
+     * the same learner and course instance are marked stale as an additional
+     * reconciliation signal; frozen results remain untouched.
+     *
+     * @param int $effectivefrom New outcome-version start.
+     * @param int $previousfrom Previous latest start in the corrected batch.
+     * @return int Number of distinct assessment/user tuples queued.
+     */
+    public static function queue_after_outcome_backdate(int $effectivefrom, int $previousfrom): int {
+        global $DB;
+        if ($effectivefrom >= $previousfrom) {
+            return 0;
+        }
+        $tuples = $DB->get_records_sql(
+            "SELECT MIN(e.id) AS id, e.cinstid, ci.moodlecourseid AS courseid,
+                    e.assessmentcmid AS cmid, e.userid
+               FROM {local_outcomemap_evidence} e
+               JOIN {local_outcomemap_cinst} ci ON ci.id = e.cinstid
+              WHERE e.evidencetype = :direct AND e.supersededby IS NULL
+                AND e.attempttime >= :effectivefrom AND e.attempttime < :previousfrom
+           GROUP BY e.cinstid, ci.moodlecourseid, e.assessmentcmid, e.userid",
+            [
+                'direct' => 'direct',
+                'effectivefrom' => $effectivefrom,
+                'previousfrom' => $previousfrom,
+            ]
+        );
+        foreach ($tuples as $tuple) {
+            $DB->set_field_select(
+                'local_outcomemap_result',
+                'stale',
+                1,
+                'cinstid = :cinstid AND userid = :userid AND state <> :frozen AND supersededby IS NULL',
+                ['cinstid' => $tuple->cinstid, 'userid' => $tuple->userid, 'frozen' => 'frozen']
+            );
+            \local_outcomemap\task\recalculate_attempt::queue_for_user_assessment(
+                (int) $tuple->courseid,
+                (int) $tuple->cmid,
+                (int) $tuple->userid
+            );
+        }
+        return count($tuples);
+    }
+
+    /**
      * Select the governed attempts for one user and quiz.
      *
      * Candidates are completed non-preview attempts. Every ordering ends with
@@ -353,12 +402,23 @@ final class calculation_service extends base_service {
             if (!$questionversion) {
                 continue;
             }
-            $mappings = $DB->get_records_select(
-                'local_outcomemap_qmap',
-                "questionversionid = :qv AND role = 'assesses' AND status = :status
-                    AND effectivefrom <= :at1 AND (effectiveto IS NULL OR effectiveto > :at2)",
-                ['qv' => $questionversion->id, 'status' => workflow::APPROVED, 'at1' => $at, 'at2' => $at],
-                'id ASC'
+            $mappings = $DB->get_records_sql(
+                "SELECT m.*
+                   FROM {local_outcomemap_qmap} m
+                  WHERE m.questionversionid = :qv AND m.role = 'assesses' AND m.status = :status
+                    AND m.version = (SELECT MAX(currentm.version)
+                                       FROM {local_outcomemap_qmap} currentm
+                                      WHERE currentm.mappinguuid = m.mappinguuid
+                                        AND currentm.status = :currentstatus)
+                    AND m.effectivefrom <= :at1 AND (m.effectiveto IS NULL OR m.effectiveto > :at2)
+               ORDER BY m.id ASC",
+                [
+                    'qv' => $questionversion->id,
+                    'status' => workflow::APPROVED,
+                    'currentstatus' => workflow::APPROVED,
+                    'at1' => $at,
+                    'at2' => $at,
+                ]
             );
             if (!$mappings) {
                 continue;

@@ -28,6 +28,8 @@
 use local_outcomemap\api\context_resolver;
 use local_outcomemap\api\outcome_search;
 use local_outcomemap\api\question_mappings;
+use local_outcomemap\form\question_mapping_backdate_form;
+use local_outcomemap\api\validation_exception;
 use local_outcomemap\local\service\content_mapping_service;
 use local_outcomemap\local\service\question_browser_service;
 use local_outcomemap\local\service\question_mapping_service;
@@ -102,6 +104,22 @@ if (!local_outcomemap_qbank_available()) {
 
 $canmap = has_capability('local/outcomemap:mapquestions', $context);
 
+// The course's question mappings as the transfer file the site importer reads.
+if ($action === 'exportcsv') {
+    require_once($CFG->libdir . '/csvlib.class.php');
+    $rows = \local_outcomemap\local\service\mapping_transfer_service::export_question_mappings($courseid);
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . clean_filename($course->shortname . '-question-mappings') . '.csv"');
+    $stream = fopen('php://output', 'w');
+    foreach ($rows as $row) {
+        // Names and notes are staff-entered free text, so every cell is
+        // neutralized against spreadsheet formula execution before download.
+        fputcsv($stream, \local_outcomemap\local\csv_safety::row($row), ',', '"', '');
+    }
+    fclose($stream);
+    exit;
+}
+
 if ($action === 'refilter') {
     require_sesskey();
     redirect($stateurl);
@@ -131,6 +149,8 @@ if ($action === 'apply') {
     $outcomeuuids = array_unique(optional_param_array('outcomes', [], PARAM_ALPHANUMEXT));
     $role = required_param('role', PARAM_ALPHANUMEXT);
     $weight = trim(optional_param('weight', '', PARAM_RAW));
+    $replace = optional_param('replace', 0, PARAM_BOOL);
+    $reason = trim(optional_param('reason', '', PARAM_TEXT));
 
     // The role names a language string in the result message, so reject an
     // unknown value here rather than failing later on a missing string.
@@ -138,7 +158,8 @@ if ($action === 'apply') {
         throw new moodle_exception('invalidmappingrole', 'local_outcomemap', '', $role);
     }
 
-    if (!$selected || !$outcomeuuids) {
+    // Replacing with no outcome ticked is how a question is unmapped entirely.
+    if (!$selected || (!$outcomeuuids && !$replace)) {
         redirect(
             $stateurl,
             get_string('apply_incomplete', 'local_outcomemap'),
@@ -149,10 +170,18 @@ if ($action === 'apply') {
     // A weight is never inferred for an assessed mapping: the operator states it
     // once, and the service still rejects any question whose assessed weights
     // would not total exactly 1.0000000000 on approval.
-    if ($role === content_mapping_service::ROLE_ASSESSES && $weight === '') {
+    if ($outcomeuuids && $role === content_mapping_service::ROLE_ASSESSES && $weight === '') {
         redirect(
             $stateurl,
             get_string('questionmapping_weightrequired', 'local_outcomemap'),
+            null,
+            \core\output\notification::NOTIFY_WARNING
+        );
+    }
+    if ($replace && $reason === '') {
+        redirect(
+            $stateurl,
+            get_string('questionmapping_replacereasonrequired', 'local_outcomemap'),
             null,
             \core\output\notification::NOTIFY_WARNING
         );
@@ -161,7 +190,36 @@ if ($action === 'apply') {
     $created = 0;
     $failures = [];
     $effectivefrom = time();
+    $questionversionids = [];
     foreach ($selected as $value) {
+        if (preg_match('/^qv-([0-9]+)$/', (string) $value, $matches)) {
+            $questionversionids[] = (int) $matches[1];
+        }
+    }
+    $endedmessage = '';
+    if ($replace) {
+        // Candidate validation, ending, draft deletion, and creation share one
+        // transaction, so an invalid replacement leaves the current set intact.
+        try {
+            $ended = question_mappings::replace_for_question_versions(
+                $questionversionids,
+                $outcomeuuids,
+                $role,
+                $weight === '' ? null : $weight,
+                $effectivefrom,
+                $reason
+            );
+        } catch (moodle_exception $e) {
+            redirect($stateurl, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+        }
+        $endedmessage = get_string('questionmapping_replaced', 'local_outcomemap', (object) [
+            'ended' => $ended->ended,
+            'drafts' => $ended->draftsdeleted,
+            'date' => userdate($effectivefrom),
+        ]) . ' ';
+        $created = $ended->created;
+    }
+    foreach ($replace ? [] : $selected as $value) {
         // Values are rendered as qv-<questionversionid>; anything else is ignored.
         if (!preg_match('/^qv-([0-9]+)$/', (string) $value, $matches)) {
             continue;
@@ -194,10 +252,12 @@ if ($action === 'apply') {
             }
         }
     }
-    $message = get_string('apply_created', 'local_outcomemap', (object) [
-        'count' => $created,
-        'role' => get_string('mappingrole_' . $role, 'local_outcomemap'),
-    ]);
+    $message = $endedmessage . ($outcomeuuids
+        ? get_string('apply_created', 'local_outcomemap', (object) [
+            'count' => $created,
+            'role' => get_string('mappingrole_' . $role, 'local_outcomemap'),
+        ])
+        : '');
     if ($failures) {
         $message .= ' ' . get_string('apply_skipped', 'local_outcomemap', count($failures))
             . ' ' . implode(' ', array_unique($failures));
@@ -208,6 +268,97 @@ if ($action === 'apply') {
         null,
         $failures ? \core\output\notification::NOTIFY_WARNING : \core\output\notification::NOTIFY_SUCCESS
     );
+}
+
+/**
+ * Summarise the approved mappings on one quiz for the effective-date correction.
+ *
+ * @param \stdClass $detail Quiz detail from the browser service.
+ * @return \stdClass ids, mapping and question counts, earliest and latest start.
+ */
+function local_outcomemap_backdate_summary(\stdClass $detail): \stdClass {
+    $ids = [];
+    $questions = [];
+    $earliest = null;
+    $latest = null;
+    foreach ($detail->slots as $slot) {
+        foreach ($slot->questions as $question) {
+            foreach ($question->mappings as $record) {
+                if ($record->status !== workflow::APPROVED) {
+                    continue;
+                }
+                $ids[(int) $record->id] = (int) $record->effectivefrom;
+                $questions[(int) $question->questionversionid] = true;
+                $from = (int) $record->effectivefrom;
+                $earliest = $earliest === null ? $from : min($earliest, $from);
+                $latest = $latest === null ? $from : max($latest, $from);
+            }
+        }
+    }
+    return (object) [
+        'ids' => $ids,
+        'mappings' => count($ids),
+        'questions' => count($questions),
+        'earliestts' => $earliest ?? 0,
+        'earliest' => $earliest === null ? '' : userdate($earliest),
+        'latest' => $latest === null ? '' : userdate($latest),
+    ];
+}
+
+// Correct the effective start of every approved mapping on this quiz. The
+// mappings the page creates take effect when they are made, so an exam sat
+// earlier yields no evidence until its mappings are held to have governed it.
+if ($action === 'backdate') {
+    if (!$canmap) {
+        throw new required_capability_exception($context, 'local/outcomemap:mapquestions', 'nopermissions', '');
+    }
+    if (!$cmid) {
+        redirect($url);
+    }
+    $detail = question_browser_service::quiz_detail($courseid, $cmid);
+    $summary = local_outcomemap_backdate_summary($detail);
+    if ($summary->mappings === 0) {
+        redirect(
+            $stateurl,
+            get_string('questionmapping_backdate_nomappings', 'local_outcomemap'),
+            null,
+            \core\output\notification::NOTIFY_WARNING
+        );
+    }
+    $formurl = new moodle_url($url, ['cmid' => $cmid, 'action' => 'backdate']);
+    $form = new question_mapping_backdate_form($formurl, ['summary' => $summary]);
+    $form->set_data(['courseid' => $courseid, 'cmid' => $cmid, 'effectivefrom' => $summary->earliestts]);
+    if ($form->is_cancelled()) {
+        redirect($stateurl);
+    }
+    if ($data = $form->get_data()) {
+        // Only mappings that start after the corrected date move; one that
+        // already governed the attempts is left where it is.
+        $ids = array_keys(array_filter(
+            $summary->ids,
+            static fn(int $from): bool => $from > (int) $data->effectivefrom
+        ));
+        try {
+            $count = question_mapping_service::correct_effectivefrom($ids, (int) $data->effectivefrom, $data->reason);
+        } catch (validation_exception $e) {
+            redirect($stateurl, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+        }
+        redirect(
+            $stateurl,
+            get_string('questionmapping_backdated', 'local_outcomemap', (object) [
+                'count' => $count,
+                'date' => userdate((int) $data->effectivefrom),
+            ]),
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
+    }
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('questionmapping_backdate_heading', 'local_outcomemap', format_string($detail->name)));
+    echo html_writer::div(get_string('questionmapping_backdate_hint', 'local_outcomemap'), 'lom-cov-subtitle');
+    $form->display();
+    echo $OUTPUT->footer();
+    exit;
 }
 
 /**
@@ -230,6 +381,10 @@ function local_outcomemap_question_chips(array $records, bool $canedit, moodle_u
             . ' — ' . $rolelabel . ' · ' . workflow::status_label($record->status);
         if ($record->weight !== null) {
             $title .= ' · ' . get_string('weight', 'local_outcomemap') . ' ' . $record->weight;
+        }
+        $isended = $record->effectiveto !== null && (int) $record->effectiveto <= time();
+        if ($isended) {
+            $title .= ' · ' . get_string('questionmapping_endedat', 'local_outcomemap', userdate((int) $record->effectiveto));
         }
         $inner = s($record->frameworkcode . '.' . $record->outcomecode)
             . html_writer::span(core_text::substr($rolelabel, 0, 1), 'lom-map-chip-role');
@@ -264,7 +419,8 @@ function local_outcomemap_question_chips(array $records, bool $canedit, moodle_u
         }
         $chips .= html_writer::span(
             $inner,
-            'lom-map-chip ' . ($isassess ? 'lom-map-chip-assess' : 'lom-map-chip-teach'),
+            'lom-map-chip ' . ($isassess ? 'lom-map-chip-assess' : 'lom-map-chip-teach')
+                . ($isended ? ' lom-map-chip-ended' : ''),
             ['title' => $title]
         );
     }
@@ -282,6 +438,11 @@ $toolbaractions = html_writer::link(
 $toolbaractions .= html_writer::link(
     new moodle_url('/local/outcomemap/contentmapping.php', ['courseid' => $courseid]),
     get_string('contentmapping_heading', 'local_outcomemap'),
+    ['class' => 'btn btn-outline-secondary btn-sm']
+);
+$toolbaractions .= html_writer::link(
+    new moodle_url($url, ['action' => 'exportcsv']),
+    get_string('mappingtransfer_export', 'local_outcomemap'),
     ['class' => 'btn btn-outline-secondary btn-sm']
 );
 echo html_writer::div(
@@ -693,6 +854,52 @@ if (!$canapply) {
         . html_writer::div(get_string('questionmapping_weighthelp', 'local_outcomemap'), 'lom-map-apply-hint'),
         'lom-q-weightbox'
     );
+
+    echo html_writer::div(
+        html_writer::tag(
+            'label',
+            html_writer::empty_tag('input', [
+                'type' => 'checkbox',
+                'name' => 'replace',
+                'value' => 1,
+                'id' => 'lom-q-replace',
+                'class' => 'lom-map-check',
+            ])
+            . html_writer::span(get_string('questionmapping_replace', 'local_outcomemap'), 'lom-map-role-text'),
+            ['class' => 'lom-map-role', 'for' => 'lom-q-replace']
+        )
+        . html_writer::div(get_string('questionmapping_replacehelp', 'local_outcomemap'), 'lom-map-apply-hint')
+        . html_writer::tag(
+            'label',
+            html_writer::span(get_string('questionmapping_replacereason', 'local_outcomemap'), 'lom-map-label')
+                . html_writer::empty_tag('input', [
+                    'type' => 'text',
+                    'name' => 'reason',
+                    'id' => 'lom-q-reason',
+                    'class' => 'form-control form-control-sm',
+                    'maxlength' => 255,
+                ]),
+            ['for' => 'lom-q-reason']
+        ),
+        'lom-map-apply-section lom-q-replacebox'
+    );
+
+    $backdate = local_outcomemap_backdate_summary($detail);
+    if ($backdate->mappings > 0) {
+        echo html_writer::div(
+            html_writer::div(get_string('questionmapping_backdate_label', 'local_outcomemap'), 'lom-map-label')
+            . html_writer::div(
+                get_string('questionmapping_backdate_current', 'local_outcomemap', $backdate),
+                'lom-map-apply-hint'
+            )
+            . html_writer::link(
+                new moodle_url($url, ['cmid' => $cmid, 'action' => 'backdate']),
+                get_string('questionmapping_backdate', 'local_outcomemap'),
+                ['class' => 'btn btn-outline-secondary btn-sm lom-map-backdate-btn']
+            ),
+            'lom-map-apply-section'
+        );
+    }
 
     echo html_writer::tag('button', get_string('questionmapping_apply', 'local_outcomemap'), [
         'type' => 'submit',

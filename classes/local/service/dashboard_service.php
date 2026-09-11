@@ -210,7 +210,7 @@ final class dashboard_service extends base_service {
         // programs. Each membership is reported so a shared course counts
         // against every program that depends on it.
         $records = $DB->get_recordset_sql(
-            "SELECT ci.id AS cinstid, v.id AS itemverid, pc.programid,
+            "SELECT ci.id AS cinstid, v.id AS itemverid, i.id AS itemid, pc.programid,
                     ci.moodlecourseid, ci.periodcode, cc.code AS coursecode,
                     {$assessed} AS assessed,
                     {$taught} AS taught
@@ -263,9 +263,83 @@ final class dashboard_service extends base_service {
                 'periodcode' => (string) $record->periodcode,
                 'coursecode' => (string) $record->coursecode,
                 'status' => self::classify((int) $record->taught, $assessedcount),
+                'itemid' => (int) $record->itemid,
             ];
         }
+        self::apply_inherited_coverage($rows, $at);
         return $rows;
+    }
+
+    /**
+     * Re-label uncovered outcomes that are covered through the outcomes aligned to them.
+     *
+     * Mirrors {@see coverage_service::matrix()}: within one delivery, an outcome
+     * nothing maps to is covered when an approved alignment points at it from
+     * an outcome that is covered, directly or in turn. Repeats until stable so
+     * a chain of alignments resolves regardless of row order.
+     *
+     * @param \stdClass[] $rows Coverage rows, updated in place.
+     * @param int $at Effective timestamp for the dashboard.
+     */
+    private static function apply_inherited_coverage(array $rows, int $at): void {
+        global $DB;
+        $targets = [];
+        foreach ($rows as $row) {
+            $targets[$row->itemid] = $row->itemid;
+        }
+        if (!$targets) {
+            return;
+        }
+        $sources = [];
+        foreach (array_chunk(array_values($targets), 1000) as $chunk) {
+            [$insql, $params] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'ti');
+            $params += [
+                'type' => relation_service::ALIGNS_TO,
+                'status' => workflow::APPROVED,
+                'at1' => $at,
+                'at2' => $at,
+            ];
+            $relations = $DB->get_records_sql(
+                "SELECT r.id, r.sourceitemid, r.targetitemid
+                   FROM {local_outcomemap_rel} r
+                  WHERE r.type = :type AND r.status = :status AND r.targetitemid $insql
+                    AND r.effectivefrom <= :at1
+                    AND (r.effectiveto IS NULL OR r.effectiveto > :at2)
+                    AND r.version = (SELECT MAX(r2.version)
+                                       FROM {local_outcomemap_rel} r2
+                                      WHERE r2.relationuuid = r.relationuuid)",
+                $params
+            );
+            foreach ($relations as $relation) {
+                $sources[(int) $relation->targetitemid][] = (int) $relation->sourceitemid;
+            }
+        }
+        if (!$sources) {
+            return;
+        }
+        // Coverage per delivery and item: anything but "none" covers its parents.
+        $covered = [];
+        foreach ($rows as $row) {
+            if ($row->status !== coverage_service::STATUS_NONE) {
+                $covered[$row->cinstid][$row->itemid] = true;
+            }
+        }
+        do {
+            $changed = false;
+            foreach ($rows as $row) {
+                if ($row->status !== coverage_service::STATUS_NONE) {
+                    continue;
+                }
+                foreach ($sources[$row->itemid] ?? [] as $sourceid) {
+                    if (!empty($covered[$row->cinstid][$sourceid])) {
+                        $row->status = coverage_service::STATUS_INHERITED;
+                        $covered[$row->cinstid][$row->itemid] = true;
+                        $changed = true;
+                        break;
+                    }
+                }
+            }
+        } while ($changed);
     }
 
     /**

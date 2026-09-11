@@ -22,6 +22,7 @@ global $CFG;
 require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 
 use local_outcomemap\local\decimal;
+use local_outcomemap\local\canonical_json;
 use local_outcomemap\local\service\calculation_service;
 use local_outcomemap\local\service\catalog_course_service;
 use local_outcomemap\local\service\course_instance_service;
@@ -31,6 +32,7 @@ use local_outcomemap\local\service\policy_service;
 use local_outcomemap\local\service\question_mapping_service;
 use local_outcomemap\local\service\relation_service;
 use local_outcomemap\local\workflow;
+use local_outcomemap\local\uuid;
 use mod_quiz\quiz_attempt;
 use mod_quiz\quiz_settings;
 
@@ -548,5 +550,124 @@ final class golden_calculation_test extends \advanced_testcase {
         // Without the assessment scope the institution policy still governs.
         $resolved = policy_service::resolve(policy_service::TYPE_ATTEMPT_SELECTION, $cinstid, null);
         $this->assertSame($institution, (int) $resolved->id);
+    }
+
+    /**
+     * Backdating an outcome queues and stales observations newly covered by it.
+     */
+    public function test_outcome_backdate_queues_affected_direct_evidence(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+
+        $course = $this->getDataGenerator()->create_course();
+        $page = $this->getDataGenerator()->create_module('page', ['course' => $course->id]);
+        $cm = get_coursemodule_from_instance('page', $page->id, $course->id, false, MUST_EXIST);
+        $learner = $this->getDataGenerator()->create_user();
+        $catalogid = catalog_course_service::create(['code' => 'BACKDATE', 'name' => 'Backdate test']);
+        catalog_course_service::submit_for_review($catalogid);
+        $cinstid = course_instance_service::create([
+            'courseid' => $catalogid,
+            'moodlecourseid' => $course->id,
+            'periodcode' => 'BACKDATE',
+        ]);
+        course_instance_service::submit_for_review($cinstid);
+        if (!$DB->get_field('local_outcomemap_cinst', 'confirmed', ['id' => $cinstid])) {
+            course_instance_service::confirm($cinstid);
+        }
+
+        $frameworkid = framework_service::create([
+            'code' => 'BACKDATE-CLO',
+            'name' => 'Backdated outcomes',
+            'ownertype' => framework_service::OWNER_INSTITUTION,
+        ]);
+        framework_service::submit_for_review($frameworkid);
+        $itemid = outcome_service::create([
+            'frameworkid' => $frameworkid,
+            'code' => 'CLO1',
+            'statement' => 'Backdated outcome',
+            'effectivefrom' => 200,
+        ]);
+        $itemverid = (int) $DB->get_field('local_outcomemap_itemver', 'id', ['itemid' => $itemid], MUST_EXIST);
+        outcome_service::submit_for_review($itemverid);
+
+        $evidenceuuid = uuid::generate();
+        $lineagejson = canonical_json::encode([['uuid' => $evidenceuuid]]);
+        $DB->insert_record('local_outcomemap_evidence', (object) [
+            'uuid' => $evidenceuuid,
+            'lineageuuid' => uuid::generate(),
+            'dedupekey' => hash('sha256', 'backdated-evidence'),
+            'sourceevidenceid' => null,
+            'relationpathjson' => canonical_json::encode([]),
+            'cinstid' => $cinstid,
+            'userid' => $learner->id,
+            'assessmentcmid' => $cm->id,
+            'quizattemptid' => 1,
+            'questionusageid' => 1,
+            'slot' => 1,
+            'questionattemptid' => 1,
+            'questionversionid' => 1,
+            'questionid' => 1,
+            'itemverid' => $itemverid,
+            'mappingid' => 1,
+            'policyid' => 1,
+            'evidencetype' => calculation_service::TYPE_DIRECT,
+            'rawfraction' => '0.8000000000',
+            'rawmark' => '8.0000000000',
+            'maxmark' => '10.0000000000',
+            'mappingweight' => '1.0000000000',
+            'relationweight' => '1.0000000000',
+            'weightedearned' => '8.0000000000',
+            'weightedpossible' => '10.0000000000',
+            'gradingstate' => calculation_service::GRADING_GRADED,
+            'attempttime' => 150,
+            'gradingtime' => 150,
+            'supersededby' => null,
+            'timecreated' => 150,
+            'timemodified' => 150,
+        ]);
+        $resultid = $DB->insert_record('local_outcomemap_result', (object) [
+            'uuid' => uuid::generate(),
+            'resultkey' => hash('sha256', 'backdated-result'),
+            'version' => 1,
+            'cinstid' => $cinstid,
+            'userid' => $learner->id,
+            'scopetype' => calculation_service::SCOPE_COURSE,
+            'scopeid' => $cinstid,
+            'periodcode' => 'BACKDATE',
+            'itemverid' => $itemverid,
+            'policyid' => 1,
+            'numerator' => '8.0000000000',
+            'denominator' => '10.0000000000',
+            'percentage' => '80.0000000000',
+            'distinctitems' => 1,
+            'bandid' => null,
+            'state' => calculation_service::STATE_CALCULATED,
+            'stale' => 0,
+            'algoversion' => calculation_service::ALGO_VERSION,
+            'inputhash' => hash('sha256', 'backdated-input'),
+            'lineagejson' => $lineagejson,
+            'lineagehash' => hash('sha256', $lineagejson),
+            'supersededby' => null,
+            'timecalculated' => 150,
+            'timecreated' => 150,
+            'timemodified' => 150,
+        ]);
+
+        $this->assertSame(1, outcome_service::correct_effectivefrom(
+            [$itemverid],
+            100,
+            'The curriculum governed the earlier assessment.'
+        ));
+        $this->assertSame(1, (int) $DB->get_field('local_outcomemap_result', 'stale', ['id' => $resultid]));
+        $task = $DB->get_record('task_adhoc', [
+            'classname' => '\\local_outcomemap\\task\\recalculate_attempt',
+            'component' => 'local_outcomemap',
+        ], '*', MUST_EXIST);
+        $customdata = json_decode($task->customdata);
+        $this->assertSame((int) $course->id, (int) $customdata->courseid);
+        $this->assertSame((int) $cm->id, (int) $customdata->cmid);
+        $this->assertSame((int) $learner->id, (int) $customdata->userid);
     }
 }

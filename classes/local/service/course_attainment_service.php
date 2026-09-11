@@ -97,9 +97,13 @@ final class course_attainment_service extends base_service {
         $mappingjoin = "JOIN {question_attempts} sqa ON sqa.questionusageid = qa.uniqueid
                         JOIN {question_versions} sqv ON sqv.questionid = sqa.questionid
                         JOIN {local_outcomemap_qmap} sm ON sm.questionversionid = sqv.id
-                             AND sm.role = :role AND sm.status = :status";
+                             AND sm.role = :role AND sm.status = :status
+                             AND sm.version = (SELECT MAX(currentsm.version)
+                                                 FROM {local_outcomemap_qmap} currentsm
+                                                WHERE currentsm.mappinguuid = sm.mappinguuid
+                                                  AND currentsm.status = :currentstatus)";
         $mapparams = $params + ['role' => content_mapping_service::ROLE_ASSESSES,
-            'status' => workflow::APPROVED];
+            'status' => workflow::APPROVED, 'currentstatus' => workflow::APPROVED];
         $mapped = (int) $DB->get_field_sql(
             "SELECT COUNT(DISTINCT qa.id) FROM {quiz_attempts} qa
                JOIN {quiz} q ON q.id = qa.quiz

@@ -203,6 +203,47 @@ final class framework_service extends base_service {
     }
 
     /**
+     * Delete a draft framework that holds no outcomes.
+     *
+     * A framework is a container: once it holds an outcome, or has been
+     * finalized, it is part of the governed record and stays. Before either
+     * of those it is only a draft that may have been created by mistake, and
+     * removing it is audited like any other change.
+     *
+     * @param int $id Framework id.
+     * @param string|null $reason Optional reason.
+     */
+    public static function delete_draft(int $id, ?string $reason = null): void {
+        global $DB;
+        $actorid = self::require_system('local/outcomemap:manageframeworks');
+        $before = self::get_required(self::TABLE, $id, 'framework');
+        if ($before->status !== workflow::DRAFT) {
+            throw new validation_exception('approvedimmutable', 'framework', $id);
+        }
+        if ($DB->record_exists('local_outcomemap_item', ['frameworkid' => $id])) {
+            throw new validation_exception('frameworknotempty', 'framework', $before->code);
+        }
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $DB->delete_records(self::TABLE, ['id' => $id]);
+            audit_writer::write(
+                'delete',
+                'framework',
+                $id,
+                $before->uuid,
+                $before,
+                null,
+                $reason,
+                \context_system::instance(),
+                $actorid
+            );
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+    }
+
+    /**
      * Changes the record workflow status.
      *
      * @param int $id Id.

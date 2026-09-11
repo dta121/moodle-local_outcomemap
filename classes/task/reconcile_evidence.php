@@ -94,6 +94,10 @@ class reconcile_evidence extends \core\task\scheduled_task {
                       JOIN {question_versions} sqv ON sqv.questionid = sqa.questionid
                       JOIN {local_outcomemap_qmap} sm ON sm.questionversionid = sqv.id
                            AND sm.role = 'assesses' AND sm.status = :mapapproved
+                           AND sm.version = (SELECT MAX(currentsm.version)
+                                               FROM {local_outcomemap_qmap} currentsm
+                                              WHERE currentsm.mappinguuid = sm.mappinguuid
+                                                AND currentsm.status = :currentmapapproved)
                      WHERE sqa.questionusageid = qa.uniqueid
                        -- In force when the attempt finished, which is the only
                        -- mapping ingestion will read. Without this the query
@@ -106,7 +110,11 @@ class reconcile_evidence extends \core\task\scheduled_task {
                     SELECT 1 FROM {local_outcomemap_evidence} e
                      WHERE e.cinstid = ci.id AND e.userid = qa.userid
                        AND e.assessmentcmid = cm.id AND e.supersededby IS NULL)",
-            ['approved' => workflow::APPROVED, 'mapapproved' => workflow::APPROVED],
+            [
+                'approved' => workflow::APPROVED,
+                'mapapproved' => workflow::APPROVED,
+                'currentmapapproved' => workflow::APPROVED,
+            ],
             '',
             '*',
             0,

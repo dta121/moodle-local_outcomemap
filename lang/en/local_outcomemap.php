@@ -58,6 +58,8 @@ $string['aggregationmethod'] = 'Aggregation method';
 
 $string['all'] = 'All';
 
+$string['ambiguouscode'] = 'The code "{$a->detail}" matches more than one {$a->field} record. Use its UUID instead.';
+
 $string['anyperformanceband'] = 'Any performance band';
 
 $string['apply_created'] = '{$a->count} mapping(s) created as {$a->role}.';
@@ -388,6 +390,8 @@ $string['confirm'] = 'Confirm';
 
 $string['confirmapprove'] = 'Approve this governed record? Approved versions are immutable.';
 
+$string['confirmdeleteframework'] = 'Delete the draft framework {$a->code} ({$a->name})? It holds no outcomes. The deletion is recorded in the audit history and cannot be undone.';
+
 $string['confirmdeletepolicy'] = 'Delete this draft policy? This cannot be undone.';
 
 $string['confirmdeletesnapshot'] = 'Permanently delete {$a->program} {$a->period} {$a->version} and the {$a->rows} rows it captured? A frozen version records what was reported, so delete it only if the capture should never have been taken; to report a corrected figure, create a correction version instead. The deletion is recorded in the audit history and cannot be undone.';
@@ -474,6 +478,8 @@ $string['coverage_exportcsv'] = 'Export CSV';
 
 $string['coverage_heading'] = 'Course outcome coverage';
 
+$string['coverage_inheritedvia'] = 'via {$a}';
+
 $string['coverage_mapcontent'] = 'Map content…';
 
 $string['coverage_nomatches'] = 'No outcomes match this filter.';
@@ -498,11 +504,15 @@ $string['coverage_uncovered'] = 'Not yet mapped';
 
 $string['coveragecard_full'] = 'Fully covered';
 
+$string['coveragecard_inherited'] = 'Covered through alignment';
+
 $string['coveragecard_none'] = 'Not covered';
 
 $string['coveragecard_taught'] = 'Incomplete coverage';
 
 $string['coveragecardof_full'] = 'of {$a} outcomes';
+
+$string['coveragecardof_inherited'] = 'via aligned outcomes';
 
 $string['coveragecardof_none'] = 'no content at all';
 
@@ -511,6 +521,8 @@ $string['coveragecardof_taught'] = 'need the other half';
 $string['coveragefilter_all'] = 'All outcomes';
 
 $string['coveragefilter_full'] = 'Fully covered';
+
+$string['coveragefilter_inherited'] = 'Through alignment';
 
 $string['coveragefilter_none'] = 'Not covered';
 
@@ -522,6 +534,8 @@ $string['coveragegroup_sub'] = '{$a} outcomes';
 
 $string['coveragenote_full'] = 'Mapped to teaching content and to an assessing activity.';
 
+$string['coveragenote_inherited'] = 'Nothing maps to these outcomes directly, but outcomes aligned to them are mapped, so results roll up.';
+
 $string['coveragenote_none'] = 'No section or activity references these outcomes.';
 
 $string['coveragenote_taught'] = 'Taught but not assessed, or assessed but not taught.';
@@ -531,6 +545,8 @@ $string['coveragestatus'] = 'Coverage';
 $string['coveragestatus_assessedonly'] = 'Assessed only';
 
 $string['coveragestatus_full'] = 'Taught & assessed';
+
+$string['coveragestatus_inherited'] = 'Covered through alignment';
 
 $string['coveragestatus_none'] = 'Not covered';
 
@@ -557,6 +573,8 @@ $string['csventity'] = 'Entity type';
 $string['csvfile'] = 'CSV file';
 
 $string['csvimport_heading'] = 'Foundation CSV import';
+
+$string['csvimport_references'] = 'Reference columns (programuuid, courseuuid, catalogcourseuuid, owneruuid, frameworkuuid, sourceuuid, targetuuid) accept either the record’s UUID or the code people know it by: a program, catalog course or framework code, or an outcome’s FRAMEWORK.CODE label as written in the hierarchy export. A code that matches more than one record is refused.';
 
 $string['curriculum_addcourse'] = 'Add a course to';
 
@@ -904,6 +922,8 @@ $string['encoding'] = 'Encoding';
 
 $string['engagementevent_opened'] = 'Opened recommendation';
 
+$string['entity_content_mappings'] = 'Content mappings (course export)';
+
 $string['entity_course_instances'] = 'Course instances';
 
 $string['entity_courses'] = 'Catalog courses';
@@ -917,6 +937,8 @@ $string['entity_outcomes'] = 'Outcomes and initial versions';
 $string['entity_program_courses'] = 'Program-course memberships';
 
 $string['entity_programs'] = 'Programs';
+
+$string['entity_question_mappings'] = 'Question mappings (course export)';
 
 $string['entity_relations'] = 'Outcome relations';
 
@@ -984,6 +1006,10 @@ $string['frameworkdefaultname_catalog_course'] = '{$a} course learning outcomes'
 
 $string['frameworkdefaultname_program'] = '{$a} program learning outcomes';
 
+$string['frameworkdeleted'] = 'Draft framework {$a} deleted.';
+
+$string['frameworknotempty'] = 'The framework "{$a->detail}" still holds outcomes, so it cannot be deleted. Remove its outcomes first, or finalize it and retire the outcomes instead.';
+
 $string['frameworkownerfixed_catalog_course'] = 'This framework will belong to the catalog course above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
 
 $string['frameworkownerfixed_program'] = 'This framework will belong to the program above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
@@ -1004,6 +1030,32 @@ $string['hier_callout'] = '{$a} outcomes are not yet aligned to a parent outcome
 
 $string['hier_clobadge'] = 'CLO {$a}';
 
+$string['hier_correctdates'] = 'Correct effective date…';
+
+$string['hier_correctdates_all'] = 'Correct effective dates…';
+
+$string['hier_correctdates_allframeworks'] = 'All frameworks';
+
+$string['hier_correctdates_date'] = 'Corrected effective date';
+
+$string['hier_correctdates_date_help'] = 'The date from which these outcome versions are held to have governed — normally when the curriculum they describe took effect. Course and program results are rolled up only for attempts finished while the target outcome version was in force, so outcomes created after learners sat their assessments produce no roll-up until this is corrected. Only versions that currently start later than this date are moved; each move is audited with your reason.';
+
+$string['hier_correctdates_done'] = '{$a->count} outcome version(s) now take effect from {$a->date}.';
+
+$string['hier_correctdates_heading'] = 'Correct effective date: {$a}';
+
+$string['hier_correctdates_hint'] = 'Moves the start of every approved outcome version in scope that begins after the date you choose. Outcomes with more than one version are left unchanged, because a start cannot move inside a lineage without overlapping its neighbour.';
+
+$string['hier_correctdates_none'] = 'There are no approved outcome versions to correct.';
+
+$string['hier_correctdates_notearlier'] = 'Choose a date earlier than {$a}, the earliest current effective date in scope; nothing would move otherwise.';
+
+$string['hier_correctdates_skipped'] = '{$a} outcome(s) carry more than one version and were left unchanged.';
+
+$string['hier_correctdates_submit'] = 'Correct effective date';
+
+$string['hier_correctdates_summary'] = '{$a->count} approved outcome version(s) currently take effect between {$a->earliest} and {$a->latest}.';
+
 $string['hier_coursecountline'] = '{$a->clos} course outcomes · {$a->ulos} unit outcomes';
 
 $string['hier_courseframeworks'] = 'Catalog course · frameworks {$a}';
@@ -1021,6 +1073,8 @@ $string['hier_csv_programoutcome'] = 'Program outcome';
 $string['hier_csv_type'] = 'Type';
 
 $string['hier_csv_unitoutcome'] = 'Unit outcome';
+
+$string['hier_deleteframework'] = 'Delete';
 
 $string['hier_done'] = 'Done';
 
@@ -1122,9 +1176,11 @@ $string['importexpired'] = 'The import preview expired. Upload and validate the 
 
 $string['importheader'] = 'The CSV header is invalid. Expected exactly these columns: {$a->detail}';
 
+$string['importhierarchy_contributesnote'] = 'Mirrors the declared alignment so unit results roll up to course and program outcomes; uniform weight.';
+
 $string['importhierarchy_duplicate'] = 'The outcome {$a} appears more than once in this file.';
 
-$string['importhierarchy_help'] = 'Import the file the Outcomes & alignment page exports. Frameworks must already exist; outcomes are matched on framework and code, so re-importing the same file changes nothing. The Version and Status columns are read for information only — governance is applied by the plugin, not asserted by the file.';
+$string['importhierarchy_help'] = 'Import the file the Outcomes & alignment page exports. Frameworks must already exist; outcomes are matched on framework and code, so re-importing the same file changes nothing. Each entry in Maps to becomes an alignment and a uniform-weight contribution, so results roll up without a separate relations import. The Version and Status columns are read for information only — governance is applied by the plugin, not asserted by the file.';
 
 $string['importhierarchy_nocode'] = 'The Code column is required.';
 
@@ -1135,6 +1191,36 @@ $string['importhierarchy_nostatement'] = 'The Statement column is required.';
 $string['importhierarchy_notarget'] = 'The Maps to entry {$a} does not name an outcome in this file or on this site.';
 
 $string['importinvalid'] = 'The file contains validation errors. Nothing can be committed.';
+
+$string['importmapping_ambiguouscinst'] = 'The course "{$a->detail}" has more than one approved, confirmed course instance, so the file cannot say which one the mappings belong to.';
+
+$string['importmapping_ambiguousquestion'] = 'More than one question named "{$a->detail}" is used by this quiz; rename one before importing.';
+
+$string['importmapping_ambiguousquiz'] = 'More than one quiz named "{$a->detail}" exists in this course.';
+
+$string['importmapping_ambiguoustarget'] = 'More than one activity or section matches "{$a->detail}"; give the activity an ID number.';
+
+$string['importmapping_exists'] = 'Already mapped; row skipped.';
+
+$string['importmapping_help'] = 'Question mappings and Content mappings import the files the course pages export. Rows name the course by shortname, quizzes and questions by name, activities by ID number or name, sections by number, and outcomes by FRAMEWORK.CODE label, so a file taken from one course reads into another course with the same structure. Rows whose mapping already exists are skipped. New mappings are carried through the submission boundary as the course pages do; an assessed set that is incomplete stays draft.';
+
+$string['importmapping_nocinst'] = 'The course "{$a->detail}" has no approved, confirmed course instance, so nothing links it to a catalog course.';
+
+$string['importmapping_nocourse'] = 'No course has the shortname "{$a->detail}".';
+
+$string['importmapping_nooutcome'] = 'No approved outcome version matches "{$a->detail}". Use FRAMEWORK.CODE, or the outcome’s UUID.';
+
+$string['importmapping_noquestion'] = 'No question named "{$a->detail}" is used by this quiz.';
+
+$string['importmapping_noquiz'] = 'No quiz named "{$a->detail}" exists in this course.';
+
+$string['importmapping_notarget'] = 'No activity or section "{$a->detail}" exists in this course.';
+
+$string['importmapping_questionversion'] = 'The quiz uses version {$a->detail->actual} of "{$a->detail->question}", not version {$a->detail->expected}.';
+
+$string['importmapping_role'] = 'Unknown mapping role "{$a->detail}".';
+
+$string['importmapping_targettype'] = 'The target type must be "module" or "section", not "{$a->detail}".';
 
 $string['importnotcommitted'] = 'Nothing was committed.';
 
@@ -1276,6 +1362,8 @@ $string['manualreleased'] = 'Learner feedback was manually released.';
 
 $string['mappedoutcomes'] = 'Mapped outcomes';
 
+$string['mappingalreadyended'] = 'Mapping ID {$a->detail} already has an end date.';
+
 $string['mappingoutsideoutcomeversion'] = 'The mapping effective range must be contained within the exact outcome version range.';
 
 $string['mappingremoved'] = 'Draft mapping removed.';
@@ -1291,6 +1379,8 @@ $string['mappingrole_practices'] = 'Practices';
 $string['mappingrole_remediates'] = 'Remediates';
 
 $string['mappingrole_teaches'] = 'Teaches';
+
+$string['mappingtransfer_export'] = 'Export mappings CSV';
 
 $string['mappingunderreview'] = 'This mapping is under review and cannot be changed from the activity form.';
 
@@ -2234,7 +2324,33 @@ $string['questionmapping_applyunavailable'] = 'You do not have permission to map
 
 $string['questionmapping_assessed'] = 'Assessed';
 
+$string['questionmapping_backdate'] = 'Correct effective date…';
+
+$string['questionmapping_backdate_current'] = '{$a->mappings} approved mapping(s) on {$a->questions} question(s) currently take effect from {$a->earliest}. Attempts finished before then produce no evidence.';
+
+$string['questionmapping_backdate_date'] = 'Corrected effective date';
+
+$string['questionmapping_backdate_date_help'] = 'The date from which these mappings are held to have governed the quiz — normally the day the exam went live. Attempts finished before a mapping\'s effective date produce no outcome evidence, so mappings made after learners sat the exam report nothing until this is corrected. Only mappings that currently start later than this date are moved; the correction is audited with your reason and results are recalculated on the next reconciliation run.';
+
+$string['questionmapping_backdate_heading'] = 'Correct effective date: {$a}';
+
+$string['questionmapping_backdate_hint'] = 'Moves the start of every approved mapping on this quiz that begins after the date you choose. A multi-outcome question\'s mappings move together so its assessed weights stay complete at every date.';
+
+$string['questionmapping_backdate_label'] = 'Effective date';
+
+$string['questionmapping_backdate_nomappings'] = 'This quiz has no approved mappings to correct.';
+
+$string['questionmapping_backdate_notearlier'] = 'Choose a date earlier than {$a}, the earliest current effective date on this quiz; nothing would move otherwise.';
+
+$string['questionmapping_backdate_submit'] = 'Correct effective date';
+
+$string['questionmapping_backdate_summary'] = '{$a->mappings} approved mapping(s) on {$a->questions} question(s) in this quiz currently take effect between {$a->earliest} and {$a->latest}.';
+
+$string['questionmapping_backdated'] = '{$a->count} mapping(s) now take effect from {$a->date}. Results are recalculated on the next reconciliation run.';
+
 $string['questionmapping_banks'] = 'Question bank:';
+
+$string['questionmapping_endedat'] = 'ended {$a}';
 
 $string['questionmapping_heading'] = 'Question outcome mappings';
 
@@ -2259,6 +2375,16 @@ $string['questionmapping_outcomestruncated'] = 'Showing {$a->shown} of {$a->tota
 $string['questionmapping_pooltruncated'] = 'This pool is too large to list in full. Use the question bank to map the remaining questions.';
 
 $string['questionmapping_randomfrom'] = 'Random from “{$a}”';
+
+$string['questionmapping_replace'] = 'Replace the selected questions’ current mappings';
+
+$string['questionmapping_replaced'] = '{$a->ended} mapping(s) ended as of {$a->date} and {$a->drafts} draft(s) removed.';
+
+$string['questionmapping_replacehelp'] = 'Ends every approved mapping now in force on the selected questions as of this moment, removes their drafts, then applies the outcomes ticked above from the same moment. Tick no outcome to unmap the questions entirely. Ended mappings stay on record for the attempts they governed.';
+
+$string['questionmapping_replacereason'] = 'Reason for ending the current mappings';
+
+$string['questionmapping_replacereasonrequired'] = 'Enter a reason before replacing existing mappings.';
 
 $string['questionmapping_search'] = 'Search questions';
 
@@ -2377,6 +2503,8 @@ $string['remediationpurpose_review'] = 'Review';
 $string['remediationtargetinvalid'] = 'Select exactly one valid internal target or external URL.';
 
 $string['removemapping'] = 'Remove this draft mapping';
+
+$string['replacependingreview'] = 'Mapping ID {$a->detail} is awaiting review. Approve or remove it before replacing this question’s mappings.';
 
 $string['report_source_assessment_coverage'] = 'Assessment and question coverage';
 

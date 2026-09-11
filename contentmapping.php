@@ -73,6 +73,20 @@ $stateparams = [
 $url = new moodle_url('/local/outcomemap/contentmapping.php', ['courseid' => $courseid]);
 $stateurl = new moodle_url('/local/outcomemap/contentmapping.php', $stateparams);
 
+// The course's content mappings as the transfer file the site importer reads.
+if ($action === 'exportcsv') {
+    require_once($CFG->libdir . '/csvlib.class.php');
+    $rows = \local_outcomemap\local\service\mapping_transfer_service::export_content_mappings($courseid);
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . clean_filename($course->shortname . '-content-mappings') . '.csv"');
+    $stream = fopen('php://output', 'w');
+    foreach ($rows as $row) {
+        fputcsv($stream, \local_outcomemap\local\csv_safety::row($row), ',', '"', '');
+    }
+    fclose($stream);
+    exit;
+}
+
 if ($action === 'submit' && $id) {
     require_sesskey();
     content_mapping_service::submit_for_review($targettype, $id);
@@ -358,6 +372,11 @@ echo $OUTPUT->header();
 $toolbaractions = html_writer::link(
     new moodle_url('/local/outcomemap/coverage.php', ['courseid' => $courseid]),
     get_string('coverage_heading', 'local_outcomemap'),
+    ['class' => 'btn btn-outline-secondary btn-sm']
+);
+$toolbaractions .= html_writer::link(
+    new moodle_url($url, ['action' => 'exportcsv']),
+    get_string('mappingtransfer_export', 'local_outcomemap'),
     ['class' => 'btn btn-outline-secondary btn-sm']
 );
 echo html_writer::div(
