@@ -51,6 +51,7 @@ Feature: Course staff map quiz questions to governed outcome versions
     And I should see "Apply outcomes"
     # The random slot lists the pool a draw can select from, so it can be mapped.
     And I should see "Random from “Final exam pool”"
+    And "Export mappings CSV" "link" should exist
 
   Scenario: An outcome is applied to selected questions and appears as a draft
     Given I log in as "admin"

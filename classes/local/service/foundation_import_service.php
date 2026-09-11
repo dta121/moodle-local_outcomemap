@@ -101,6 +101,20 @@ final class foundation_import_service extends base_service {
      *
      * @var string[]
      */
+    /**
+     * Question mapping transfer entity, in the shape the question mapping page exports.
+     *
+     * @var string
+     */
+    public const QUESTION_MAPPINGS = 'question_mappings';
+
+    /**
+     * Content mapping transfer entity, in the shape the content mapping page exports.
+     *
+     * @var string
+     */
+    public const CONTENT_MAPPINGS = 'content_mappings';
+
     public const ENTITIES = [
         self::PROGRAMS,
         self::COURSES,
@@ -110,6 +124,8 @@ final class foundation_import_service extends base_service {
         self::OUTCOMES,
         self::RELATIONS,
         self::HIERARCHY,
+        self::QUESTION_MAPPINGS,
+        self::CONTENT_MAPPINGS,
     ];
 
     /**
@@ -156,6 +172,8 @@ final class foundation_import_service extends base_service {
         // Exactly the columns the outcome hierarchy exports, so a file taken out
         // of the plugin can be read back into it.
         self::HIERARCHY => ['Type', 'Framework', 'Code', 'Statement', 'Maps to', 'Version', 'Status'],
+        self::QUESTION_MAPPINGS => mapping_transfer_service::QUESTION_HEADERS,
+        self::CONTENT_MAPPINGS => mapping_transfer_service::CONTENT_HEADERS,
     ];
 
     /**
@@ -220,6 +238,9 @@ final class foundation_import_service extends base_service {
         if ($entity === self::HIERARCHY) {
             return self::preview_hierarchy($importid);
         }
+        if (self::is_mapping_entity($entity)) {
+            return self::preview_mappings($importid, $entity);
+        }
         $rows = self::read_rows($importid, $entity);
         $seen = [];
         $previewrows = [];
@@ -264,6 +285,9 @@ final class foundation_import_service extends base_service {
         $actorid = self::require_system('local/outcomemap:manageframeworks');
         if ($entity === self::HIERARCHY) {
             return self::commit_hierarchy($importid, $expectedhash, $actorid);
+        }
+        if (self::is_mapping_entity($entity)) {
+            return self::commit_mappings($importid, $entity, $expectedhash, $actorid);
         }
         $preview = self::preview($importid, $entity);
         if (!hash_equals($preview->hash, strtolower($expectedhash))) {
@@ -477,6 +501,76 @@ final class foundation_import_service extends base_service {
                 'rowcount' => count($rows),
                 'alignments' => $aligned,
                 'contributions' => $contributed,
+                'previewhash' => $preview->hash,
+            ], null, \context_system::instance(), $actorid);
+            $transaction->allow_commit();
+            return count($rows);
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
+        }
+    }
+
+    /**
+     * Whether an entity is one of the two course mapping transfer files.
+     *
+     * @param string $entity Import entity.
+     */
+    private static function is_mapping_entity(string $entity): bool {
+        return $entity === self::QUESTION_MAPPINGS || $entity === self::CONTENT_MAPPINGS;
+    }
+
+    /**
+     * Preview a mapping transfer file.
+     *
+     * @param int $importid Import identifier.
+     * @param string $entity Mapping entity.
+     * @return import_preview
+     */
+    private static function preview_mappings(int $importid, string $entity): import_preview {
+        $rows = self::read_rows($importid, $entity);
+        [$previewrows, $valid] = $entity === self::QUESTION_MAPPINGS
+            ? mapping_transfer_service::preview_question_rows($rows)
+            : mapping_transfer_service::preview_content_rows($rows);
+        $hash = hash('sha256', canonical_json::encode([
+            'entity' => $entity,
+            'headers' => self::HEADERS[$entity],
+            'rows' => $rows,
+        ]));
+        return new import_preview($previewrows, $hash, $valid);
+    }
+
+    /**
+     * Create the mappings a validated transfer file describes.
+     *
+     * Rows whose mapping already exists are skipped, so re-importing a file
+     * changes nothing. Each new mapping is offered to the submission boundary
+     * the way the course pages do it.
+     *
+     * @param int $importid Import identifier.
+     * @param string $entity Mapping entity.
+     * @param string $expectedhash Expected preview hash.
+     * @param int $actorid Acting user.
+     * @return int Number of committed data rows.
+     */
+    private static function commit_mappings(int $importid, string $entity, string $expectedhash, int $actorid): int {
+        global $DB;
+        $preview = self::preview_mappings($importid, $entity);
+        if (!hash_equals($preview->hash, strtolower($expectedhash))) {
+            throw new validation_exception('importchanged', 'previewhash');
+        }
+        if (!$preview->valid) {
+            throw new validation_exception('importerrors', 'csvfile');
+        }
+        $rows = array_map(static fn($row) => $row->data, $preview->rows);
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $created = $entity === self::QUESTION_MAPPINGS
+                ? mapping_transfer_service::commit_question_rows($rows)
+                : mapping_transfer_service::commit_content_rows($rows);
+            audit_writer::write('import', 'foundation_import', null, null, null, [
+                'entity' => $entity,
+                'rowcount' => count($rows),
+                'created' => $created,
                 'previewhash' => $preview->hash,
             ], null, \context_system::instance(), $actorid);
             $transaction->allow_commit();
@@ -1011,7 +1105,7 @@ final class foundation_import_service extends base_service {
      * @param string $field Validation field name.
      * @return int Unix timestamp.
      */
-    private static function parse_date(string $value, string $field): int {
+    public static function parse_date(string $value, string $field): int {
         $value = trim($value);
         if (preg_match('/^[1-9]\d*$/D', $value)) {
             return input::positive_int($value, $field);
@@ -1030,7 +1124,7 @@ final class foundation_import_service extends base_service {
      * @param string $field Validation field name.
      * @return int|null Unix timestamp, or null for an empty value.
      */
-    private static function parse_optional_date(string $value, string $field): ?int {
+    public static function parse_optional_date(string $value, string $field): ?int {
         return trim($value) === '' ? null : self::parse_date($value, $field);
     }
 

@@ -109,6 +109,7 @@ if ($preview === null) {
     }
     echo html_writer::alist($links);
     echo html_writer::div(get_string('csvimport_references', 'local_outcomemap'), 'lom-cov-subtitle');
+    echo html_writer::div(get_string('importmapping_help', 'local_outcomemap'), 'lom-cov-subtitle');
 } else {
     echo $OUTPUT->heading(get_string('importpreview', 'local_outcomemap'), 3);
     $table = new html_table();
@@ -123,7 +124,13 @@ if ($preview === null) {
         foreach (foundation_import_service::HEADERS[$entity] as $header) {
             $cells[] = s($row->data[$header]);
         }
-        $cells[] = $row->errors ? s(implode('; ', $row->errors)) : get_string('valid', 'local_outcomemap');
+        if ($row->errors) {
+            $cells[] = s(implode('; ', $row->errors));
+        } else if (!empty($row->note)) {
+            $cells[] = s($row->note);
+        } else {
+            $cells[] = get_string('valid', 'local_outcomemap');
+        }
         $table->data[] = $cells;
     }
     echo html_writer::div(html_writer::table($table), 'table-responsive');

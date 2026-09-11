@@ -920,6 +920,8 @@ $string['encoding'] = 'Encoding';
 
 $string['engagementevent_opened'] = 'Opened recommendation';
 
+$string['entity_content_mappings'] = 'Content mappings (course export)';
+
 $string['entity_course_instances'] = 'Course instances';
 
 $string['entity_courses'] = 'Catalog courses';
@@ -933,6 +935,8 @@ $string['entity_outcomes'] = 'Outcomes and initial versions';
 $string['entity_program_courses'] = 'Program-course memberships';
 
 $string['entity_programs'] = 'Programs';
+
+$string['entity_question_mappings'] = 'Question mappings (course export)';
 
 $string['entity_relations'] = 'Outcome relations';
 
@@ -1184,6 +1188,36 @@ $string['importnotcommitted'] = 'Nothing was committed.';
 
 $string['importpreview'] = 'Import preview';
 
+$string['importmapping_ambiguouscinst'] = 'The course "{$a->detail}" has more than one approved, confirmed course instance, so the file cannot say which one the mappings belong to.';
+
+$string['importmapping_ambiguousquestion'] = 'More than one question named "{$a->detail}" is used by this quiz; rename one before importing.';
+
+$string['importmapping_ambiguousquiz'] = 'More than one quiz named "{$a->detail}" exists in this course.';
+
+$string['importmapping_ambiguoustarget'] = 'More than one activity or section matches "{$a->detail}"; give the activity an ID number.';
+
+$string['importmapping_exists'] = 'Already mapped; row skipped.';
+
+$string['importmapping_help'] = 'Question mappings and Content mappings import the files the course pages export. Rows name the course by shortname, quizzes and questions by name, activities by ID number or name, sections by number, and outcomes by FRAMEWORK.CODE label, so a file taken from one course reads into another course with the same structure. Rows whose mapping already exists are skipped. New mappings are carried through the submission boundary as the course pages do; an assessed set that is incomplete stays draft.';
+
+$string['importmapping_nocinst'] = 'The course "{$a->detail}" has no approved, confirmed course instance, so nothing links it to a catalog course.';
+
+$string['importmapping_nocourse'] = 'No course has the shortname "{$a->detail}".';
+
+$string['importmapping_nooutcome'] = 'No approved outcome version matches "{$a->detail}". Use FRAMEWORK.CODE, or the outcome’s UUID.';
+
+$string['importmapping_noquestion'] = 'No question named "{$a->detail}" is used by this quiz.';
+
+$string['importmapping_noquiz'] = 'No quiz named "{$a->detail}" exists in this course.';
+
+$string['importmapping_notarget'] = 'No activity or section "{$a->detail}" exists in this course.';
+
+$string['importmapping_questionversion'] = 'The quiz uses version {$a->detail->actual} of "{$a->detail->question}", not version {$a->detail->expected}.';
+
+$string['importmapping_role'] = 'Unknown mapping role "{$a->detail}".';
+
+$string['importmapping_targettype'] = 'The target type must be "module" or "section", not "{$a->detail}".';
+
 $string['importtoolarge'] = 'The CSV file is too large. The maximum accepted size is {$a->detail}.';
 
 $string['importtoomanyrows'] = 'The CSV file has too many data rows. The maximum is {$a->detail}.';
@@ -1339,6 +1373,8 @@ $string['mappingrole_remediates'] = 'Remediates';
 $string['mappingrole_teaches'] = 'Teaches';
 
 $string['mappingunderreview'] = 'This mapping is under review and cannot be changed from the activity form.';
+
+$string['mappingtransfer_export'] = 'Export mappings CSV';
 
 $string['mappingweight'] = 'Explicit weight';
 

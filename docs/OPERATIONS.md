@@ -44,6 +44,10 @@ Review role overrides after changing archetypes. In particular, a course or modu
 
 Every import entity's reference columns — `programuuid`, `courseuuid`, `catalogcourseuuid`, `owneruuid`, `frameworkuuid`, `sourceuuid`, `targetuuid` — accept either a UUID or the code the record is known by: program, catalog course and framework codes, or an outcome's `FRAMEWORK.CODE` label as the hierarchy export writes it. Files can therefore be authored by hand, or moved between sites that created the same records independently, without copying UUIDs. A code matching more than one live record is refused; use the UUID for that row.
 
+### Moving mappings between courses and sites
+
+**Question mappings** and **Content mappings** pages each offer **Export mappings CSV**, and the Foundation CSV import reads those files back under the entities of the same names. Rows name the course by shortname, quizzes and questions by name, activities by ID number (or name), sections by number, and outcomes by `FRAMEWORK.CODE`, so a file exported from one course imports into another course with the same structure on any site holding the same outcomes — unlike course backup, which matches outcomes by UUID and drops what it cannot resolve. Rows whose mapping already exists are skipped, so re-importing changes nothing. New mappings are carried through the submission boundary as the course pages do; an assessed set that is incomplete stays draft until the rest of it arrives. A mapping dated before its outcome version's effective date is refused in the preview: correct the outcome versions' effective dates first.
+
 ## Instructor workflow
 
 1. Open **Course outcome mapping > Outcome coverage** to inspect the exact approved outcome versions and mapped course content. Coverage is reported per exact outcome version: an outcome nothing maps to directly but whose aligned outcomes are mapped — typically a course outcome reached through its unit outcomes — is reported as *covered through alignment*, naming the outcomes it comes through.

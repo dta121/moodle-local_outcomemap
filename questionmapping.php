@@ -104,6 +104,22 @@ if (!local_outcomemap_qbank_available()) {
 
 $canmap = has_capability('local/outcomemap:mapquestions', $context);
 
+// The course's question mappings as the transfer file the site importer reads.
+if ($action === 'exportcsv') {
+    require_once($CFG->libdir . '/csvlib.class.php');
+    $rows = \local_outcomemap\local\service\mapping_transfer_service::export_question_mappings($courseid);
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . clean_filename($course->shortname . '-question-mappings') . '.csv"');
+    $stream = fopen('php://output', 'w');
+    foreach ($rows as $row) {
+        // Names and notes are staff-entered free text, so every cell is
+        // neutralized against spreadsheet formula execution before download.
+        fputcsv($stream, \local_outcomemap\local\csv_safety::row($row), ',', '"', '');
+    }
+    fclose($stream);
+    exit;
+}
+
 if ($action === 'refilter') {
     require_sesskey();
     redirect($stateurl);
@@ -418,6 +434,11 @@ $toolbaractions = html_writer::link(
 $toolbaractions .= html_writer::link(
     new moodle_url('/local/outcomemap/contentmapping.php', ['courseid' => $courseid]),
     get_string('contentmapping_heading', 'local_outcomemap'),
+    ['class' => 'btn btn-outline-secondary btn-sm']
+);
+$toolbaractions .= html_writer::link(
+    new moodle_url($url, ['action' => 'exportcsv']),
+    get_string('mappingtransfer_export', 'local_outcomemap'),
     ['class' => 'btn btn-outline-secondary btn-sm']
 );
 echo html_writer::div(
