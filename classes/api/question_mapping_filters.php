@@ -207,8 +207,9 @@ final class question_mapping_filters {
                                  FROM {local_outcomemap_qmap} qbomm
                                  JOIN {local_outcomemap_itemver} qbomv ON qbomv.id = qbomm.itemverid
                                  JOIN {local_outcomemap_item} qbomi ON qbomi.id = qbomv.itemid
-                                 JOIN {local_outcomemap_fw} qbomf ON qbomf.id = qbomi.frameworkid
+                                JOIN {local_outcomemap_fw} qbomf ON qbomf.id = qbomi.frameworkid
                                 WHERE qbomm.questionversionid = qv.id
+                                  AND ' . self::current_version_condition('qbomm') . '
                                   AND (' . implode(' OR ', $matches) . '))';
             $fragments[] = $jointype === datafilter::JOINTYPE_NONE ? 'NOT ' . $exists : $exists;
         }
@@ -263,6 +264,7 @@ final class question_mapping_filters {
             $params[$param] = $value;
             $exists = 'EXISTS (SELECT 1 FROM {local_outcomemap_qmap} qbomm
                                 WHERE qbomm.questionversionid = qv.id
+                                  AND ' . self::current_version_condition('qbomm') . '
                                   AND qbomm.' . $field . ' = :' . $param . ')';
             $fragments[] = $jointype === datafilter::JOINTYPE_NONE ? 'NOT ' . $exists : $exists;
         }
@@ -291,6 +293,7 @@ final class question_mapping_filters {
     private static function mapped_exists(): string {
         return "EXISTS (SELECT 1 FROM {local_outcomemap_qmap} qbomm
                          WHERE qbomm.questionversionid = qv.id
+                           AND " . self::current_version_condition('qbomm') . "
                            AND qbomm.status <> 'retired')";
     }
 
@@ -300,6 +303,7 @@ final class question_mapping_filters {
     private static function copied_pending_exists(): string {
         return "EXISTS (SELECT 1 FROM {local_outcomemap_qmap} qbomm
                          WHERE qbomm.questionversionid = qv.id
+                           AND " . self::current_version_condition('qbomm') . "
                            AND qbomm.sourceqmapid IS NOT NULL
                            AND qbomm.status IN ('draft', 'needs_review'))";
     }
@@ -319,6 +323,7 @@ final class question_mapping_filters {
             $params[$fromparam] = $now;
             $params[$toparam] = $now;
             $active[$index] = "qbomm.questionversionid = qv.id
+                   AND " . self::current_version_condition('qbomm') . "
                    AND qbomm.role = 'assesses'
                    AND qbomm.status IN ('draft', 'needs_review', 'approved')
                    AND qbomm.effectivefrom <= :$fromparam
@@ -331,5 +336,19 @@ final class question_mapping_filters {
                               FROM {local_outcomemap_qmap} qbomm
                              WHERE {$active[2]}) <> :qbomweightone)";
         return self::binary($filter, '(' . $exists . ')', $params);
+    }
+
+    /**
+     * Keep pending rows and only the latest approved version of each lineage.
+     *
+     * @param string $alias Mapping table alias.
+     * @return string SQL predicate.
+     */
+    private static function current_version_condition(string $alias): string {
+        return "({$alias}.status <> 'approved' OR {$alias}.version = (
+                    SELECT MAX(currentm.version)
+                      FROM {local_outcomemap_qmap} currentm
+                     WHERE currentm.mappinguuid = {$alias}.mappinguuid
+                       AND currentm.status = 'approved'))";
     }
 }

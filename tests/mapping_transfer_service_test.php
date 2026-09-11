@@ -176,7 +176,10 @@ final class mapping_transfer_service_test extends \advanced_testcase {
         $qrows = mapping_transfer_service::export_question_mappings($source->course->id);
         $this->assertSame(mapping_transfer_service::QUESTION_HEADERS, $qrows[0]);
         $this->assertCount(3, $qrows);
-        $this->assertSame(['SRC101', 'Final exam', 'Question 1', '1', 'XFER.CLO1', 'assesses', '0.5000000000'], array_slice($qrows[1], 0, 7));
+        $this->assertSame(
+            ['SRC101', 'Final exam', 'Question 1', '1', 'XFER.CLO1', 'assesses', '0.5000000000'],
+            array_slice($qrows[1], 0, 7)
+        );
         $this->assertSame('1704067200', $qrows[1][7]);
         $this->assertSame('From the CLO1 blueprint', $qrows[1][9]);
 
@@ -226,5 +229,71 @@ final class mapping_transfer_service_test extends \advanced_testcase {
         foundation_import_service::cleanup($importid);
         $this->assertFalse($preview->valid);
         $this->assertStringContainsString('Question 9', implode(' ', $preview->rows[0]->errors));
+    }
+
+    /**
+     * A historical mapping is rebound to the outcome version covering its dates.
+     */
+    public function test_question_import_resolves_the_historical_outcome_version(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        set_config('requireapproval', 0, 'local_outcomemap');
+        set_config('autosubmitquestionmappings', 1, 'local_outcomemap');
+
+        $frameworkid = framework_service::create([
+            'code' => 'XFER',
+            'name' => 'Transfer outcomes',
+            'ownertype' => framework_service::OWNER_INSTITUTION,
+        ]);
+        framework_service::submit_for_review($frameworkid);
+        $itemid = outcome_service::create([
+            'frameworkid' => $frameworkid,
+            'code' => 'CLO1',
+            'statement' => 'Original outcome',
+            'effectivefrom' => 1704067200,
+            'effectiveto' => 1735689600,
+        ]);
+        $version1id = (int) $DB->get_field(
+            'local_outcomemap_itemver',
+            'id',
+            ['itemid' => $itemid],
+            MUST_EXIST
+        );
+        outcome_service::submit_for_review($version1id);
+        $version2id = outcome_service::create_version($itemid, [
+            'statement' => 'Revised outcome',
+            'effectivefrom' => 1735689600,
+        ]);
+        outcome_service::submit_for_review($version2id);
+
+        $source = $this->build_course('HISTSRC');
+        $sourcequestionversion = (int) $DB->get_field('question_versions', 'id', [
+            'questionid' => $source->questions['Question 1']->id,
+        ], MUST_EXIST);
+        question_mapping_service::create([
+            'questionversionid' => $sourcequestionversion,
+            'itemverid' => $version1id,
+            'role' => content_mapping_service::ROLE_TEACHES,
+            'effectivefrom' => 1704067200,
+            'effectiveto' => 1735689600,
+        ]);
+
+        $rows = mapping_transfer_service::export_question_mappings($source->course->id);
+        $target = $this->build_course('HISTTGT');
+        $rows[1][0] = 'HISTTGT';
+        $this->import(foundation_import_service::QUESTION_MAPPINGS, $rows);
+
+        $targetquestionversion = (int) $DB->get_field('question_versions', 'id', [
+            'questionid' => $target->questions['Question 1']->id,
+        ], MUST_EXIST);
+        $imported = $DB->get_record(
+            'local_outcomemap_qmap',
+            ['questionversionid' => $targetquestionversion],
+            '*',
+            MUST_EXIST
+        );
+        $this->assertSame($version1id, (int) $imported->itemverid);
+        $this->assertNotSame($version2id, (int) $imported->itemverid);
     }
 }

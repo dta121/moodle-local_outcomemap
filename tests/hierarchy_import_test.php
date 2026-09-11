@@ -35,7 +35,7 @@ final class hierarchy_import_test extends \advanced_testcase {
     /**
      * @var string The header the hierarchy export writes.
      */
-    private const HEADER = 'Type,Framework,Code,Statement,"Maps to",Version,Status';
+    private const HEADER = 'Type,Framework,Code,Statement,"Maps to",Version,Status,"Effective from","Effective to"';
 
     /**
      * Create an approved framework.
@@ -106,10 +106,10 @@ final class hierarchy_import_test extends \advanced_testcase {
         // been read, which is exactly the forward reference a row-at-a-time
         // importer cannot resolve.
         $csv = self::HEADER . "\n"
-            . '"Course outcome",MBA601-CLO,0a,"Demonstrate financial literacy",MBA-PLO.PLO1,1,Approved' . "\n"
-            . '"Program outcome",MBA-PLO,PLO1,"Analyse business problems",,1,Approved' . "\n"
-            . '"Course outcome",MBA601-CLO,0b,"Read a balance sheet","MBA-PLO.PLO1; MBA-PLO.PLO2",1,Approved' . "\n"
-            . '"Program outcome",MBA-PLO,PLO2,"Integrate functional areas",,1,Approved' . "\n";
+            . '"Course outcome",MBA601-CLO,0a,"Demonstrate financial literacy",MBA-PLO.PLO1,1,Approved,1704067200,' . "\n"
+            . '"Program outcome",MBA-PLO,PLO1,"Analyse business problems",,1,Approved,1704067200,' . "\n"
+            . '"Course outcome",MBA601-CLO,0b,"Read a balance sheet","MBA-PLO.PLO1; MBA-PLO.PLO2",1,Approved,1704067200,' . "\n"
+            . '"Program outcome",MBA-PLO,PLO2,"Integrate functional areas",,1,Approved,1704067200,' . "\n";
 
         $this->assertSame(4, $this->import($csv));
 
@@ -134,6 +134,8 @@ final class hierarchy_import_test extends \advanced_testcase {
         foreach ($contributions as $contribution) {
             $this->assertSame('1.0000000000', $contribution->weight);
             $this->assertSame(workflow::APPROVED, $contribution->status);
+            $this->assertSame(1704067200, (int) $contribution->effectivefrom);
+            $this->assertNull($contribution->effectiveto);
         }
     }
 
@@ -149,8 +151,8 @@ final class hierarchy_import_test extends \advanced_testcase {
         $this->framework('MBA601-CLO');
 
         $csv = self::HEADER . "\n"
-            . '"Program outcome",MBA-PLO,PLO1,"Analyse business problems",,1,Approved' . "\n"
-            . '"Course outcome",MBA601-CLO,0a,"Demonstrate financial literacy",MBA-PLO.PLO1,1,Approved' . "\n";
+            . '"Program outcome",MBA-PLO,PLO1,"Analyse business problems",,1,Approved,1704067200,' . "\n"
+            . '"Course outcome",MBA601-CLO,0a,"Demonstrate financial literacy",MBA-PLO.PLO1,1,Approved,1704067200,' . "\n";
 
         $this->import($csv);
         $items = $DB->count_records('local_outcomemap_item');
@@ -178,7 +180,7 @@ final class hierarchy_import_test extends \advanced_testcase {
         set_config('requireapproval', 0, 'local_outcomemap');
 
         $csv = self::HEADER . "\n"
-            . '"Program outcome",MBA-PLO,PLO1,"Analyse business problems",,1,Approved' . "\n";
+            . '"Program outcome",MBA-PLO,PLO1,"Analyse business problems",,1,Approved,1704067200,' . "\n";
         $preview = $this->preview($csv);
 
         $this->assertFalse($preview->valid);
@@ -195,7 +197,7 @@ final class hierarchy_import_test extends \advanced_testcase {
         $this->framework('MBA601-CLO');
 
         $csv = self::HEADER . "\n"
-            . '"Course outcome",MBA601-CLO,0a,"Demonstrate financial literacy",MBA-PLO.NOPE,1,Approved' . "\n";
+            . '"Course outcome",MBA601-CLO,0a,"Demonstrate financial literacy",MBA-PLO.NOPE,1,Approved,1704067200,' . "\n";
         $preview = $this->preview($csv);
 
         $this->assertFalse($preview->valid);
@@ -212,8 +214,8 @@ final class hierarchy_import_test extends \advanced_testcase {
         $this->framework('MBA-PLO');
 
         $csv = self::HEADER . "\n"
-            . '"Program outcome",MBA-PLO,PLO1,"First wording",,1,Approved' . "\n"
-            . '"Program outcome",MBA-PLO,PLO1,"Second wording",,1,Approved' . "\n";
+            . '"Program outcome",MBA-PLO,PLO1,"First wording",,1,Approved,1704067200,' . "\n"
+            . '"Program outcome",MBA-PLO,PLO1,"Second wording",,1,Approved,1704067200,' . "\n";
         $preview = $this->preview($csv);
 
         $this->assertFalse($preview->valid);

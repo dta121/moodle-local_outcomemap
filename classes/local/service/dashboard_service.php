@@ -266,7 +266,7 @@ final class dashboard_service extends base_service {
                 'itemid' => (int) $record->itemid,
             ];
         }
-        self::apply_inherited_coverage($rows);
+        self::apply_inherited_coverage($rows, $at);
         return $rows;
     }
 
@@ -279,8 +279,9 @@ final class dashboard_service extends base_service {
      * a chain of alignments resolves regardless of row order.
      *
      * @param \stdClass[] $rows Coverage rows, updated in place.
+     * @param int $at Effective timestamp for the dashboard.
      */
-    private static function apply_inherited_coverage(array $rows): void {
+    private static function apply_inherited_coverage(array $rows, int $at): void {
         global $DB;
         $targets = [];
         foreach ($rows as $row) {
@@ -292,11 +293,18 @@ final class dashboard_service extends base_service {
         $sources = [];
         foreach (array_chunk(array_values($targets), 1000) as $chunk) {
             [$insql, $params] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'ti');
-            $params += ['type' => relation_service::ALIGNS_TO, 'status' => workflow::APPROVED];
+            $params += [
+                'type' => relation_service::ALIGNS_TO,
+                'status' => workflow::APPROVED,
+                'at1' => $at,
+                'at2' => $at,
+            ];
             $relations = $DB->get_records_sql(
                 "SELECT r.id, r.sourceitemid, r.targetitemid
                    FROM {local_outcomemap_rel} r
                   WHERE r.type = :type AND r.status = :status AND r.targetitemid $insql
+                    AND r.effectivefrom <= :at1
+                    AND (r.effectiveto IS NULL OR r.effectiveto > :at2)
                     AND r.version = (SELECT MAX(r2.version)
                                        FROM {local_outcomemap_rel} r2
                                       WHERE r2.relationuuid = r.relationuuid)",

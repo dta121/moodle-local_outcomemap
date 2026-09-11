@@ -96,12 +96,12 @@ final class coverage_service_test extends \advanced_testcase {
         [$clo2id, $clo2version] = $this->outcome($catalogid, 'COV601-CLO', '0b');
         [$uloid, $uloversion] = $this->outcome($catalogid, 'COV601-ULO', '1a');
         [$ulo2id, $ulo2version] = $this->outcome($catalogid, 'COV601-ULO', '1b');
-        foreach ([[$uloid, $cloid], [$ulo2id, $cloid]] as [$source, $target]) {
+        foreach ([[$uloid, $cloid, 1706745600], [$ulo2id, $cloid, 1704067200]] as [$source, $target, $from]) {
             $relationid = relation_service::create([
                 'sourceitemid' => $source,
                 'targetitemid' => $target,
                 'type' => relation_service::ALIGNS_TO,
-                'effectivefrom' => 1704067200,
+                'effectivefrom' => $from,
             ]);
             relation_service::submit_for_review($relationid);
         }
@@ -116,6 +116,13 @@ final class coverage_service_test extends \advanced_testcase {
             'effectivefrom' => 1704067200,
         ]);
         content_mapping_service::submit_for_review(content_mapping_service::TARGET_MODULE, $mappingid);
+
+        $beforealignment = coverage_service::matrix($course->id, 1705276800);
+        $this->assertSame(
+            coverage_service::STATUS_NONE,
+            coverage_service::row_status($beforealignment[$cloversion]),
+            'Coverage must not inherit through a future alignment.'
+        );
 
         $matrix = coverage_service::matrix($course->id);
         $this->assertArrayHasKey($cloversion, $matrix);

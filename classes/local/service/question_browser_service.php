@@ -601,11 +601,17 @@ final class question_browser_service extends base_service {
                    JOIN {local_outcomemap_item} i ON i.id = v.itemid
                    JOIN {local_outcomemap_fw} f ON f.id = i.frameworkid
                   WHERE m.questionversionid $insql
+                    AND (m.status <> :approved OR m.version = (
+                            SELECT MAX(currentm.version)
+                              FROM {local_outcomemap_qmap} currentm
+                             WHERE currentm.mappinguuid = m.mappinguuid
+                               AND currentm.status = :currentapproved))
                     AND m.role = :role AND m.status = :status
                     AND m.effectivefrom <= :at1
                     AND (m.effectiveto IS NULL OR m.effectiveto > :at2)
                ORDER BY m.questionversionid, f.code, i.code, m.id",
                 $params
+                    + ['approved' => workflow::APPROVED, 'currentapproved' => workflow::APPROVED]
             );
             foreach ($records as $record) {
                 $grouped[(int) $record->questionversionid][] = $record;

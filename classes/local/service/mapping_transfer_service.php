@@ -66,7 +66,7 @@ final class mapping_transfer_service extends base_service {
      */
     public const TARGET_SECTION = 'section';
 
-    // ---------------------------------------------------------------- export.
+    // Export.
 
     /**
      * Rows describing every live question mapping on a course's quizzes.
@@ -168,7 +168,7 @@ final class mapping_transfer_service extends base_service {
         ];
     }
 
-    // ---------------------------------------------------------------- import.
+    // Import.
 
     /**
      * Resolve and validate question mapping rows without writing anything.
@@ -329,7 +329,6 @@ final class mapping_transfer_service extends base_service {
         $course = self::course($row['course'], $cache);
         $quiz = self::quiz($course, $row['quiz'], $cache);
         $question = self::question($course, $quiz, $row['question'], $row['questionversion'], $cache);
-        $outcome = self::outcome_version($row['outcome'], $cache);
         $role = self::role($row['role'], question_mapping_service::ROLES);
         $weight = trim((string) $row['weight']);
         if ($role === content_mapping_service::ROLE_ASSESSES && $weight === '') {
@@ -337,7 +336,7 @@ final class mapping_transfer_service extends base_service {
         }
         $effectivefrom = foundation_import_service::parse_date($row['effectivefrom'], 'effectivefrom');
         $effectiveto = foundation_import_service::parse_optional_date($row['effectiveto'], 'effectiveto');
-        self::require_within_outcome_version($outcome, $effectivefrom, $effectiveto);
+        $outcome = self::outcome_version($row['outcome'], $effectivefrom, $effectiveto, $cache);
 
         $exists = $DB->record_exists_select(
             'local_outcomemap_qmap',
@@ -381,7 +380,6 @@ final class mapping_transfer_service extends base_service {
         $targetid = $targettype === self::TARGET_MODULE
             ? self::module($course, $row['target'], $cache)
             : self::section($course, $row['target']);
-        $outcome = self::outcome_version($row['outcome'], $cache);
         $role = self::role($row['role'], content_mapping_service::ROLES);
         $weight = trim((string) $row['weight']);
         if ($role === content_mapping_service::ROLE_ASSESSES && $weight === '') {
@@ -393,7 +391,7 @@ final class mapping_transfer_service extends base_service {
         }
         $effectivefrom = foundation_import_service::parse_date($row['effectivefrom'], 'effectivefrom');
         $effectiveto = foundation_import_service::parse_optional_date($row['effectiveto'], 'effectiveto');
-        self::require_within_outcome_version($outcome, $effectivefrom, $effectiveto);
+        $outcome = self::outcome_version($row['outcome'], $effectivefrom, $effectiveto, $cache);
 
         $table = $targettype === self::TARGET_MODULE ? 'local_outcomemap_cmmap' : 'local_outcomemap_secmap';
         $field = $targettype === self::TARGET_MODULE ? 'cmid' : 'sectionid';
@@ -425,7 +423,7 @@ final class mapping_transfer_service extends base_service {
         ];
     }
 
-    // ------------------------------------------------------------- resolvers.
+    // Resolvers.
 
     /**
      * Course by shortname.
@@ -544,17 +542,20 @@ final class mapping_transfer_service extends base_service {
     }
 
     /**
-     * Latest approved outcome version by FRAMEWORK.CODE label, or by version or outcome UUID.
+     * Exact approved outcome version covering the mapping range.
      *
      * @param string $value Outcome cell.
+     * @param int $from Mapping effective start.
+     * @param int|null $to Mapping effective end.
      * @param array $cache Lookup cache.
      * @return \stdClass Outcome version record.
      */
-    private static function outcome_version(string $value, array &$cache): \stdClass {
+    private static function outcome_version(string $value, int $from, ?int $to, array &$cache): \stdClass {
         global $DB;
         $value = trim($value);
-        if (isset($cache['outcome'][$value])) {
-            return $cache['outcome'][$value];
+        $cachekey = $value . ':' . $from . ':' . ($to ?? '');
+        if (isset($cache['outcome'][$cachekey])) {
+            return $cache['outcome'][$cachekey];
         }
         $isuuid = (bool) preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iD', $value);
         if ($isuuid) {
@@ -597,8 +598,15 @@ final class mapping_transfer_service extends base_service {
         if (count($items) > 1) {
             throw new validation_exception('ambiguouscode', 'outcome', $value);
         }
-        $cache['outcome'][$value] = reset($records);
-        return $cache['outcome'][$value];
+        $covering = array_values(array_filter($records, static function (\stdClass $record) use ($from, $to): bool {
+            return $from >= (int) $record->effectivefrom
+                && ($record->effectiveto === null || ($to !== null && $to <= (int) $record->effectiveto));
+        }));
+        if (count($covering) !== 1) {
+            throw new validation_exception('mappingoutsideoutcomeversion', 'effectivefrom', $value);
+        }
+        $cache['outcome'][$cachekey] = reset($covering);
+        return $cache['outcome'][$cachekey];
     }
 
     /**
@@ -683,25 +691,5 @@ final class mapping_transfer_service extends base_service {
             throw new validation_exception('importmapping_role', 'role', $value);
         }
         return $role;
-    }
-
-    /**
-     * A mapping's range must sit inside its outcome version's range, as the services require.
-     *
-     * Surfaced in the preview so an outcome version dated after the mapping —
-     * the usual state on a site that recorded its outcomes late — is named
-     * before anything is written.
-     *
-     * @param \stdClass $outcome Outcome version.
-     * @param int $from Mapping start.
-     * @param int|null $to Mapping end.
-     */
-    private static function require_within_outcome_version(\stdClass $outcome, int $from, ?int $to): void {
-        if (
-            $from < (int) $outcome->effectivefrom
-                || ($outcome->effectiveto !== null && ($to === null || $to > (int) $outcome->effectiveto))
-        ) {
-            throw new validation_exception('mappingoutsideoutcomeversion', 'effectivefrom', userdate((int) $outcome->effectivefrom));
-        }
     }
 }

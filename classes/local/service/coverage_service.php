@@ -101,10 +101,12 @@ final class coverage_service extends base_service {
      * can distinguish "no mapping" from "not applicable".
      *
      * @param int $courseid Moodle course identifier.
+     * @param int|null $at Effective timestamp, defaulting to now.
      * @return array<int,object> Rows keyed by exact outcome-version ID.
      */
-    public static function matrix(int $courseid): array {
-        $rows = self::course_outcome_baseline($courseid);
+    public static function matrix(int $courseid, ?int $at = null): array {
+        $at = $at ?? time();
+        $rows = self::course_outcome_baseline($courseid, $at);
         $mappings = content_mapping_service::list_for_course($courseid);
         foreach (['sections', 'modules'] as $collection) {
             foreach ($mappings[$collection] as $mapping) {
@@ -128,7 +130,7 @@ final class coverage_service extends base_service {
                 $rows[$itemverid]->covered = true;
             }
         }
-        foreach (question_browser_service::assessment_coverage($courseid) as $itemverid => $questionmappings) {
+        foreach (question_browser_service::assessment_coverage($courseid, $at) as $itemverid => $questionmappings) {
             if (!isset($rows[$itemverid])) {
                 $mapping = reset($questionmappings);
                 $rows[$itemverid] = (object) [
@@ -149,7 +151,7 @@ final class coverage_service extends base_service {
             );
             $rows[$itemverid]->covered = true;
         }
-        self::attach_inherited_coverage($rows);
+        self::attach_inherited_coverage($rows, $at);
         uasort($rows, static function (\stdClass $a, \stdClass $b): int {
             return [$a->frameworkcode, $a->outcomecode, $a->outcomeversion]
                 <=> [$b->frameworkcode, $b->outcomecode, $b->outcomeversion];
@@ -168,8 +170,9 @@ final class coverage_service extends base_service {
      * `inheritedassessed`; a row nothing aligns to gets an empty list.
      *
      * @param array<int,object> $rows Matrix rows keyed by outcome-version id.
+     * @param int $at Effective timestamp for the report.
      */
-    private static function attach_inherited_coverage(array $rows): void {
+    private static function attach_inherited_coverage(array $rows, int $at): void {
         global $DB;
         foreach ($rows as $row) {
             $row->inheritedfrom = [];
@@ -193,11 +196,18 @@ final class coverage_service extends base_service {
             return;
         }
         [$insql, $params] = $DB->get_in_or_equal(array_keys($rowsbyitem), SQL_PARAMS_NAMED, 'ti');
-        $params += ['type' => relation_service::ALIGNS_TO, 'status' => workflow::APPROVED];
+        $params += [
+            'type' => relation_service::ALIGNS_TO,
+            'status' => workflow::APPROVED,
+            'at1' => $at,
+            'at2' => $at,
+        ];
         $relations = $DB->get_records_sql(
             "SELECT r.id, r.sourceitemid, r.targetitemid
                FROM {local_outcomemap_rel} r
               WHERE r.type = :type AND r.status = :status AND r.targetitemid $insql
+                AND r.effectivefrom <= :at1
+                AND (r.effectiveto IS NULL OR r.effectiveto > :at2)
                 AND r.version = (SELECT MAX(r2.version)
                                    FROM {local_outcomemap_rel} r2
                                   WHERE r2.relationuuid = r.relationuuid)",
@@ -282,12 +292,13 @@ final class coverage_service extends base_service {
      * the same association that makes a mapping valid in the first place.
      *
      * @param int $courseid Moodle course identifier.
+     * @param int|null $at Effective timestamp, defaulting to now.
      * @return array<int,object> Uncovered baseline rows keyed by outcome-version ID.
      */
-    public static function course_outcome_baseline(int $courseid): array {
+    public static function course_outcome_baseline(int $courseid, ?int $at = null): array {
         global $DB;
 
-        $now = time();
+        $at = $at ?? time();
         $records = $DB->get_records_sql(
             "SELECT v.id AS itemverid, f.code AS frameworkcode, i.code AS outcomecode,
                     v.version AS outcomeversion, v.statement AS outcomestatement
@@ -312,8 +323,8 @@ final class coverage_service extends base_service {
                 'fstatus' => workflow::APPROVED,
                 'istatus' => workflow::APPROVED,
                 'vstatus' => workflow::APPROVED,
-                'at1' => $now,
-                'at2' => $now,
+                'at1' => $at,
+                'at2' => $at,
             ]
         );
         $rows = [];

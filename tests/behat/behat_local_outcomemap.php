@@ -986,9 +986,18 @@ class behat_local_outcomemap extends behat_base {
                FROM {local_outcomemap_qmap} m
                JOIN {question} q ON q.id = m.questionid
                JOIN {local_outcomemap_itemver} v ON v.id = m.itemverid
-               JOIN {local_outcomemap_item} i ON i.id = v.itemid
-              WHERE q.name = :name AND i.code = :code AND m.status = :status",
-            ['name' => $questionname, 'code' => $outcomecode, 'status' => workflow::APPROVED]
+              JOIN {local_outcomemap_item} i ON i.id = v.itemid
+              WHERE q.name = :name AND i.code = :code AND m.status = :status
+                AND m.version = (SELECT MAX(currentm.version)
+                                   FROM {local_outcomemap_qmap} currentm
+                                  WHERE currentm.mappinguuid = m.mappinguuid
+                                    AND currentm.status = :currentstatus)",
+            [
+                'name' => $questionname,
+                'code' => $outcomecode,
+                'status' => workflow::APPROVED,
+                'currentstatus' => workflow::APPROVED,
+            ]
         );
         if (!$ends) {
             throw new ExpectationException("No approved mappings from {$questionname} to {$outcomecode}", $this->getSession());

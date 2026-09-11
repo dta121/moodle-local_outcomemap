@@ -97,11 +97,6 @@ final class foundation_import_service extends base_service {
     public const RELATIONS = 'relations';
 
     /**
-     * Supported import entities.
-     *
-     * @var string[]
-     */
-    /**
      * Question mapping transfer entity, in the shape the question mapping page exports.
      *
      * @var string
@@ -115,6 +110,18 @@ final class foundation_import_service extends base_service {
      */
     public const CONTENT_MAPPINGS = 'content_mappings';
 
+    /**
+     * Outcome hierarchy import entity, in the shape the hierarchy CSV exports.
+     *
+     * @var string
+     */
+    public const HIERARCHY = 'hierarchy';
+
+    /**
+     * Supported import entities.
+     *
+     * @var string[]
+     */
     public const ENTITIES = [
         self::PROGRAMS,
         self::COURSES,
@@ -127,13 +134,6 @@ final class foundation_import_service extends base_service {
         self::QUESTION_MAPPINGS,
         self::CONTENT_MAPPINGS,
     ];
-
-    /**
-     * Outcome hierarchy import entity, in the shape the hierarchy CSV exports.
-     *
-     * @var string
-     */
-    public const HIERARCHY = 'hierarchy';
 
     /**
      * @var string Relationship the Maps to column expresses.
@@ -171,7 +171,9 @@ final class foundation_import_service extends base_service {
         ],
         // Exactly the columns the outcome hierarchy exports, so a file taken out
         // of the plugin can be read back into it.
-        self::HIERARCHY => ['Type', 'Framework', 'Code', 'Statement', 'Maps to', 'Version', 'Status'],
+        self::HIERARCHY => [
+            'Type', 'Framework', 'Code', 'Statement', 'Maps to', 'Version', 'Status', 'Effective from', 'Effective to',
+        ],
         self::QUESTION_MAPPINGS => mapping_transfer_service::QUESTION_HEADERS,
         self::CONTENT_MAPPINGS => mapping_transfer_service::CONTENT_HEADERS,
     ];
@@ -180,6 +182,13 @@ final class foundation_import_service extends base_service {
      * @var string[] Previous Programs header retained for backward-compatible imports.
      */
     private const LEGACY_PROGRAM_HEADERS = ['uuid', 'code', 'name', 'description', 'externalid'];
+
+    /**
+     * @var string[] Hierarchy header emitted before effective dates were transferable.
+     */
+    private const LEGACY_HIERARCHY_HEADERS = [
+        'Type', 'Framework', 'Code', 'Statement', 'Maps to', 'Version', 'Status',
+    ];
 
     /**
      * Store uploaded CSV content using Moodle's temporary CSV reader.
@@ -354,6 +363,11 @@ final class foundation_import_service extends base_service {
             if (trim($row['Statement']) === '') {
                 $errors[] = get_string('importhierarchy_nostatement', 'local_outcomemap');
             }
+            try {
+                self::hierarchy_period($row, time());
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+            }
             $label = $frameworkcode . '.' . $code;
             if ($errors === []) {
                 if (isset($declared[$label])) {
@@ -422,6 +436,11 @@ final class foundation_import_service extends base_service {
         $rows = array_map(static fn($row) => $row->data, $preview->rows);
         $frameworks = self::frameworks_by_code();
         $now = time();
+        $periods = [];
+        foreach ($rows as $row) {
+            $label = trim($row['Framework']) . '.' . trim($row['Code']);
+            $periods[$label] = self::hierarchy_period($row, $now);
+        }
         $transaction = $DB->start_delegated_transaction();
         try {
             $items = self::outcomes_by_label();
@@ -429,6 +448,7 @@ final class foundation_import_service extends base_service {
                 $frameworkcode = trim($row['Framework']);
                 $code = trim($row['Code']);
                 $label = $frameworkcode . '.' . $code;
+                [$effectivefrom, $effectiveto] = $periods[$label];
                 if (isset($items[$label])) {
                     continue;
                 }
@@ -436,7 +456,8 @@ final class foundation_import_service extends base_service {
                     'frameworkid' => (int) $frameworks[$frameworkcode]->id,
                     'code' => $code,
                     'statement' => trim($row['Statement']),
-                    'effectivefrom' => $now,
+                    'effectivefrom' => $effectivefrom,
+                    'effectiveto' => $effectiveto,
                 ]);
                 $versionid = (int) $DB->get_field(
                     'local_outcomemap_itemver',
@@ -455,10 +476,12 @@ final class foundation_import_service extends base_service {
             $aligned = 0;
             $contributed = 0;
             foreach ($rows as $row) {
-                $source = $items[trim($row['Framework']) . '.' . trim($row['Code'])] ?? null;
+                $sourcelabel = trim($row['Framework']) . '.' . trim($row['Code']);
+                $source = $items[$sourcelabel] ?? null;
                 if ($source === null || $source->status !== workflow::APPROVED) {
                     continue;
                 }
+                [$effectivefrom, $effectiveto] = $periods[$sourcelabel];
                 foreach (self::hierarchy_targets($row['Maps to']) as $targetlabel) {
                     $target = $items[$targetlabel] ?? null;
                     if (
@@ -472,7 +495,8 @@ final class foundation_import_service extends base_service {
                             'sourceitemid' => (int) $source->id,
                             'targetitemid' => (int) $target->id,
                             'type' => self::HIERARCHY_RELATION,
-                            'effectivefrom' => $now,
+                            'effectivefrom' => $effectivefrom,
+                            'effectiveto' => $effectiveto,
                         ]);
                         relation_service::submit_for_review($relationid);
                         $aligned++;
@@ -487,7 +511,8 @@ final class foundation_import_service extends base_service {
                             'targetitemid' => (int) $target->id,
                             'type' => relation_service::CONTRIBUTES_TO,
                             'weight' => self::HIERARCHY_CONTRIBUTION_WEIGHT,
-                            'effectivefrom' => $now,
+                            'effectivefrom' => $effectivefrom,
+                            'effectiveto' => $effectiveto,
                             'notes' => get_string('importhierarchy_contributesnote', 'local_outcomemap'),
                         ]);
                         relation_service::submit_for_review($relationid);
@@ -598,6 +623,26 @@ final class foundation_import_service extends base_service {
     }
 
     /**
+     * Resolve the period represented by one hierarchy row.
+     *
+     * Legacy exports did not include dates and retain their historical import-time
+     * default. Current exports carry the exact outcome-version period so generated
+     * alignments and contributions govern the same assessments as the outcome.
+     *
+     * @param array $row Hierarchy row.
+     * @param int $defaultfrom Import timestamp for a legacy row.
+     * @return array{0:int,1:int|null} Effective start and end.
+     */
+    private static function hierarchy_period(array $row, int $defaultfrom): array {
+        $from = trim((string) ($row['Effective from'] ?? '')) === ''
+            ? $defaultfrom
+            : self::parse_date((string) $row['Effective from'], 'Effective from');
+        $to = self::parse_optional_date((string) ($row['Effective to'] ?? ''), 'Effective to');
+        effective_dates::validate($from, $to);
+        return [$from, $to];
+    }
+
+    /**
      * Return non-retired frameworks keyed by code.
      *
      * @return \stdClass[]
@@ -679,7 +724,8 @@ final class foundation_import_service extends base_service {
         $columns = $reader->get_columns();
         $columnlist = $columns === false ? [] : array_values($columns);
         $legacyprogram = $entity === self::PROGRAMS && $columnlist === self::LEGACY_PROGRAM_HEADERS;
-        if ($columnlist !== self::HEADERS[$entity] && !$legacyprogram) {
+        $legacyhierarchy = $entity === self::HIERARCHY && $columnlist === self::LEGACY_HIERARCHY_HEADERS;
+        if ($columnlist !== self::HEADERS[$entity] && !$legacyprogram && !$legacyhierarchy) {
             throw new validation_exception('importheader', 'csvfile', implode(',', self::HEADERS[$entity]));
         }
         $reader->init();

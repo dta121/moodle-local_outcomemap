@@ -58,9 +58,9 @@ $string['aggregationmethod'] = 'Aggregation method';
 
 $string['all'] = 'All';
 
-$string['anyperformanceband'] = 'Any performance band';
-
 $string['ambiguouscode'] = 'The code "{$a->detail}" matches more than one {$a->field} record. Use its UUID instead.';
+
+$string['anyperformanceband'] = 'Any performance band';
 
 $string['apply_created'] = '{$a->count} mapping(s) created as {$a->role}.';
 
@@ -1006,13 +1006,13 @@ $string['frameworkdefaultname_catalog_course'] = '{$a} course learning outcomes'
 
 $string['frameworkdefaultname_program'] = '{$a} program learning outcomes';
 
-$string['frameworkownerfixed_catalog_course'] = 'This framework will belong to the catalog course above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
-
-$string['frameworkownerfixed_program'] = 'This framework will belong to the program above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
-
 $string['frameworkdeleted'] = 'Draft framework {$a} deleted.';
 
 $string['frameworknotempty'] = 'The framework "{$a->detail}" still holds outcomes, so it cannot be deleted. Remove its outcomes first, or finalize it and retire the outcomes instead.';
+
+$string['frameworkownerfixed_catalog_course'] = 'This framework will belong to the catalog course above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
+
+$string['frameworkownerfixed_program'] = 'This framework will belong to the program above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
 
 $string['frameworks_heading'] = 'Frameworks and outcomes';
 
@@ -1074,13 +1074,13 @@ $string['hier_csv_type'] = 'Type';
 
 $string['hier_csv_unitoutcome'] = 'Unit outcome';
 
+$string['hier_deleteframework'] = 'Delete';
+
 $string['hier_done'] = 'Done';
 
 $string['hier_editnote'] = 'Saving creates v{$a} with status Draft (submitted for approval)';
 
 $string['hier_editnote_finalization'] = 'Saving creates and finalizes v{$a}';
-
-$string['hier_deleteframework'] = 'Delete';
 
 $string['hier_editreason'] = 'Edited from the frameworks and outcomes page.';
 
@@ -1192,10 +1192,6 @@ $string['importhierarchy_notarget'] = 'The Maps to entry {$a} does not name an o
 
 $string['importinvalid'] = 'The file contains validation errors. Nothing can be committed.';
 
-$string['importnotcommitted'] = 'Nothing was committed.';
-
-$string['importpreview'] = 'Import preview';
-
 $string['importmapping_ambiguouscinst'] = 'The course "{$a->detail}" has more than one approved, confirmed course instance, so the file cannot say which one the mappings belong to.';
 
 $string['importmapping_ambiguousquestion'] = 'More than one question named "{$a->detail}" is used by this quiz; rename one before importing.';
@@ -1225,6 +1221,10 @@ $string['importmapping_questionversion'] = 'The quiz uses version {$a->detail->a
 $string['importmapping_role'] = 'Unknown mapping role "{$a->detail}".';
 
 $string['importmapping_targettype'] = 'The target type must be "module" or "section", not "{$a->detail}".';
+
+$string['importnotcommitted'] = 'Nothing was committed.';
+
+$string['importpreview'] = 'Import preview';
 
 $string['importtoolarge'] = 'The CSV file is too large. The maximum accepted size is {$a->detail}.';
 
@@ -1362,9 +1362,9 @@ $string['manualreleased'] = 'Learner feedback was manually released.';
 
 $string['mappedoutcomes'] = 'Mapped outcomes';
 
-$string['mappingoutsideoutcomeversion'] = 'The mapping effective range must be contained within the exact outcome version range.';
-
 $string['mappingalreadyended'] = 'Mapping ID {$a->detail} already has an end date.';
+
+$string['mappingoutsideoutcomeversion'] = 'The mapping effective range must be contained within the exact outcome version range.';
 
 $string['mappingremoved'] = 'Draft mapping removed.';
 
@@ -1380,9 +1380,9 @@ $string['mappingrole_remediates'] = 'Remediates';
 
 $string['mappingrole_teaches'] = 'Teaches';
 
-$string['mappingunderreview'] = 'This mapping is under review and cannot be changed from the activity form.';
-
 $string['mappingtransfer_export'] = 'Export mappings CSV';
+
+$string['mappingunderreview'] = 'This mapping is under review and cannot be changed from the activity form.';
 
 $string['mappingweight'] = 'Explicit weight';
 
@@ -2504,6 +2504,8 @@ $string['remediationtargetinvalid'] = 'Select exactly one valid internal target 
 
 $string['removemapping'] = 'Remove this draft mapping';
 
+$string['replacependingreview'] = 'Mapping ID {$a->detail} is awaiting review. Approve or remove it before replacing this question’s mappings.';
+
 $string['report_source_assessment_coverage'] = 'Assessment and question coverage';
 
 $string['report_source_audit_history'] = 'Mapping, calculation, and snapshot audit history';
@@ -2519,8 +2521,6 @@ $string['report_source_program_aggregates'] = 'Program aggregates';
 $string['report_source_remediation_engagement'] = 'Remediation recommendations and engagement';
 
 $string['report_source_student_attainment'] = 'Student attainment';
-
-$string['replacependingreview'] = 'Mapping ID {$a->detail} is awaiting review. Approve or remove it before replacing this question’s mappings.';
 
 $string['reportbuildernav'] = 'Open custom reports';
 

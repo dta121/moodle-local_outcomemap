@@ -349,6 +349,24 @@ final class question_mapping_service extends base_service {
             if ($record->effectiveto !== null) {
                 throw new validation_exception('mappingalreadyended', 'effectiveto', $id);
             }
+            $latestid = (int) $DB->get_field_sql(
+                'SELECT currentm.id
+                   FROM {' . self::TABLE . '} currentm
+                  WHERE currentm.mappinguuid = :mappinguuid AND currentm.status = :status
+                    AND currentm.version = (SELECT MAX(latestm.version)
+                                              FROM {' . self::TABLE . '} latestm
+                                             WHERE latestm.mappinguuid = currentm.mappinguuid
+                                               AND latestm.status = :lateststatus)',
+                [
+                    'mappinguuid' => $record->mappinguuid,
+                    'status' => workflow::APPROVED,
+                    'lateststatus' => workflow::APPROVED,
+                ],
+                MUST_EXIST
+            );
+            if ($latestid !== $id) {
+                throw new validation_exception('mappingalreadyended', 'effectiveto', $id);
+            }
             $records[$id] = $record;
             $questionids[(int) $record->questionid] = (int) $record->questionid;
         }
@@ -360,11 +378,20 @@ final class question_mapping_service extends base_service {
                 self::require_mutation_capabilities((int) $before->questionversionid, (int) $before->questionid);
                 effective_dates::validate((int) $before->effectivefrom, $effectiveto);
                 $after = clone $before;
+                unset($after->id);
+                $after->version = 1 + (int) $DB->get_field_sql(
+                    'SELECT MAX(version) FROM {' . self::TABLE . '} WHERE mappinguuid = :mappinguuid',
+                    ['mappinguuid' => $before->mappinguuid]
+                );
                 $after->effectiveto = $effectiveto;
-                $after->timemodified = time();
+                $after->createdby = (int) $USER->id;
+                $after->approvedby = (int) $USER->id;
+                $after->timecreated = time();
+                $after->timemodified = $after->timecreated;
+                $after->approvedat = $after->timecreated;
                 $ended[$id] = $after;
                 if ($after->role === content_mapping_service::ROLE_ASSESSES) {
-                    $assessedbyversion[(int) $after->questionversionid][$id] = $after;
+                    $assessedbyversion[(int) $after->questionversionid][$after->mappinguuid] = $after;
                 }
             }
             foreach ($assessedbyversion as $questionversionid => $batch) {
@@ -374,11 +401,11 @@ final class question_mapping_service extends base_service {
             $transaction = $DB->start_delegated_transaction();
             try {
                 foreach ($ended as $id => $after) {
-                    $DB->update_record(self::TABLE, $after);
+                    $after->id = $DB->insert_record(self::TABLE, $after);
                     audit_writer::write(
                         'end',
                         'question_mapping',
-                        $id,
+                        (int) $after->id,
                         $after->mappinguuid,
                         $records[$id],
                         $after,
@@ -423,7 +450,18 @@ final class question_mapping_service extends base_service {
             return $result;
         }
         [$insql, $params] = $DB->get_in_or_equal($questionversionids, SQL_PARAMS_NAMED, 'qv');
-        $records = $DB->get_records_select(self::TABLE, "questionversionid $insql", $params, 'id ASC');
+        $records = $DB->get_records_sql(
+            "SELECT m.*
+               FROM {local_outcomemap_qmap} m
+              WHERE m.questionversionid $insql
+                AND (m.status <> :approved OR m.version = (
+                        SELECT MAX(currentm.version)
+                          FROM {local_outcomemap_qmap} currentm
+                         WHERE currentm.mappinguuid = m.mappinguuid
+                           AND currentm.status = :currentapproved))
+           ORDER BY m.id ASC",
+            $params + ['approved' => workflow::APPROVED, 'currentapproved' => workflow::APPROVED]
+        );
         $toend = [];
         $drafts = [];
         foreach ($records as $record) {
@@ -452,20 +490,31 @@ final class question_mapping_service extends base_service {
      * Require that ending a batch leaves a question version's assessed set whole.
      *
      * @param int $questionversionid Question version whose set is being ended.
-     * @param array $ended Records being ended, keyed by ID.
+     * @param array $ended Records being ended, keyed by mapping UUID.
      * @param int $at Moment they stop applying.
      */
     private static function require_remaining_assessed_total(int $questionversionid, array $ended, int $at): void {
         global $DB;
-        $approved = $DB->get_records(self::TABLE, [
-            'questionversionid' => $questionversionid,
-            'role' => content_mapping_service::ROLE_ASSESSES,
-            'status' => workflow::APPROVED,
-        ]);
+        $approved = $DB->get_records_sql(
+            "SELECT m.*
+               FROM {local_outcomemap_qmap} m
+              WHERE m.questionversionid = :questionversionid
+                AND m.role = :role AND m.status = :status
+                AND m.version = (SELECT MAX(currentm.version)
+                                   FROM {local_outcomemap_qmap} currentm
+                                  WHERE currentm.mappinguuid = m.mappinguuid
+                                    AND currentm.status = :currentstatus)",
+            [
+                'questionversionid' => $questionversionid,
+                'role' => content_mapping_service::ROLE_ASSESSES,
+                'status' => workflow::APPROVED,
+                'currentstatus' => workflow::APPROVED,
+            ]
+        );
         $total = decimal::ZERO;
         $remaining = 0;
         foreach ($approved as $record) {
-            if (isset($ended[(int) $record->id])) {
+            if (isset($ended[$record->mappinguuid])) {
                 continue;
             }
             if (
@@ -478,6 +527,80 @@ final class question_mapping_service extends base_service {
         }
         if ($remaining > 0 && $total !== decimal::ONE) {
             throw new validation_exception('assessedweighttotalinvalid', 'weight', $total);
+        }
+    }
+
+    /**
+     * Atomically replace every current mapping on exact question versions.
+     *
+     * All candidate mappings are validated before the first existing mapping
+     * is ended. The outer transaction also covers ending, draft removal, and
+     * creation, so a later validation or persistence failure restores the
+     * complete previous set.
+     *
+     * @param int[] $questionversionids Exact question versions.
+     * @param int[] $itemverids Exact approved outcome versions for the new set.
+     * @param string $role Mapping role for the new set.
+     * @param string|null $weight Explicit weight for every new mapping.
+     * @param int $at Shared end and start timestamp.
+     * @param string $reason Required replacement reason.
+     * @return \stdClass ended, draftsdeleted, and created counts.
+     */
+    public static function replace_for_question_versions(
+        array $questionversionids,
+        array $itemverids,
+        string $role,
+        ?string $weight,
+        int $at,
+        string $reason
+    ): \stdClass {
+        global $DB;
+        $questionversionids = array_values(array_unique(array_filter(array_map('intval', $questionversionids))));
+        $itemverids = array_values(array_unique(array_filter(array_map('intval', $itemverids))));
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new validation_exception('requiredfield', 'reason');
+        }
+
+        $candidates = [];
+        foreach ($questionversionids as $questionversionid) {
+            foreach ($itemverids as $itemverid) {
+                $candidate = self::build_record([
+                    'questionversionid' => $questionversionid,
+                    'itemverid' => $itemverid,
+                    'role' => $role,
+                    'weight' => $weight,
+                    'effectivefrom' => $at,
+                ], uuid::generate(), 1);
+                self::require_mutation_capabilities(
+                    (int) $candidate->questionversionid,
+                    (int) $candidate->questionid
+                );
+                $candidates[] = $candidate;
+            }
+        }
+        if ($role === content_mapping_service::ROLE_ASSESSES && $candidates) {
+            $total = decimal::ZERO;
+            foreach ($itemverids as $unused) {
+                $total = decimal::add($total, (string) $candidates[0]->weight);
+            }
+            if ($total !== decimal::ONE) {
+                throw new validation_exception('assessedweighttotalinvalid', 'weight', $total);
+            }
+        }
+
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $result = self::end_in_force_for_question_versions($questionversionids, $at, $reason);
+            $result->created = 0;
+            foreach ($candidates as $candidate) {
+                self::create((array) $candidate + ['reason' => $reason]);
+                $result->created++;
+            }
+            $transaction->allow_commit();
+            return $result;
+        } catch (\Throwable $e) {
+            self::rollback($transaction, $e);
         }
     }
 
@@ -746,15 +869,23 @@ final class question_mapping_service extends base_service {
         require_capability('local/outcomemap:viewdefinitions', $context);
         self::require_question_capability((int) $questionversion->questionid, 'view');
         $effectiveat = $effectiveat ?? time();
-        $records = $DB->get_records_select(
-            self::TABLE,
-            'questionversionid = :questionversionid AND role = :role
-                AND effectivefrom <= :at1 AND (effectiveto IS NULL OR effectiveto > :at2)',
+        $records = $DB->get_records_sql(
+            "SELECT m.*
+               FROM {local_outcomemap_qmap} m
+              WHERE m.questionversionid = :questionversionid AND m.role = :role
+                AND m.effectivefrom <= :at1 AND (m.effectiveto IS NULL OR m.effectiveto > :at2)
+                AND (m.status <> :approved OR m.version = (
+                        SELECT MAX(currentm.version)
+                          FROM {local_outcomemap_qmap} currentm
+                         WHERE currentm.mappinguuid = m.mappinguuid
+                           AND currentm.status = :currentapproved))",
             [
                 'questionversionid' => $questionversion->id,
                 'role' => content_mapping_service::ROLE_ASSESSES,
                 'at1' => $effectiveat,
                 'at2' => $effectiveat,
+                'approved' => workflow::APPROVED,
+                'currentapproved' => workflow::APPROVED,
             ]
         );
         $approvedtotal = decimal::ZERO;
@@ -939,11 +1070,16 @@ final class question_mapping_service extends base_service {
                JOIN {local_outcomemap_item} i ON i.id = v.itemid
                JOIN {local_outcomemap_fw} f ON f.id = i.frameworkid
               WHERE m.questionversionid = :questionversionid AND m.status = :status
+                AND m.version = (SELECT MAX(currentm.version)
+                                   FROM {local_outcomemap_qmap} currentm
+                                  WHERE currentm.mappinguuid = m.mappinguuid
+                                    AND currentm.status = :currentstatus)
                 AND m.effectivefrom <= :at1 AND (m.effectiveto IS NULL OR m.effectiveto > :at2)
            ORDER BY m.id",
             [
                 'questionversionid' => $source->id,
                 'status' => workflow::APPROVED,
+                'currentstatus' => workflow::APPROVED,
                 'at1' => $now,
                 'at2' => $now,
             ]
@@ -1075,8 +1211,13 @@ final class question_mapping_service extends base_service {
           LEFT JOIN {local_outcomemap_qmap} sm ON sm.id = m.sourceqmapid
           LEFT JOIN {question_versions} sqv ON sqv.id = m.sourcequestionversionid
               WHERE m.questionversionid $insql
+                AND (m.status <> :approved OR m.version = (
+                        SELECT MAX(currentm.version)
+                          FROM {local_outcomemap_qmap} currentm
+                         WHERE currentm.mappinguuid = m.mappinguuid
+                           AND currentm.status = :currentapproved))
            ORDER BY m.questionversionid, f.code, i.code, m.version DESC, m.id",
-            $params
+            $params + ['approved' => workflow::APPROVED, 'currentapproved' => workflow::APPROVED]
         );
         $grouped = [];
         foreach ($records as $record) {
@@ -1360,8 +1501,13 @@ final class question_mapping_service extends base_service {
                JOIN {local_outcomemap_item} i ON i.id = v.itemid
                JOIN {local_outcomemap_fw} f ON f.id = i.frameworkid
               WHERE m.questionversionid $versionsql
+                AND (m.status <> :approved OR m.version = (
+                        SELECT MAX(currentm.version)
+                          FROM {local_outcomemap_qmap} currentm
+                         WHERE currentm.mappinguuid = m.mappinguuid
+                           AND currentm.status = :currentapproved))
            ORDER BY m.questionversionid, m.id",
-            $versionparams
+            $versionparams + ['approved' => workflow::APPROVED, 'currentapproved' => workflow::APPROVED]
         );
         $recordsbyquestion = [];
         $recordindex = [];
@@ -2002,13 +2148,29 @@ final class question_mapping_service extends base_service {
         array $overrides = []
     ): void {
         global $DB;
-        $approved = $DB->get_records(self::TABLE, [
-            'questionversionid' => $questionversionid,
-            'role' => content_mapping_service::ROLE_ASSESSES,
-            'status' => workflow::APPROVED,
-        ]);
+        $approved = $DB->get_records_sql(
+            "SELECT m.*
+               FROM {local_outcomemap_qmap} m
+              WHERE m.questionversionid = :questionversionid
+                AND m.role = :role AND m.status = :status
+                AND m.version = (SELECT MAX(currentm.version)
+                                   FROM {local_outcomemap_qmap} currentm
+                                  WHERE currentm.mappinguuid = m.mappinguuid
+                                    AND currentm.status = :currentstatus)",
+            [
+                'questionversionid' => $questionversionid,
+                'role' => content_mapping_service::ROLE_ASSESSES,
+                'status' => workflow::APPROVED,
+                'currentstatus' => workflow::APPROVED,
+            ]
+        );
         foreach ($overrides as $record) {
             $recordid = (int) $record->id;
+            foreach ($approved as $approvedid => $approvedrecord) {
+                if ($approvedrecord->mappinguuid === $record->mappinguuid) {
+                    unset($approved[$approvedid]);
+                }
+            }
             if (
                 (int) $record->questionversionid === $questionversionid
                     && $record->role === content_mapping_service::ROLE_ASSESSES
@@ -2079,13 +2241,11 @@ final class question_mapping_service extends base_service {
             'status' => workflow::APPROVED,
             'id' => $candidate->id,
         ];
-        if (
-            $DB->record_exists_select(
-                self::TABLE,
-                'mappinguuid = :mappinguuid AND status = :status AND id <> :id AND ' . $overlapsql,
-                $params
-            )
-        ) {
+        $select = 'm.mappinguuid = :mappinguuid AND m.status = :status AND m.id <> :id AND ' . $overlapsql
+            . ' AND m.version = (SELECT MAX(currentm.version) FROM {local_outcomemap_qmap} currentm'
+            . ' WHERE currentm.mappinguuid = m.mappinguuid AND currentm.status = :currentstatus)';
+        $params['currentstatus'] = workflow::APPROVED;
+        if ($DB->record_exists_sql('SELECT 1 FROM {local_outcomemap_qmap} m WHERE ' . $select, $params)) {
             throw new validation_exception('effectiverangeoverlap', 'effectivefrom');
         }
     }
@@ -2112,9 +2272,12 @@ final class question_mapping_service extends base_service {
             'id' => $candidate->id,
             'mappinguuid' => $candidate->mappinguuid,
         ];
-        $select = 'questionversionid = :questionversionid AND itemverid = :itemverid AND role = :role'
-            . ' AND status = :status AND id <> :id AND mappinguuid <> :mappinguuid AND ' . $overlapsql;
-        if ($DB->record_exists_select(self::TABLE, $select, $params)) {
+        $select = 'm.questionversionid = :questionversionid AND m.itemverid = :itemverid AND m.role = :role'
+            . ' AND m.status = :status AND m.id <> :id AND m.mappinguuid <> :mappinguuid AND ' . $overlapsql
+            . ' AND m.version = (SELECT MAX(currentm.version) FROM {local_outcomemap_qmap} currentm'
+            . ' WHERE currentm.mappinguuid = m.mappinguuid AND currentm.status = :currentstatus)';
+        $params['currentstatus'] = workflow::APPROVED;
+        if ($DB->record_exists_sql('SELECT 1 FROM {local_outcomemap_qmap} m WHERE ' . $select, $params)) {
             throw new validation_exception('duplicatemapping', 'itemverid');
         }
     }

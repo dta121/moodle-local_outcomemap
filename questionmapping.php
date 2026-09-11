@@ -198,11 +198,14 @@ if ($action === 'apply') {
     }
     $endedmessage = '';
     if ($replace) {
-        // What governs the selected questions stops at the same moment the
-        // new set starts, so no attempt falls between the two.
+        // Candidate validation, ending, draft deletion, and creation share one
+        // transaction, so an invalid replacement leaves the current set intact.
         try {
-            $ended = question_mapping_service::end_in_force_for_question_versions(
+            $ended = question_mappings::replace_for_question_versions(
                 $questionversionids,
+                $outcomeuuids,
+                $role,
+                $weight === '' ? null : $weight,
                 $effectivefrom,
                 $reason
             );
@@ -214,8 +217,9 @@ if ($action === 'apply') {
             'drafts' => $ended->draftsdeleted,
             'date' => userdate($effectivefrom),
         ]) . ' ';
+        $created = $ended->created;
     }
-    foreach ($selected as $value) {
+    foreach ($replace ? [] : $selected as $value) {
         // Values are rendered as qv-<questionversionid>; anything else is ignored.
         if (!preg_match('/^qv-([0-9]+)$/', (string) $value, $matches)) {
             continue;

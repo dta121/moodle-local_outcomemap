@@ -103,7 +103,7 @@ class outcomes_hierarchy implements renderable, templatable {
         }
         $versions = $DB->get_records_sql("
             SELECT v.id AS versionid, v.version, v.statement, v.status AS versionstatus,
-                   v.shortstatement, v.bloomlevel,
+                   v.shortstatement, v.bloomlevel, v.effectivefrom, v.effectiveto,
                    i.id AS itemid, i.code, i.frameworkid, i.status AS itemstatus
               FROM {local_outcomemap_itemver} v
               JOIN {local_outcomemap_item} i ON i.id = v.itemid
@@ -665,7 +665,7 @@ class outcomes_hierarchy implements renderable, templatable {
     }
 
     /**
-     * Rows for the CSV export: type, framework, code, statement, maps to, version, status.
+     * Rows for the CSV export, including the exact outcome-version period.
      */
     public function csv_rows(): array {
         $rows = [[
@@ -676,6 +676,8 @@ class outcomes_hierarchy implements renderable, templatable {
             get_string('hier_csv_mapsto', 'local_outcomemap'),
             get_string('version', 'local_outcomemap'),
             get_string('status', 'local_outcomemap'),
+            get_string('effectivefrom', 'local_outcomemap'),
+            get_string('effectiveto', 'local_outcomemap'),
         ]];
         $typenames = [
             'program' => get_string('hier_csv_programoutcome', 'local_outcomemap'),
@@ -698,6 +700,8 @@ class outcomes_hierarchy implements renderable, templatable {
                     implode('; ', $mapsto),
                     (int) $item->version,
                     get_string('status_' . $item->versionstatus, 'local_outcomemap'),
+                    (string) (int) $item->effectivefrom,
+                    $item->effectiveto === null ? '' : (string) (int) $item->effectiveto,
                 ];
             }
         }

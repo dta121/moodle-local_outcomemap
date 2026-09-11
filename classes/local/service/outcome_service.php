@@ -433,6 +433,7 @@ final class outcome_service extends base_service {
             $records[$id] = $version;
         }
         $corrected = 0;
+        $previousfrom = $effectivefrom;
         $transaction = $DB->start_delegated_transaction();
         try {
             foreach ($records as $id => $before) {
@@ -455,6 +456,10 @@ final class outcome_service extends base_service {
                     $actorid
                 );
                 $corrected++;
+                $previousfrom = max($previousfrom, (int) $before->effectivefrom);
+            }
+            if ($corrected > 0) {
+                calculation_service::queue_after_outcome_backdate($effectivefrom, $previousfrom);
             }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
