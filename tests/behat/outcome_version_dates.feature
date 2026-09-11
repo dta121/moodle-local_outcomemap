@@ -27,3 +27,17 @@ Feature: Administrators correct the effective date of approved outcome versions
     And I navigate to "Learning outcome mapping > Outcomes & alignment" in site administration
     When I click on "Correct effective dates…" "link"
     Then I should see "There are no approved outcome versions to correct."
+
+  Scenario: An empty draft framework can be deleted, and a finalized one cannot
+    Given the draft framework "TEST" exists
+    And the approved outcomes "CLO1" exist
+    And I log in as "admin"
+    And I navigate to "Learning outcome mapping > Outcomes & alignment" in site administration
+    Then I should see "TEST"
+    And "Delete" "link" should exist in the "//div[contains(@class,'lom-fwbar')][.//span[text()='TEST']]" "xpath_element"
+    And "Delete" "link" should not exist in the "//div[contains(@class,'lom-fwbar')][.//span[text()='QB-BEHAT']]" "xpath_element"
+    When I click on "Delete" "link" in the "//div[contains(@class,'lom-fwbar')][.//span[text()='TEST']]" "xpath_element"
+    Then I should see "Delete the draft framework TEST"
+    When I press "Continue"
+    Then I should see "Draft framework TEST deleted."
+    And I should not see "Framework TEST"

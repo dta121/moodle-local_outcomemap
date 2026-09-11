@@ -621,12 +621,33 @@ class outcomes_hierarchy implements renderable, templatable {
             // An approved framework holding approved outcomes can have their
             // effective start corrected as one set.
             'cancorrectdates' => $canmanage && $isapproved && $this->has_approved_items($id),
+            // Only a draft that holds nothing can be removed; anything else is record.
+            'candelete' => $canmanage && $isdraft && !$this->has_items($id),
+            'deletelabel' => get_string('hier_deleteframework', 'local_outcomemap'),
+            'deleteurl' => (new moodle_url($this->baseurl, [
+                'action' => 'deleteframework',
+                'id' => $id,
+            ]))->out(false),
             'correctdateslabel' => get_string('hier_correctdates', 'local_outcomemap'),
             'correctdatesurl' => (new moodle_url($this->baseurl, [
                 'action' => 'correctdates',
                 'id' => $id,
             ]))->out(false),
         ];
+    }
+
+    /**
+     * Whether a framework holds any outcome at all.
+     *
+     * @param int $frameworkid Framework id.
+     */
+    private function has_items(int $frameworkid): bool {
+        foreach ($this->items as $item) {
+            if ((int) $item->frameworkid === $frameworkid) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

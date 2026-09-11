@@ -61,6 +61,8 @@ Every import entity's reference columns — `programuuid`, `courseuuid`, `catalo
 
 Question authors use the companion workflow documented in the `qbank_outcomemap` operations guide. Every question mapping binds to `question_versions.id`, not only a question-bank entry.
 
+A framework that is still a draft and holds no outcomes can be deleted from its bar on **Outcomes & alignment**; the deletion is confirmed and audited. Once a framework holds an outcome or has been finalized it is part of the record and stays.
+
 Outcome versions carry their own effective date, and course and program results are rolled up only for attempts finished while the target version was in force. When outcomes are created after learners have already sat their assessments, use **Correct effective dates…** on **Outcomes & alignment** (for one framework from its bar, or for all frameworks from the toolbar) to move the approved versions back to the date the curriculum took effect. The correction requires a reason and is audited per version; outcomes with more than one version are left unchanged.
 
 ## Reviewer workflow

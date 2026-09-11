@@ -390,6 +390,8 @@ $string['confirm'] = 'Confirm';
 
 $string['confirmapprove'] = 'Approve this governed record? Approved versions are immutable.';
 
+$string['confirmdeleteframework'] = 'Delete the draft framework {$a->code} ({$a->name})? It holds no outcomes. The deletion is recorded in the audit history and cannot be undone.';
+
 $string['confirmdeletepolicy'] = 'Delete this draft policy? This cannot be undone.';
 
 $string['confirmdeletesnapshot'] = 'Permanently delete {$a->program} {$a->period} {$a->version} and the {$a->rows} rows it captured? A frozen version records what was reported, so delete it only if the capture should never have been taken; to report a corrected figure, create a correction version instead. The deletion is recorded in the audit history and cannot be undone.';
@@ -1008,6 +1010,10 @@ $string['frameworkownerfixed_catalog_course'] = 'This framework will belong to t
 
 $string['frameworkownerfixed_program'] = 'This framework will belong to the program above. To choose a different owner, use Add framework on the Outcomes and alignment page.';
 
+$string['frameworkdeleted'] = 'Draft framework {$a} deleted.';
+
+$string['frameworknotempty'] = 'The framework "{$a->detail}" still holds outcomes, so it cannot be deleted. Remove its outcomes first, or finalize it and retire the outcomes instead.';
+
 $string['frameworks_heading'] = 'Frameworks and outcomes';
 
 $string['freezesnapshot'] = 'Freeze snapshot';
@@ -1073,6 +1079,8 @@ $string['hier_done'] = 'Done';
 $string['hier_editnote'] = 'Saving creates v{$a} with status Draft (submitted for approval)';
 
 $string['hier_editnote_finalization'] = 'Saving creates and finalizes v{$a}';
+
+$string['hier_deleteframework'] = 'Delete';
 
 $string['hier_editreason'] = 'Edited from the frameworks and outcomes page.';
 

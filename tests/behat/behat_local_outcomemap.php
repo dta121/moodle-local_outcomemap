@@ -1002,4 +1002,27 @@ class behat_local_outcomemap extends behat_base {
             }
         }
     }
+    /**
+     * Seed an empty draft framework at institution scope.
+     *
+     * @Given /^the draft framework "([^"]+)" exists$/
+     * @param string $code Framework code.
+     */
+    public function the_draft_framework_exists(string $code): void {
+        global $DB;
+        $now = time();
+        $DB->insert_record('local_outcomemap_fw', (object) [
+            'uuid' => uuid::generate(),
+            'code' => $code,
+            'name' => 'Framework ' . $code,
+            'description' => null,
+            'ownertype' => framework_service::OWNER_INSTITUTION,
+            'ownerid' => null,
+            'status' => workflow::DRAFT,
+            'createdby' => null,
+            'modifiedby' => null,
+            'timecreated' => $now,
+            'timemodified' => $now,
+        ]);
+    }
 }

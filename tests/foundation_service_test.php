@@ -343,4 +343,57 @@ final class foundation_service_test extends \advanced_testcase {
             $this->assertSame('invalidcredential', $e->errorcode);
         }
     }
+    /**
+     * An empty draft framework can be deleted, with an audit row; anything else stays.
+     */
+    public function test_empty_draft_framework_can_be_deleted(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+
+        $draft = framework_service::create([
+            'code' => 'TEST',
+            'name' => 'Created by mistake',
+            'ownertype' => framework_service::OWNER_INSTITUTION,
+        ]);
+        $holding = framework_service::create([
+            'code' => 'HOLDING',
+            'name' => 'Holds an outcome',
+            'ownertype' => framework_service::OWNER_INSTITUTION,
+        ]);
+        outcome_service::create([
+            'frameworkid' => $holding,
+            'code' => 'CLO1',
+            'statement' => 'An outcome.',
+            'effectivefrom' => 1704067200,
+        ]);
+        $finalized = framework_service::create([
+            'code' => 'FINAL',
+            'name' => 'Finalized and empty',
+            'ownertype' => framework_service::OWNER_INSTITUTION,
+        ]);
+        set_config('requireapproval', 0, 'local_outcomemap');
+        framework_service::submit_for_review($finalized);
+        $this->assertSame(workflow::APPROVED, $DB->get_field('local_outcomemap_fw', 'status', ['id' => $finalized]));
+
+        try {
+            framework_service::delete_draft($holding);
+            $this->fail('A framework holding an outcome was deleted.');
+        } catch (validation_exception $e) {
+            $this->assertSame('frameworknotempty', $e->errorcode);
+        }
+        try {
+            framework_service::delete_draft($finalized);
+            $this->fail('A finalized framework was deleted.');
+        } catch (validation_exception $e) {
+            $this->assertSame('approvedimmutable', $e->errorcode);
+        }
+
+        framework_service::delete_draft($draft, 'Created by mistake.');
+        $this->assertFalse($DB->record_exists('local_outcomemap_fw', ['id' => $draft]));
+        $this->assertCount(1, $DB->get_records('local_outcomemap_audit', [
+            'objecttype' => 'framework',
+            'action' => 'delete',
+        ]));
+    }
 }

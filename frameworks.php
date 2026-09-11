@@ -52,6 +52,7 @@ $action = optional_param('action', '', PARAM_ALPHA);
 $type = optional_param('type', 'framework', PARAM_ALPHA);
 $id = optional_param('id', 0, PARAM_INT);
 $view = optional_param('view', 'program', PARAM_ALPHA);
+$confirmed = optional_param('confirm', 0, PARAM_BOOL);
 
 // A framework reached from the program or catalog course it will belong to carries
 // that owner with it, so the reader is not asked to re-state what the link already
@@ -94,6 +95,33 @@ if ($action === 'approveversion' && $id) {
     } catch (validation_exception $e) {
         redirect($url, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
     }
+}
+
+// Remove a draft framework that holds nothing. Confirmed on its own page, as the
+// policies page does, because the link sits beside Edit and Finalize.
+if ($action === 'deleteframework' && $id) {
+    require_capability('local/outcomemap:manageframeworks', context_system::instance());
+    $framework = $DB->get_record('local_outcomemap_fw', ['id' => $id], '*', MUST_EXIST);
+    if (!$confirmed) {
+        echo $OUTPUT->header();
+        echo $OUTPUT->confirm(
+            get_string('confirmdeleteframework', 'local_outcomemap', (object) [
+                'code' => s($framework->code),
+                'name' => format_string($framework->name),
+            ]),
+            new moodle_url($url, ['action' => 'deleteframework', 'id' => $id, 'confirm' => 1, 'sesskey' => sesskey()]),
+            $url
+        );
+        echo $OUTPUT->footer();
+        exit;
+    }
+    require_sesskey();
+    try {
+        framework_service::delete_draft($id);
+    } catch (validation_exception $e) {
+        redirect($url, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+    }
+    redirect($url, get_string('frameworkdeleted', 'local_outcomemap', s($framework->code)));
 }
 
 if ($action === 'savemap') {
