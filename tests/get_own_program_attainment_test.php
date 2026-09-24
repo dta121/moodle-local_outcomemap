@@ -74,12 +74,43 @@ final class get_own_program_attainment_test extends \advanced_testcase {
         $own = get_own_program_attainment::execute_returns();
         $any = get_user_program_attainment::execute_returns();
 
+        // All the way down, not just the top level. The fields a consumer reads
+        // are three levels in: programs, then outcomes, then the state and the
+        // percentage. Comparing only the envelope would let the two drift exactly
+        // where drift matters and report agreement.
         $this->assertSame(
-            array_keys($any->keys),
-            array_keys($own->keys),
+            self::shape_of($any),
+            self::shape_of($own),
             'The two reports describe the same thing for different callers, so their shapes must '
-                . 'not diverge.'
+                . 'not diverge at any depth.'
         );
+    }
+
+    /**
+     * A comparable description of an external structure, recursively.
+     *
+     * Key names, nesting and each leaf's PARAM type and required flag. Not the
+     * human-readable descriptions, which may legitimately differ between the two
+     * functions because one of them is talking about the caller.
+     *
+     * @param \core_external\external_description $description Structure to describe.
+     * @return array
+     */
+    private static function shape_of(\core_external\external_description $description): array {
+        if ($description instanceof \core_external\external_value) {
+            return ['type' => $description->type, 'required' => $description->required];
+        }
+        if ($description instanceof \core_external\external_multiple_structure) {
+            return ['each' => self::shape_of($description->content)];
+        }
+        if ($description instanceof \core_external\external_single_structure) {
+            $out = [];
+            foreach ($description->keys as $key => $sub) {
+                $out[$key] = self::shape_of($sub);
+            }
+            return $out;
+        }
+        return ['unknown' => get_class($description)];
     }
 
     /**
@@ -119,6 +150,33 @@ final class get_own_program_attainment_test extends \advanced_testcase {
 
         $this->expectException(\required_capability_exception::class);
         get_own_program_attainment::execute('', 0);
+    }
+
+    /**
+     * A caller who is not logged in gets a permission error, not a database error.
+     *
+     * The identity check has to happen before the user context is built.
+     * context_user::instance(0) raises dml_missing_record_exception, so a guard
+     * placed after it never runs and the refusal surfaces as "can not find data
+     * record in database table user", which tells the caller nothing and reads
+     * like a broken site rather than a closed door.
+     *
+     * @return void
+     */
+    public function test_a_caller_who_is_not_logged_in_is_refused_cleanly(): void {
+        $this->resetAfterTest();
+        $this->setUser(null);
+
+        try {
+            get_own_program_attainment::execute('', 0);
+            $this->fail('A caller with no identity must not receive a report.');
+        } catch (\required_capability_exception $e) {
+            $this->assertStringNotContainsString(
+                'database',
+                strtolower($e->getMessage()),
+                'The refusal must be about permission, not about a missing user row.'
+            );
+        }
     }
 
     /**

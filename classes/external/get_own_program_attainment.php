@@ -99,22 +99,28 @@ class get_own_program_attainment extends external_api {
             'courseid' => $courseid,
         ]);
 
-        // The caller's own user context. Nothing here reads another user, so a
-        // system context check would claim an authority this function does not
-        // use and does not need.
-        $usercontext = \context_user::instance($USER->id);
-        self::validate_context($usercontext);
-
+        // Identity first, context second. A not-logged-in caller has $USER->id 0,
+        // and context_user::instance(0) raises dml_missing_record_exception, so a
+        // guard placed after it never runs and the caller gets a database error
+        // where a permission error belongs.
+        //
         // A guest has no results and no identity worth reporting against, and
-        // answering an empty report would imply the question was meaningful.
-        if (isguestuser() || !isloggedin()) {
+        // answering an empty report would imply the question was meaningful. The
+        // refusal names the system context because there is no user context to
+        // name yet, which is exactly the situation being refused.
+        if (!isloggedin() || isguestuser()) {
             throw new \required_capability_exception(
-                $usercontext,
+                \context_system::instance(),
                 'local/outcomemap:viewownresults',
                 'nopermissions',
                 ''
             );
         }
+
+        // The caller's own user context. Nothing here reads another user, so a
+        // system context check would claim an authority this function does not
+        // use and does not need.
+        self::validate_context(\context_user::instance($USER->id));
 
         // On the caller's own authority, course by course. A course where this
         // site has withheld local/outcomemap:viewownresults contributes nothing,
