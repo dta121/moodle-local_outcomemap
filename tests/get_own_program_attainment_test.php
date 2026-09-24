@@ -47,8 +47,14 @@ final class get_own_program_attainment_test extends \advanced_testcase {
     public function test_the_signature_cannot_name_another_user(): void {
         $keys = array_keys(get_own_program_attainment::execute_parameters()->keys);
 
+        $this->assertNotContains(
+            'userid',
+            $keys,
+            'A user id parameter here would need the system capability the any-user export '
+                . 'requires, and would undo the reason this exists.'
+        );
         $this->assertSame(
-            ['programcode'],
+            ['programcode', 'courseid'],
             $keys,
             'This function is safe to expose to learners precisely because it cannot be asked '
                 . 'about another user. A user id parameter here would need the system capability '
@@ -91,7 +97,7 @@ final class get_own_program_attainment_test extends \advanced_testcase {
         $user = $this->getDataGenerator()->create_user();
         $this->setUser($user);
 
-        $result = get_own_program_attainment::execute('');
+        $result = get_own_program_attainment::execute('', 0);
 
         $this->assertSame([], $result['programs']);
         $this->assertArrayHasKey(
@@ -112,6 +118,35 @@ final class get_own_program_attainment_test extends \advanced_testcase {
         $this->setGuestUser();
 
         $this->expectException(\required_capability_exception::class);
-        get_own_program_attainment::execute('');
+        get_own_program_attainment::execute('', 0);
+    }
+
+    /**
+     * A course that takes part in no program narrows the report to nothing.
+     *
+     * This is what makes a course-scoped consumer possible without reading the
+     * outcome definitions. A learner-facing page cannot ask "does this course use
+     * outcomes" any other way: every definitions API requires
+     * local/outcomemap:viewdefinitions, which editing teachers and managers hold
+     * and students do not, so a page that asked would render for staff and for
+     * nobody else.
+     *
+     * @return void
+     */
+    public function test_scoping_to_an_unmapped_course_returns_no_programs(): void {
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        $user = $this->getDataGenerator()->create_and_enrol($course, 'student');
+        $this->setUser($user);
+
+        $result = get_own_program_attainment::execute('', (int) $course->id);
+
+        $this->assertSame(
+            [],
+            $result['programs'],
+            'A plain course belongs to no program, so there is nothing about it to report and '
+                . 'the consumer should render nothing rather than an empty panel.'
+        );
     }
 }

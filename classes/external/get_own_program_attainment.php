@@ -22,6 +22,7 @@ use core_external\external_single_structure;
 use core_external\external_value;
 use local_outcomemap\local\service\attainment_export_service;
 use local_outcomemap\local\service\calculation_service;
+use local_outcomemap\local\workflow;
 
 /**
  * External function: the CALLING learner's own released program-outcome attainment.
@@ -60,7 +61,8 @@ class get_own_program_attainment extends external_api {
      * Parameter definition.
      *
      * Deliberately carries no user id. See the class docblock: the absence is
-     * the security property, not an omission.
+     * the security property, not an omission. Both parameters narrow the caller's
+     * own report and neither can widen it.
      *
      * @return external_function_parameters
      */
@@ -72,6 +74,12 @@ class get_own_program_attainment extends external_api {
                 VALUE_DEFAULT,
                 ''
             ),
+            'courseid' => new external_value(
+                PARAM_INT,
+                'Restrict to the programs this Moodle course contributes to; 0 for all of them',
+                VALUE_DEFAULT,
+                0
+            ),
         ]);
     }
 
@@ -79,13 +87,15 @@ class get_own_program_attainment extends external_api {
      * Execute the read for the calling learner.
      *
      * @param string $programcode Optional program-code filter.
+     * @param int $courseid Optional Moodle course filter; see program_codes_for_course().
      * @return array
      */
-    public static function execute(string $programcode = ''): array {
+    public static function execute(string $programcode = '', int $courseid = 0): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'programcode' => $programcode,
+            'courseid' => $courseid,
         ]);
 
         // The caller's own user context. Nothing here reads another user, so a
@@ -123,10 +133,68 @@ class get_own_program_attainment extends external_api {
             ];
         }
 
-        return attainment_export_service::get_user_program_attainment(
+        $report = attainment_export_service::get_user_program_attainment(
             (int) $USER->id,
             $params['programcode'] === '' ? null : $params['programcode']
         );
+
+        if ((int) $params['courseid'] > 0) {
+            $codes = self::program_codes_for_course((int) $params['courseid']);
+            $report['programs'] = array_values(array_filter(
+                $report['programs'],
+                static fn(array $program): bool => in_array($program['code'], $codes, true)
+            ));
+        }
+
+        return $report;
+    }
+
+    /**
+     * The programs a Moodle course currently contributes to.
+     *
+     * Exists so that a course-scoped consumer can ask "does this course take part
+     * in outcomes, and where does the caller stand in its programs" as one
+     * question. Asking it any other way means reading the outcome definitions,
+     * which needs local/outcomemap:viewdefinitions, and that is an author's
+     * capability held by editing teachers and managers rather than by learners. A
+     * learner-facing page that had to check it would be able to render for staff
+     * and for nobody else, which is the failure this whole function exists to
+     * avoid one layer down.
+     *
+     * Nothing here is personal: it is the curriculum shape of a course. What the
+     * caller then sees is still only their own attainment, narrowed.
+     *
+     * Effective-dated, because a course joins and leaves a program over time and
+     * the report is about now. An approved membership with no end date, or one
+     * whose end date has not passed, counts.
+     *
+     * @param int $moodlecourseid Moodle course id.
+     * @return string[] Program codes, possibly empty.
+     */
+    private static function program_codes_for_course(int $moodlecourseid): array {
+        global $DB;
+
+        $now = time();
+
+        return array_values($DB->get_fieldset_sql(
+            "SELECT DISTINCT p.code
+               FROM {local_outcomemap_cinst} ci
+               JOIN {local_outcomemap_progcourse} pc ON pc.courseid = ci.courseid
+               JOIN {local_outcomemap_program} p ON p.id = pc.programid
+              WHERE ci.moodlecourseid = :courseid
+                AND ci.status = :cistatus
+                AND ci.confirmed = 1
+                AND pc.status = :pcstatus
+                AND pc.effectivefrom <= :now1
+                AND (pc.effectiveto IS NULL OR pc.effectiveto > :now2)",
+            [
+                'courseid' => $moodlecourseid,
+                'cistatus' => workflow::APPROVED,
+                'pcstatus' => workflow::APPROVED,
+                'now1' => $now,
+                'now2' => $now,
+            ]
+        ));
     }
 
     /**
