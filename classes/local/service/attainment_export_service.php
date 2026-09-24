@@ -62,10 +62,11 @@ final class attainment_export_service {
     ];
 
     /**
-     * Return the learner's pooled program-outcome attainment.
+     * Return one learner's pooled program-outcome attainment, for an authorized caller.
      *
      * Carries NO capability check of its own: the external function checks
-     * local/outcomemap:exportattainment at system context before calling.
+     * local/outcomemap:exportattainment at system context before calling, and the
+     * per-course report it reads re-checks the same capability.
      *
      * @param int $userid Learner's Moodle user ID.
      * @param string|null $programcode Restrict to one program code, or null for all.
@@ -76,6 +77,51 @@ final class attainment_export_service {
         int $userid,
         ?string $programcode = null,
         ?int $at = null
+    ): array {
+        return self::pool($userid, $programcode, $at, false);
+    }
+
+    /**
+     * The same report, for the CALLING learner, on their own authority.
+     *
+     * The pooling is identical. What differs is where the rows come from: the
+     * caller's own released results under local/outcomemap:viewownresults, course
+     * by course, instead of the SIS export capability naming an arbitrary user.
+     *
+     * A course where the caller does not hold viewownresults is skipped rather
+     * than raising, because a site that has withheld the capability in one course
+     * has said something about that course, not about the learner's whole degree.
+     * Raising would let one course blank an entire program report. The effect on
+     * the figures is the same as that course having no released results, which is
+     * the only honest reading available: the rows are not ours to pool.
+     *
+     * @param string|null $programcode Restrict to one program code, or null for all.
+     * @param int|null $at Evaluation timestamp; defaults to now.
+     * @return array{generatedat:int,algoversion:string,programs:array}
+     */
+    public static function get_own_program_attainment(
+        ?string $programcode = null,
+        ?int $at = null
+    ): array {
+        global $USER;
+
+        return self::pool((int) $USER->id, $programcode, $at, true);
+    }
+
+    /**
+     * Pool one learner's program-tier results.
+     *
+     * @param int $userid Learner's Moodle user ID.
+     * @param string|null $programcode Restrict to one program code, or null for all.
+     * @param int|null $at Evaluation timestamp; defaults to now.
+     * @param bool $asself Read the per-course rows on the caller's own authority.
+     * @return array{generatedat:int,algoversion:string,programs:array}
+     */
+    private static function pool(
+        int $userid,
+        ?string $programcode,
+        ?int $at,
+        bool $asself
     ): array {
         global $DB;
         $at = $at ?? time();
@@ -110,7 +156,15 @@ final class attainment_export_service {
         $rows = [];
         $cinstids = [];
         foreach ($courseids as $moodlecourseid) {
-            $report = student_result_service::report_for_attainment($userid, (int) $moodlecourseid, $at);
+            if ($asself && !has_capability(
+                'local/outcomemap:viewownresults',
+                \context_course::instance((int) $moodlecourseid, IGNORE_MISSING) ?: \context_system::instance()
+            )) {
+                continue;
+            }
+            $report = $asself
+                ? student_result_service::report_for_own_attainment((int) $moodlecourseid, $at)
+                : student_result_service::report_for_attainment($userid, (int) $moodlecourseid, $at);
             foreach ($report['rows'] as $row) {
                 if (($row['tier'] ?? '') !== student_result_service::TIER_PROGRAM) {
                     continue;

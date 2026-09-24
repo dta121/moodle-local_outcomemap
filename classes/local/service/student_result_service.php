@@ -116,6 +116,42 @@ final class student_result_service {
     }
 
     /**
+     * The same authorized report, for the CALLER, on their own authority.
+     *
+     * report_for_attainment() above requires the SIS export capability because it
+     * names an arbitrary user. Asking for your own is a different question and the
+     * plugin already answers it: get_own_report() reads the caller's released
+     * results under local/outcomemap:viewownresults.
+     *
+     * What this adds is the aggregation fields, and it is worth being precise about
+     * why that is not a widening. The course-instance id and the canonical
+     * numerator and denominator are omitted from the learner report because a
+     * learner has no use for them, not because they are somebody else's. They
+     * describe the caller's own attempts. Pooling across courses cannot be done
+     * without them, since fractions are summed once per outcome rather than
+     * percentages re-averaged, so a learner-safe pooled report has to be built from
+     * a report that carries them.
+     *
+     * They do not leave the server on this path. attainment_export_service pools
+     * these rows and emits per-outcome figures; nothing it returns carries a
+     * cinstid or a numerator.
+     *
+     * Course context, not system: this is the same authority the course report page
+     * runs on, so a site that has withheld viewownresults somewhere has withheld
+     * this there too.
+     *
+     * @param int $courseid Moodle course ID.
+     * @param int|null $at Evaluation timestamp; defaults to now.
+     * @return array Report data with the aggregation fields, for the calling user.
+     */
+    public static function report_for_own_attainment(int $courseid, ?int $at = null): array {
+        global $USER;
+
+        require_capability('local/outcomemap:viewownresults', \context_course::instance($courseid));
+        return self::build_report((int) $USER->id, $courseid, $at, true);
+    }
+
+    /**
      * Build a release-gated report, optionally including export-only pooling fields.
      *
      * @param int $userid Learner whose released results are reported.

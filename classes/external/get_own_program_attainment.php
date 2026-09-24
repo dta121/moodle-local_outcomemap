@@ -41,11 +41,12 @@ use local_outcomemap\local\workflow;
  *
  * Authorization is therefore about whether this site lets learners see their own
  * results at all, which is what local/outcomemap:viewownresults already means.
- * That capability is defined at course level, and this report is program-wide, so
- * it is required in at least one course contributing to the report rather than in
- * some single context that does not exist. A learner who holds it nowhere gets an
- * empty programs list, which is the same answer they would get from the
- * course-level report page.
+ * That capability is defined at course level and this report is program-wide, so
+ * it is checked per contributing course while the report is pooled: a course where
+ * the site has withheld it contributes nothing, and a learner who holds it nowhere
+ * gets an empty programs list. That is the same answer the course report page
+ * gives by simply not being offered, which is why an empty report is the right
+ * refusal here rather than an exception.
  *
  * Everything else is unchanged and deliberately so: the service evaluates every
  * release gate against the learner, percentages stay canonical scale-10 decimal
@@ -115,26 +116,12 @@ class get_own_program_attainment extends external_api {
             );
         }
 
-        // Whether this site lets this learner see their own results at all.
-        // viewownresults is defined at course level and this report is
-        // program-wide, so it is required in at least one course the learner is
-        // enrolled in rather than in a single context that does not exist. A site
-        // that has withheld the capability from a cohort withholds this too.
-        //
-        // An empty report rather than an exception when they hold it nowhere:
-        // "you may not see your own results here" and "you have no results" look
-        // the same to a learner, and the course report page already answers the
-        // first case by simply not offering the page.
-        if (!self::may_see_own_results()) {
-            return [
-                'generatedat' => time(),
-                'algoversion' => calculation_service::ALGO_VERSION,
-                'programs' => [],
-            ];
-        }
-
-        $report = attainment_export_service::get_user_program_attainment(
-            (int) $USER->id,
+        // On the caller's own authority, course by course. A course where this
+        // site has withheld local/outcomemap:viewownresults contributes nothing,
+        // so a learner who holds it nowhere gets an empty programs list. That is
+        // the same answer the course report page gives by simply not being
+        // offered, and it is the reason this returns a report rather than raising.
+        $report = attainment_export_service::get_own_program_attainment(
             $params['programcode'] === '' ? null : $params['programcode']
         );
 
@@ -195,26 +182,6 @@ class get_own_program_attainment extends external_api {
                 'now2' => $now,
             ]
         ));
-    }
-
-    /**
-     * Does the caller hold viewownresults anywhere it could apply?
-     *
-     * Checked against the courses they are enrolled in, which is the population
-     * the capability is defined over. Stops at the first grant rather than
-     * evaluating every enrolment, because one is enough to answer the question.
-     *
-     * @return bool
-     */
-    private static function may_see_own_results(): bool {
-        foreach (enrol_get_my_courses('id', 'id ASC') as $course) {
-            $context = \context_course::instance((int) $course->id, IGNORE_MISSING);
-            if ($context && has_capability('local/outcomemap:viewownresults', $context)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
