@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_outcomemap';
-$plugin->version = 2026091100; // Draft frameworks can be deleted; mapping transfer CSVs.
+$plugin->version = 2026092400; // Learner-safe own program attainment external function.
 $plugin->requires = 2024100700; // Moodle 4.5 minimum per the specification.
 $plugin->maturity = MATURITY_BETA;
-$plugin->release = '0.9.3';
+$plugin->release = '0.9.4';

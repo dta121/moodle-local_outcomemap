@@ -29,6 +29,19 @@ $functions = [
     // across courses. This is the ONLY function the plugin exposes, and it is
     // a read: outcome governance (definitions, mappings, policies, approvals)
     // stays inside Moodle where the workflow capabilities live.
+    'local_outcomemap_get_own_program_attainment' => [
+        'classname'    => 'local_outcomemap\external\get_own_program_attainment',
+        'description'  => 'The calling learner\'s own released program-outcome attainment, pooled '
+            . 'per outcome. Takes no user id and can only ever answer about the caller.',
+        'type'         => 'read',
+        // Exposed to AJAX, unlike the any-user export above, and safely so: with
+        // no user id parameter there is no request this can be made to answer
+        // about another person, which is the property that made the other one
+        // server-to-server only.
+        'ajax'         => true,
+        'capabilities' => 'local/outcomemap:viewownresults',
+    ],
+
     'local_outcomemap_get_user_program_attainment' => [
         'classname'    => 'local_outcomemap\external\get_user_program_attainment',
         'description'  => 'One learner\'s released program-outcome attainment, pooled per outcome '
