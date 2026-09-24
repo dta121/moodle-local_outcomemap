@@ -149,4 +149,105 @@ final class get_own_program_attainment_test extends \advanced_testcase {
                 . 'the consumer should render nothing rather than an empty panel.'
         );
     }
+
+    /**
+     * The whole point: a real learner, with real results, gets a real report.
+     *
+     * Every other test here checks a refusal or a shape. This one checks that the
+     * function does the thing it was added for, as the person it was added for, and
+     * it is the test that would have caught the reason the first version of this
+     * branch did not work at all. That version routed around
+     * local/outcomemap:exportattainment at the external-function boundary, while
+     * the pooling underneath still required it, so a student got
+     * required_capability_exception and every structural test still passed.
+     *
+     * @return void
+     */
+    public function test_a_learner_reads_their_own_attainment(): void {
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator()->get_plugin_generator('local_outcomemap');
+        $fixture = $generator->create_program_attainment(2);
+        $this->setUser($fixture['learnerids'][0]);
+
+        $this->assertFalse(
+            has_capability('local/outcomemap:exportattainment', \context_system::instance()),
+            'precondition: the caller must NOT hold the export capability, or this proves nothing'
+        );
+
+        $result = get_own_program_attainment::execute('', 0);
+
+        $this->assertCount(1, $result['programs']);
+        $this->assertSame($fixture['programcode'], $result['programs'][0]['code']);
+        $this->assertNotEmpty($result['programs'][0]['outcomes']);
+
+        // The state, not a number. See create_program_attainment(): the fixture
+        // does not clear the release gate, and a consumer that only worked for
+        // released results would be broken for most real ones anyway.
+        $outcome = $result['programs'][0]['outcomes'][0];
+        $this->assertArrayHasKey('state', $outcome);
+        $this->assertArrayHasKey('percentage', $outcome);
+    }
+
+    /**
+     * An unreleased result arrives without a number, and says so.
+     *
+     * The consumer-facing half of the release gate. A withheld figure that arrived
+     * as 0 rather than as null with a state would tell a learner they had failed
+     * something nobody has published.
+     *
+     * @return void
+     */
+    public function test_an_unreleased_result_carries_no_percentage(): void {
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator()->get_plugin_generator('local_outcomemap');
+        $fixture = $generator->create_program_attainment(1);
+        $this->setUser($fixture['learnerids'][0]);
+
+        $result = get_own_program_attainment::execute('', 0);
+        $outcome = $result['programs'][0]['outcomes'][0];
+
+        $this->assertSame('not_released', $outcome['state']);
+        $this->assertNull($outcome['percentage']);
+    }
+
+    /**
+     * Scoping to the seeded course keeps its program; scoping elsewhere drops it.
+     *
+     * @return void
+     */
+    public function test_the_course_filter_selects_the_right_programs(): void {
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator()->get_plugin_generator('local_outcomemap');
+        $fixture = $generator->create_program_attainment(1);
+        $this->setUser($fixture['learnerids'][0]);
+
+        $this->assertCount(1, get_own_program_attainment::execute('', $fixture['courseid'])['programs']);
+
+        $unmapped = $this->getDataGenerator()->create_course();
+        $this->assertSame([], get_own_program_attainment::execute('', (int) $unmapped->id)['programs']);
+    }
+
+    /**
+     * One learner still cannot be shown another's, with real data on the table.
+     *
+     * @return void
+     */
+    public function test_a_second_learner_sees_only_their_own(): void {
+        $this->resetAfterTest();
+
+        $generator = $this->getDataGenerator()->get_plugin_generator('local_outcomemap');
+        $fixture = $generator->create_program_attainment(2);
+
+        $this->setUser($fixture['learnerids'][1]);
+        $second = get_own_program_attainment::execute('', 0);
+
+        $this->assertCount(1, $second['programs']);
+        $this->assertNotEmpty(
+            $second['programs'][0]['outcomes'],
+            'The second learner reads their own row, not the first learner\'s, and not nothing.'
+        );
+    }
 }
