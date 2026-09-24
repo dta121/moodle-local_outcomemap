@@ -209,9 +209,12 @@ class local_outcomemap_generator extends component_generator_base {
         }
         $now = time();
         $effectivefrom = $now - DAYSECS;
+        // Synthetic identifiers have to differ between two fixtures in one test, or
+        // the second one's evidence resolves against the first one's.
+        $offset = $suffix === '' ? 0 : (abs(crc32($suffix)) % 1000) * 100;
         $course = $this->datagenerator()->create_course([
-            'shortname' => 'SEED-COURSE',
-            'fullname' => 'Seeded example course',
+            'shortname' => 'SEED-COURSE' . $suffix,
+            'fullname' => 'Seeded example course' . $suffix,
         ]);
 
         $programid = (int) $DB->insert_record('local_outcomemap_program', (object) [
@@ -230,7 +233,7 @@ class local_outcomemap_generator extends component_generator_base {
         ]);
         $catalogcourseid = (int) $DB->insert_record('local_outcomemap_course', (object) [
             'uuid' => uuid::generate(),
-            'code' => 'SEED-CATALOG',
+            'code' => 'SEED-CATALOG' . $suffix,
             'name' => 'Seeded catalog course',
             'description' => null,
             'siskey' => null,
@@ -244,7 +247,7 @@ class local_outcomemap_generator extends component_generator_base {
             'uuid' => uuid::generate(),
             'courseid' => $catalogcourseid,
             'moodlecourseid' => $course->id,
-            'periodcode' => 'SEED-T1',
+            'periodcode' => 'SEED-T1' . $suffix,
             'externalid' => null,
             'status' => workflow::APPROVED,
             'confirmed' => 1,
@@ -270,7 +273,7 @@ class local_outcomemap_generator extends component_generator_base {
         ]);
         $frameworkid = (int) $DB->insert_record('local_outcomemap_fw', (object) [
             'uuid' => uuid::generate(),
-            'code' => 'SEED-PLO',
+            'code' => 'SEED-PLO' . $suffix,
             'name' => 'Seeded program outcomes',
             'description' => null,
             'ownertype' => framework_service::OWNER_PROGRAM,
@@ -284,7 +287,7 @@ class local_outcomemap_generator extends component_generator_base {
         $outcomeid = (int) $DB->insert_record('local_outcomemap_item', (object) [
             'uuid' => uuid::generate(),
             'frameworkid' => $frameworkid,
-            'code' => 'PLO1',
+            'code' => 'PLO1' . $suffix,
             'status' => workflow::APPROVED,
             'createdby' => null,
             'timecreated' => $now,
@@ -326,8 +329,8 @@ class local_outcomemap_generator extends component_generator_base {
         $mappingid = (int) $DB->insert_record('local_outcomemap_qmap', (object) [
             'mappinguuid' => uuid::generate(),
             'version' => 1,
-            'questionversionid' => 910001,
-            'questionid' => 900001,
+            'questionversionid' => 910001 + $offset,
+            'questionid' => 900001 + $offset,
             'itemverid' => $outcomeversionid,
             'role' => 'assesses',
             'weight' => '1.0000000000',
@@ -351,18 +354,18 @@ class local_outcomemap_generator extends component_generator_base {
             $DB->insert_record('local_outcomemap_evidence', (object) [
                 'uuid' => $evidenceuuid,
                 'lineageuuid' => uuid::generate(),
-                'dedupekey' => hash('sha256', 'seed-evidence-' . $index),
+                'dedupekey' => hash('sha256', 'seed-evidence-' . $suffix . '-' . $index),
                 'sourceevidenceid' => null,
                 'relationpathjson' => canonical_json::encode([]),
                 'cinstid' => $courseinstanceid,
                 'userid' => $learner->id,
-                'assessmentcmid' => 810001,
-                'quizattemptid' => 820001 + $index,
-                'questionusageid' => 830001 + $index,
+                'assessmentcmid' => 810001 + $offset,
+                'quizattemptid' => 820001 + $offset + $index,
+                'questionusageid' => 830001 + $offset + $index,
                 'slot' => 1,
-                'questionattemptid' => 840001 + $index,
-                'questionversionid' => 910001,
-                'questionid' => 900001,
+                'questionattemptid' => 840001 + $offset + $index,
+                'questionversionid' => 910001 + $offset,
+                'questionid' => 900001 + $offset,
                 'itemverid' => $outcomeversionid,
                 'mappingid' => $mappingid,
                 'policyid' => $selectionpolicyid,
@@ -384,13 +387,13 @@ class local_outcomemap_generator extends component_generator_base {
             $lineagejson = canonical_json::encode([['uuid' => $evidenceuuid]]);
             $DB->insert_record('local_outcomemap_result', (object) [
                 'uuid' => uuid::generate(),
-                'resultkey' => hash('sha256', 'seed-result-' . $index),
+                'resultkey' => hash('sha256', 'seed-result-' . $suffix . '-' . $index),
                 'version' => 1,
                 'cinstid' => $courseinstanceid,
                 'userid' => $learner->id,
                 'scopetype' => calculation_service::SCOPE_COURSE,
                 'scopeid' => $courseinstanceid,
-                'periodcode' => 'SEED-T1',
+                'periodcode' => 'SEED-T1' . $suffix,
                 'itemverid' => $outcomeversionid,
                 'policyid' => $calculationpolicyid,
                 'numerator' => '12.7500000000',
@@ -401,7 +404,7 @@ class local_outcomemap_generator extends component_generator_base {
                 'state' => calculation_service::STATE_CALCULATED,
                 'stale' => 0,
                 'algoversion' => calculation_service::ALGO_VERSION,
-                'inputhash' => hash('sha256', 'seed-input-' . $index),
+                'inputhash' => hash('sha256', 'seed-input-' . $suffix . '-' . $index),
                 'lineagejson' => $lineagejson,
                 'lineagehash' => hash('sha256', $lineagejson),
                 'supersededby' => null,
@@ -415,7 +418,7 @@ class local_outcomemap_generator extends component_generator_base {
             'learnerids' => $learnerids,
             'programcode' => $suffix === '' ? 'SEED-PROGRAM' : 'SEED-PROGRAM' . $suffix,
             'programid' => $programid,
-            'periodcode' => 'SEED-T1',
+            'periodcode' => 'SEED-T1' . $suffix,
             'courseid' => (int) $course->id,
             'outcomeversionid' => $outcomeversionid,
         ];
