@@ -156,11 +156,13 @@ final class attainment_export_service {
         $rows = [];
         $cinstids = [];
         foreach ($courseids as $moodlecourseid) {
-            if ($asself && !has_capability(
-                'local/outcomemap:viewownresults',
-                \context_course::instance((int) $moodlecourseid, IGNORE_MISSING) ?: \context_system::instance()
-            )) {
-                continue;
+            if ($asself) {
+                $coursecontext = \context_course::instance((int) $moodlecourseid, IGNORE_MISSING);
+                $may = $coursecontext
+                    && has_capability('local/outcomemap:viewownresults', $coursecontext);
+                if (!$may) {
+                    continue;
+                }
             }
             $report = $asself
                 ? student_result_service::report_for_own_attainment((int) $moodlecourseid, $at)
