@@ -22,6 +22,7 @@ use core_external\external_single_structure;
 use core_external\external_value;
 use local_outcomemap\local\service\attainment_export_service;
 use local_outcomemap\local\service\calculation_service;
+use local_outcomemap\local\workflow;
 
 /**
  * External function: the CALLING learner's own released program-outcome attainment.
@@ -40,11 +41,12 @@ use local_outcomemap\local\service\calculation_service;
  *
  * Authorization is therefore about whether this site lets learners see their own
  * results at all, which is what local/outcomemap:viewownresults already means.
- * That capability is defined at course level, and this report is program-wide, so
- * it is required in at least one course contributing to the report rather than in
- * some single context that does not exist. A learner who holds it nowhere gets an
- * empty programs list, which is the same answer they would get from the
- * course-level report page.
+ * That capability is defined at course level and this report is program-wide, so
+ * it is checked per contributing course while the report is pooled: a course where
+ * the site has withheld it contributes nothing, and a learner who holds it nowhere
+ * gets an empty programs list. That is the same answer the course report page
+ * gives by simply not being offered, which is why an empty report is the right
+ * refusal here rather than an exception.
  *
  * Everything else is unchanged and deliberately so: the service evaluates every
  * release gate against the learner, percentages stay canonical scale-10 decimal
@@ -60,7 +62,8 @@ class get_own_program_attainment extends external_api {
      * Parameter definition.
      *
      * Deliberately carries no user id. See the class docblock: the absence is
-     * the security property, not an omission.
+     * the security property, not an omission. Both parameters narrow the caller's
+     * own report and neither can widen it.
      *
      * @return external_function_parameters
      */
@@ -72,6 +75,12 @@ class get_own_program_attainment extends external_api {
                 VALUE_DEFAULT,
                 ''
             ),
+            'courseid' => new external_value(
+                PARAM_INT,
+                'Restrict to the programs this Moodle course contributes to; 0 for all of them',
+                VALUE_DEFAULT,
+                0
+            ),
         ]);
     }
 
@@ -79,74 +88,106 @@ class get_own_program_attainment extends external_api {
      * Execute the read for the calling learner.
      *
      * @param string $programcode Optional program-code filter.
+     * @param int $courseid Optional Moodle course filter; see program_codes_for_course().
      * @return array
      */
-    public static function execute(string $programcode = ''): array {
+    public static function execute(string $programcode = '', int $courseid = 0): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'programcode' => $programcode,
+            'courseid' => $courseid,
         ]);
 
-        // The caller's own user context. Nothing here reads another user, so a
-        // system context check would claim an authority this function does not
-        // use and does not need.
-        $usercontext = \context_user::instance($USER->id);
-        self::validate_context($usercontext);
-
+        // Identity first, context second. A not-logged-in caller has $USER->id 0,
+        // and context_user::instance(0) raises dml_missing_record_exception, so a
+        // guard placed after it never runs and the caller gets a database error
+        // where a permission error belongs.
+        //
         // A guest has no results and no identity worth reporting against, and
-        // answering an empty report would imply the question was meaningful.
-        if (isguestuser() || !isloggedin()) {
+        // answering an empty report would imply the question was meaningful. The
+        // refusal names the system context because there is no user context to
+        // name yet, which is exactly the situation being refused.
+        if (!isloggedin() || isguestuser()) {
             throw new \required_capability_exception(
-                $usercontext,
+                \context_system::instance(),
                 'local/outcomemap:viewownresults',
                 'nopermissions',
                 ''
             );
         }
 
-        // Whether this site lets this learner see their own results at all.
-        // viewownresults is defined at course level and this report is
-        // program-wide, so it is required in at least one course the learner is
-        // enrolled in rather than in a single context that does not exist. A site
-        // that has withheld the capability from a cohort withholds this too.
-        //
-        // An empty report rather than an exception when they hold it nowhere:
-        // "you may not see your own results here" and "you have no results" look
-        // the same to a learner, and the course report page already answers the
-        // first case by simply not offering the page.
-        if (!self::may_see_own_results()) {
-            return [
-                'generatedat' => time(),
-                'algoversion' => calculation_service::ALGO_VERSION,
-                'programs' => [],
-            ];
-        }
+        // The caller's own user context. Nothing here reads another user, so a
+        // system context check would claim an authority this function does not
+        // use and does not need.
+        self::validate_context(\context_user::instance($USER->id));
 
-        return attainment_export_service::get_user_program_attainment(
-            (int) $USER->id,
+        // On the caller's own authority, course by course. A course where this
+        // site has withheld local/outcomemap:viewownresults contributes nothing,
+        // so a learner who holds it nowhere gets an empty programs list. That is
+        // the same answer the course report page gives by simply not being
+        // offered, and it is the reason this returns a report rather than raising.
+        $report = attainment_export_service::get_own_program_attainment(
             $params['programcode'] === '' ? null : $params['programcode']
         );
+
+        if ((int) $params['courseid'] > 0) {
+            $codes = self::program_codes_for_course((int) $params['courseid']);
+            $report['programs'] = array_values(array_filter(
+                $report['programs'],
+                static fn(array $program): bool => in_array($program['code'], $codes, true)
+            ));
+        }
+
+        return $report;
     }
 
     /**
-     * Does the caller hold viewownresults anywhere it could apply?
+     * The programs a Moodle course currently contributes to.
      *
-     * Checked against the courses they are enrolled in, which is the population
-     * the capability is defined over. Stops at the first grant rather than
-     * evaluating every enrolment, because one is enough to answer the question.
+     * Exists so that a course-scoped consumer can ask "does this course take part
+     * in outcomes, and where does the caller stand in its programs" as one
+     * question. Asking it any other way means reading the outcome definitions,
+     * which needs local/outcomemap:viewdefinitions, and that is an author's
+     * capability held by editing teachers and managers rather than by learners. A
+     * learner-facing page that had to check it would be able to render for staff
+     * and for nobody else, which is the failure this whole function exists to
+     * avoid one layer down.
      *
-     * @return bool
+     * Nothing here is personal: it is the curriculum shape of a course. What the
+     * caller then sees is still only their own attainment, narrowed.
+     *
+     * Effective-dated, because a course joins and leaves a program over time and
+     * the report is about now. An approved membership with no end date, or one
+     * whose end date has not passed, counts.
+     *
+     * @param int $moodlecourseid Moodle course id.
+     * @return string[] Program codes, possibly empty.
      */
-    private static function may_see_own_results(): bool {
-        foreach (enrol_get_my_courses('id', 'id ASC') as $course) {
-            $context = \context_course::instance((int) $course->id, IGNORE_MISSING);
-            if ($context && has_capability('local/outcomemap:viewownresults', $context)) {
-                return true;
-            }
-        }
+    private static function program_codes_for_course(int $moodlecourseid): array {
+        global $DB;
 
-        return false;
+        $now = time();
+
+        return array_values($DB->get_fieldset_sql(
+            "SELECT DISTINCT p.code
+               FROM {local_outcomemap_cinst} ci
+               JOIN {local_outcomemap_progcourse} pc ON pc.courseid = ci.courseid
+               JOIN {local_outcomemap_program} p ON p.id = pc.programid
+              WHERE ci.moodlecourseid = :courseid
+                AND ci.status = :cistatus
+                AND ci.confirmed = 1
+                AND pc.status = :pcstatus
+                AND pc.effectivefrom <= :now1
+                AND (pc.effectiveto IS NULL OR pc.effectiveto > :now2)",
+            [
+                'courseid' => $moodlecourseid,
+                'cistatus' => workflow::APPROVED,
+                'pcstatus' => workflow::APPROVED,
+                'now1' => $now,
+                'now2' => $now,
+            ]
+        ));
     }
 
     /**

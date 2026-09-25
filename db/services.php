@@ -24,20 +24,22 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+// Two functions, both reads of the same report, differing only in who may ask
+// and about whom. Outcome governance (definitions, mappings, policies,
+// approvals) is deliberately not exposed at all: it stays inside Moodle where
+// the workflow capabilities live.
 $functions = [
-    // One learner's released program-outcome attainment, pooled per outcome
-    // across courses. This is the ONLY function the plugin exposes, and it is
-    // a read: outcome governance (definitions, mappings, policies, approvals)
-    // stays inside Moodle where the workflow capabilities live.
+    // The caller's own attainment. Safe to expose to a logged-in learner
+    // because it takes no user id, so there is no request it can be made to
+    // answer about another person.
     'local_outcomemap_get_own_program_attainment' => [
         'classname'    => 'local_outcomemap\external\get_own_program_attainment',
         'description'  => 'The calling learner\'s own released program-outcome attainment, pooled '
-            . 'per outcome. Takes no user id and can only ever answer about the caller.',
+            . 'per outcome, optionally narrowed to the programs one Moodle course contributes '
+            . 'to. Takes no user id and can only ever answer about the caller.',
         'type'         => 'read',
-        // Exposed to AJAX, unlike the any-user export above, and safely so: with
-        // no user id parameter there is no request this can be made to answer
-        // about another person, which is the property that made the other one
-        // server-to-server only.
+        // AJAX, unlike the any-user export below. The absence of a user id is
+        // what makes that safe; see the class docblock.
         'ajax'         => true,
         'capabilities' => 'local/outcomemap:viewownresults',
     ],
