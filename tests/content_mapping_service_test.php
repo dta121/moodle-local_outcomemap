@@ -217,6 +217,39 @@ final class content_mapping_service_test extends \advanced_testcase {
     }
 
     /**
+     * Tests validation of the mapping fields added to the standard activity form.
+     */
+    public function test_validate_module_form_data(): void {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $reviewer = $this->create_reviewer();
+        [$cinstid, $itemverid] = $this->create_scope($course, $reviewer);
+        $data = [
+            'outcomemap_cinstid' => $cinstid,
+            'outcomemap_itemverid' => $itemverid,
+            'outcomemap_role' => content_mapping_service::ROLE_ASSESSES,
+            'outcomemap_weight' => '0.5',
+            'outcomemap_effectivefrom' => 1704067200,
+        ];
+
+        $this->assertSame([], content_mapping_service::validate_module_form_data($course->id, []));
+        $this->assertSame([], content_mapping_service::validate_module_form_data($course->id, $data));
+
+        $othercourse = $this->getDataGenerator()->create_course();
+        $errors = content_mapping_service::validate_module_form_data($othercourse->id, $data);
+        $this->assertArrayHasKey('outcomemap_cinstid', $errors);
+
+        $othercatalogid = catalog_course_service::create(['code' => 'OTHERCAT', 'name' => 'Other catalog course']);
+        $hiddenverid = $this->create_catalog_outcome($othercatalogid, $reviewer, 'HIDDEN1');
+        $errors = content_mapping_service::validate_module_form_data(
+            $course->id,
+            ['outcomemap_itemverid' => $hiddenverid] + $data
+        );
+        $this->assertArrayHasKey('outcomemap_itemverid', $errors);
+    }
+
+    /**
      * * Tests the external remediation workflow.
      */
     public function test_external_remediation_workflow(): void {

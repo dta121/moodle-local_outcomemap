@@ -473,6 +473,8 @@ final class content_mapping_service extends base_service {
                 $data['outcomemap_effectivefrom'] ?? time(),
                 'outcomemap_effectivefrom'
             );
+            // No course-module exists yet, so the course is the narrowest context to check visibility in.
+            $context = \context_course::instance($courseid, MUST_EXIST);
             outcome_search::require_visible_version($context, $itemversion->uuid, $effectivefrom);
             self::validate_role_weight($data['outcomemap_role'] ?? '', $data['outcomemap_weight'] ?? null);
         } catch (validation_exception $e) {
