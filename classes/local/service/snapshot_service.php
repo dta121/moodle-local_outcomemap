@@ -487,16 +487,29 @@ final class snapshot_service extends base_service {
      * Verify a capture in full and record the passing verdict.
      *
      * No capability check: the caller is either verify_for_view(), which has
-     * made one, or the scheduled task. A failure forgets any earlier verdict so
-     * the report cannot keep vouching for the record, then rethrows.
+     * made one, or the scheduled task. A frozen record's manifest is checked
+     * too, against the number of rows actually streamed, because the manifest
+     * covers metadata (notes, approval, population) the row hashes do not. A
+     * failure forgets any earlier verdict so the report cannot keep vouching
+     * for the record, then rethrows.
      *
      * @param \stdClass $snapshot Snapshot record.
      * @return int Verification time.
      */
     public static function verify_and_record(\stdClass $snapshot): int {
         $snapshotid = (int) $snapshot->id;
+        $itemcount = 0;
+        $counted = (function () use ($snapshotid, &$itemcount): \Generator {
+            foreach (self::stream_items($snapshotid) as $item) {
+                $itemcount++;
+                yield $item;
+            }
+        })();
         try {
-            audit_lineage_service::verify_snapshot_payload_streamed($snapshot, self::stream_items($snapshotid));
+            audit_lineage_service::verify_snapshot_payload_streamed($snapshot, $counted);
+            if ($snapshot->status === self::STATUS_FROZEN) {
+                audit_lineage_service::verify_manifest($snapshot, $itemcount);
+            }
         } catch (\Throwable $e) {
             self::forget_verdict($snapshotid);
             throw $e;
@@ -522,9 +535,12 @@ final class snapshot_service extends base_service {
     /**
      * Summarise what a recorded verdict vouches for.
      *
-     * Covers every hash on the snapshot record and the shape of its row set, so
-     * a re-hash, a status change, or rows added, removed, or reordered no longer
-     * match. It is three indexed aggregates, not a read of the rows.
+     * Covers every column of the snapshot record — its hashes and all the
+     * metadata the manifest vouches for and the report displays — and the shape
+     * of its row set, so any edit to the record, or rows added, removed, or
+     * reordered, no longer match. Values are compared as strings: the record
+     * freeze() fingerprints holds ints where a database read holds strings.
+     * It is one indexed aggregate, not a read of the rows.
      *
      * @param \stdClass $snapshot Snapshot record.
      * @return string
@@ -537,13 +553,12 @@ final class snapshot_service extends base_service {
               WHERE snapshotid = :snapshotid",
             ['snapshotid' => (int) $snapshot->id]
         );
+        $record = [];
+        foreach ((array) $snapshot as $field => $value) {
+            $record[$field] = $value === null ? null : (string) $value;
+        }
         return hash('sha256', canonical_json::encode([
-            'id' => (int) $snapshot->id,
-            'status' => (string) $snapshot->status,
-            'version' => (int) $snapshot->version,
-            'payloadhash' => (string) $snapshot->payloadhash,
-            'manifesthash' => $snapshot->manifesthash === null ? null : (string) $snapshot->manifesthash,
-            'timemodified' => (int) $snapshot->timemodified,
+            'record' => $record,
             'rows' => [(int) $rows->total, (int) $rows->minid, (int) $rows->maxid, (string) $rows->sortsum],
         ]));
     }

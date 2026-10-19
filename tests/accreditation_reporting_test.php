@@ -1450,6 +1450,31 @@ final class accreditation_reporting_test extends \advanced_testcase {
     }
 
     /**
+     * Manifest-covered metadata is part of what a verdict vouches for.
+     *
+     * The row hashes do not cover a frozen record's notes, approval, or
+     * population figures; the manifest does. Editing one must invalidate the
+     * verdict and fail the full verification that follows.
+     */
+    public function test_snapshot_verdict_covers_manifest_metadata(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        [, $snapshotid] = $this->frozen_report();
+        $DB->set_field('local_outcomemap_snapshot', 'suppressionthreshold', 1, ['id' => $snapshotid]);
+        $this->assert_report_refused($snapshotid, false, 'A metadata edit must invalidate the verdict.');
+        $this->assert_report_refused($snapshotid, true, 'A full verification must check the manifest.');
+
+        $task = new \local_outcomemap\task\verify_snapshots();
+        $this->expectOutputRegex('/FAILED verification/');
+        try {
+            $task->execute();
+            $this->fail('The nightly task must check the manifest.');
+        } catch (\moodle_exception $e) {
+            $this->assertSame('snapshotverifyfailed', $e->errorcode);
+        }
+    }
+
+    /**
      * A verdict older than its maximum age is not reused.
      */
     public function test_snapshot_verdict_expires(): void {
