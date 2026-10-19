@@ -154,10 +154,17 @@ if ($action === 'view' && $id) {
     // no longer match cannot render as though it were sound. Grouping and the
     // subject filter only change how the frozen rows are presented, so they are
     // plain GET state rather than anything the record stores.
+    // Verify now re-hashes the whole capture, so it is a deliberate, sesskey'd
+    // request rather than something a crawled or shared link can trigger.
+    $forceverify = optional_param('verify', 0, PARAM_BOOL);
+    if ($forceverify) {
+        require_sesskey();
+    }
     $report = new snapshot_report(
         $id,
         optional_param('group', snapshot_report::GROUP_FRAMEWORK, PARAM_ALPHA),
-        optional_param('subjects', snapshot_report::SUBJECTS_ALL, PARAM_ALPHA)
+        optional_param('subjects', snapshot_report::SUBJECTS_ALL, PARAM_ALPHA),
+        (bool) $forceverify
     );
     echo $OUTPUT->header();
     echo $OUTPUT->render_from_template(

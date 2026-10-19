@@ -116,6 +116,11 @@ final class snapshot_service extends base_service {
     public const ITEM_PROGRAM_AGGREGATE = 'program_aggregate';
 
     /**
+     * Seconds a passing full verification is reused by the report page.
+     */
+    public const VERDICT_MAX_AGE = DAYSECS;
+
+    /**
      * Create a complete draft snapshot or a correction version.
      *
      * @param array $data programid, periodcode, optional cohortid, notes,
@@ -292,6 +297,12 @@ final class snapshot_service extends base_service {
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);
         }
+        // The rows were verified in full above, so the first view of the frozen
+        // record need not repeat it.
+        self::verdict_cache()->set($snapshotid, [
+            'fingerprint' => self::fingerprint($after),
+            'verifiedat' => (int) $after->approvedat,
+        ]);
     }
 
     /**
@@ -323,6 +334,7 @@ final class snapshot_service extends base_service {
         try {
             $DB->delete_records('local_outcomemap_snapitem', ['snapshotid' => $snapshotid]);
             $DB->delete_records('local_outcomemap_snapshot', ['id' => $snapshotid]);
+            self::forget_verdict($snapshotid);
             audit_writer::write(
                 'delete_snapshot',
                 'snapshot',
@@ -438,6 +450,111 @@ final class snapshot_service extends base_service {
             $snapshot,
             self::stream_items((int) $snapshot->id)
         );
+    }
+
+    /**
+     * Verify a capture for display, reusing a recent verdict on the same record.
+     *
+     * A full verification streams and re-hashes every row: on a programme-wide
+     * capture that is half a minute, and the report used to pay it again on every
+     * view, regrouping, and filter change. A passing verdict is therefore kept for
+     * VERDICT_MAX_AGE, bound to a fingerprint of the snapshot record and its rows,
+     * and re-verified nightly by the verify_snapshots task. Anything that changes
+     * the record, the hashes, or the row set invalidates the verdict at once; an
+     * in-place edit of a row's content is caught by the next full verification,
+     * which the page offers on demand. Exports always verify in full.
+     *
+     * @param \stdClass $snapshot Snapshot record.
+     * @param bool $force Verify in full even when a recent verdict exists.
+     * @return int Time the record was last verified in full.
+     */
+    public static function verify_for_view(\stdClass $snapshot, bool $force = false): int {
+        self::require_system('local/outcomemap:managesnapshots');
+        if (!$force) {
+            $verdict = self::verdict_cache()->get((int) $snapshot->id);
+            if (
+                is_array($verdict)
+                    && hash_equals((string) ($verdict['fingerprint'] ?? ''), self::fingerprint($snapshot))
+                    && time() - (int) ($verdict['verifiedat'] ?? 0) < self::VERDICT_MAX_AGE
+            ) {
+                return (int) $verdict['verifiedat'];
+            }
+        }
+        return self::verify_and_record($snapshot);
+    }
+
+    /**
+     * Verify a capture in full and record the passing verdict.
+     *
+     * No capability check: the caller is either verify_for_view(), which has
+     * made one, or the scheduled task. A failure forgets any earlier verdict so
+     * the report cannot keep vouching for the record, then rethrows.
+     *
+     * @param \stdClass $snapshot Snapshot record.
+     * @return int Verification time.
+     */
+    public static function verify_and_record(\stdClass $snapshot): int {
+        $snapshotid = (int) $snapshot->id;
+        try {
+            audit_lineage_service::verify_snapshot_payload_streamed($snapshot, self::stream_items($snapshotid));
+        } catch (\Throwable $e) {
+            self::forget_verdict($snapshotid);
+            throw $e;
+        }
+        $verifiedat = time();
+        self::verdict_cache()->set($snapshotid, [
+            'fingerprint' => self::fingerprint($snapshot),
+            'verifiedat' => $verifiedat,
+        ]);
+        return $verifiedat;
+    }
+
+    /**
+     * Drop any recorded verdict for a snapshot.
+     *
+     * @param int $snapshotid Snapshot ID.
+     * @return void
+     */
+    public static function forget_verdict(int $snapshotid): void {
+        self::verdict_cache()->delete($snapshotid);
+    }
+
+    /**
+     * Summarise what a recorded verdict vouches for.
+     *
+     * Covers every hash on the snapshot record and the shape of its row set, so
+     * a re-hash, a status change, or rows added, removed, or reordered no longer
+     * match. It is three indexed aggregates, not a read of the rows.
+     *
+     * @param \stdClass $snapshot Snapshot record.
+     * @return string
+     */
+    private static function fingerprint(\stdClass $snapshot): string {
+        global $DB;
+        $rows = $DB->get_record_sql(
+            "SELECT COUNT(1) AS total, MIN(id) AS minid, MAX(id) AS maxid, SUM(sortorder) AS sortsum
+               FROM {local_outcomemap_snapitem}
+              WHERE snapshotid = :snapshotid",
+            ['snapshotid' => (int) $snapshot->id]
+        );
+        return hash('sha256', canonical_json::encode([
+            'id' => (int) $snapshot->id,
+            'status' => (string) $snapshot->status,
+            'version' => (int) $snapshot->version,
+            'payloadhash' => (string) $snapshot->payloadhash,
+            'manifesthash' => $snapshot->manifesthash === null ? null : (string) $snapshot->manifesthash,
+            'timemodified' => (int) $snapshot->timemodified,
+            'rows' => [(int) $rows->total, (int) $rows->minid, (int) $rows->maxid, (string) $rows->sortsum],
+        ]));
+    }
+
+    /**
+     * Cache holding passing verification verdicts.
+     *
+     * @return \cache
+     */
+    private static function verdict_cache(): \cache {
+        return \cache::make('local_outcomemap', 'snapshotverdict');
     }
 
     /**

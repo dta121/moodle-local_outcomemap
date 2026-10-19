@@ -6,6 +6,7 @@
     * programcode, programname, versionline string Snapshot identity.
     * isfrozen boolean Whether the snapshot is frozen and immutable.
     * statuslabel string Integrity/state badge text.
+    * verifiedline, verifyurl string When the capture was last verified in full, and a link to verify it now.
     * facts array Four headline facts, each with label, value, note.
     * progress object Cohort course-progress tiles, the criterion used, and the population line.
     * controls object Grouping links, subject-filter chips, and the filtered-view note.
@@ -29,6 +30,8 @@
         "versionline": "Version 1 · frozen 27 July 2026 · reporting period MBA601",
         "isfrozen": true,
         "statuslabel": "Frozen & integrity verified",
+        "verifiedline": "Integrity last verified Monday, 19 October 2026, 3:12 AM",
+        "verifyurl": "#",
         "facts": [{"label": "Population size", "value": "133 learners", "note": "Active enrolled users"}],
         "progress": {
             "known": true,
@@ -88,6 +91,7 @@
                 <div class="lom-snap-eyebrow">{{#str}} snapreport_eyebrow, local_outcomemap {{/str}}</div>
                 <div class="lom-snap-program">{{programcode}} &mdash; {{programname}}</div>
                 <div class="lom-snap-versionline">{{versionline}}</div>
+                <div class="lom-snap-versionline">{{verifiedline}} &middot; <a href="{{verifyurl}}">{{#str}} snapreport_verifynow, local_outcomemap {{/str}}</a></div>
             </div>
             <span class="lom-snap-state {{#isfrozen}}lom-snap-state-frozen{{/isfrozen}}{{^isfrozen}}lom-snap-state-draft{{/isfrozen}}">{{statuslabel}}</span>
         </div>
