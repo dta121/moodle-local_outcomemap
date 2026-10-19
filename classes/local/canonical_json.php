@@ -53,13 +53,16 @@ final class canonical_json {
             return $value;
         }
 
-        if (array_is_list($value)) {
-            return array_map([self::class, 'normalize'], $value);
+        if (!array_is_list($value)) {
+            ksort($value, SORT_STRING);
         }
-
-        ksort($value, SORT_STRING);
+        // Scalars come back unchanged, so only containers are recursed into.
+        // Snapshot verification re-encodes every frozen row on each check, and
+        // a call per scalar leaf was a third of that cost.
         foreach ($value as $key => $child) {
-            $value[$key] = self::normalize($child);
+            if (is_array($child) || is_object($child)) {
+                $value[$key] = self::normalize($child);
+            }
         }
         return $value;
     }

@@ -159,6 +159,11 @@ final class snapshot_report implements renderable, templatable {
     private bool $liverollup = false;
 
     /**
+     * @var int Time the capture was last verified in full.
+     */
+    private int $verifiedat;
+
+    /**
      * Load and verify one snapshot.
      *
      * Verification recomputes the payload hash over every frozen row, so a
@@ -172,11 +177,13 @@ final class snapshot_report implements renderable, templatable {
      * @param int $snapshotid Snapshot ID.
      * @param string $groupby One of this class's GROUP_* values.
      * @param string $subjectfilter One of this class's SUBJECTS_* values.
+     * @param bool $forceverify Verify in full even when a recent passing verdict exists.
      */
     public function __construct(
         int $snapshotid,
         string $groupby = self::GROUP_FRAMEWORK,
-        string $subjectfilter = self::SUBJECTS_ALL
+        string $subjectfilter = self::SUBJECTS_ALL,
+        bool $forceverify = false
     ) {
         $this->groupby = in_array($groupby, self::GROUPINGS, true) ? $groupby : self::GROUP_FRAMEWORK;
         $this->subjectfilter = in_array($subjectfilter, self::SUBJECT_FILTERS, true)
@@ -191,8 +198,11 @@ final class snapshot_report implements renderable, templatable {
         \core_php_time_limit::raise(300);
         // Verification streams the capture rather than loading it: the payloads
         // exist only to be hashed, and a programme-wide capture is far larger
-        // than any request could hold.
-        snapshot_service::verify_streamed($this->snapshot);
+        // than any request could hold. A passing verdict on this exact record is
+        // reused for a day (and refreshed nightly) so regrouping and filtering do
+        // not each repeat half a minute of hashing; the page says when the
+        // record was last verified and offers to verify it again now.
+        $this->verifiedat = snapshot_service::verify_for_view($this->snapshot, $forceverify);
         // Counts describe the whole capture, so they are aggregated in the
         // database instead of tallied over rows nothing else here reads.
         $this->counts = snapshot_service::item_counts($snapshotid);
@@ -436,6 +446,15 @@ final class snapshot_report implements renderable, templatable {
                 'period' => s($this->snapshot->periodcode),
             ]),
             'isfrozen' => $frozen,
+            'verifiedline' => get_string('snapreport_verifiedat', 'local_outcomemap', userdate($this->verifiedat)),
+            'verifyurl' => (new moodle_url($baseurl, [
+                'action' => 'view',
+                'id' => (int) $this->snapshot->id,
+                'group' => $this->groupby,
+                'subjects' => $this->subjectfilter,
+                'verify' => 1,
+                'sesskey' => sesskey(),
+            ]))->out(false),
             'statuslabel' => get_string(
                 $frozen ? 'snapreport_verified' : 'snapreport_draftstate',
                 'local_outcomemap'

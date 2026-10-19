@@ -1375,4 +1375,165 @@ final class accreditation_reporting_test extends \advanced_testcase {
         $this->assertFalse($frozen['canfreeze']);
         $this->assertTrue($frozen['cancorrect']);
     }
+
+    /**
+     * Tamper with one captured row in place, leaving the row set's shape alone.
+     *
+     * @param int $snapshotid Snapshot ID.
+     * @return void
+     */
+    private function tamper_one_row_in_place(int $snapshotid): void {
+        global $DB;
+        $items = snapshot_service::items($snapshotid);
+        $DB->set_field('local_outcomemap_snapitem', 'payloadjson', '{}', ['id' => reset($items)->id]);
+    }
+
+    /**
+     * Assert that building the report for a snapshot fails its integrity check.
+     *
+     * @param int $snapshotid Snapshot ID.
+     * @param bool $force Whether to force a full verification.
+     * @param string $message Failure message.
+     * @return void
+     */
+    private function assert_report_refused(int $snapshotid, bool $force, string $message): void {
+        try {
+            new snapshot_report($snapshotid, snapshot_report::GROUP_FRAMEWORK, snapshot_report::SUBJECTS_ALL, $force);
+            $this->fail($message);
+        } catch (validation_exception $e) {
+            $this->assertSame('snapshotintegrityfailure', $e->errorcode);
+        }
+    }
+
+    /**
+     * Freezing records a verdict that later views reuse, and Verify now still re-checks in full.
+     */
+    public function test_snapshot_report_reuses_a_recent_verdict_until_verified_again(): void {
+        global $PAGE;
+        $this->resetAfterTest(true);
+        [$context, $snapshotid] = $this->frozen_report();
+        $this->assertStringContainsString(
+            userdate((int) snapshot_service::get($snapshotid)->approvedat),
+            $context['verifiedline']
+        );
+        $this->assertStringContainsString('verify=1', $context['verifyurl']);
+
+        // An in-place edit keeps the row set's shape, so the day-old verdict
+        // still stands for an ordinary view...
+        $this->tamper_one_row_in_place($snapshotid);
+        $reused = (new snapshot_report($snapshotid))->export_for_template($PAGE->get_renderer('core'));
+        $this->assertTrue($reused['isfrozen']);
+
+        // ...but a forced verification reads every row, refuses the record, and
+        // withdraws the verdict so ordinary views stop vouching for it too.
+        $this->assert_report_refused($snapshotid, true, 'Verify now must re-check every row.');
+        $this->assert_report_refused($snapshotid, false, 'A failed verification must withdraw the verdict.');
+    }
+
+    /**
+     * Adding, removing, or re-hashing rows invalidates a recorded verdict at once.
+     */
+    public function test_snapshot_verdict_is_bound_to_the_record_and_row_set(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        [, $snapshotid] = $this->frozen_report();
+        $payloadhash = snapshot_service::get($snapshotid)->payloadhash;
+        $DB->set_field('local_outcomemap_snapshot', 'payloadhash', str_repeat('0', 64), ['id' => $snapshotid]);
+        $this->assert_report_refused($snapshotid, false, 'A changed payload hash must invalidate the verdict.');
+
+        // Restore the record and verify it again, which records a fresh verdict.
+        $DB->set_field('local_outcomemap_snapshot', 'payloadhash', $payloadhash, ['id' => $snapshotid]);
+        new snapshot_report($snapshotid, snapshot_report::GROUP_FRAMEWORK, snapshot_report::SUBJECTS_ALL, true);
+        $items = snapshot_service::items($snapshotid);
+        $DB->delete_records('local_outcomemap_snapitem', ['id' => end($items)->id]);
+        $this->assert_report_refused($snapshotid, false, 'A removed row must invalidate the verdict.');
+    }
+
+    /**
+     * Manifest-covered metadata is part of what a verdict vouches for.
+     *
+     * The row hashes do not cover a frozen record's notes, approval, or
+     * population figures; the manifest does. Editing one must invalidate the
+     * verdict and fail the full verification that follows.
+     */
+    public function test_snapshot_verdict_covers_manifest_metadata(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        [, $snapshotid] = $this->frozen_report();
+        $DB->set_field('local_outcomemap_snapshot', 'suppressionthreshold', 1, ['id' => $snapshotid]);
+        $this->assert_report_refused($snapshotid, false, 'A metadata edit must invalidate the verdict.');
+        $this->assert_report_refused($snapshotid, true, 'A full verification must check the manifest.');
+
+        $task = new \local_outcomemap\task\verify_snapshots();
+        $this->expectOutputRegex('/FAILED verification/');
+        try {
+            $task->execute();
+            $this->fail('The nightly task must check the manifest.');
+        } catch (\moodle_exception $e) {
+            $this->assertSame('snapshotverifyfailed', $e->errorcode);
+        }
+    }
+
+    /**
+     * A verdict older than its maximum age is not reused.
+     */
+    public function test_snapshot_verdict_expires(): void {
+        $this->resetAfterTest(true);
+        [, $snapshotid] = $this->frozen_report();
+        $cache = \cache::make('local_outcomemap', 'snapshotverdict');
+        $verdict = $cache->get($snapshotid);
+        $this->assertIsArray($verdict, 'Freezing must record a verdict.');
+        $verdict['verifiedat'] = time() - snapshot_service::VERDICT_MAX_AGE - 1;
+        $cache->set($snapshotid, $verdict);
+        $this->tamper_one_row_in_place($snapshotid);
+        $this->assert_report_refused($snapshotid, false, 'An expired verdict must not be reused.');
+    }
+
+    /**
+     * The nightly task refreshes sound verdicts and fails loudly on a tampered capture.
+     */
+    public function test_verify_snapshots_task(): void {
+        $this->resetAfterTest(true);
+        [, $snapshotid] = $this->frozen_report();
+        $cache = \cache::make('local_outcomemap', 'snapshotverdict');
+        $cache->delete($snapshotid);
+
+        $task = new \local_outcomemap\task\verify_snapshots();
+        $this->expectOutputRegex('/Snapshot \d+ verified/');
+        $task->execute();
+        $this->assertIsArray($cache->get($snapshotid), 'A passing run must record the verdict.');
+
+        $this->tamper_one_row_in_place($snapshotid);
+        try {
+            $task->execute();
+            $this->fail('A tampered capture must fail the task.');
+        } catch (\moodle_exception $e) {
+            $this->assertSame('snapshotverifyfailed', $e->errorcode);
+        }
+        $this->assertFalse($cache->get($snapshotid), 'A failing run must withdraw the verdict.');
+    }
+
+    /**
+     * The faster normalizer encodes exactly as a full recursive key sort would.
+     */
+    public function test_canonical_json_matches_a_full_recursive_sort(): void {
+        $reference = static function ($value) use (&$reference) {
+            if (is_object($value)) {
+                $value = get_object_vars($value);
+            }
+            if (!is_array($value)) {
+                return $value;
+            }
+            if (!array_is_list($value)) {
+                ksort($value, SORT_STRING);
+            }
+            return array_map($reference, $value);
+        };
+        $value = ['z' => 1, 'a' => ['y' => null, 'b' => [3, 1, ['k' => 1.0, 'c' => 'é/x']]],
+            'm' => (object) ['q' => true, 'p' => '0.5000000000'], 'list' => [['b' => 1, 'a' => 2]]];
+        $this->assertSame(
+            json_encode($reference($value), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION),
+            canonical_json::encode($value)
+        );
+    }
 }
