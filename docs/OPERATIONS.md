@@ -37,8 +37,9 @@ Review role overrides after changing archetypes. In particular, a course or modu
 4. Associate each Moodle course shell with a stable catalog course and reporting-period code. Submit and confirm the association before it governs mappings or results.
 5. Create and approve the required attempt-selection, calculation/band, feedback-release, and accreditation policies. The plugin seeds no institutional thresholds or weights.
 6. Configure `local_outcomemap | autocopyquestionmappings` only if new question versions should receive copies of approved previous mappings. Copies are always drafts and require explicit review/finalization.
-7. Confirm Moodle cron is running. Quiz events enqueue lightweight recalculation work; scheduled reconciliation repairs missing or stale evidence/results.
-8. Grant custom reviewer and accreditation roles only the capabilities and contexts they require.
+7. Review `local_outcomemap | countpriorattempts` (on by default). While on, quiz attempts finished before their questions were mapped count towards the outcomes they were later mapped to, and `contributes_to` relations approved later still carry that evidence to course and program outcomes. Approving a mapping, relation, or outcome version, switching the setting on, and the 0.9.5 upgrade each queue the `backfill_prior_attempts` ad hoc task, which recalculates existing attempts in batches of 200 without hiding current figures. Switch it off to count only attempts finished while a mapping was in force; evidence already counted is kept.
+8. Confirm Moodle cron is running. Quiz events enqueue lightweight recalculation work; scheduled reconciliation repairs missing or stale evidence/results.
+9. Grant custom reviewer and accreditation roles only the capabilities and contexts they require.
 
 ### Foundation CSV import
 

@@ -27,6 +27,7 @@ namespace local_outcomemap\local\service;
 use local_outcomemap\local\audit_writer;
 use local_outcomemap\local\canonical_json;
 use local_outcomemap\local\decimal;
+use local_outcomemap\local\feature;
 use local_outcomemap\local\uuid;
 use local_outcomemap\local\validation_exception;
 use local_outcomemap\local\workflow;
@@ -225,12 +226,21 @@ final class calculation_service extends base_service {
      * Mark nonfrozen results depending on a question version's evidence stale.
      *
      * Called when governed mappings change so reconciliation recalculates.
+     * While prior attempts count, attempts on the question version that hold
+     * no evidence yet are also queued for catch-up, since the changed mapping
+     * set may now govern them.
      *
      * @param int $questionversionid Question-version ID.
      * @return int Number of results marked stale.
      */
     public static function mark_stale_for_question_version(int $questionversionid): int {
         global $DB;
+        if (feature::prior_attempts_count()) {
+            $cmids = self::quiz_cmids_for_question_version($questionversionid);
+            if ($cmids) {
+                self::queue_prior_attempt_backfill($cmids);
+            }
+        }
         $sql = "SELECT DISTINCT r.id
                   FROM {local_outcomemap_result} r
                   JOIN {local_outcomemap_evidence} e
@@ -402,6 +412,24 @@ final class calculation_service extends base_service {
             if (!$questionversion) {
                 continue;
             }
+            // The attempt keeps its own timestamp as provenance; only the
+            // moment at which governance is read moves forward when no mapping
+            // was yet in force (see feature::prior_attempts_count()).
+            $mapat = self::governed_at(
+                '{local_outcomemap_qmap} m',
+                'm',
+                "m.questionversionid = :qv AND m.role = 'assesses' AND m.status = :status
+                    AND m.version = (SELECT MAX(currentm.version)
+                                       FROM {local_outcomemap_qmap} currentm
+                                      WHERE currentm.mappinguuid = m.mappinguuid
+                                        AND currentm.status = :currentstatus)",
+                [
+                    'qv' => $questionversion->id,
+                    'status' => workflow::APPROVED,
+                    'currentstatus' => workflow::APPROVED,
+                ],
+                $at
+            );
             $mappings = $DB->get_records_sql(
                 "SELECT m.*
                    FROM {local_outcomemap_qmap} m
@@ -416,8 +444,8 @@ final class calculation_service extends base_service {
                     'qv' => $questionversion->id,
                     'status' => workflow::APPROVED,
                     'currentstatus' => workflow::APPROVED,
-                    'at1' => $at,
-                    'at2' => $at,
+                    'at1' => $mapat,
+                    'at2' => $mapat,
                 ]
             );
             if (!$mappings) {
@@ -461,7 +489,7 @@ final class calculation_service extends base_service {
                 $active[] = $direct;
             }
             foreach ($directrows as [$mapping, $direct]) {
-                foreach (self::propagation_targets((int) $mapping->itemverid, $at) as $target) {
+                foreach (self::propagation_targets((int) $mapping->itemverid, $mapat) as $target) {
                     $inherited = self::store_evidence(
                         $cinst,
                         $attempt,
@@ -671,7 +699,10 @@ final class calculation_service extends base_service {
      *
      * Traverses approved effective contributes_to relations; when several
      * paths reach one destination the greatest absolute cumulative weight
-     * wins, then the lexicographically smallest relation-ID sequence.
+     * wins, then the lexicographically smallest relation-ID sequence. With
+     * prior attempts counting, an outcome with no relation in force at the
+     * scope timestamp is read at the moment its first later relation took
+     * effect, and likewise for the destination outcome version.
      *
      * @param int $itemverid Directly assessed outcome-version ID.
      * @param int $at Scope timestamp.
@@ -685,11 +716,20 @@ final class calculation_service extends base_service {
         $visited = [$itemid => true];
         while ($queue) {
             [$currentitem, $weight, $path] = array_shift($queue);
+            // Each outcome's onward alignment is read independently from the
+            // same base moment, so the targets do not depend on traversal order.
+            $relat = self::governed_at(
+                '{local_outcomemap_rel} r',
+                'r',
+                "r.sourceitemid = :source AND r.type = 'contributes_to' AND r.status = :status",
+                ['source' => $currentitem, 'status' => workflow::APPROVED],
+                $at
+            );
             $relations = $DB->get_records_select(
                 'local_outcomemap_rel',
                 "sourceitemid = :source AND type = 'contributes_to' AND status = :status
                     AND effectivefrom <= :at1 AND (effectiveto IS NULL OR effectiveto > :at2)",
-                ['source' => $currentitem, 'status' => workflow::APPROVED, 'at1' => $at, 'at2' => $at],
+                ['source' => $currentitem, 'status' => workflow::APPROVED, 'at1' => $relat, 'at2' => $relat],
                 'id ASC'
             );
             foreach ($relations as $relation) {
@@ -720,11 +760,18 @@ final class calculation_service extends base_service {
         $targets = [];
         ksort($best);
         foreach ($best as $targetitem => $info) {
+            $versionat = self::governed_at(
+                '{local_outcomemap_itemver} v',
+                'v',
+                'v.itemid = :itemid AND v.status = :status',
+                ['itemid' => $targetitem, 'status' => workflow::APPROVED],
+                $at
+            );
             $targetversion = $DB->get_records_select(
                 'local_outcomemap_itemver',
                 'itemid = :itemid AND status = :status
                     AND effectivefrom <= :at1 AND (effectiveto IS NULL OR effectiveto > :at2)',
-                ['itemid' => $targetitem, 'status' => workflow::APPROVED, 'at1' => $at, 'at2' => $at],
+                ['itemid' => $targetitem, 'status' => workflow::APPROVED, 'at1' => $versionat, 'at2' => $versionat],
                 'version DESC',
                 '*',
                 0,
@@ -992,6 +1039,138 @@ final class calculation_service extends base_service {
             $evidence = array_merge($evidence, array_values($rows));
         }
         return $evidence;
+    }
+
+    /**
+     * Return the moment at which effective-dated governance applies to an attempt.
+     *
+     * When any matching approved record is in force at the attempt time, the
+     * attempt time itself governs. Otherwise, and only while prior attempts
+     * count, the attempt is held to the records as they first came into force
+     * after it: the earliest start among records not already ended by then.
+     * Sets valid at one instant (an assessed mapping set totalling one, say)
+     * stay valid, because the whole set is read at that single instant.
+     * Records that have not started yet are never candidates: governance
+     * dated for next term applies from next term, not from its approval.
+     *
+     * @param string $from SQL FROM clause naming the effective-dated table with an alias.
+     * @param string $alias Alias of the effective-dated table.
+     * @param string $where Conditions identifying the governing records.
+     * @param array $params Named parameters for $where.
+     * @param int $at Attempt or scope timestamp.
+     * @return int Timestamp at which to read the governing records.
+     */
+    private static function governed_at(string $from, string $alias, string $where, array $params, int $at): int {
+        global $DB;
+        if (!feature::prior_attempts_count()) {
+            return $at;
+        }
+        $first = $DB->get_field_sql(
+            "SELECT MIN({$alias}.effectivefrom)
+               FROM {$from}
+              WHERE {$where} AND {$alias}.effectivefrom <= :governednow
+                AND ({$alias}.effectiveto IS NULL OR {$alias}.effectiveto > :governedat)",
+            $params + ['governednow' => time(), 'governedat' => $at]
+        );
+        return $first === null || $first === false ? $at : max($at, (int) $first);
+    }
+
+    /**
+     * Queue a catch-up recalculation of attempts finished before governance existed.
+     *
+     * Recalculation is idempotent, so this only ever adds evidence that the
+     * current governance now attributes; results that do not change are
+     * left exactly as they are and nothing is marked stale while it runs.
+     *
+     * @param int[]|null $cmids Quiz course-module IDs to limit the catch-up to, or null for the site.
+     * @return void
+     */
+    public static function queue_prior_attempt_backfill(?array $cmids = null): void {
+        if ($cmids === null) {
+            \local_outcomemap\task\backfill_prior_attempts::queue(null);
+            return;
+        }
+        foreach (array_unique(array_map('intval', $cmids)) as $cmid) {
+            \local_outcomemap\task\backfill_prior_attempts::queue($cmid);
+        }
+    }
+
+    /**
+     * Quiz course modules holding finished attempts on a question version.
+     *
+     * @param int $questionversionid Question-version ID.
+     * @return int[] Course-module IDs.
+     */
+    private static function quiz_cmids_for_question_version(int $questionversionid): array {
+        global $DB;
+        return array_map('intval', $DB->get_fieldset_sql(
+            "SELECT DISTINCT cm.id
+               FROM {question_versions} qv
+               JOIN {question_attempts} qat ON qat.questionid = qv.questionid
+               JOIN {quiz_attempts} qa ON qa.uniqueid = qat.questionusageid
+               JOIN {course_modules} cm ON cm.instance = qa.quiz
+               JOIN {modules} md ON md.id = cm.module AND md.name = 'quiz'
+              WHERE qv.id = :qvid AND qa.state = 'finished' AND qa.preview = 0",
+            ['qvid' => $questionversionid]
+        ));
+    }
+
+    /**
+     * Queue catch-up recalculation after an approved relation changes what an outcome reaches.
+     *
+     * Every assessment holding current evidence at the relation's source
+     * outcome may now propagate further. Only applies while prior attempts
+     * count, or when the relation takes effect before it was approved.
+     *
+     * @param \stdClass $relation Approved relation record.
+     * @return void
+     */
+    public static function queue_after_relation_approval(\stdClass $relation): void {
+        global $DB;
+        if (!feature::prior_attempts_count() && (int) $relation->effectivefrom >= (int) $relation->approvedat) {
+            return;
+        }
+        $cmids = $DB->get_fieldset_sql(
+            "SELECT DISTINCT e.assessmentcmid
+               FROM {local_outcomemap_evidence} e
+               JOIN {local_outcomemap_itemver} v ON v.id = e.itemverid
+              WHERE v.itemid = :itemid AND e.supersededby IS NULL",
+            ['itemid' => (int) $relation->sourceitemid]
+        );
+        if ($cmids) {
+            self::queue_prior_attempt_backfill($cmids);
+        }
+    }
+
+    /**
+     * Queue catch-up recalculation after an outcome version is approved.
+     *
+     * A destination outcome with no version covering an attempt can gain one,
+     * so every assessment holding current evidence at an outcome that
+     * contributes to this one may now propagate to it. Only applies while
+     * prior attempts count, or when the version takes effect before it was
+     * approved.
+     *
+     * @param \stdClass $version Approved outcome-version record.
+     * @return void
+     */
+    public static function queue_after_outcome_version_approval(\stdClass $version): void {
+        global $DB;
+        if (!feature::prior_attempts_count() && (int) $version->effectivefrom >= (int) $version->approvedat) {
+            return;
+        }
+        $cmids = $DB->get_fieldset_sql(
+            "SELECT DISTINCT e.assessmentcmid
+               FROM {local_outcomemap_evidence} e
+               JOIN {local_outcomemap_itemver} v ON v.id = e.itemverid
+               JOIN {local_outcomemap_rel} r ON r.sourceitemid = v.itemid
+              WHERE r.targetitemid = :itemid AND r.type = 'contributes_to' AND r.status = :status
+                AND e.supersededby IS NULL",
+            ['itemid' => (int) $version->itemid, 'status' => workflow::APPROVED]
+        );
+        if ($cmids) {
+            self::queue_prior_attempt_backfill($cmids);
+        }
     }
 
     /**

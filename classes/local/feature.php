@@ -47,6 +47,25 @@ final class feature {
     }
 
     /**
+     * Whether attempts finished before their mappings existed count as evidence.
+     *
+     * Outcomes are routinely mapped onto a course that has already run, so an
+     * attempt finished before any mapping governed its questions is evaluated
+     * against the first approved mappings that came into force after it, and
+     * a contributes_to relation or outcome version added later likewise carries
+     * that attempt's evidence up to course and program outcomes. Where a mapping
+     * or relation was in force when the attempt finished, it still governs.
+     *
+     * Treat an unset setting as enabled: this is the shipped default.
+     *
+     * @return bool
+     */
+    public static function prior_attempts_count(): bool {
+        $configured = get_config('local_outcomemap', 'countpriorattempts');
+        return $configured === false ? true : (bool) $configured;
+    }
+
+    /**
      * Stop a request that reached a disabled feature by direct URL.
      *
      * @param bool $enabled Result of the matching switch check.

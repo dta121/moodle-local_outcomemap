@@ -16,6 +16,7 @@
 
 namespace local_outcomemap\task;
 
+use local_outcomemap\local\feature;
 use local_outcomemap\local\service\calculation_service;
 use local_outcomemap\local\workflow;
 
@@ -66,12 +67,23 @@ class reconcile_evidence extends \core\task\scheduled_task {
                      ON e.userid = r.userid AND e.cinstid = r.cinstid AND e.itemverid = r.itemverid
               WHERE r.stale = 1 AND r.supersededby IS NULL",
             [],
-            '',
-            '*',
             0,
             self::BATCH
         );
         $this->collect($stale, $tuples);
+
+        // In force when the attempt finished, which is the only mapping
+        // ingestion will read. Without this the query keeps returning learners
+        // whose mappings postdate their attempts, and no run can ever satisfy
+        // them. While prior attempts count, ingestion also reads the first
+        // mapping in force after the attempt, so any mapping that has started
+        // and was not already ended by the finish time qualifies; one dated in
+        // the future would match here but be refused by ingestion, forever.
+        $attempttime = 'COALESCE(NULLIF(qa.timefinish, 0), qa.timemodified)';
+        $inforce = "sm.effectivefrom <= :inforcenow AND (sm.effectiveto IS NULL OR sm.effectiveto > $attempttime)";
+        if (!feature::prior_attempts_count()) {
+            $inforce = "sm.effectivefrom <= $attempttime AND $inforce";
+        }
 
         // Learners with a finished attempt on a mapped quiz but no evidence yet
         // for that assessment. Deliberately not "attempts without evidence":
@@ -99,13 +111,7 @@ class reconcile_evidence extends \core\task\scheduled_task {
                                               WHERE currentsm.mappinguuid = sm.mappinguuid
                                                 AND currentsm.status = :currentmapapproved)
                      WHERE sqa.questionusageid = qa.uniqueid
-                       -- In force when the attempt finished, which is the only
-                       -- mapping ingestion will read. Without this the query
-                       -- keeps returning learners whose mappings postdate their
-                       -- attempts, and no run can ever satisfy them.
-                       AND sm.effectivefrom <= COALESCE(NULLIF(qa.timefinish, 0), qa.timemodified)
-                       AND (sm.effectiveto IS NULL
-                            OR sm.effectiveto > COALESCE(NULLIF(qa.timefinish, 0), qa.timemodified)))
+                       AND $inforce)
                 AND NOT EXISTS (
                     SELECT 1 FROM {local_outcomemap_evidence} e
                      WHERE e.cinstid = ci.id AND e.userid = qa.userid
@@ -114,9 +120,8 @@ class reconcile_evidence extends \core\task\scheduled_task {
                 'approved' => workflow::APPROVED,
                 'mapapproved' => workflow::APPROVED,
                 'currentmapapproved' => workflow::APPROVED,
+                'inforcenow' => time(),
             ],
-            '',
-            '*',
             0,
             self::BATCH
         );
