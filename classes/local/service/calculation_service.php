@@ -1050,6 +1050,8 @@ final class calculation_service extends base_service {
      * after it: the earliest start among records not already ended by then.
      * Sets valid at one instant (an assessed mapping set totalling one, say)
      * stay valid, because the whole set is read at that single instant.
+     * Records that have not started yet are never candidates: governance
+     * dated for next term applies from next term, not from its approval.
      *
      * @param string $from SQL FROM clause naming the effective-dated table with an alias.
      * @param string $alias Alias of the effective-dated table.
@@ -1066,8 +1068,9 @@ final class calculation_service extends base_service {
         $first = $DB->get_field_sql(
             "SELECT MIN({$alias}.effectivefrom)
                FROM {$from}
-              WHERE {$where} AND ({$alias}.effectiveto IS NULL OR {$alias}.effectiveto > :governedat)",
-            $params + ['governedat' => $at]
+              WHERE {$where} AND {$alias}.effectivefrom <= :governednow
+                AND ({$alias}.effectiveto IS NULL OR {$alias}.effectiveto > :governedat)",
+            $params + ['governednow' => time(), 'governedat' => $at]
         );
         return $first === null || $first === false ? $at : max($at, (int) $first);
     }
@@ -1133,6 +1136,37 @@ final class calculation_service extends base_service {
                JOIN {local_outcomemap_itemver} v ON v.id = e.itemverid
               WHERE v.itemid = :itemid AND e.supersededby IS NULL",
             ['itemid' => (int) $relation->sourceitemid]
+        );
+        if ($cmids) {
+            self::queue_prior_attempt_backfill($cmids);
+        }
+    }
+
+    /**
+     * Queue catch-up recalculation after an outcome version is approved.
+     *
+     * A destination outcome with no version covering an attempt can gain one,
+     * so every assessment holding current evidence at an outcome that
+     * contributes to this one may now propagate to it. Only applies while
+     * prior attempts count, or when the version takes effect before it was
+     * approved.
+     *
+     * @param \stdClass $version Approved outcome-version record.
+     * @return void
+     */
+    public static function queue_after_outcome_version_approval(\stdClass $version): void {
+        global $DB;
+        if (!feature::prior_attempts_count() && (int) $version->effectivefrom >= (int) $version->approvedat) {
+            return;
+        }
+        $cmids = $DB->get_fieldset_sql(
+            "SELECT DISTINCT e.assessmentcmid
+               FROM {local_outcomemap_evidence} e
+               JOIN {local_outcomemap_itemver} v ON v.id = e.itemverid
+               JOIN {local_outcomemap_rel} r ON r.sourceitemid = v.itemid
+              WHERE r.targetitemid = :itemid AND r.type = 'contributes_to' AND r.status = :status
+                AND e.supersededby IS NULL",
+            ['itemid' => (int) $version->itemid, 'status' => workflow::APPROVED]
         );
         if ($cmids) {
             self::queue_prior_attempt_backfill($cmids);

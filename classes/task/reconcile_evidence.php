@@ -76,10 +76,11 @@ class reconcile_evidence extends \core\task\scheduled_task {
         // ingestion will read. Without this the query keeps returning learners
         // whose mappings postdate their attempts, and no run can ever satisfy
         // them. While prior attempts count, ingestion also reads the first
-        // mapping in force after the attempt, so any mapping not already ended
-        // by the finish time qualifies.
+        // mapping in force after the attempt, so any mapping that has started
+        // and was not already ended by the finish time qualifies; one dated in
+        // the future would match here but be refused by ingestion, forever.
         $attempttime = 'COALESCE(NULLIF(qa.timefinish, 0), qa.timemodified)';
-        $inforce = "(sm.effectiveto IS NULL OR sm.effectiveto > $attempttime)";
+        $inforce = "sm.effectivefrom <= :inforcenow AND (sm.effectiveto IS NULL OR sm.effectiveto > $attempttime)";
         if (!feature::prior_attempts_count()) {
             $inforce = "sm.effectivefrom <= $attempttime AND $inforce";
         }
@@ -119,6 +120,7 @@ class reconcile_evidence extends \core\task\scheduled_task {
                 'approved' => workflow::APPROVED,
                 'mapapproved' => workflow::APPROVED,
                 'currentmapapproved' => workflow::APPROVED,
+                'inforcenow' => time(),
             ],
             0,
             self::BATCH

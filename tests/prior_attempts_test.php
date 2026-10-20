@@ -160,6 +160,7 @@ final class prior_attempts_test extends \advanced_testcase {
             'cinstid' => $cinstid,
             'quiz' => $quiz,
             'cmid' => (int) $cm->id,
+            'frameworkid' => $frameworkid,
             'questionversionid' => (int) $question->versionid,
             'outcomes' => $outcomes,
         ];
@@ -441,6 +442,80 @@ final class prior_attempts_test extends \advanced_testcase {
         calculation_service::recalculate_attempt($attemptid);
         $this->assertCount(1, $this->evidence($fixture, 'CLO1'));
         $this->assertSame([], $this->evidence($fixture, 'PLO1'));
+    }
+
+    /**
+     * A mapping dated for a future term does not reach back to earlier
+     * attempts before it starts, through ingestion or reconciliation.
+     */
+    public function test_future_dated_mapping_does_not_apply_early(): void {
+        $fixture = $this->fixture();
+        $now = time();
+        $student = $this->getDataGenerator()->create_user();
+        $attemptid = $this->attempt($fixture, $student, $now - 10 * self::DAY);
+        $this->map($fixture, 'CLO1', $now + 5 * self::DAY);
+
+        $this->expectOutputRegex('/prior-attempt catch-up: 1 recalculated, 0 errors/');
+        $this->runAdhocTasks(backfill_prior_attempts::class);
+        calculation_service::recalculate_attempt($attemptid);
+        (new \local_outcomemap\task\reconcile_evidence())->execute();
+        $this->assertSame([], $this->evidence($fixture, 'CLO1'));
+        $this->assertNull($this->course_result($fixture, $student, 'CLO1'));
+    }
+
+    /**
+     * Approving a destination outcome version that starts after the attempt
+     * queues the catch-up that propagates existing evidence to it.
+     */
+    public function test_outcome_version_approved_later_receives_evidence(): void {
+        global $DB;
+        $fixture = $this->fixture();
+        $now = time();
+        $student = $this->getDataGenerator()->create_user();
+
+        // PLO2's first version ended before the attempt; its next version
+        // starts afterwards, so nothing covers the attempt itself.
+        $this->setAdminUser();
+        $itemid = outcome_service::create([
+            'frameworkid' => $fixture->frameworkid,
+            'code' => 'PLO2',
+            'statement' => 'Outcome PLO2',
+            'effectivefrom' => self::EFFECTIVEFROM,
+            'effectiveto' => $now - 20 * self::DAY,
+        ]);
+        $first = (int) $DB->get_field('local_outcomemap_itemver', 'id', ['itemid' => $itemid], MUST_EXIST);
+        outcome_service::submit_for_review($first);
+        $this->setUser($this->reviewer);
+        outcome_service::approve($first);
+        $this->setAdminUser();
+        $fixture->outcomes['PLO2'] = (object) ['itemid' => $itemid, 'itemverid' => $first];
+        $this->relate($fixture, 'CLO1', 'PLO2', self::EFFECTIVEFROM);
+        $this->map($fixture, 'CLO1', self::EFFECTIVEFROM);
+
+        calculation_service::recalculate_attempt($this->attempt($fixture, $student, $now - 10 * self::DAY));
+        $this->assertCount(1, $this->evidence($fixture, 'CLO1'));
+        $this->assertSame([], $this->evidence($fixture, 'PLO2'));
+
+        $DB->delete_records('task_adhoc', ['classname' => '\\' . backfill_prior_attempts::class]);
+        $second = outcome_service::create_version($itemid, [
+            'statement' => 'Outcome PLO2, revised',
+            'effectivefrom' => $now - self::DAY,
+        ]);
+        outcome_service::submit_for_review($second);
+        $this->setUser($this->reviewer);
+        outcome_service::approve($second);
+        $this->setAdminUser();
+
+        $queued = $this->queued_backfills();
+        $this->assertCount(1, $queued);
+        $this->assertSame($fixture->cmid, (int) $queued[0]->cmid);
+        $this->expectOutputRegex('/prior-attempt catch-up: 1 recalculated, 0 errors/');
+        $this->runAdhocTasks(backfill_prior_attempts::class);
+
+        $fixture->outcomes['PLO2']->itemverid = $second;
+        $inherited = $this->evidence($fixture, 'PLO2');
+        $this->assertCount(1, $inherited);
+        $this->assertSame(calculation_service::TYPE_INHERITED, $inherited[0]->evidencetype);
     }
 
     /**

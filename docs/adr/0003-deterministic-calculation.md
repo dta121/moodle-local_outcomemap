@@ -90,12 +90,12 @@ A zero denominator never produces a percentage. Band boundaries are evaluated ag
 Mappings, `contributes_to` relations, and destination outcome versions are read at a governed moment derived from the attempt's finish time `t`:
 
 - if any matching approved record is in force at `t`, `t` governs;
-- otherwise, while the site setting `local_outcomemap/countpriorattempts` is on (the default), the governed moment is the earliest `effectivefrom` among matching approved records not already ended by `t`, so an attempt taken before its course was mapped is held to the mapping set as it first came into force;
+- otherwise, while the site setting `local_outcomemap/countpriorattempts` is on (the default), the governed moment is the earliest `effectivefrom` among matching approved records that have already started and were not ended by `t` (governance dated for a future term never applies early), so an attempt taken before its course was mapped is held to the mapping set as it first came into force;
 - with the setting off, `t` always governs and such attempts produce no evidence.
 
 Each lookup is resolved independently: the assessed mapping set of one question version as a whole (so a multi-outcome set that totals one at a single instant is never mixed with a later set), each outcome's onward relations in the propagation graph, and each destination outcome version. Evidence keeps `attempttime = t`, so an observation counted this way is identifiable from stored provenance alone (`attempttime` earlier than its mapping's or relations' `effectivefrom`).
 
-This changes which governance applies, not arithmetic, attempt selection, sufficiency, path selection among in-force paths, or banding, so it does not increment the algorithm identifier; doing so would also change every dedupe key and supersede all existing evidence. Turning the setting on (and the upgrade that introduced it) queues `backfill_prior_attempts`, an idempotent batched walk that recalculates without marking results stale, and approving an assessed mapping or a `contributes_to` relation queues the same walk for the affected quizzes. Turning it off governs attempts calculated afterwards; evidence already counted is history and is not withdrawn.
+This changes which governance applies, not arithmetic, attempt selection, sufficiency, path selection among in-force paths, or banding, so it does not increment the algorithm identifier; doing so would also change every dedupe key and supersede all existing evidence. Turning the setting on (and the upgrade that introduced it) queues `backfill_prior_attempts`, an idempotent batched walk that recalculates without marking results stale, and approving an assessed mapping, a `contributes_to` relation, or an outcome version queues the same walk for the affected quizzes. Turning it off governs attempts calculated afterwards; evidence already counted is history and is not withdrawn.
 
 ### Propagation
 

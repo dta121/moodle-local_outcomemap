@@ -134,9 +134,9 @@ final class course_attainment_service extends base_service {
         );
 
         // The engine's own test: in force at the attempt's finish time, or,
-        // while prior attempts count, not yet ended by it.
+        // while prior attempts count, started by now and not yet ended by it.
         $attempttime = 'COALESCE(NULLIF(qa.timefinish, 0), qa.timemodified)';
-        $inforcesql = "(sm.effectiveto IS NULL OR sm.effectiveto > $attempttime)";
+        $inforcesql = "sm.effectivefrom <= :inforceat AND (sm.effectiveto IS NULL OR sm.effectiveto > $attempttime)";
         if (!feature::prior_attempts_count()) {
             $inforcesql = "sm.effectivefrom <= $attempttime AND $inforcesql";
         }
@@ -148,7 +148,7 @@ final class course_attainment_service extends base_service {
                $mappingjoin
               WHERE cm.course = :courseid AND qa.state = 'finished' AND qa.preview = 0
                 AND $inforcesql",
-            $mapparams
+            $mapparams + ['inforceat' => $at]
         );
 
         $instances = $DB->get_records('local_outcomemap_cinst', [
