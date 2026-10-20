@@ -91,6 +91,21 @@ if ($hassiteconfig) {
         ),
         0
     ));
+    $countpriorattempts = new admin_setting_configcheckbox(
+        'local_outcomemap/countpriorattempts',
+        get_string('countpriorattempts', 'local_outcomemap'),
+        get_string('countpriorattempts_desc', 'local_outcomemap'),
+        1
+    );
+    // Switching it on catches up the attempts already taken. Switching it off
+    // governs attempts calculated from then on; evidence already counted is
+    // history and is not withdrawn.
+    $countpriorattempts->set_updatedcallback(static function (): void {
+        if (\local_outcomemap\local\feature::prior_attempts_count()) {
+            \local_outcomemap\local\service\calculation_service::queue_prior_attempt_backfill(null);
+        }
+    });
+    $settings->add($countpriorattempts);
     $settings->add(new admin_setting_configcheckbox(
         'local_outcomemap/enableremediation',
         get_string('enableremediation', 'local_outcomemap'),

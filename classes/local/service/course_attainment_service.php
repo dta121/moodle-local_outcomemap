@@ -24,6 +24,7 @@
 
 namespace local_outcomemap\local\service;
 
+use local_outcomemap\local\feature;
 use local_outcomemap\local\workflow;
 
 /**
@@ -132,7 +133,13 @@ final class course_attainment_service extends base_service {
             $mapparams
         );
 
-        // The engine's own test: in force at the attempt's finish time.
+        // The engine's own test: in force at the attempt's finish time, or,
+        // while prior attempts count, not yet ended by it.
+        $attempttime = 'COALESCE(NULLIF(qa.timefinish, 0), qa.timemodified)';
+        $inforcesql = "(sm.effectiveto IS NULL OR sm.effectiveto > $attempttime)";
+        if (!feature::prior_attempts_count()) {
+            $inforcesql = "sm.effectivefrom <= $attempttime AND $inforcesql";
+        }
         $inforce = (int) $DB->get_field_sql(
             "SELECT COUNT(DISTINCT qa.id) FROM {quiz_attempts} qa
                JOIN {quiz} q ON q.id = qa.quiz
@@ -140,9 +147,7 @@ final class course_attainment_service extends base_service {
                JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
                $mappingjoin
               WHERE cm.course = :courseid AND qa.state = 'finished' AND qa.preview = 0
-                AND sm.effectivefrom <= COALESCE(NULLIF(qa.timefinish, 0), qa.timemodified)
-                AND (sm.effectiveto IS NULL
-                     OR sm.effectiveto > COALESCE(NULLIF(qa.timefinish, 0), qa.timemodified))",
+                AND $inforcesql",
             $mapparams
         );
 
