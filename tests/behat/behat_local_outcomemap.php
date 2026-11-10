@@ -1034,4 +1034,34 @@ class behat_local_outcomemap extends behat_base {
             'timemodified' => $now,
         ]);
     }
+
+    /**
+     * Asserts how many outcome mappings, in any workflow state, an activity carries.
+     *
+     * @Then /^activity "([^"]+)" in course "([^"]+)" should have (\d+) outcome mappings$/
+     * @param string $activityname Activity name in the course.
+     * @param string $courseshortname Course shortname.
+     * @param int $expected Expected number of mapping records.
+     */
+    public function activity_should_have_outcome_mappings(string $activityname, string $courseshortname, int $expected): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $courseshortname], '*', MUST_EXIST);
+        $cmid = null;
+        foreach (get_fast_modinfo($course)->get_cms() as $candidate) {
+            if ($candidate->name === $activityname) {
+                $cmid = (int) $candidate->id;
+                break;
+            }
+        }
+        if ($cmid === null) {
+            throw new ExpectationException("No activity named {$activityname} in {$courseshortname}", $this->getSession());
+        }
+        $actual = $DB->count_records('local_outcomemap_cmmap', ['cmid' => $cmid]);
+        if ($actual !== $expected) {
+            throw new ExpectationException(
+                "Activity {$activityname} has {$actual} outcome mappings, expected {$expected}",
+                $this->getSession()
+            );
+        }
+    }
 }

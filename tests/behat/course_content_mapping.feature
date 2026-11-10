@@ -118,3 +118,16 @@ Feature: Course staff map content to governed outcome versions
     And I should see "COV-ULO.1a"
     And I should see "Not assessed"
     And I should see "Through alignment"
+
+  Scenario: Saving an activity's settings without choosing an outcome maps nothing
+    Given the "MBA614" course has unit outcome "1a" aligned to course outcome "0a" and taught by "Evidence workshop"
+    And the following "activities" exist:
+      | activity | name         | course | idnumber |
+      | page     | Unit reading | MBA614 | reading  |
+    When I am on the "Unit reading" "page activity editing" page logged in as "admin"
+    Then I should see "Exact outcome version"
+    When I set the field "Name" to "Unit reading revised"
+    And I press "Save and return to course"
+    Then I should see "Unit reading revised"
+    And activity "Unit reading revised" in course "MBA614" should have 0 outcome mappings
+    And activity "Evidence workshop" in course "MBA614" should have 1 outcome mappings

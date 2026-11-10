@@ -624,4 +624,78 @@ final class content_mapping_service_test extends \advanced_testcase {
             $this->assertArrayNotHasKey('bandid', $recommendation);
         }
     }
+
+    /**
+     * An outcome chosen in the activity settings form is saved as exactly one draft mapping.
+     */
+    public function test_module_form_saves_a_chosen_outcome_once(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $page = $this->getDataGenerator()->create_module('page', ['course' => $course->id]);
+        $cm = get_coursemodule_from_instance('page', $page->id, $course->id, false, MUST_EXIST);
+        $reviewer = $this->create_reviewer();
+        [$cinstid, $itemverid] = $this->create_scope($course, $reviewer);
+        $data = [
+            'outcomemap_cinstid' => $cinstid,
+            'outcomemap_itemverid' => $itemverid,
+            'outcomemap_role' => content_mapping_service::ROLE_TEACHES,
+            'outcomemap_weight' => '',
+            'outcomemap_priority' => 0,
+            'outcomemap_notes' => '',
+            'outcomemap_effectivefrom' => 1704067200,
+        ];
+        $this->assertSame([], content_mapping_service::validate_module_form_data((int) $course->id, $data));
+
+        // A bad value comes back as a field error, so the author keeps the rest of the form.
+        $errors = content_mapping_service::validate_module_form_data(
+            (int) $course->id,
+            ['outcomemap_weight' => 'heavy'] + $data
+        );
+        $this->assertSame(['outcomemap_weight'], array_keys($errors));
+
+        $mappingid = content_mapping_service::save_module_form_mapping((int) $cm->id, $data);
+        $mapping = $DB->get_record('local_outcomemap_cmmap', ['id' => $mappingid], '*', MUST_EXIST);
+        $this->assertSame(workflow::DRAFT, $mapping->status);
+        $this->assertEquals($itemverid, $mapping->itemverid);
+        $this->assertEquals($cm->id, $mapping->cmid);
+        // Saving the activity again with the same choice does not add a second mapping.
+        $this->assertSame($mappingid, content_mapping_service::save_module_form_mapping((int) $cm->id, $data));
+        $this->assertSame(1, $DB->count_records('local_outcomemap_cmmap', ['cmid' => $cm->id]));
+    }
+
+    /**
+     * The activity settings form never picks an outcome on the author's behalf.
+     */
+    public function test_module_form_does_not_preselect_an_outcome(): void {
+        global $CFG, $DB, $PAGE;
+        require_once($CFG->dirroot . '/course/moodleform_mod.php');
+        require_once($CFG->dirroot . '/local/outcomemap/lib.php');
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $page = $this->getDataGenerator()->create_module('page', ['course' => $course->id]);
+        $cm = get_coursemodule_from_instance('page', $page->id, $course->id, false, MUST_EXIST);
+        $reviewer = $this->create_reviewer();
+        [, $itemverid] = $this->create_scope($course, $reviewer);
+        // The form callback reads the course being edited from the page, as the real activity form does.
+        $PAGE->set_course($course);
+
+        $mform = new \MoodleQuickForm('outcomemaptest', 'post', '');
+        local_outcomemap_coursemodule_standard_elements($this->createMock(\moodleform_mod::class), $mform);
+        $this->assertTrue($mform->elementExists('outcomemap_itemverid'));
+        $element = $mform->getElement('outcomemap_itemverid');
+        $values = array_map(static fn(array $option): string => (string) $option['attr']['value'], $element->_options);
+        $this->assertContains((string) $itemverid, $values);
+        // A single-choice list submits its first option when nothing is chosen, so that option must be the blank one.
+        $this->assertSame('', $values[0]);
+        $this->assertSame('', trim((string) $element->_options[0]['text']));
+
+        // An untouched form therefore validates and writes no mapping.
+        $untouched = ['outcomemap_itemverid' => $values[0], 'outcomemap_cinstid' => 0];
+        $this->assertSame([], content_mapping_service::validate_module_form_data((int) $course->id, $untouched));
+        $this->assertNull(content_mapping_service::save_module_form_mapping((int) $cm->id, $untouched));
+        $this->assertSame(0, $DB->count_records('local_outcomemap_cmmap', ['cmid' => $cm->id]));
+    }
 }
