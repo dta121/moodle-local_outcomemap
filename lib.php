@@ -123,11 +123,13 @@ function local_outcomemap_coursemodule_standard_elements(
         get_string('courseinstance', 'local_outcomemap'),
         $options['instances']
     );
+    // A single-choice list submits its first option when nothing is chosen. Lead with a blank
+    // one so an untouched form maps nothing instead of the first outcome in the list.
     $mform->addElement(
         'autocomplete',
         'outcomemap_itemverid',
         get_string('outcomeversion', 'local_outcomemap'),
-        $options['outcomes']
+        ['' => ''] + $options['outcomes']
     );
     $mform->addElement('select', 'outcomemap_role', get_string('mappingrole', 'local_outcomemap'), $roles);
     $mform->addElement('text', 'outcomemap_weight', get_string('mappingweight', 'local_outcomemap'));
