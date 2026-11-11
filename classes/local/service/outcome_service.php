@@ -370,6 +370,8 @@ final class outcome_service extends base_service {
                 \context_system::instance(),
                 $actorid
             );
+            // Evidence already held below this outcome may now reach it.
+            calculation_service::queue_after_outcome_version_approval($afterversion);
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);

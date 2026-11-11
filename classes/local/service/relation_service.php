@@ -225,6 +225,10 @@ final class relation_service extends base_service {
                 \context_system::instance(),
                 $actorid
             );
+            if ($after->type === self::CONTRIBUTES_TO) {
+                // Evidence already held at the source may now propagate further.
+                calculation_service::queue_after_relation_approval($after);
+            }
             $transaction->allow_commit();
         } catch (\Throwable $e) {
             self::rollback($transaction, $e);

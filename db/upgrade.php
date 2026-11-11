@@ -809,5 +809,19 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026072906, 'local', 'outcomemap');
     }
 
+    if ($oldversion < 2026101900) {
+        // Attempts finished before their questions were mapped now count by
+        // default. Record the default explicitly, then catch up the attempts
+        // already taken in the background; unchanged results stay as they are.
+        if (get_config('local_outcomemap', 'countpriorattempts') === false) {
+            set_config('countpriorattempts', 1, 'local_outcomemap');
+        }
+        if (\local_outcomemap\local\feature::prior_attempts_count()) {
+            \local_outcomemap\local\service\calculation_service::queue_prior_attempt_backfill(null);
+        }
+
+        upgrade_plugin_savepoint(true, 2026101900, 'local', 'outcomemap');
+    }
+
     return true;
 }

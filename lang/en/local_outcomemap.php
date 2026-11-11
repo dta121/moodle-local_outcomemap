@@ -432,6 +432,10 @@ $string['correctionreason'] = 'Correction reason';
 
 $string['correctsnapshot'] = 'Create correction version';
 
+$string['countpriorattempts'] = 'Count attempts taken before outcomes were mapped';
+
+$string['countpriorattempts_desc'] = 'When enabled (the default), a quiz attempt finished before any approved mapping governed its questions is evaluated against the first approved mappings that came into force afterwards, so assessments already taken count towards the learning outcomes they were later mapped to. The same applies up the outcome graph: a contributes_to relation approved after the attempt carries that evidence up to course and program outcomes. Where a mapping or relation was already in force when the attempt finished, it continues to govern, and evidence keeps the attempt\'s real finish time for traceability. Turning this on queues a background catch-up of existing attempts; results that do not change are left untouched. Turning it off applies to attempts calculated from then on and does not withdraw evidence already counted.';
+
 $string['courseinstance'] = 'Course instance';
 
 $string['courseinstancedeleteconfirm'] = 'Remove the association between {$a->catalog} and reporting period {$a->period}? Nothing currently depends on it, so this only undoes the association itself. The removal is recorded in the audit history.';
