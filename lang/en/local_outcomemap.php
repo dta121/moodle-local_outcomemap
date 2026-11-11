@@ -320,6 +320,8 @@ $string['bulkpreviewinvalid'] = 'The bulk operation has validation errors and wa
 
 $string['bulkpreviewstale'] = 'The selected questions or mappings changed after the preview. Preview the operation again before committing.';
 
+$string['cachedef_snapshotverdict'] = 'Accreditation snapshot integrity verdicts';
+
 $string['calculationnotavailable'] = 'Not available';
 
 $string['calculationtimestamp'] = 'Calculated';
@@ -2856,6 +2858,10 @@ $string['snapreport_unknownuser'] = 'Deleted user';
 
 $string['snapreport_verified'] = 'Frozen and integrity verified';
 
+$string['snapreport_verifiedat'] = 'Integrity last verified in full {$a}';
+
+$string['snapreport_verifynow'] = 'Verify now';
+
 $string['snapreport_versionline'] = 'Version {$a->version} · data frozen {$a->time} · reporting period {$a->period}';
 
 $string['snapreport_vsbenchmark'] = 'vs {$a}% benchmark';
@@ -2949,6 +2955,8 @@ $string['snapshotstatus_frozen'] = 'Frozen';
 $string['snapshotsubjecthashmethod'] = 'Snapshot-specific HMAC-SHA-256 using erasable per-user key material';
 
 $string['snapshotuuid'] = 'Snapshot UUID';
+
+$string['snapshotverifyfailed'] = 'Accreditation snapshot integrity verification failed for snapshot IDs: {$a}';
 
 $string['snapshotversion'] = 'Snapshot version';
 
@@ -3189,6 +3197,8 @@ $string['targetoutcome'] = 'Target outcome';
 $string['targettype'] = 'Target type';
 
 $string['taskreconcile'] = 'Reconcile outcome evidence and stale results';
+
+$string['taskverifysnapshots'] = 'Re-verify accreditation snapshot integrity';
 
 $string['timecreated'] = 'Created';
 
