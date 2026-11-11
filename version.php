@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_outcomemap';
-$plugin->version = 2026101900; // Count attempts taken before outcomes were mapped, by default.
+$plugin->version = 2026111000; // Reuse snapshot verification verdicts; nightly re-verification.
 $plugin->requires = 2024100700; // Moodle 4.5 minimum per the specification.
 $plugin->maturity = MATURITY_BETA;
-$plugin->release = '0.9.5';
+$plugin->release = '0.9.6';

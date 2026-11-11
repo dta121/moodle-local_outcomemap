@@ -823,5 +823,18 @@ function xmldb_local_outcomemap_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026101900, 'local', 'outcomemap');
     }
 
+    if ($oldversion < 2026111000) {
+        // The snapshot verdict cache was first built as 2026101900 too. A site
+        // that took it before the prior-attempt change was already at that
+        // version when the step above arrived, so the step never ran there.
+        // Such a site is the only one with no recorded default: catch it up.
+        if (get_config('local_outcomemap', 'countpriorattempts') === false) {
+            set_config('countpriorattempts', 1, 'local_outcomemap');
+            \local_outcomemap\local\service\calculation_service::queue_prior_attempt_backfill(null);
+        }
+
+        upgrade_plugin_savepoint(true, 2026111000, 'local', 'outcomemap');
+    }
+
     return true;
 }

@@ -112,15 +112,13 @@ final class audit_lineage_service {
         // This cannot hide a tampered column: payloadjson is hash-checked
         // above, so its key set is itself protected, and any stored key the
         // normalizer does not produce is rejected below.
+        // Both sides are flat maps of scalars, so sorting their keys and comparing
+        // strictly is the same test as comparing their canonical encodings: equal
+        // key sets, equal values, equal types. It avoids two JSON encodes per row.
         $comparable = array_intersect_key($expected, $stored);
-        $storedkeys = array_keys($stored);
-        $comparablekeys = array_keys($comparable);
-        sort($storedkeys);
-        sort($comparablekeys);
-        if (
-            $storedkeys !== $comparablekeys
-                || canonical_json::encode($comparable) !== canonical_json::encode($stored)
-        ) {
+        ksort($comparable, SORT_STRING);
+        ksort($stored, SORT_STRING);
+        if ($comparable !== $stored) {
             throw new validation_exception('snapshotintegrityfailure', 'index', $item->id);
         }
         return [
