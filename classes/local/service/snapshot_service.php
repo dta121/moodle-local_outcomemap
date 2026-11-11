@@ -540,7 +540,11 @@ final class snapshot_service extends base_service {
      * of its row set, so any edit to the record, or rows added, removed, or
      * reordered, no longer match. Values are compared as strings: the record
      * freeze() fingerprints holds ints where a database read holds strings.
-     * It is one indexed aggregate, not a read of the rows.
+     * It is one aggregate, not a read of the rows.
+     *
+     * The sum of positions alone is blind to two rows trading places, so each
+     * position is also weighted by its row ID: trading the positions of rows
+     * i and j moves that sum by (i - j) times the gap between the positions.
      *
      * @param \stdClass $snapshot Snapshot record.
      * @return string
@@ -548,7 +552,8 @@ final class snapshot_service extends base_service {
     private static function fingerprint(\stdClass $snapshot): string {
         global $DB;
         $rows = $DB->get_record_sql(
-            "SELECT COUNT(1) AS total, MIN(id) AS minid, MAX(id) AS maxid, SUM(sortorder) AS sortsum
+            "SELECT COUNT(1) AS total, MIN(id) AS minid, MAX(id) AS maxid, SUM(sortorder) AS sortsum,
+                    SUM(id * sortorder) AS ordersum
                FROM {local_outcomemap_snapitem}
               WHERE snapshotid = :snapshotid",
             ['snapshotid' => (int) $snapshot->id]
@@ -559,7 +564,13 @@ final class snapshot_service extends base_service {
         }
         return hash('sha256', canonical_json::encode([
             'record' => $record,
-            'rows' => [(int) $rows->total, (int) $rows->minid, (int) $rows->maxid, (string) $rows->sortsum],
+            'rows' => [
+                (int) $rows->total,
+                (int) $rows->minid,
+                (int) $rows->maxid,
+                (string) $rows->sortsum,
+                (string) $rows->ordersum,
+            ],
         ]));
     }
 

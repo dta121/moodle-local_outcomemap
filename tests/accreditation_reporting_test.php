@@ -1450,6 +1450,26 @@ final class accreditation_reporting_test extends \advanced_testcase {
     }
 
     /**
+     * Two rows trading places invalidates a recorded verdict at once.
+     *
+     * The exchange leaves the row count, the ID range, and the sum of the
+     * positions as they were, so only an order-sensitive value can tell.
+     */
+    public function test_snapshot_verdict_is_bound_to_the_row_order(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        [, $snapshotid] = $this->frozen_report();
+        $items = snapshot_service::items($snapshotid);
+        $first = reset($items);
+        $last = end($items);
+        $this->assertNotEquals($first->sortorder, $last->sortorder, 'The fixture needs two rows in different positions.');
+
+        $DB->set_field('local_outcomemap_snapitem', 'sortorder', $last->sortorder, ['id' => $first->id]);
+        $DB->set_field('local_outcomemap_snapitem', 'sortorder', $first->sortorder, ['id' => $last->id]);
+        $this->assert_report_refused($snapshotid, false, 'Reordered rows must invalidate the verdict.');
+    }
+
+    /**
      * Manifest-covered metadata is part of what a verdict vouches for.
      *
      * The row hashes do not cover a frozen record's notes, approval, or
